@@ -476,7 +476,7 @@ uint32_t dc_join_securejoin(dc_context_t* context, const char* qr)
 		// the scanned fingerprint matches Alice's key, we can proceed to step 4b) directly and save two mails
 		dc_log_info(context, 0, "Taking protocol shortcut.");
 		context->bob_expects = DC_VC_CONTACT_CONFIRM;
-		context->cb(context, DC_EVENT_SECUREJOIN_JOINER_PROGRESS, chat_id_2_contact_id(context, contact_chat_id), 4);
+		context->cb(context, DC_EVENT_SECUREJOIN_JOINER_PROGRESS, chat_id_2_contact_id(context, contact_chat_id), 400);
 		char* own_fingerprint = get_self_fingerprint(context);
 		send_handshake_msg(context, contact_chat_id, join_vg? "vg-request-with-auth" : "vc-request-with-auth",
 			qr_scan->auth, own_fingerprint, join_vg? qr_scan->text2 : NULL); // Bob -> Alice
@@ -530,16 +530,17 @@ cleanup:
  */
 int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimeparser, uint32_t contact_id)
 {
-	int          qr_locked                    = 0;
-	const char*  step                         = NULL;
-	int          join_vg                      = 0;
-	char*        scanned_fingerprint_of_alice = NULL;
-	char*        auth                         = NULL;
-	char*        own_fingerprint              = NULL;
-	uint32_t     contact_chat_id              = 0;
-	int          contact_chat_id_blocked      = 0;
-	char*        grpid                        = NULL;
-	int          ret                          = 0;
+	int           qr_locked                    = 0;
+	const char*   step                         = NULL;
+	int           join_vg                      = 0;
+	char*         scanned_fingerprint_of_alice = NULL;
+	char*         auth                         = NULL;
+	char*         own_fingerprint              = NULL;
+	uint32_t      contact_chat_id              = 0;
+	int           contact_chat_id_blocked      = 0;
+	char*         grpid                        = NULL;
+	int           ret                          = 0;
+	dc_contact_t* contact                      = NULL;
 
 	if( context == NULL || mimeparser == NULL || contact_id <= DC_CONTACT_ID_LAST_SPECIAL ) {
 		goto cleanup;
@@ -584,7 +585,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 
 		dc_log_info(context, 0, "Secure-join requested.");
 
-		context->cb(context, DC_EVENT_SECUREJOIN_INVITER_PROGRESS, contact_id, 3);
+		context->cb(context, DC_EVENT_SECUREJOIN_INVITER_PROGRESS, contact_id, 300);
 
 		send_handshake_msg(context, contact_chat_id, join_vg? "vg-auth-required" : "vc-auth-required",
 			NULL, NULL, NULL); // Alice -> Bob
@@ -628,7 +629,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 
 		own_fingerprint = get_self_fingerprint(context);
 
-		context->cb(context, DC_EVENT_SECUREJOIN_JOINER_PROGRESS, contact_id, 4);
+		context->cb(context, DC_EVENT_SECUREJOIN_JOINER_PROGRESS, contact_id, 400);
 
 		context->bob_expects = DC_VC_CONTACT_CONFIRM;
 		send_handshake_msg(context, contact_chat_id, join_vg? "vg-request-with-auth" : "vc-request-with-auth",
@@ -686,7 +687,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 		secure_connection_established(context, contact_chat_id);
 
 		context->cb(context, DC_EVENT_CONTACTS_CHANGED, contact_id/*selected contact*/, 0);
-		context->cb(context, DC_EVENT_SECUREJOIN_INVITER_PROGRESS, contact_id, 6);
+		context->cb(context, DC_EVENT_SECUREJOIN_INVITER_PROGRESS, contact_id, 600);
 
 		if( join_vg ) {
 			// the vg-member-added message is special: this is a normal Chat-Group-Member-Added message with an additional Secure-Join header
@@ -703,6 +704,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 		else {
 			send_handshake_msg(context, contact_chat_id, "vc-contact-confirm",
 				NULL, NULL, NULL); // Alice -> Bob
+			context->cb(context, DC_EVENT_SECUREJOIN_INVITER_PROGRESS, contact_id, 1000); // done contact joining
 		}
 	}
 	else if( strcmp(step, "vg-member-added")==0 || strcmp(step, "vc-contact-confirm")==0 )
@@ -755,7 +757,26 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 		context->cb(context, DC_EVENT_CONTACTS_CHANGED, 0/*no select event*/, 0);
 
 		context->bob_expects = 0;
+		if (join_vg) {
+			send_handshake_msg(context, contact_chat_id, "vg-member-added-received",
+				NULL, NULL, NULL); // Bob -> Alice
+		}
+
 		end_bobs_joining(context, DC_BOB_SUCCESS);
+	}
+	else if (strcmp(step, "vg-member-added-received")==0)
+	{
+		/* ============================================================
+		   ====              Alice - the inviter side              ====
+		   ====  Step 8 in "Out-of-band verified groups" protocol  ====
+		   ============================================================ */
+
+		if (NULL==(contact=dc_get_contact(context, contact_id)) || !dc_contact_is_verified(contact)) {
+			dc_log_warning(context, 0, "vg-member-added-received invalid.");
+			goto cleanup;
+		}
+		context->cb(context, DC_EVENT_SECUREJOIN_INVITER_PROGRESS, contact_id, 800);
+		context->cb(context, DC_EVENT_SECUREJOIN_INVITER_PROGRESS, contact_id, 1000); // done group joining
 	}
 
 	// for errors, we do not the corresponding message at all,
@@ -768,6 +789,7 @@ cleanup:
 
 	UNLOCK_QR
 
+	dc_contact_unref(contact);
 	free(scanned_fingerprint_of_alice);
 	free(auth);
 	free(own_fingerprint);
