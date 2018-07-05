@@ -674,7 +674,6 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 			could_not_establish_secure_connection(context, contact_chat_id, "Fingerprint mismatch on inviter-side."); // should not happen, we've compared the fingerprint some lines above
 			goto cleanup;
 		}
-
 		dc_scaleup_contact_origin(context, contact_id, DC_ORIGIN_SECUREJOIN_INVITED);
 
 		dc_log_info(context, 0, "Auth verified.");
@@ -737,8 +736,8 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 			could_not_establish_secure_connection(context, contact_chat_id, "Fingerprint mismatch on joiner-side."); // MitM? - key has changed since vc-auth-required message
 			goto cleanup;
 		}
-
 		dc_scaleup_contact_origin(context, contact_id, DC_ORIGIN_SECUREJOIN_JOINED);
+		context->cb(context, DC_EVENT_CONTACTS_CHANGED, 0/*no select event*/, 0);
 
 		if (join_vg) {
 			if (!dc_addr_is_self(context, lookup_field(mimeparser, "Chat-Group-Member-Added"))) {
@@ -748,8 +747,6 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 		}
 
 		secure_connection_established(context, contact_chat_id);
-
-		context->cb(context, DC_EVENT_CONTACTS_CHANGED, 0/*no select event*/, 0);
 
 		context->bob_expects = 0;
 		if (join_vg) {
