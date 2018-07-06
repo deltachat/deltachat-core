@@ -79,9 +79,9 @@ static char* get_error_msg(dc_imap_t* imap, const char* what_failed, int code)
 	free(stock);
 	stock = NULL;
 
-	if (imap->hEtpan->imap_response) {
+	if (imap->etpan->imap_response) {
 		dc_strbuilder_cat(&msg, "\n\n");
-		stock = dc_stock_str_repl_string2(imap->context, DC_STR_SERVER_RESPONSE, imap->imap_server, imap->hEtpan->imap_response);
+		stock = dc_stock_str_repl_string2(imap->context, DC_STR_SERVER_RESPONSE, imap->imap_server, imap->etpan->imap_response);
 		dc_strbuilder_cat(&msg, stock);
 	}
 	free(stock);
@@ -237,7 +237,7 @@ static clist* list_folders(dc_imap_t* imap)
 	int        r = 0;
 	int        xlist_works = 0;
 
-	if (imap==NULL || imap->hEtpan==NULL) {
+	if (imap==NULL || imap->etpan==NULL) {
 		goto cleanup;
 	}
 
@@ -245,10 +245,10 @@ static clist* list_folders(dc_imap_t* imap)
 	delimiters as "folder/subdir/subsubdir" etc.  However, as we do not really use folders, this is just fine (otherwise we'd implement this
 	functinon recursively. */
 	if (imap->has_xlist)  {
-		r = mailimap_xlist(imap->hEtpan, "", "*", &imap_list);
+		r = mailimap_xlist(imap->etpan, "", "*", &imap_list);
 	}
 	else {
-		r = mailimap_list(imap->hEtpan, "", "*", &imap_list);
+		r = mailimap_list(imap->etpan, "", "*", &imap_list);
 	}
 
 	if (is_error(imap, r) || imap_list==NULL) {
@@ -335,7 +335,7 @@ static int init_chat_folders(dc_imap_t* imap)
 	char*      sent_folder = NULL;
 	char*      chats_folder = NULL;
 
-	if (imap==NULL || imap->hEtpan==NULL) {
+	if (imap==NULL || imap->etpan==NULL) {
 		goto cleanup;
 	}
 
@@ -372,10 +372,10 @@ static int init_chat_folders(dc_imap_t* imap)
 
 	if (chats_folder==NULL && (imap->server_flags&DC_NO_MOVE_TO_CHATS)==0) {
 		dc_log_info(imap->context, 0, "Creating IMAP-folder \"%s\"...", DC_CHATS_FOLDER);
-		int r = mailimap_create(imap->hEtpan, DC_CHATS_FOLDER);
+		int r = mailimap_create(imap->etpan, DC_CHATS_FOLDER);
 		if (is_error(imap, r)) {
 			dc_log_warning(imap->context, 0, "Cannot create IMAP-folder, using trying INBOX subfolder.");
-			r = mailimap_create(imap->hEtpan, fallback_folder);
+			r = mailimap_create(imap->etpan, fallback_folder);
 			if (is_error(imap, r)) {
 				/* continue on errors, we'll just use a different folder then */
 				dc_log_warning(imap->context, 0, "Cannot create IMAP-folder, using default.");
@@ -394,7 +394,7 @@ static int init_chat_folders(dc_imap_t* imap)
 	/* Subscribe to the created folder.  Otherwise, although a top-level folder, if clients use LSUB for listing, the created folder may be hidden.
 	(we could also do this directly after creation, however, we forgot this in versions <v0.1.19 */
 	if (chats_folder && imap->get_config(imap, "imap.subscribedToChats", NULL)==NULL) {
-		mailimap_subscribe(imap->hEtpan, chats_folder);
+		mailimap_subscribe(imap->etpan, chats_folder);
 		imap->set_config(imap, "imap.subscribedToChats", "1");
 	}
 
@@ -427,7 +427,7 @@ static int select_folder(dc_imap_t* imap, const char* folder /*may be NULL*/)
 		return 0;
 	}
 
-	if (imap->hEtpan==NULL) {
+	if (imap->etpan==NULL) {
 		imap->selected_folder[0] = 0;
 		imap->selected_folder_needs_expunge = 0;
 		return 0;
@@ -443,15 +443,15 @@ static int select_folder(dc_imap_t* imap, const char* folder /*may be NULL*/)
 	if (imap->selected_folder_needs_expunge) {
 		if (imap->selected_folder[0]) {
 			dc_log_info(imap->context, 0, "Expunge messages in \"%s\".", imap->selected_folder);
-			mailimap_close(imap->hEtpan); /* a CLOSE-SELECT is considerably faster than an EXPUNGE-SELECT, see https://tools.ietf.org/html/rfc3501#section-6.4.2 */
+			mailimap_close(imap->etpan); /* a CLOSE-SELECT is considerably faster than an EXPUNGE-SELECT, see https://tools.ietf.org/html/rfc3501#section-6.4.2 */
 		}
 		imap->selected_folder_needs_expunge = 0;
 	}
 
 	/* select new folder */
 	if (folder) {
-		int r = mailimap_select(imap->hEtpan, folder);
-		if (is_error(imap, r) || imap->hEtpan->imap_selection_info==NULL) {
+		int r = mailimap_select(imap->etpan, folder);
+		if (is_error(imap, r) || imap->etpan->imap_selection_info==NULL) {
 			imap->selected_folder[0] = 0;
 			return 0;
 		}
@@ -480,7 +480,7 @@ static uint32_t search_uid(dc_imap_t* imap, const char* message_id)
 		dc_imapfolder_t* folder = (dc_imapfolder_t*)clist_content(cur);
 		if (select_folder(imap, folder->name_to_select))
 		{
-			int r = mailimap_uid_search(imap->hEtpan, "utf-8", key, &search_result);
+			int r = mailimap_uid_search(imap->etpan, "utf-8", key, &search_result);
 			if (!is_error(imap, r) && search_result) {
 				if ((cur2=clist_begin(search_result))!=NULL) {
 					uint32_t* ptr_uid = (uint32_t *)clist_content(cur2);
@@ -683,14 +683,14 @@ static int fetch_single_msg(dc_imap_t* imap, const char* folder, uint32_t server
 		goto cleanup;
 	}
 
-	if (imap->hEtpan==NULL) {
+	if (imap->etpan==NULL) {
 		goto cleanup;
 	}
 
 
 	{
 		struct mailimap_set* set = mailimap_set_new_single(server_uid);
-			r = mailimap_uid_fetch(imap->hEtpan, set, imap->fetch_type_body, &fetch_result);
+			r = mailimap_uid_fetch(imap->etpan, set, imap->fetch_type_body, &fetch_result);
 		mailimap_set_free(set);
 	}
 
@@ -742,7 +742,7 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 		goto cleanup;
 	}
 
-	if (imap->hEtpan==NULL) {
+	if (imap->etpan==NULL) {
 		dc_log_info(imap->context, 0, "Cannot fetch from \"%s\" - not connected.", folder);
 		goto cleanup;
 	}
@@ -754,21 +754,21 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 
 	/* compare last seen UIDVALIDITY against the current one */
 	get_config_lastseenuid(imap, folder, &uidvalidity, &lastseenuid);
-	if (uidvalidity!=imap->hEtpan->imap_selection_info->sel_uidvalidity)
+	if (uidvalidity!=imap->etpan->imap_selection_info->sel_uidvalidity)
 	{
 		/* first time this folder is selected or UIDVALIDITY has changed, init lastseenuid and save it to config */
-		if (imap->hEtpan->imap_selection_info->sel_uidvalidity <= 0) {
+		if (imap->etpan->imap_selection_info->sel_uidvalidity <= 0) {
 			dc_log_error(imap->context, 0, "Cannot get UIDVALIDITY for folder \"%s\".", folder);
 			goto cleanup;
 		}
 
-		if (imap->hEtpan->imap_selection_info->sel_has_exists) {
-			if (imap->hEtpan->imap_selection_info->sel_exists <= 0) {
+		if (imap->etpan->imap_selection_info->sel_has_exists) {
+			if (imap->etpan->imap_selection_info->sel_exists <= 0) {
 				dc_log_info(imap->context, 0, "Folder \"%s\" is empty.", folder);
 				goto cleanup;
 			}
 			/* `FETCH <message sequence number> (UID)` */
-			set = mailimap_set_new_single(imap->hEtpan->imap_selection_info->sel_exists);
+			set = mailimap_set_new_single(imap->etpan->imap_selection_info->sel_exists);
 		}
 		else {
 			/* `FETCH * (UID)` - according to RFC 3501, `*` represents the largest message sequence number; if the mailbox is empty,
@@ -776,7 +776,7 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 			dc_log_info(imap->context, 0, "EXISTS is missing for folder \"%s\", using fallback.", folder);
 			set = mailimap_set_new_single(0);
 		}
-		r = mailimap_fetch(imap->hEtpan, set, imap->fetch_type_uid, &fetch_result);
+		r = mailimap_fetch(imap->etpan, set, imap->fetch_type_uid, &fetch_result);
 		mailimap_set_free(set);
 
 		if (is_error(imap, r) || fetch_result==NULL || (cur=clist_begin(fetch_result))==NULL) {
@@ -799,13 +799,13 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 		}
 
 		/* store calculated uidvalidity/lastseenuid */
-		uidvalidity = imap->hEtpan->imap_selection_info->sel_uidvalidity;
+		uidvalidity = imap->etpan->imap_selection_info->sel_uidvalidity;
 		set_config_lastseenuid(imap, folder, uidvalidity, lastseenuid);
 	}
 
 	/* fetch messages with larger UID than the last one seen (`UID FETCH lastseenuid+1:*)`, see RFC 4549 */
 	set = mailimap_set_new_interval(lastseenuid+1, 0);
-		r = mailimap_uid_fetch(imap->hEtpan, set, imap->fetch_type_uid, &fetch_result);
+		r = mailimap_uid_fetch(imap->etpan, set, imap->fetch_type_uid, &fetch_result);
 	mailimap_set_free(set);
 
 	if (is_error(imap, r) || fetch_result==NULL)
@@ -988,8 +988,8 @@ void dc_imap_idle(dc_imap_t* imap)
 	{
 		setup_handle_if_needed(imap);
 
-		if (imap->idle_set_up==0 && imap->hEtpan && imap->hEtpan->imap_stream) {
-			r = mailstream_setup_idle(imap->hEtpan->imap_stream);
+		if (imap->idle_set_up==0 && imap->etpan && imap->etpan->imap_stream) {
+			r = mailstream_setup_idle(imap->etpan->imap_stream);
 			if (is_error(imap, r)) {
 				dc_log_warning(imap->context, 0, "IMAP-IDLE: Cannot setup.");
 				fake_idle(imap);
@@ -1004,7 +1004,7 @@ void dc_imap_idle(dc_imap_t* imap)
 			return;
 		}
 
-		r = mailimap_idle(imap->hEtpan);
+		r = mailimap_idle(imap->etpan);
 		if (is_error(imap, r)) {
 			dc_log_warning(imap->context, 0, "IMAP-IDLE: Cannot start.");
 			fake_idle(imap);
@@ -1016,8 +1016,8 @@ void dc_imap_idle(dc_imap_t* imap)
 		// we use a shorter delay to let failed jobs run again from time to time.
 		#define IDLE_DELAY_SECONDS (1*60)
 
-		r = mailstream_wait_idle(imap->hEtpan->imap_stream, IDLE_DELAY_SECONDS);
-		r2 = mailimap_idle_done(imap->hEtpan);
+		r = mailstream_wait_idle(imap->etpan->imap_stream, IDLE_DELAY_SECONDS);
+		r2 = mailimap_idle_done(imap->etpan);
 
 		if (r==MAILSTREAM_IDLE_ERROR /*0*/ || r==MAILSTREAM_IDLE_CANCELLED /*4*/) {
 			dc_log_info(imap->context, 0, "IMAP-IDLE wait cancelled, r=%i, r2=%i; we'll reconnect soon.", r, r2);
@@ -1045,15 +1045,15 @@ void dc_imap_idle(dc_imap_t* imap)
 
 void dc_imap_interrupt_idle(dc_imap_t* imap)
 {
-	if (imap==NULL) { // imap->hEtPan may be NULL
+	if (imap==NULL) { // imap->etpan may be NULL
 		dc_log_warning(imap->context, 0, "Interrupt IMAP-IDLE: Bad parameter.");
 		return;
 	}
 
 	if (imap->can_idle)
 	{
-		if (imap && imap->hEtpan && imap->hEtpan->imap_stream) {
-			mailstream_interrupt_idle(imap->hEtpan->imap_stream);
+		if (imap && imap->etpan && imap->etpan->imap_stream) {
+			mailstream_interrupt_idle(imap->etpan->imap_stream);
 		}
 	}
 
@@ -1083,7 +1083,7 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 		unsetup_handle(imap);
     }
 
-    if (imap->hEtpan) {
+    if (imap->etpan) {
 		success = 1;
 		goto cleanup;
     }
@@ -1093,13 +1093,13 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 		goto cleanup;
 	}
 
-	imap->hEtpan = mailimap_new(0, NULL);
+	imap->etpan = mailimap_new(0, NULL);
 
-	mailimap_set_timeout(imap->hEtpan, DC_IMAP_TIMEOUT_SEC);
+	mailimap_set_timeout(imap->etpan, DC_IMAP_TIMEOUT_SEC);
 
 	if (imap->server_flags&(DC_LP_IMAP_SOCKET_STARTTLS|DC_LP_IMAP_SOCKET_PLAIN))
 	{
-		r = mailimap_socket_connect(imap->hEtpan, imap->imap_server, imap->imap_port);
+		r = mailimap_socket_connect(imap->etpan, imap->imap_server, imap->imap_port);
 		if (is_error(imap, r)) {
 			dc_log_error_if(&imap->log_connect_errors, imap->context, 0, "Could not connect to IMAP-server %s:%i. (Error #%i)", imap->imap_server, (int)imap->imap_port, (int)r);
 			goto cleanup;
@@ -1107,7 +1107,7 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 
 		if (imap->server_flags&DC_LP_IMAP_SOCKET_STARTTLS)
 		{
-			r = mailimap_socket_starttls(imap->hEtpan);
+			r = mailimap_socket_starttls(imap->etpan);
 			if (is_error(imap, r)) {
 				dc_log_error_if(&imap->log_connect_errors, imap->context, 0, "Could not connect to IMAP-server %s:%i using STARTTLS. (Error #%i)", imap->imap_server, (int)imap->imap_port, (int)r);
 				goto cleanup;
@@ -1121,7 +1121,7 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 	}
 	else
 	{
-		r = mailimap_ssl_connect(imap->hEtpan, imap->imap_server, imap->imap_port);
+		r = mailimap_ssl_connect(imap->etpan, imap->imap_server, imap->imap_port);
 		if (is_error(imap, r)) {
 			dc_log_error_if(&imap->log_connect_errors, imap->context, 0, "Could not connect to IMAP-server %s:%i using SSL. (Error #%i)", imap->imap_server, (int)imap->imap_port, (int)r);
 			goto cleanup;
@@ -1138,13 +1138,13 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 				r = MAILIMAP_ERROR_STREAM;
 			}
 			else {
-				r = mailimap_oauth2_authenticate(imap->hEtpan, imap->imap_use, mOAuth2Token);
+				r = mailimap_oauth2_authenticate(imap->etpan, imap->imap_use, mOAuth2Token);
 			}
 		}
 		else*/
 		{
 			/* DC_LP_AUTH_NORMAL or no auth flag set */
-			r = mailimap_login(imap->hEtpan, imap->imap_user, imap->imap_pw);
+			r = mailimap_login(imap->etpan, imap->imap_user, imap->imap_pw);
 		}
 
 		if (is_error(imap, r)) {
@@ -1174,20 +1174,20 @@ static void unsetup_handle(dc_imap_t* imap)
 		return;
 	}
 
-	if (imap->hEtpan)
+	if (imap->etpan)
 	{
 		if (imap->idle_set_up) {
-			mailstream_unsetup_idle(imap->hEtpan->imap_stream);
+			mailstream_unsetup_idle(imap->etpan->imap_stream);
 			imap->idle_set_up = 0;
 		}
 
-		if (imap->hEtpan->imap_stream!=NULL) {
-			mailstream_close(imap->hEtpan->imap_stream); /* not sure, if this is really needed, however, mailcore2 does the same */
-			imap->hEtpan->imap_stream = NULL;
+		if (imap->etpan->imap_stream!=NULL) {
+			mailstream_close(imap->etpan->imap_stream); /* not sure, if this is really needed, however, mailcore2 does the same */
+			imap->etpan->imap_stream = NULL;
 		}
 
-		mailimap_free(imap->hEtpan);
-		imap->hEtpan = NULL;
+		mailimap_free(imap->etpan);
+		imap->etpan = NULL;
 
 		dc_log_info(imap->context, 0, "IMAP disconnected.");
 	}
@@ -1252,8 +1252,8 @@ int dc_imap_connect(dc_imap_t* imap, const dc_loginparam_t* lp)
 	}
 
 	/* we set the following flags here and not in setup_handle_if_needed() as they must not change during connection */
-	imap->can_idle = mailimap_has_idle(imap->hEtpan);
-	imap->has_xlist = mailimap_has_xlist(imap->hEtpan);
+	imap->can_idle = mailimap_has_idle(imap->etpan);
+	imap->has_xlist = mailimap_has_xlist(imap->etpan);
 
 	#ifdef __APPLE__
 	imap->can_idle = 0; // HACK to force iOS not to work IMAP-IDLE which does not work for now, see also (*)
@@ -1261,13 +1261,13 @@ int dc_imap_connect(dc_imap_t* imap, const dc_loginparam_t* lp)
 
 
 	if (!imap->skip_log_capabilities
-	 && imap->hEtpan->imap_connection_info && imap->hEtpan->imap_connection_info->imap_capability)
+	 && imap->etpan->imap_connection_info && imap->etpan->imap_connection_info->imap_capability)
 	{
 		/* just log the whole capabilities list (the mailimap_has_*() function also use this list, so this is a good overview on problems) */
 		imap->skip_log_capabilities = 1;
 		dc_strbuilder_t capinfostr;
 		dc_strbuilder_init(&capinfostr, 0);
-		clist* list = imap->hEtpan->imap_connection_info->imap_capability->cap_list;
+		clist* list = imap->etpan->imap_connection_info->imap_capability->cap_list;
 		if (list) {
 			clistiter* cur;
 			for(cur = clist_begin(list) ; cur!=NULL ; cur = clist_next(cur)) {
@@ -1406,7 +1406,7 @@ int dc_imap_append_msg(dc_imap_t* imap, time_t timestamp, const char* data_not_t
 		goto cleanup;
 	}
 
-	if (imap->hEtpan==NULL) {
+	if (imap->etpan==NULL) {
 		goto cleanup;
 	}
 
@@ -1432,7 +1432,7 @@ int dc_imap_append_msg(dc_imap_t* imap, time_t timestamp, const char* data_not_t
 		goto cleanup;
 	}
 
-	r = mailimap_uidplus_append(imap->hEtpan, imap->sent_folder, flag_list, imap_date, data_not_terminated, data_bytes, &ret_uidvalidity, ret_server_uid);
+	r = mailimap_uidplus_append(imap->etpan, imap->sent_folder, flag_list, imap_date, data_not_terminated, data_bytes, &ret_uidvalidity, ret_server_uid);
 	if (is_error(imap, r)) {
 		dc_log_error_if(&imap->log_connect_errors, imap->context, 0, "Cannot append message to \"%s\", error #%i.", imap->sent_folder, (int)r);
 		goto cleanup;
@@ -1465,7 +1465,7 @@ static int add_flag(dc_imap_t* imap, uint32_t server_uid, struct mailimap_flag* 
 	struct mailimap_store_att_flags* store_att_flags = NULL;
 	struct mailimap_set*             set             = mailimap_set_new_single(server_uid);
 
-	if (imap==NULL || imap->hEtpan==NULL) {
+	if (imap==NULL || imap->etpan==NULL) {
 		goto cleanup;
 	}
 
@@ -1474,7 +1474,7 @@ static int add_flag(dc_imap_t* imap, uint32_t server_uid, struct mailimap_flag* 
 
 	store_att_flags = mailimap_store_att_flags_new_add_flags(flag_list); /* FLAGS.SILENT does not return the new value */
 
-	r = mailimap_uid_store(imap->hEtpan, set, store_att_flags);
+	r = mailimap_uid_store(imap->etpan, set, store_att_flags);
 	if (is_error(imap, r)) {
 		goto cleanup;
 	}
@@ -1507,7 +1507,7 @@ int dc_imap_markseen_msg(dc_imap_t* imap, const char* folder, uint32_t server_ui
 		goto cleanup;
 	}
 
-	if (imap->hEtpan==NULL) {
+	if (imap->etpan==NULL) {
 		goto cleanup;
 	}
 
@@ -1526,13 +1526,13 @@ int dc_imap_markseen_msg(dc_imap_t* imap, const char* folder, uint32_t server_ui
 	dc_log_info(imap->context, 0, "Message marked as seen.");
 
 	if ((ms_flags&DC_MS_SET_MDNSent_FLAG)
-	 && imap->hEtpan->imap_selection_info!=NULL && imap->hEtpan->imap_selection_info->sel_perm_flags!=NULL)
+	 && imap->etpan->imap_selection_info!=NULL && imap->etpan->imap_selection_info->sel_perm_flags!=NULL)
 	{
 		/* Check if the folder can handle the `$MDNSent` flag (see RFC 3503).  If so, and not set: set the flags and return this information.
 		If the folder cannot handle the `$MDNSent` flag, we risk duplicated MDNs; it's up to the receiving MUA to handle this then (eg. Delta Chat has no problem with this). */
 		int can_create_flag = 0;
 		clistiter* iter;
-		for (iter=clist_begin(imap->hEtpan->imap_selection_info->sel_perm_flags); iter!=NULL; iter=clist_next(iter))
+		for (iter=clist_begin(imap->etpan->imap_selection_info->sel_perm_flags); iter!=NULL; iter=clist_next(iter))
 		{
 			struct mailimap_flag_perm* fp = (struct mailimap_flag_perm*)clist_content(iter);
 			if (fp) {
@@ -1553,7 +1553,7 @@ int dc_imap_markseen_msg(dc_imap_t* imap, const char* folder, uint32_t server_ui
 		if (can_create_flag)
 		{
 			clist* fetch_result = NULL;
-			r = mailimap_uid_fetch(imap->hEtpan, set, imap->fetch_type_flags, &fetch_result);
+			r = mailimap_uid_fetch(imap->etpan, set, imap->fetch_type_flags, &fetch_result);
 			if (!is_error(imap, r) && fetch_result) {
 				clistiter* cur=clist_begin(fetch_result);
 				if (cur) {
@@ -1591,10 +1591,10 @@ int dc_imap_markseen_msg(dc_imap_t* imap, const char* folder, uint32_t server_ui
 			uint32_t             res_uid = 0;
 			struct mailimap_set* res_setsrc = NULL;
 			struct mailimap_set* res_setdest = NULL;
-			r = mailimap_uidplus_uid_move(imap->hEtpan, set, imap->moveto_folder, &res_uid, &res_setsrc, &res_setdest); /* the correct folder is already selected in add_flag() above */
+			r = mailimap_uidplus_uid_move(imap->etpan, set, imap->moveto_folder, &res_uid, &res_setsrc, &res_setdest); /* the correct folder is already selected in add_flag() above */
 			if (is_error(imap, r)) {
 								dc_log_info(imap->context, 0, "Cannot move message, fallback to COPY/DELETE %s/%i to %s...", folder, (int)server_uid, imap->moveto_folder);
-								r = mailimap_uidplus_uid_copy(imap->hEtpan, set, imap->moveto_folder, &res_uid, &res_setsrc, &res_setdest);
+								r = mailimap_uidplus_uid_copy(imap->etpan, set, imap->moveto_folder, &res_uid, &res_setsrc, &res_setdest);
 								if (is_error(imap, r)) {
 									dc_log_info(imap->context, 0, "Cannot copy message. Leaving in INBOX");
 									goto cleanup;
@@ -1671,7 +1671,7 @@ int dc_imap_delete_msg(dc_imap_t* imap, const char* rfc724_mid, const char* fold
 		const char* is_quoted_rfc724_mid = NULL;
 
 		struct mailimap_set* set = mailimap_set_new_single(server_uid);
-			r = mailimap_uid_fetch(imap->hEtpan, set, imap->fetch_type_message_id, &fetch_result);
+			r = mailimap_uid_fetch(imap->etpan, set, imap->fetch_type_message_id, &fetch_result);
 		mailimap_set_free(set);
 
 		if (is_error(imap, r) || fetch_result==NULL

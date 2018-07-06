@@ -69,7 +69,7 @@ void dc_smtp_unref(dc_smtp_t* smtp)
 
 int dc_smtp_is_connected(const dc_smtp_t* smtp)
 {
-	return (smtp && smtp->hEtpan)? 1 : 0;
+	return (smtp && smtp->etpan)? 1 : 0;
 }
 
 
@@ -107,7 +107,7 @@ int dc_smtp_connect(dc_smtp_t* smtp, const dc_loginparam_t* lp)
 		goto cleanup;
 	}
 
-	if (smtp->hEtpan) {
+	if (smtp->etpan) {
 		dc_log_warning(smtp->context, 0, "SMTP already connected.");
 		success = 1; /* otherwise, the handle would get deleted */
 		goto cleanup;
@@ -121,28 +121,28 @@ int dc_smtp_connect(dc_smtp_t* smtp, const dc_loginparam_t* lp)
 	free(smtp->from);
 	smtp->from = dc_strdup(lp->addr);
 
-	smtp->hEtpan = mailsmtp_new(0, NULL);
-	if (smtp->hEtpan==NULL) {
+	smtp->etpan = mailsmtp_new(0, NULL);
+	if (smtp->etpan==NULL) {
 		dc_log_error(smtp->context, 0, "SMTP-object creation failed.");
 		goto cleanup;
 	}
-	mailsmtp_set_timeout(smtp->hEtpan, DC_SMTP_TIMEOUT_SEC);
-	mailsmtp_set_progress_callback(smtp->hEtpan, body_progress, smtp);
+	mailsmtp_set_timeout(smtp->etpan, DC_SMTP_TIMEOUT_SEC);
+	mailsmtp_set_progress_callback(smtp->etpan, body_progress, smtp);
 	#if DEBUG_SMTP
-		mailsmtp_set_logger(smtp->hEtpan, logger, smtp);
+		mailsmtp_set_logger(smtp->etpan, logger, smtp);
 	#endif
 
 	/* connect to SMTP server */
 	if (lp->server_flags&(DC_LP_SMTP_SOCKET_STARTTLS|DC_LP_SMTP_SOCKET_PLAIN))
 	{
-		if ((r=mailsmtp_socket_connect(smtp->hEtpan, lp->send_server, lp->send_port)) != MAILSMTP_NO_ERROR) {
+		if ((r=mailsmtp_socket_connect(smtp->etpan, lp->send_server, lp->send_port)) != MAILSMTP_NO_ERROR) {
 			dc_log_error_if(&smtp->log_connect_errors, smtp->context, 0, "SMTP-Socket connection to %s:%i failed (%s)", lp->send_server, (int)lp->send_port, mailsmtp_strerror(r));
 			goto cleanup;
 		}
 	}
 	else
 	{
-		if ((r=mailsmtp_ssl_connect(smtp->hEtpan, lp->send_server, lp->send_port)) != MAILSMTP_NO_ERROR) {
+		if ((r=mailsmtp_ssl_connect(smtp->etpan, lp->send_server, lp->send_port)) != MAILSMTP_NO_ERROR) {
 			dc_log_error_if(&smtp->log_connect_errors, smtp->context, 0, "SMPT-SSL connection to %s:%i failed (%s)", lp->send_server, (int)lp->send_port, mailsmtp_strerror(r));
 			goto cleanup;
 		}
@@ -150,11 +150,11 @@ int dc_smtp_connect(dc_smtp_t* smtp, const dc_loginparam_t* lp)
 
 	try_esmtp = 1;
 	smtp->esmtp = 0;
-	if (try_esmtp && (r=mailesmtp_ehlo(smtp->hEtpan))==MAILSMTP_NO_ERROR) {
+	if (try_esmtp && (r=mailesmtp_ehlo(smtp->etpan))==MAILSMTP_NO_ERROR) {
 		smtp->esmtp = 1;
 	}
 	else if (!try_esmtp || r==MAILSMTP_ERROR_NOT_IMPLEMENTED) {
-		r = mailsmtp_helo(smtp->hEtpan);
+		r = mailsmtp_helo(smtp->etpan);
 	}
 
 	if (r != MAILSMTP_NO_ERROR) {
@@ -164,17 +164,17 @@ int dc_smtp_connect(dc_smtp_t* smtp, const dc_loginparam_t* lp)
 
 	if (lp->server_flags&DC_LP_SMTP_SOCKET_STARTTLS)
 	{
-		if ((r=mailsmtp_socket_starttls(smtp->hEtpan)) != MAILSMTP_NO_ERROR) {
+		if ((r=mailsmtp_socket_starttls(smtp->etpan)) != MAILSMTP_NO_ERROR) {
 			dc_log_error_if(&smtp->log_connect_errors, smtp->context, 0, "SMTP-STARTTLS failed (%s)", mailsmtp_strerror(r));
 			goto cleanup;
 		}
 
 		smtp->esmtp = 0;
-		if (try_esmtp && (r=mailesmtp_ehlo(smtp->hEtpan))==MAILSMTP_NO_ERROR) {
+		if (try_esmtp && (r=mailesmtp_ehlo(smtp->etpan))==MAILSMTP_NO_ERROR) {
 			smtp->esmtp = 1;
 		}
 		else if (!try_esmtp || r==MAILSMTP_ERROR_NOT_IMPLEMENTED) {
-			r = mailsmtp_helo(smtp->hEtpan);
+			r = mailsmtp_helo(smtp->etpan);
 		}
 
 		if (r != MAILSMTP_NO_ERROR) {
@@ -194,12 +194,12 @@ int dc_smtp_connect(dc_smtp_t* smtp, const dc_loginparam_t* lp)
 
 	if (lp->send_user)
 	{
-		if((r=mailsmtp_auth(smtp->hEtpan, lp->send_user, lp->send_pw))!=MAILSMTP_NO_ERROR) {
+		if((r=mailsmtp_auth(smtp->etpan, lp->send_user, lp->send_pw))!=MAILSMTP_NO_ERROR) {
 			/*
 			 * There are some Mailservers which do not correclty implement PLAIN auth (hMail)
 			 * So here we try a workaround. See https://github.com/deltachat/deltachat-android/issues/67
 			 */
-			if (smtp->hEtpan->auth & MAILSMTP_AUTH_PLAIN) {
+			if (smtp->etpan->auth & MAILSMTP_AUTH_PLAIN) {
 				dc_log_info(smtp->context, 0, "Trying SMTP-Login workaround \"%s\"...", lp->send_user);
 				int err;
 				char hostname[513];
@@ -209,7 +209,7 @@ int dc_smtp_connect(dc_smtp_t* smtp, const dc_loginparam_t* lp)
 					dc_log_error(smtp->context, 0, "SMTP-Login: Cannot get hostname.");
 					goto cleanup;
 				}
-				r = mailesmtp_auth_sasl(smtp->hEtpan, "PLAIN", hostname, NULL, NULL, NULL, lp->send_user, lp->send_pw, NULL);
+				r = mailesmtp_auth_sasl(smtp->etpan, "PLAIN", hostname, NULL, NULL, NULL, lp->send_user, lp->send_pw, NULL);
 			}
 			if (r != MAILSMTP_NO_ERROR)
 			{
@@ -225,9 +225,9 @@ int dc_smtp_connect(dc_smtp_t* smtp, const dc_loginparam_t* lp)
 
 cleanup:
 	if (!success) {
-		if (smtp->hEtpan) {
-			mailsmtp_free(smtp->hEtpan);
-			smtp->hEtpan = NULL;
+		if (smtp->etpan) {
+			mailsmtp_free(smtp->etpan);
+			smtp->etpan = NULL;
 		}
 	}
 
@@ -241,10 +241,10 @@ void dc_smtp_disconnect(dc_smtp_t* smtp)
 		return;
 	}
 
-	if (smtp->hEtpan) {
-		//mailsmtp_quit(smtp->hEtpan); -- ?
-		mailsmtp_free(smtp->hEtpan);
-		smtp->hEtpan = NULL;
+	if (smtp->etpan) {
+		//mailsmtp_quit(smtp->etpan); -- ?
+		mailsmtp_free(smtp->etpan);
+		smtp->etpan = NULL;
 	}
 }
 
@@ -268,14 +268,14 @@ int dc_smtp_send_msg(dc_smtp_t* smtp, const clist* recipients, const char* data_
 		return 1; /* "null message" send */
 	}
 
-	if (smtp->hEtpan==NULL) {
+	if (smtp->etpan==NULL) {
 		goto cleanup;
 	}
 
 	/* set source */
 	if ((r=(smtp->esmtp?
-			mailesmtp_mail(smtp->hEtpan, smtp->from, 1, "etPanSMTPTest") :
-			 mailsmtp_mail(smtp->hEtpan, smtp->from))) != MAILSMTP_NO_ERROR)
+			mailesmtp_mail(smtp->etpan, smtp->from, 1, "etPanSMTPTest") :
+			 mailsmtp_mail(smtp->etpan, smtp->from))) != MAILSMTP_NO_ERROR)
 	{
 		// this error is very usual - we've simply lost the server connection and reconnect as soon as possible.
 		// so, we do not log the first time this happens
@@ -290,20 +290,20 @@ int dc_smtp_send_msg(dc_smtp_t* smtp, const clist* recipients, const char* data_
 	for (iter=clist_begin(recipients); iter!=NULL; iter=clist_next(iter)) {
 		const char* rcpt = clist_content(iter);
 		if ((r = (smtp->esmtp?
-				 mailesmtp_rcpt(smtp->hEtpan, rcpt, MAILSMTP_DSN_NOTIFY_FAILURE|MAILSMTP_DSN_NOTIFY_DELAY, NULL) :
-				  mailsmtp_rcpt(smtp->hEtpan, rcpt))) != MAILSMTP_NO_ERROR) {
+				 mailesmtp_rcpt(smtp->etpan, rcpt, MAILSMTP_DSN_NOTIFY_FAILURE|MAILSMTP_DSN_NOTIFY_DELAY, NULL) :
+				  mailsmtp_rcpt(smtp->etpan, rcpt))) != MAILSMTP_NO_ERROR) {
 			dc_log_error_if(&smtp->log_connect_errors, smtp->context, 0, "mailsmtp_rcpt: %s: %s", rcpt, mailsmtp_strerror(r));
 			goto cleanup;
 		}
 	}
 
 	/* message */
-	if ((r = mailsmtp_data(smtp->hEtpan)) != MAILSMTP_NO_ERROR) {
+	if ((r = mailsmtp_data(smtp->etpan)) != MAILSMTP_NO_ERROR) {
 		fprintf(stderr, "mailsmtp_data: %s\n", mailsmtp_strerror(r));
 		goto cleanup;
 	}
 
-	if ((r = mailsmtp_data_message(smtp->hEtpan, data_not_terminated, data_bytes)) != MAILSMTP_NO_ERROR) {
+	if ((r = mailsmtp_data_message(smtp->etpan, data_not_terminated, data_bytes)) != MAILSMTP_NO_ERROR) {
 		fprintf(stderr, "mailsmtp_data_message: %s\n", mailsmtp_strerror(r));
 		goto cleanup;
 	}

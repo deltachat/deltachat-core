@@ -34,7 +34,7 @@ extern "C" {
 
 typedef struct dc_smtp_t
 {
-	mailsmtp*       hEtpan;
+	mailsmtp*       etpan;
 	char*           from;
 	int             esmtp;
 

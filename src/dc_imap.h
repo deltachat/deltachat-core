@@ -57,7 +57,7 @@ typedef struct dc_imap_t
 	int                   server_flags;
 
 	int                   connected;
-	mailimap*             hEtpan;   /* normally, if connected, hEtpan is also set; however, if a reconnection is required, we may lost this handle */
+	mailimap*             etpan;   /* normally, if connected, etpan is also set; however, if a reconnection is required, we may lost this handle */
 
 	time_t                last_fullread_time;
 
