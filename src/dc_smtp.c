@@ -31,11 +31,6 @@
 #endif
 
 
-/*******************************************************************************
- * Main interface
- ******************************************************************************/
-
-
 dc_smtp_t* dc_smtp_new(dc_context_t* context)
 {
 	dc_smtp_t* smtp = NULL;
@@ -265,14 +260,15 @@ int dc_smtp_send_msg(dc_smtp_t* smtp, const clist* recipients, const char* data_
 	}
 
 	if (recipients==NULL || clist_count(recipients)==0 || data_not_terminated==NULL || data_bytes==0) {
-		return 1; /* "null message" send */
+		return 1; // "null message" send
 	}
 
 	if (smtp->etpan==NULL) {
 		goto cleanup;
 	}
 
-	/* set source */
+	// set source
+	// the `etPanSMTPTest` is the ENVID from RFC 3461 (SMTP DSNs), we should probably replace it by a random value
 	if ((r=(smtp->esmtp?
 			mailesmtp_mail(smtp->etpan, smtp->from, 1, "etPanSMTPTest") :
 			 mailsmtp_mail(smtp->etpan, smtp->from))) != MAILSMTP_NO_ERROR)
@@ -286,18 +282,20 @@ int dc_smtp_send_msg(dc_smtp_t* smtp, const clist* recipients, const char* data_
 
 	smtp->log_usual_error = 0;
 
-	/* set recipients */
+	// set recipients
+	// if the recipient is on the same server, this may fail at once.
+	// TODO: question is what to do if one recipient in a group fails
 	for (iter=clist_begin(recipients); iter!=NULL; iter=clist_next(iter)) {
 		const char* rcpt = clist_content(iter);
 		if ((r = (smtp->esmtp?
 				 mailesmtp_rcpt(smtp->etpan, rcpt, MAILSMTP_DSN_NOTIFY_FAILURE|MAILSMTP_DSN_NOTIFY_DELAY, NULL) :
 				  mailsmtp_rcpt(smtp->etpan, rcpt))) != MAILSMTP_NO_ERROR) {
-			dc_log_error_if(&smtp->log_connect_errors, smtp->context, 0, "mailsmtp_rcpt: %s: %s", rcpt, mailsmtp_strerror(r));
+			dc_log_error_if(&smtp->log_connect_errors, smtp->context, 0, "Cannot add recipient %s: %s - %s", rcpt, mailsmtp_strerror(r), smtp->etpan->response);
 			goto cleanup;
 		}
 	}
 
-	/* message */
+	// message
 	if ((r = mailsmtp_data(smtp->etpan)) != MAILSMTP_NO_ERROR) {
 		fprintf(stderr, "mailsmtp_data: %s\n", mailsmtp_strerror(r));
 		goto cleanup;
@@ -311,7 +309,6 @@ int dc_smtp_send_msg(dc_smtp_t* smtp, const clist* recipients, const char* data_
 	success = 1;
 
 cleanup:
-
 	return success;
 }
 
