@@ -1052,9 +1052,9 @@ cleanup:
 
 
 /**
- * Save a draft for a chat.
- *
- * To get the draft for a given chat ID, use dc_chat_get_draft().
+ * Save a draft for a chat in the database.
+ * If the draft was modified, an #DC_EVENT_MSGS_CHANGED will be sent that you
+ * can use to update your dc_chat_t-objects.
  *
  * @memberof dc_context_t
  * @param context The context as created by dc_context_new().
@@ -1101,7 +1101,7 @@ void dc_set_draft(dc_context_t* context, uint32_t chat_id, const char* msg)
 	sqlite3_bind_int  (stmt, 3, chat->id);
 	sqlite3_step(stmt);
 
-	context->cb(context, DC_EVENT_MSGS_CHANGED, 0, 0);
+	context->cb(context, DC_EVENT_MSGS_CHANGED, chat_id, 0);
 
 cleanup:
 	sqlite3_finalize(stmt);
