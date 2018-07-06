@@ -42,15 +42,15 @@ static void unsetup_handle           (dc_imap_t*);
 
 static int is_error(dc_imap_t* imap, int code)
 {
-	if (code == MAILIMAP_NO_ERROR /*0*/
-	 || code == MAILIMAP_NO_ERROR_AUTHENTICATED /*1*/
-	 || code == MAILIMAP_NO_ERROR_NON_AUTHENTICATED /*2*/)
+	if (code==MAILIMAP_NO_ERROR /*0*/
+	 || code==MAILIMAP_NO_ERROR_AUTHENTICATED /*1*/
+	 || code==MAILIMAP_NO_ERROR_NON_AUTHENTICATED /*2*/)
 	{
 		return 0;
 	}
 
-	if (code == MAILIMAP_ERROR_STREAM /*4*/
-	 || code == MAILIMAP_ERROR_PARSE /*5*/)
+	if (code==MAILIMAP_ERROR_STREAM /*4*/
+	 || code==MAILIMAP_ERROR_PARSE /*5*/)
 	{
 		dc_log_info(imap->context, 0, "IMAP stream lost; we'll reconnect soon.");
 		imap->should_reconnect = 1;
@@ -144,7 +144,7 @@ static int get_folder_meaning(const dc_imap_t* imap, struct mailimap_mbx_list_fl
 	char* lower = NULL;
 	int   ret_meaning = MEANING_NORMAL;
 
-	if (!force_fallback && (imap->has_xlist || flags != NULL))
+	if (!force_fallback && (imap->has_xlist || flags!=NULL))
 	{
 		/* We check for flags if we get some (LIST may also return some, see https://tools.ietf.org/html/rfc6154 )
 		or if has_xlist is set.  However, we also allow a NULL-pointer for "no flags" if has_xlist is true. */
@@ -177,7 +177,7 @@ static int get_folder_meaning(const dc_imap_t* imap, struct mailimap_mbx_list_fl
 			}
 		}
 
-		if (ret_meaning == MEANING_NORMAL && strcasecmp(folder_name, "INBOX") == 0) {
+		if (ret_meaning==MEANING_NORMAL && strcasecmp(folder_name, "INBOX")==0) {
 			ret_meaning = MEANING_INBOX;
 		}
 	}
@@ -185,28 +185,28 @@ static int get_folder_meaning(const dc_imap_t* imap, struct mailimap_mbx_list_fl
 	{
 		/* we have no flag list; try some known default names */
 		lower = dc_strlower(folder_name);
-		if (strcmp(lower, "spam") == 0
-		 || strcmp(lower, "junk") == 0
-		 || strcmp(lower, "indésirables") == 0 /* fr */
+		if (strcmp(lower, "spam")==0
+		 || strcmp(lower, "junk")==0
+		 || strcmp(lower, "indésirables")==0 /* fr */
 
-		 || strcmp(lower, "trash") == 0
-		 || strcmp(lower, "deleted") == 0
-		 || strcmp(lower, "deleted items") == 0
-		 || strcmp(lower, "papierkorb") == 0   /* de */
-		 || strcmp(lower, "corbeille") == 0    /* fr */
-		 || strcmp(lower, "papelera") == 0     /* es */
-		 || strcmp(lower, "papperskorg") == 0  /* sv */
+		 || strcmp(lower, "trash")==0
+		 || strcmp(lower, "deleted")==0
+		 || strcmp(lower, "deleted items")==0
+		 || strcmp(lower, "papierkorb")==0   /* de */
+		 || strcmp(lower, "corbeille")==0    /* fr */
+		 || strcmp(lower, "papelera")==0     /* es */
+		 || strcmp(lower, "papperskorg")==0  /* sv */
 
-		 || strcmp(lower, "drafts") == 0
-		 || strcmp(lower, "entwürfe") == 0     /* de */
-		 || strcmp(lower, "brouillons") == 0   /* fr */
-		 || strcmp(lower, "borradores") == 0   /* es */
-		 || strcmp(lower, "utkast") == 0       /* sv */
+		 || strcmp(lower, "drafts")==0
+		 || strcmp(lower, "entwürfe")==0     /* de */
+		 || strcmp(lower, "brouillons")==0   /* fr */
+		 || strcmp(lower, "borradores")==0   /* es */
+		 || strcmp(lower, "utkast")==0       /* sv */
 		 )
 		{
 			ret_meaning = MEANING_IGNORE;
 		}
-		else if (strcmp(lower, "inbox") == 0) /* the "INBOX" foldername is IMAP-standard */
+		else if (strcmp(lower, "inbox")==0) /* the "INBOX" foldername is IMAP-standard */
 		{
 			ret_meaning = MEANING_INBOX;
 		}
@@ -232,9 +232,10 @@ typedef struct dc_imapfolder_t
 static clist* list_folders(dc_imap_t* imap)
 {
 	clist*     imap_list = NULL;
-	clistiter* iter1;
+	clistiter* iter1 = NULL;
 	clist *    ret_list = clist_new();
-	int        r, xlist_works = 0;
+	int        r = 0;
+	int        xlist_works = 0;
 
 	if (imap==NULL || imap->hEtpan==NULL) {
 		goto cleanup;
@@ -263,7 +264,7 @@ static clist* list_folders(dc_imap_t* imap)
 
 	//default IMAP delimiter if none is returned by the list command
 	imap->imap_delimiter = '.';
-	for (iter1 = clist_begin(imap_list); iter1 != NULL ; iter1 = clist_next(iter1))
+	for (iter1 = clist_begin(imap_list); iter1!=NULL ; iter1 = clist_next(iter1))
 	{
 		struct mailimap_mailbox_list* imap_folder = (struct mailimap_mailbox_list*)clist_content(iter1);
 		if (imap_folder->mb_delimiter) {
@@ -285,7 +286,7 @@ static clist* list_folders(dc_imap_t* imap)
 		ret_folder->name_utf8      = dc_decode_modified_utf7(imap_folder->mb_name, 0);
 		ret_folder->meaning        = get_folder_meaning(imap, imap_folder->mb_flag, ret_folder->name_utf8, false);
 
-		if (ret_folder->meaning == MEANING_IGNORE || ret_folder->meaning == MEANING_SENT_OBJECTS /*MEANING_INBOX is no hint for a working XLIST*/) {
+		if (ret_folder->meaning==MEANING_IGNORE || ret_folder->meaning==MEANING_SENT_OBJECTS /*MEANING_INBOX is no hint for a working XLIST*/) {
 			xlist_works = 1;
 		}
 
@@ -295,7 +296,7 @@ static clist* list_folders(dc_imap_t* imap)
 	/* at least my own server claims that it support XLIST but does not return folder flags. So, if we did not get a single
 	flag, fall back to the default behaviour */
 	if (!xlist_works) {
-		for (iter1 = clist_begin(ret_list); iter1 != NULL ; iter1 = clist_next(iter1))
+		for (iter1 = clist_begin(ret_list); iter1!=NULL ; iter1 = clist_next(iter1))
 		{
 			dc_imapfolder_t* ret_folder = (struct dc_imapfolder_t*)clist_content(iter1);
 			ret_folder->meaning = get_folder_meaning(imap, NULL, ret_folder->name_utf8, true);
@@ -314,7 +315,7 @@ static void free_folders(clist* folders)
 {
 	if (folders) {
 		clistiter* iter1;
-		for (iter1 = clist_begin(folders); iter1 != NULL ; iter1 = clist_next(iter1)) {
+		for (iter1 = clist_begin(folders); iter1!=NULL ; iter1 = clist_next(iter1)) {
 			dc_imapfolder_t* ret_folder = (struct dc_imapfolder_t*)clist_content(iter1);
 			free(ret_folder->name_to_select);
 			free(ret_folder->name_utf8);
@@ -330,7 +331,9 @@ static int init_chat_folders(dc_imap_t* imap)
 	int        success = 0;
 	clist*     folder_list = NULL;
 	clistiter* iter1;
-	char       *normal_folder = NULL, *sent_folder = NULL, *chats_folder = NULL;
+	char*      normal_folder = NULL;
+	char*      sent_folder = NULL;
+	char*      chats_folder = NULL;
 
 	if (imap==NULL || imap->hEtpan==NULL) {
 		goto cleanup;
@@ -353,21 +356,21 @@ static int init_chat_folders(dc_imap_t* imap)
 	char fallback_folder[64];
 	snprintf(fallback_folder, sizeof(fallback_folder), "INBOX%c%s", imap->imap_delimiter, DC_CHATS_FOLDER);
 
-	for (iter1 = clist_begin(folder_list); iter1 != NULL ; iter1 = clist_next(iter1)) {
+	for (iter1 = clist_begin(folder_list); iter1!=NULL ; iter1 = clist_next(iter1)) {
 		dc_imapfolder_t* folder = (struct dc_imapfolder_t*)clist_content(iter1);
 		if (strcmp(folder->name_utf8, DC_CHATS_FOLDER)==0 || strcmp(folder->name_utf8, fallback_folder)==0) {
 			chats_folder = dc_strdup(folder->name_to_select);
 			break;
 		}
-		else if (folder->meaning == MEANING_SENT_OBJECTS) {
+		else if (folder->meaning==MEANING_SENT_OBJECTS) {
 			sent_folder = dc_strdup(folder->name_to_select);
 		}
-		else if (folder->meaning == MEANING_NORMAL && normal_folder == NULL) {
+		else if (folder->meaning==MEANING_NORMAL && normal_folder==NULL) {
 			normal_folder = dc_strdup(folder->name_to_select);
 		}
 	}
 
-	if (chats_folder == NULL && (imap->server_flags&DC_NO_MOVE_TO_CHATS)==0) {
+	if (chats_folder==NULL && (imap->server_flags&DC_NO_MOVE_TO_CHATS)==0) {
 		dc_log_info(imap->context, 0, "Creating IMAP-folder \"%s\"...", DC_CHATS_FOLDER);
 		int r = mailimap_create(imap->hEtpan, DC_CHATS_FOLDER);
 		if (is_error(imap, r)) {
@@ -420,7 +423,7 @@ cleanup:
 
 static int select_folder(dc_imap_t* imap, const char* folder /*may be NULL*/)
 {
-	if (imap == NULL) {
+	if (imap==NULL) {
 		return 0;
 	}
 
@@ -448,7 +451,7 @@ static int select_folder(dc_imap_t* imap, const char* folder /*may be NULL*/)
 	/* select new folder */
 	if (folder) {
 		int r = mailimap_select(imap->hEtpan, folder);
-		if (is_error(imap, r) || imap->hEtpan->imap_selection_info == NULL) {
+		if (is_error(imap, r) || imap->hEtpan->imap_selection_info==NULL) {
 			imap->selected_folder[0] = 0;
 			return 0;
 		}
@@ -465,18 +468,21 @@ static uint32_t search_uid(dc_imap_t* imap, const char* message_id)
 	/* Search Message-ID in all folders.
 	On success, the folder containing the message is selected and the UID is returned.
 	On failure, 0 is returned and any or none folder is selected. */
-	clist                       *folders = list_folders(imap), *search_result = NULL;
-	clistiter                   *cur, *cur2;
-	struct mailimap_search_key  *key = mailimap_search_key_new_header(strdup("Message-ID"), dc_mprintf("<%s>", message_id));
+	clist*                      folders = list_folders(imap);
+	clist*                      search_result = NULL;
+	clistiter*                  cur = NULL;
+	clistiter*                  cur2 = NULL;
+	struct mailimap_search_key* key = mailimap_search_key_new_header(strdup("Message-ID"), dc_mprintf("<%s>", message_id));
 	uint32_t                    uid = 0;
-	for (cur = clist_begin(folders); cur != NULL ; cur = clist_next(cur))
+
+	for (cur = clist_begin(folders); cur!=NULL ; cur = clist_next(cur))
 	{
 		dc_imapfolder_t* folder = (dc_imapfolder_t*)clist_content(cur);
 		if (select_folder(imap, folder->name_to_select))
 		{
 			int r = mailimap_uid_search(imap->hEtpan, "utf-8", key, &search_result);
 			if (!is_error(imap, r) && search_result) {
-				if ((cur2=clist_begin(search_result)) != NULL) {
+				if ((cur2=clist_begin(search_result))!=NULL) {
 					uint32_t* ptr_uid = (uint32_t *)clist_content(cur2);
 					if (ptr_uid) {
 						uid = *ptr_uid;
@@ -513,9 +519,9 @@ static uint32_t peek_uid(struct mailimap_msg_att* msg_att)
 		struct mailimap_msg_att_item* item = (struct mailimap_msg_att_item*)clist_content(iter1);
 		if (item)
 		{
-			if (item->att_type == MAILIMAP_MSG_ATT_ITEM_STATIC)
+			if (item->att_type==MAILIMAP_MSG_ATT_ITEM_STATIC)
 			{
-				if (item->att_data.att_static->att_type == MAILIMAP_MSG_ATT_UID)
+				if (item->att_data.att_static->att_type==MAILIMAP_MSG_ATT_UID)
 				{
 					return item->att_data.att_static->att_data.att_uid;
 				}
@@ -531,10 +537,10 @@ static char* unquote_rfc724_mid(const char* in)
 {
 	/* remove < and > from the given message id */
 	char* out = dc_strdup(in);
-	int out_len = strlen(out);
+	int   out_len = strlen(out);
 	if (out_len > 2) {
-		if (out[0]         == '<') { out[0]         = ' '; }
-		if (out[out_len-1] == '>') { out[out_len-1] = ' '; }
+		if (out[0]=='<')         { out[0] = ' '; }
+		if (out[out_len-1]=='>') { out[out_len-1] = ' '; }
 		dc_trim(out);
 	}
 	return out;
@@ -543,7 +549,7 @@ static char* unquote_rfc724_mid(const char* in)
 
 static const char* peek_rfc724_mid(struct mailimap_msg_att* msg_att)
 {
-	if (msg_att == NULL) {
+	if (msg_att==NULL) {
 		return NULL;
 	}
 
@@ -554,9 +560,9 @@ static const char* peek_rfc724_mid(struct mailimap_msg_att* msg_att)
 		struct mailimap_msg_att_item* item = (struct mailimap_msg_att_item*)clist_content(iter1);
 		if (item)
 		{
-			if (item->att_type == MAILIMAP_MSG_ATT_ITEM_STATIC)
+			if (item->att_type==MAILIMAP_MSG_ATT_ITEM_STATIC)
 			{
-				if (item->att_data.att_static->att_type == MAILIMAP_MSG_ATT_ENVELOPE)
+				if (item->att_data.att_static->att_type==MAILIMAP_MSG_ATT_ENVELOPE)
 				{
 					struct mailimap_envelope* env = item->att_data.att_static->att_data.att_env;
 					if (env && env->env_message_id) {
@@ -574,7 +580,7 @@ static const char* peek_rfc724_mid(struct mailimap_msg_att* msg_att)
 static int peek_flag_keyword(struct mailimap_msg_att* msg_att, const char* flag_keyword)
 {
 	/* search $MDNSent in a list of attributes returned by a FETCH command */
-	if (msg_att == NULL || msg_att->att_list==NULL || flag_keyword == NULL) {
+	if (msg_att==NULL || msg_att->att_list==NULL || flag_keyword==NULL) {
 		return 0;
 	}
 
@@ -584,7 +590,7 @@ static int peek_flag_keyword(struct mailimap_msg_att* msg_att, const char* flag_
 		struct mailimap_msg_att_item* item = (struct mailimap_msg_att_item*)clist_content(iter1);
 		if (item)
 		{
-			if (item->att_type == MAILIMAP_MSG_ATT_ITEM_DYNAMIC)
+			if (item->att_type==MAILIMAP_MSG_ATT_ITEM_DYNAMIC)
 			{
 				if (item->att_data.att_dyn->att_list /*I've seen NULL here ...*/)
 				{
@@ -596,7 +602,7 @@ static int peek_flag_keyword(struct mailimap_msg_att* msg_att, const char* flag_
 							struct mailimap_flag* flag = flag_fetch->fl_flag;
 							if (flag)
 							{
-								if (flag->fl_type == MAILIMAP_FLAG_KEYWORD && flag->fl_data.fl_keyword!=NULL
+								if (flag->fl_type==MAILIMAP_FLAG_KEYWORD && flag->fl_data.fl_keyword!=NULL
 								 && strcmp(flag->fl_data.fl_keyword, flag_keyword)==0) {
 									return 1; /* flag found */
 								}
@@ -613,7 +619,7 @@ static int peek_flag_keyword(struct mailimap_msg_att* msg_att, const char* flag_
 
 static void peek_body(struct mailimap_msg_att* msg_att, char** p_msg, size_t* p_msg_bytes, uint32_t* flags, int* deleted)
 {
-	if (msg_att == NULL) {
+	if (msg_att==NULL) {
 		return;
 	}
 	/* search body & Co. in a list of attributes returned by a FETCH command */
@@ -623,7 +629,7 @@ static void peek_body(struct mailimap_msg_att* msg_att, char** p_msg, size_t* p_
 		struct mailimap_msg_att_item* item = (struct mailimap_msg_att_item*)clist_content(iter1);
 		if (item)
 		{
-			if (item->att_type == MAILIMAP_MSG_ATT_ITEM_DYNAMIC)
+			if (item->att_type==MAILIMAP_MSG_ATT_ITEM_DYNAMIC)
 			{
 				if (item->att_data.att_dyn->att_list /*I've seen NULL here ...*/)
 				{
@@ -635,10 +641,10 @@ static void peek_body(struct mailimap_msg_att* msg_att, char** p_msg, size_t* p_
 							struct mailimap_flag* flag = flag_fetch->fl_flag;
 							if (flag)
 							{
-								if (flag->fl_type == MAILIMAP_FLAG_SEEN) {
+								if (flag->fl_type==MAILIMAP_FLAG_SEEN) {
 									*flags |= DC_IMAP_SEEN;
 								}
-								else if (flag->fl_type == MAILIMAP_FLAG_DELETED) {
+								else if (flag->fl_type==MAILIMAP_FLAG_DELETED) {
 									*deleted = 1;
 								}
 							}
@@ -646,9 +652,9 @@ static void peek_body(struct mailimap_msg_att* msg_att, char** p_msg, size_t* p_
 					}
 				}
 			}
-			else if (item->att_type == MAILIMAP_MSG_ATT_ITEM_STATIC)
+			else if (item->att_type==MAILIMAP_MSG_ATT_ITEM_STATIC)
 			{
-				if (item->att_data.att_static->att_type == MAILIMAP_MSG_ATT_BODY_SECTION)
+				if (item->att_data.att_static->att_type==MAILIMAP_MSG_ATT_BODY_SECTION)
 				{
 					*p_msg = item->att_data.att_static->att_data.att_body_section->sec_body_part;
 					*p_msg_bytes = item->att_data.att_static->att_data.att_body_section->sec_length;
@@ -666,7 +672,9 @@ static int fetch_single_msg(dc_imap_t* imap, const char* folder, uint32_t server
 	or  1  if the messages should be treated as received, the caller should not try to read the message again (even if no database entries are returned) */
 	char*       msg_content = NULL;
 	size_t      msg_bytes = 0;
-	int         r, retry_later = 0, deleted = 0;
+	int         r = 0;
+	int         retry_later = 0;
+	int         deleted = 0;
 	uint32_t    flags = 0;
 	clist*      fetch_result = NULL;
 	clistiter*  cur;
@@ -686,7 +694,7 @@ static int fetch_single_msg(dc_imap_t* imap, const char* folder, uint32_t server
 		mailimap_set_free(set);
 	}
 
-	if (is_error(imap, r) || fetch_result == NULL) {
+	if (is_error(imap, r) || fetch_result==NULL) {
 		fetch_result = NULL;
 		dc_log_warning(imap->context, 0, "Error #%i on fetching message #%i from folder \"%s\"; retry=%i.", (int)r, (int)server_uid, folder, (int)imap->should_reconnect);
 		if (imap->should_reconnect) {
@@ -695,14 +703,14 @@ static int fetch_single_msg(dc_imap_t* imap, const char* folder, uint32_t server
 		goto cleanup; /* this is an error that should be recovered; the caller should try over later to fetch the message again (if there is no such message, we simply get an empty result) */
 	}
 
-	if ((cur=clist_begin(fetch_result)) == NULL) {
+	if ((cur=clist_begin(fetch_result))==NULL) {
 		dc_log_warning(imap->context, 0, "Message #%i does not exist in folder \"%s\".", (int)server_uid, folder);
 		goto cleanup; /* server response is fine, however, there is no such message, do not try to fetch the message again */
 	}
 
 	struct mailimap_msg_att* msg_att = (struct mailimap_msg_att*)clist_content(cur);
 	peek_body(msg_att, &msg_content, &msg_bytes, &flags, &deleted);
-	if (msg_content == NULL  || msg_bytes <= 0 || deleted) {
+	if (msg_content==NULL  || msg_bytes <= 0 || deleted) {
 		/* dc_log_warning(imap->context, 0, "Message #%i in folder \"%s\" is empty or deleted.", (int)server_uid, folder); -- this is a quite usual situation, do not print a warning */
 		goto cleanup;
 	}
@@ -722,9 +730,11 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 {
 	int                  r;
 	uint32_t             uidvalidity = 0;
-	uint32_t             lastseenuid = 0, new_lastseenuid = 0;
+	uint32_t             lastseenuid = 0;
+	uint32_t             new_lastseenuid = 0;
 	clist*               fetch_result = NULL;
-	size_t               read_cnt = 0, read_errors = 0;
+	size_t               read_cnt = 0;
+	size_t               read_errors = 0;
 	clistiter*           cur;
 	struct mailimap_set* set;
 
@@ -744,7 +754,7 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 
 	/* compare last seen UIDVALIDITY against the current one */
 	get_config_lastseenuid(imap, folder, &uidvalidity, &lastseenuid);
-	if (uidvalidity != imap->hEtpan->imap_selection_info->sel_uidvalidity)
+	if (uidvalidity!=imap->hEtpan->imap_selection_info->sel_uidvalidity)
 	{
 		/* first time this folder is selected or UIDVALIDITY has changed, init lastseenuid and save it to config */
 		if (imap->hEtpan->imap_selection_info->sel_uidvalidity <= 0) {
@@ -798,10 +808,10 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 		r = mailimap_uid_fetch(imap->hEtpan, set, imap->fetch_type_uid, &fetch_result);
 	mailimap_set_free(set);
 
-	if (is_error(imap, r) || fetch_result == NULL)
+	if (is_error(imap, r) || fetch_result==NULL)
 	{
 		fetch_result = NULL;
-		if (r == MAILIMAP_ERROR_PROTOCOL) {
+		if (r==MAILIMAP_ERROR_PROTOCOL) {
 			dc_log_info(imap->context, 0, "Folder \"%s\" is empty", folder);
 			goto cleanup; /* the folder is simply empty, this is no error */
 		}
@@ -810,15 +820,15 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 	}
 
 	/* go through all mails in folder (this is typically _fast_ as we already have the whole list) */
-	for (cur = clist_begin(fetch_result); cur != NULL ; cur = clist_next(cur))
+	for (cur = clist_begin(fetch_result); cur!=NULL ; cur = clist_next(cur))
 	{
 		struct mailimap_msg_att* msg_att = (struct mailimap_msg_att*)clist_content(cur); /* mailimap_msg_att is a list of attributes: list is a list of message attributes */
 		uint32_t cur_uid = peek_uid(msg_att);
 		if (cur_uid > 0
-		 && cur_uid!=lastseenuid /* `UID FETCH <lastseenuid+1>:*` may include lastseenuid if "*" == lastseenuid */)
+		 && cur_uid!=lastseenuid /* `UID FETCH <lastseenuid+1>:*` may include lastseenuid if "*"==lastseenuid */)
 		{
 			read_cnt++;
-			if (fetch_single_msg(imap, folder, cur_uid) == 0/* 0=try again later*/) {
+			if (fetch_single_msg(imap, folder, cur_uid)==0/* 0=try again later*/) {
 				read_errors++;
 			}
 			else if (cur_uid > new_lastseenuid) {
@@ -853,28 +863,28 @@ cleanup:
 static int fetch_from_all_folders(dc_imap_t* imap)
 {
 	clist*     folder_list = NULL;
-	clistiter* cur;
+	clistiter* cur = NULL;
 	int        total_cnt = 0;
 
 		folder_list = list_folders(imap);
 
 	/* first, read the INBOX, this looks much better on the initial load as the INBOX
 	has the most recent mails.  Moreover, this is for speed reasons, as the other folders only have few new messages. */
-	for (cur = clist_begin(folder_list); cur != NULL ; cur = clist_next(cur))
+	for (cur = clist_begin(folder_list); cur!=NULL ; cur = clist_next(cur))
 	{
 		dc_imapfolder_t* folder = (dc_imapfolder_t*)clist_content(cur);
-		if (folder->meaning == MEANING_INBOX) {
+		if (folder->meaning==MEANING_INBOX) {
 			total_cnt += fetch_from_single_folder(imap, folder->name_to_select);
 		}
 	}
 
-	for (cur = clist_begin(folder_list); cur != NULL ; cur = clist_next(cur))
+	for (cur = clist_begin(folder_list); cur!=NULL ; cur = clist_next(cur))
 	{
 		dc_imapfolder_t* folder = (dc_imapfolder_t*)clist_content(cur);
-		if (folder->meaning == MEANING_IGNORE) {
+		if (folder->meaning==MEANING_IGNORE) {
 			dc_log_info(imap->context, 0, "Ignoring \"%s\".", folder->name_utf8);
 		}
-		else if (folder->meaning != MEANING_INBOX) {
+		else if (folder->meaning!=MEANING_INBOX) {
 			total_cnt += fetch_from_single_folder(imap, folder->name_to_select);
 		}
 	}
@@ -921,7 +931,8 @@ static void fake_idle(dc_imap_t* imap)
 	/* Idle using timeouts. This is also needed if we're not yet configured -
 	in this case, we're waiting for a configure job */
 
-	time_t fake_idle_start_time = time(NULL), seconds_to_wait;
+	time_t fake_idle_start_time = time(NULL);
+	time_t seconds_to_wait = 0;
 
 	dc_log_info(imap->context, 0, "IMAP-fake-IDLEing...");
 
@@ -936,7 +947,7 @@ static void fake_idle(dc_imap_t* imap)
 			struct timespec wakeup_at;
 			memset(&wakeup_at, 0, sizeof(wakeup_at));
 			wakeup_at.tv_sec  = time(NULL)+seconds_to_wait;
-			while (imap->watch_condflag == 0 && r == 0) {
+			while (imap->watch_condflag==0 && r==0) {
 				r = pthread_cond_timedwait(&imap->watch_cond, &imap->watch_condmutex, &wakeup_at); /* unlock mutex -> wait -> lock mutex */
 				if (imap->watch_condflag) {
 					do_fake_idle = 0;
@@ -946,7 +957,7 @@ static void fake_idle(dc_imap_t* imap)
 
 		pthread_mutex_unlock(&imap->watch_condmutex);
 
-		if (do_fake_idle == 0) {
+		if (do_fake_idle==0) {
 			return;
 		}
 
@@ -970,7 +981,8 @@ static void fake_idle(dc_imap_t* imap)
 
 void dc_imap_idle(dc_imap_t* imap)
 {
-	int r, r2;
+	int r = 0;
+	int r2 = 0;
 
 	if (imap->can_idle)
 	{
@@ -1007,17 +1019,17 @@ void dc_imap_idle(dc_imap_t* imap)
 		r = mailstream_wait_idle(imap->hEtpan->imap_stream, IDLE_DELAY_SECONDS);
 		r2 = mailimap_idle_done(imap->hEtpan);
 
-		if (r == MAILSTREAM_IDLE_ERROR /*0*/ || r==MAILSTREAM_IDLE_CANCELLED /*4*/) {
+		if (r==MAILSTREAM_IDLE_ERROR /*0*/ || r==MAILSTREAM_IDLE_CANCELLED /*4*/) {
 			dc_log_info(imap->context, 0, "IMAP-IDLE wait cancelled, r=%i, r2=%i; we'll reconnect soon.", r, r2);
 			imap->should_reconnect = 1;
 		}
-		else if (r == MAILSTREAM_IDLE_INTERRUPTED /*1*/) {
+		else if (r==MAILSTREAM_IDLE_INTERRUPTED /*1*/) {
 			dc_log_info(imap->context, 0, "IMAP-IDLE interrupted.");
 		}
-		else if (r ==  MAILSTREAM_IDLE_HASDATA /*2*/) {
+		else if (r== MAILSTREAM_IDLE_HASDATA /*2*/) {
 			dc_log_info(imap->context, 0, "IMAP-IDLE has data.");
 		}
-		else if (r == MAILSTREAM_IDLE_TIMEOUT /*3*/) {
+		else if (r==MAILSTREAM_IDLE_TIMEOUT /*3*/) {
 			dc_log_info(imap->context, 0, "IMAP-IDLE timeout.");
 		}
 		else {
@@ -1060,7 +1072,8 @@ void dc_imap_interrupt_idle(dc_imap_t* imap)
 
 static int setup_handle_if_needed(dc_imap_t* imap)
 {
-	int r, success = 0;
+	int r = 0;
+	int success = 0;
 
 	if (imap==NULL || imap->imap_server==NULL) {
 		goto cleanup;
@@ -1121,7 +1134,7 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 		{
 			//TODO: Support XOAUTH2, we "just" need to get the token someway. If we do so, there is no more need for the user to enable
 			//https://www.google.com/settings/security/lesssecureapps - however, maybe this is also not needed if the user had enabled 2-factor-authorisation.
-			if (mOAuth2Token == NULL) {
+			if (mOAuth2Token==NULL) {
 				r = MAILIMAP_ERROR_STREAM;
 			}
 			else {
@@ -1146,7 +1159,7 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 	success = 1;
 
 cleanup:
-	if (success == 0) {
+	if (success==0) {
 		unsetup_handle(imap);
 	}
 
@@ -1168,7 +1181,7 @@ static void unsetup_handle(dc_imap_t* imap)
 			imap->idle_set_up = 0;
 		}
 
-		if (imap->hEtpan->imap_stream != NULL) {
+		if (imap->hEtpan->imap_stream!=NULL) {
 			mailstream_close(imap->hEtpan->imap_stream); /* not sure, if this is really needed, however, mailcore2 does the same */
 			imap->hEtpan->imap_stream = NULL;
 		}
@@ -1257,9 +1270,9 @@ int dc_imap_connect(dc_imap_t* imap, const dc_loginparam_t* lp)
 		clist* list = imap->hEtpan->imap_connection_info->imap_capability->cap_list;
 		if (list) {
 			clistiter* cur;
-			for(cur = clist_begin(list) ; cur != NULL ; cur = clist_next(cur)) {
+			for(cur = clist_begin(list) ; cur!=NULL ; cur = clist_next(cur)) {
 				struct mailimap_capability * cap = clist_content(cur);
-				if (cap && cap->cap_type == MAILIMAP_CAPABILITY_NAME) {
+				if (cap && cap->cap_type==MAILIMAP_CAPABILITY_NAME) {
 					dc_strbuilder_cat(&capinfostr, " ");
 					dc_strbuilder_cat(&capinfostr, cap->cap_data.cap_name);
 				}
@@ -1273,7 +1286,7 @@ int dc_imap_connect(dc_imap_t* imap, const dc_loginparam_t* lp)
 	success = 1;
 
 cleanup:
-	if (success == 0) {
+	if (success==0) {
 		unsetup_handle(imap);
 		free_connect_param(imap);
 	}
@@ -1381,7 +1394,8 @@ void dc_imap_unref(dc_imap_t* imap)
 
 int dc_imap_append_msg(dc_imap_t* imap, time_t timestamp, const char* data_not_terminated, size_t data_bytes, char** ret_server_folder, uint32_t* ret_server_uid)
 {
-	int                        success = 0, r;
+	int                        success = 0;
+	int                        r  = 0;
 	uint32_t                   ret_uidvalidity = 0;
 	struct mailimap_flag_list* flag_list = NULL;
 	struct mailimap_date_time* imap_date = NULL;
@@ -1413,7 +1427,7 @@ int dc_imap_append_msg(dc_imap_t* imap, time_t timestamp, const char* data_not_t
 	mailimap_flag_list_add(flag_list, mailimap_flag_new_seen());
 
 	imap_date = dc_timestamp_to_mailimap_date_time(timestamp);
-	if (imap_date == NULL) {
+	if (imap_date==NULL) {
 		dc_log_error(imap->context, 0, "Bad date.");
 		goto cleanup;
 	}
@@ -1446,10 +1460,10 @@ cleanup:
 
 static int add_flag(dc_imap_t* imap, uint32_t server_uid, struct mailimap_flag* flag)
 {
-	int                              r;
-	struct mailimap_flag_list*       flag_list = NULL;
+	int                              r               = 0;
+	struct mailimap_flag_list*       flag_list       = NULL;
 	struct mailimap_store_att_flags* store_att_flags = NULL;
-	struct mailimap_set*             set = mailimap_set_new_single(server_uid);
+	struct mailimap_set*             set             = mailimap_set_new_single(server_uid);
 
 	if (imap==NULL || imap->hEtpan==NULL) {
 		goto cleanup;
@@ -1481,7 +1495,7 @@ int dc_imap_markseen_msg(dc_imap_t* imap, const char* folder, uint32_t server_ui
 {
 	// when marking as seen, there is no real need to check against the rfc724_mid - in the worst case, when the UID validity or the mailbox has changed, we mark the wrong message as "seen" - as the very most messages are seen, this is no big thing.
 	// command would be "STORE 123,456,678 +FLAGS (\Seen)"
-	int                  r;
+	int                  r   = 0;
 	struct mailimap_set* set = NULL;
 
 	if (imap==NULL || folder==NULL || server_uid==0 || ret_server_folder==NULL || ret_server_uid==NULL || ret_ms_flags==NULL
@@ -1603,7 +1617,7 @@ int dc_imap_markseen_msg(dc_imap_t* imap, const char* folder, uint32_t server_ui
 
 			if (res_setdest) {
 				clistiter* cur = clist_begin(res_setdest->set_list);
-				if (cur != NULL) {
+				if (cur!=NULL) {
 					struct mailimap_set_item* item;
 					item = clist_content(cur);
 					*ret_server_uid = item->set_first;
@@ -1629,10 +1643,11 @@ cleanup:
 
 int dc_imap_delete_msg(dc_imap_t* imap, const char* rfc724_mid, const char* folder, uint32_t server_uid)
 {
-	int    success = 0, r = 0;
-	clist* fetch_result = NULL;
+	int    success       = 0;
+	int    r             = 0;
+	clist* fetch_result  = NULL;
 	char*  is_rfc724_mid = NULL;
-	char*  new_folder = NULL;
+	char*  new_folder    = NULL;
 
 	if (imap==NULL || rfc724_mid==NULL || folder==NULL || folder[0]==0) {
 		success = 1; /* job done, do not try over */
@@ -1654,11 +1669,13 @@ int dc_imap_delete_msg(dc_imap_t* imap, const char* rfc724_mid, const char* fold
 	{
 		clistiter* cur = NULL;
 		const char* is_quoted_rfc724_mid = NULL;
+
 		struct mailimap_set* set = mailimap_set_new_single(server_uid);
 			r = mailimap_uid_fetch(imap->hEtpan, set, imap->fetch_type_message_id, &fetch_result);
 		mailimap_set_free(set);
-		if (is_error(imap, r) || fetch_result == NULL
-		 || (cur=clist_begin(fetch_result)) == NULL
+
+		if (is_error(imap, r) || fetch_result==NULL
+		 || (cur=clist_begin(fetch_result))==NULL
 		 || (is_quoted_rfc724_mid=peek_rfc724_mid((struct mailimap_msg_att*)clist_content(cur)))==NULL
 		 || (is_rfc724_mid=unquote_rfc724_mid(is_quoted_rfc724_mid))==NULL
 		 || strcmp(is_rfc724_mid, rfc724_mid)!=0)
@@ -1670,7 +1687,7 @@ int dc_imap_delete_msg(dc_imap_t* imap, const char* rfc724_mid, const char* fold
 
 	/* server_uid is 0 now if it was not given or if it does not match the given message id;
 	try to search for it in all folders (the message may be moved by another MUA to a folder we do not sync or the sync is a moment ago) */
-	if (server_uid == 0) {
+	if (server_uid==0) {
 		dc_log_info(imap->context, 0, "Searching UID by Message-ID \"%s\"...", rfc724_mid);
 		if ((server_uid=search_uid(imap, rfc724_mid))==0) {
 			dc_log_warning(imap->context, 0, "Message-ID \"%s\" not found in any folder, cannot delete message.", rfc724_mid);

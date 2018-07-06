@@ -102,9 +102,9 @@ static void dehtml_text_cb(void* userdata, const char* text, int len)
 					int last_is_lineend = 1; /* avoid converting `text1<br>\ntext2` to `text1\n text2` (`\r` is removed later) */
 					const unsigned char* p2 = p-1;
 					while (p2>=(const unsigned char*)dehtml->strbuilder.buf) {
-						if (*p2 == '\r') {
+						if (*p2=='\r') {
 						}
-						else if (*p2 == '\n') {
+						else if (*p2=='\n') {
 							break;
 						}
 						else {
@@ -157,11 +157,11 @@ static void dehtml_endtag_cb(void* userdata, const char* tag)
 char* dc_dehtml(char* buf_terminated)
 {
 	dc_trim(buf_terminated);
-	if (buf_terminated[0] == 0) {
+	if (buf_terminated[0]==0) {
 		return dc_strdup(""); /* support at least empty HTML-messages; for empty messages, we'll replace the message by the subject later */
 	}
 	else {
-		dehtml_t      dehtml;
+		dehtml_t       dehtml;
 		dc_saxparser_t saxparser;
 
 		memset(&dehtml, 0, sizeof(dehtml_t));

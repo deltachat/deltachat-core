@@ -38,7 +38,8 @@
 
 dc_smtp_t* dc_smtp_new(dc_context_t* context)
 {
-	dc_smtp_t* smtp;
+	dc_smtp_t* smtp = NULL;
+
 	if ((smtp=calloc(1, sizeof(dc_smtp_t)))==NULL) {
 		exit(29);
 	}
@@ -52,7 +53,7 @@ dc_smtp_t* dc_smtp_new(dc_context_t* context)
 
 void dc_smtp_unref(dc_smtp_t* smtp)
 {
-	if (smtp == NULL) {
+	if (smtp==NULL) {
 		return;
 	}
 	dc_smtp_disconnect(smtp);
@@ -93,10 +94,11 @@ static void logger(mailsmtp* smtp, int log_type, const char* buffer__, size_t si
 
 int dc_smtp_connect(dc_smtp_t* smtp, const dc_loginparam_t* lp)
 {
-	int         success = 0;
-	int         r, try_esmtp;
+	int success = 0;
+	int r = 0;
+	int try_esmtp = 0;
 
-	if (smtp == NULL || lp == NULL) {
+	if (smtp==NULL || lp==NULL) {
 		return 0;
 	}
 
@@ -111,7 +113,7 @@ int dc_smtp_connect(dc_smtp_t* smtp, const dc_loginparam_t* lp)
 		goto cleanup;
 	}
 
-	if (lp->addr == NULL || lp->send_server == NULL || lp->send_port == 0) {
+	if (lp->addr==NULL || lp->send_server==NULL || lp->send_port==0) {
 		dc_log_error_if(&smtp->log_connect_errors, smtp->context, 0, "SMTP bad parameters.");
 		goto cleanup;
 	}
@@ -120,7 +122,7 @@ int dc_smtp_connect(dc_smtp_t* smtp, const dc_loginparam_t* lp)
 	smtp->from = dc_strdup(lp->addr);
 
 	smtp->hEtpan = mailsmtp_new(0, NULL);
-	if (smtp->hEtpan == NULL) {
+	if (smtp->hEtpan==NULL) {
 		dc_log_error(smtp->context, 0, "SMTP-object creation failed.");
 		goto cleanup;
 	}
@@ -235,7 +237,7 @@ cleanup:
 
 void dc_smtp_disconnect(dc_smtp_t* smtp)
 {
-	if (smtp == NULL) {
+	if (smtp==NULL) {
 		return;
 	}
 
@@ -254,14 +256,15 @@ void dc_smtp_disconnect(dc_smtp_t* smtp)
 
 int dc_smtp_send_msg(dc_smtp_t* smtp, const clist* recipients, const char* data_not_terminated, size_t data_bytes)
 {
-	int           success = 0, r;
-	clistiter*    iter;
+	int         success = 0;
+	int        r = 0;
+	clistiter* iter = NULL;
 
-	if (smtp == NULL) {
+	if (smtp==NULL) {
 		return 0;
 	}
 
-	if (recipients == NULL || clist_count(recipients)==0 || data_not_terminated == NULL || data_bytes == 0) {
+	if (recipients==NULL || clist_count(recipients)==0 || data_not_terminated==NULL || data_bytes==0) {
 		return 1; /* "null message" send */
 	}
 
