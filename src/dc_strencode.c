@@ -64,21 +64,21 @@ char* dc_urlencode(const char *to_encode)
 {
 	const char *pstr = to_encode;
 
-	if (to_encode == NULL) {
+	if (to_encode==NULL) {
 		return dc_strdup("");
 	}
 
 	char *buf = malloc(strlen(to_encode) * 3 + 1), *pbuf = buf;
-	if (buf == NULL) {
+	if (buf==NULL) {
 		exit(46);
 	}
 
 	while (*pstr)
 	{
-		if (isalnum(*pstr) || *pstr == '-' || *pstr == '_' || *pstr == '.' || *pstr == '~') {
+		if (isalnum(*pstr) || *pstr=='-' || *pstr=='_' || *pstr=='.' || *pstr=='~') {
 			*pbuf++ = *pstr;
 		}
-		else if (*pstr == ' ') {
+		else if (*pstr==' ') {
 			*pbuf++ = '+';
 		}
 		else {
@@ -109,24 +109,24 @@ char* dc_urldecode(const char* to_decode)
 {
 	const char *pstr = to_decode;
 
-	if (to_decode == NULL) {
+	if (to_decode==NULL) {
 		return dc_strdup("");
 	}
 
 	char *buf = malloc(strlen(to_decode) + 1), *pbuf = buf;
-	if (buf == NULL) {
+	if (buf==NULL) {
 		exit(50);
 	}
 
 	while (*pstr)
 	{
-		if (*pstr == '%') {
+		if (*pstr=='%') {
 			if (pstr[1] && pstr[2]) {
 				*pbuf++ = hex_2_int(pstr[1]) << 4 | hex_2_int(pstr[2]);
 				pstr += 2;
 			}
 		}
-		else if (*pstr == '+') {
+		else if (*pstr=='+') {
 			*pbuf++ = ' ';
 		}
 		else {
@@ -203,15 +203,15 @@ static int quote_word(const char* display_charset, MMAPString* mmapstr, const ch
 	char        hex[4];
 	int         col = 0;
 
-	if (mmap_string_append(mmapstr, "=?") == NULL) {
+	if (mmap_string_append(mmapstr, "=?")==NULL) {
 		return 0;
 	}
 
-	if (mmap_string_append(mmapstr, display_charset) == NULL) {
+	if (mmap_string_append(mmapstr, display_charset)==NULL) {
 		return 0;
 	}
 
-	if (mmap_string_append(mmapstr, "?Q?") == NULL) {
+	if (mmap_string_append(mmapstr, "?Q?")==NULL) {
 		return 0;
 	}
 
@@ -231,25 +231,25 @@ static int quote_word(const char* display_charset, MMAPString* mmapstr, const ch
 			/* adds a concatened encoded word */
 			int old_pos;
 
-			if (mmap_string_append(mmapstr, "?=") == NULL) {
+			if (mmap_string_append(mmapstr, "?=")==NULL) {
 				return 0;
 			}
 
-			if (mmap_string_append(mmapstr, " ") == NULL) {
+			if (mmap_string_append(mmapstr, " ")==NULL) {
 				return 0;
 			}
 
 			old_pos = mmapstr->len;
 
-			if (mmap_string_append(mmapstr, "=?") == NULL) {
+			if (mmap_string_append(mmapstr, "=?")==NULL) {
 				return 0;
 			}
 
-			if (mmap_string_append(mmapstr, display_charset) == NULL) {
+			if (mmap_string_append(mmapstr, display_charset)==NULL) {
 				return 0;
 			}
 
-			if (mmap_string_append(mmapstr, "?Q?") == NULL) {
+			if (mmap_string_append(mmapstr, "?Q?")==NULL) {
 				return 0;
 			}
 
@@ -292,20 +292,20 @@ static int quote_word(const char* display_charset, MMAPString* mmapstr, const ch
 		if (do_quote_char)
 		{
 			snprintf(hex, 4, "=%2.2X", (unsigned char) * cur);
-			if (mmap_string_append(mmapstr, hex) == NULL) {
+			if (mmap_string_append(mmapstr, hex)==NULL) {
 				return 0;
 			}
 			col += 3;
 		}
 		else
 		{
-			if (* cur == ' ') {
-				if (mmap_string_append_c(mmapstr, '_') == NULL) {
+			if (* cur==' ') {
+				if (mmap_string_append_c(mmapstr, '_')==NULL) {
 					return 0;
 				}
 			}
 			else {
-				if (mmap_string_append_c(mmapstr, * cur) == NULL) {
+				if (mmap_string_append_c(mmapstr, * cur)==NULL) {
 					return 0;
 				}
 			}
@@ -315,7 +315,7 @@ static int quote_word(const char* display_charset, MMAPString* mmapstr, const ch
 		cur++;
 	}
 
-	if (mmap_string_append(mmapstr, "?=") == NULL) {
+	if (mmap_string_append(mmapstr, "?=")==NULL) {
 		return 0;
 	}
 
@@ -364,7 +364,7 @@ char* dc_encode_header_words(const char* to_encode)
 	const char* cur = to_encode;
 	MMAPString* mmapstr = mmap_string_new("");
 
-	if (to_encode == NULL || mmapstr == NULL) {
+	if (to_encode==NULL || mmapstr==NULL) {
 		goto cleanup;
 	}
 
@@ -402,28 +402,28 @@ char* dc_encode_header_words(const char* to_encode)
 				goto cleanup;
 			}
 
-			if ((* end == ' ') || (* end == '\t')) {
-				if (mmap_string_append_c(mmapstr, * end) == 0) {
+			if ((* end==' ') || (* end=='\t')) {
+				if (mmap_string_append_c(mmapstr, * end)==0) {
 					goto cleanup;
 				}
 				end ++;
 			}
 
 			if (* end != '\0') {
-				if (mmap_string_append_len(mmapstr, end, cur - end) == NULL) {
+				if (mmap_string_append_len(mmapstr, end, cur - end)==NULL) {
 					goto cleanup;
 				}
 			}
 		}
 		else
 		{
-			if (mmap_string_append_len(mmapstr, begin, cur - begin) == NULL) {
+			if (mmap_string_append_len(mmapstr, begin, cur - begin)==NULL) {
 				goto cleanup;
 			}
 		}
 
-		if ((* cur == ' ') || (* cur == '\t')) {
-			if (mmap_string_append_c(mmapstr, * cur) == 0) {
+		if ((* cur==' ') || (* cur=='\t')) {
+			if (mmap_string_append_c(mmapstr, * cur)==0) {
 				goto cleanup;
 			}
 			cur ++;
@@ -453,14 +453,14 @@ char* dc_decode_header_words(const char* in)
 	/* decode strings as. `=?UTF-8?Q?Bj=c3=b6rn_Petersen?=`)
 	if `in` is NULL, `out` is NULL as well; also returns NULL on errors */
 
-	if (in == NULL) {
+	if (in==NULL) {
 		return NULL; /* no string given */
 	}
 
 	char* out = NULL;
 	size_t cur_token = 0;
 	int r = mailmime_encoded_phrase_parse(DEF_INCOMING_CHARSET, in, strlen(in), &cur_token, DEF_DISPLAY_CHARSET, &out);
-	if (r != MAILIMF_NO_ERROR || out == NULL) {
+	if (r != MAILIMF_NO_ERROR || out==NULL) {
 		out = dc_strdup(in); /* error, make a copy of the original string (as we free it later) */
 	}
 
@@ -543,7 +543,7 @@ char* dc_encode_modified_utf7(const char* to_encode, int change_spaces)
 				bitstogo = 0;
 				utf8total= 0;
 			}
-			if (change_spaces && c == ' ') {
+			if (change_spaces && c==' ') {
 				*dst++ = '_';
 			}
 			else {
@@ -551,7 +551,7 @@ char* dc_encode_modified_utf7(const char* to_encode, int change_spaces)
 			}
 
 			// encode '&' as '&-'
-			if (c == '&') {
+			if (c=='&') {
 				*dst++ = '-';
 			}
 			continue;
@@ -653,7 +653,7 @@ char* dc_decode_modified_utf7(const char *to_decode, int change_spaces)
 	char*         dst = NULL;
 	char*         res = NULL;
 
-	if (to_decode == NULL) {
+	if (to_decode==NULL) {
 		return dc_strdup("");
 	}
 
@@ -673,16 +673,16 @@ char* dc_decode_modified_utf7(const char *to_decode, int change_spaces)
 	{
 		c = *src++;
 		// deal with literal characters and &-
-		if (c != '&' || *src == '-') {
+		if (c != '&' || *src=='-') {
 			// encode literally
-			if (change_spaces && c == '_') {
+			if (change_spaces && c=='_') {
 				*dst++ = ' ';
 			}
 			else {
 				*dst++ = c;
 			}
 			// skip over the '-' if this is an &- sequence
-			if (c == '&') ++src;
+			if (c=='&') ++src;
 		}
 		else {
 			// convert modified UTF-7 -> UTF-16 -> UCS-4 -> UTF-8 -> HEX
@@ -739,7 +739,7 @@ char* dc_decode_modified_utf7(const char *to_decode, int change_spaces)
 			}
 
 			// skip over trailing '-' in modified UTF-7 encoding
-			if (*src == '-') {
+			if (*src=='-') {
 				++src;
 			}
 		}
@@ -795,12 +795,12 @@ char* dc_encode_ext_header(const char* to_encode)
 	#define PREFIX "utf-8''"
 	const char *pstr = to_encode;
 
-	if (to_encode == NULL) {
+	if (to_encode==NULL) {
 		return dc_strdup(PREFIX);
 	}
 
 	char *buf = malloc(strlen(PREFIX) + strlen(to_encode) * 3 + 1);
-	if (buf == NULL) {
+	if (buf==NULL) {
 		exit(46);
 	}
 
@@ -810,7 +810,7 @@ char* dc_encode_ext_header(const char* to_encode)
 
 	while (*pstr)
 	{
-		if (isalnum(*pstr) || *pstr == '-' || *pstr == '_' || *pstr == '.' || *pstr == '~') {
+		if (isalnum(*pstr) || *pstr=='-' || *pstr=='_' || *pstr=='.' || *pstr=='~') {
 			*pbuf++ = *pstr;
 		}
 		else {
@@ -841,13 +841,13 @@ char* dc_decode_ext_header(const char* to_decode)
 	char*       charset = NULL;
 	const char* p2 = NULL;
 
-	if (to_decode == NULL) {
+	if (to_decode==NULL) {
 		goto cleanup;
 	}
 
 	// get char set
-	if ((p2=strchr(to_decode, '\'')) == NULL
-	 || (p2 == to_decode) /*no empty charset allowed*/) {
+	if ((p2=strchr(to_decode, '\''))==NULL
+	 || (p2==to_decode) /*no empty charset allowed*/) {
 		goto cleanup;
 	}
 
@@ -855,7 +855,7 @@ char* dc_decode_ext_header(const char* to_decode)
 	p2++;
 
 	// skip language
-	if ((p2=strchr(p2, '\'')) == NULL) {
+	if ((p2=strchr(p2, '\''))==NULL) {
 		goto cleanup;
 	}
 
@@ -867,7 +867,7 @@ char* dc_decode_ext_header(const char* to_decode)
 	if (charset!=NULL && strcmp(charset, "utf-8")!=0 && strcmp(charset, "UTF-8")!=0) {
 		char* converted = NULL;
 		int r = charconv("utf-8", charset, decoded, strlen(decoded), &converted);
-		if (r == MAIL_CHARCONV_NO_ERROR && converted != NULL) {
+		if (r==MAIL_CHARCONV_NO_ERROR && converted != NULL) {
 			free(decoded);
 			decoded = converted;
 		}

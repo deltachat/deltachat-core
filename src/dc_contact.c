@@ -62,7 +62,7 @@ dc_contact_t* dc_contact_new(dc_context_t* context)
  */
 void dc_contact_unref(dc_contact_t* contact)
 {
-	if (contact==NULL || contact->magic != DC_CONTACT_MAGIC) {
+	if (contact==NULL || contact->magic!=DC_CONTACT_MAGIC) {
 		return;
 	}
 
@@ -83,7 +83,7 @@ void dc_contact_unref(dc_contact_t* contact)
  */
 void dc_contact_empty(dc_contact_t* contact)
 {
-	if (contact == NULL || contact->magic != DC_CONTACT_MAGIC) {
+	if (contact==NULL || contact->magic!=DC_CONTACT_MAGIC) {
 		return;
 	}
 
@@ -112,7 +112,7 @@ void dc_contact_empty(dc_contact_t* contact)
  */
 uint32_t dc_contact_get_id(const dc_contact_t* contact)
 {
-	if (contact == NULL || contact->magic != DC_CONTACT_MAGIC) {
+	if (contact==NULL || contact->magic!=DC_CONTACT_MAGIC) {
 		return 0;
 	}
 	return contact->id;
@@ -128,7 +128,7 @@ uint32_t dc_contact_get_id(const dc_contact_t* contact)
  */
 char* dc_contact_get_addr(const dc_contact_t* contact)
 {
-	if (contact == NULL || contact->magic != DC_CONTACT_MAGIC) {
+	if (contact==NULL || contact->magic!=DC_CONTACT_MAGIC) {
 		return dc_strdup(NULL);
 	}
 
@@ -150,7 +150,7 @@ char* dc_contact_get_addr(const dc_contact_t* contact)
  */
 char* dc_contact_get_name(const dc_contact_t* contact)
 {
-	if (contact == NULL || contact->magic != DC_CONTACT_MAGIC) {
+	if (contact==NULL || contact->magic!=DC_CONTACT_MAGIC) {
 		return dc_strdup(NULL);
 	}
 
@@ -171,7 +171,7 @@ char* dc_contact_get_name(const dc_contact_t* contact)
  */
 char* dc_contact_get_display_name(const dc_contact_t* contact)
 {
-	if (contact == NULL || contact->magic != DC_CONTACT_MAGIC) {
+	if (contact==NULL || contact->magic!=DC_CONTACT_MAGIC) {
 		return dc_strdup(NULL);
 	}
 
@@ -200,7 +200,7 @@ char* dc_contact_get_display_name(const dc_contact_t* contact)
  */
 char* dc_contact_get_name_n_addr(const dc_contact_t* contact)
 {
-	if (contact == NULL || contact->magic != DC_CONTACT_MAGIC) {
+	if (contact==NULL || contact->magic!=DC_CONTACT_MAGIC) {
 		return dc_strdup(NULL);
 	}
 
@@ -223,7 +223,7 @@ char* dc_contact_get_name_n_addr(const dc_contact_t* contact)
  */
 char* dc_contact_get_first_name(const dc_contact_t* contact)
 {
-	if (contact == NULL || contact->magic != DC_CONTACT_MAGIC) {
+	if (contact==NULL || contact->magic!=DC_CONTACT_MAGIC) {
 		return dc_strdup(NULL);
 	}
 
@@ -246,7 +246,7 @@ char* dc_contact_get_first_name(const dc_contact_t* contact)
  */
 int dc_contact_is_blocked(const dc_contact_t* contact)
 {
-	if (contact == NULL || contact->magic != DC_CONTACT_MAGIC) {
+	if (contact==NULL || contact->magic!=DC_CONTACT_MAGIC) {
 		return 0;
 	}
 	return contact->blocked;
@@ -265,11 +265,11 @@ int dc_contact_is_verified_ex(dc_contact_t* contact, const dc_apeerstate_t* peer
 	int              contact_verified = DC_NOT_VERIFIED;
 	dc_apeerstate_t* peerstate_to_delete = NULL;
 
-	if (contact == NULL || contact->magic != DC_CONTACT_MAGIC) {
+	if (contact==NULL || contact->magic!=DC_CONTACT_MAGIC) {
 		goto cleanup;
 	}
 
-	if (contact->id == DC_CONTACT_ID_SELF) {
+	if (contact->id==DC_CONTACT_ID_SELF) {
 		contact_verified = DC_BIDIRECT_VERIFIED;
 		goto cleanup; // we're always sort of secured-verified as we could verify the key on this device any time with the key on this device
 	}
@@ -319,13 +319,13 @@ int dc_contact_load_from_db(dc_contact_t* contact, dc_sqlite3_t* sql, uint32_t c
 	int           success = 0;
 	sqlite3_stmt* stmt = NULL;
 
-	if (contact == NULL || contact->magic != DC_CONTACT_MAGIC || sql == NULL) {
+	if (contact==NULL || contact->magic!=DC_CONTACT_MAGIC || sql==NULL) {
 		goto cleanup;
 	}
 
 	dc_contact_empty(contact);
 
-	if (contact_id == DC_CONTACT_ID_SELF)
+	if (contact_id==DC_CONTACT_ID_SELF)
 	{
 		contact->id   = contact_id;
 		contact->name = dc_stock_str(contact->context, DC_STR_SELF);
@@ -338,7 +338,7 @@ int dc_contact_load_from_db(dc_contact_t* contact, dc_sqlite3_t* sql, uint32_t c
 			" FROM contacts c "
 			" WHERE c.id=?;");
 		sqlite3_bind_int(stmt, 1, contact_id);
-		if (sqlite3_step(stmt) != SQLITE_ROW) {
+		if (sqlite3_step(stmt)!=SQLITE_ROW) {
 			goto cleanup;
 		}
 
@@ -380,7 +380,7 @@ char* dc_get_first_name(const char* full_name)
 	if (p1) {
 		*p1 = 0;
 		dc_rtrim(first_name);
-		if (first_name[0]  == 0) { /*empty result? use the original string in this case */
+		if (first_name[0]==0) { /*empty result? use the original string in this case */
 			free(first_name);
 			first_name = dc_strdup(full_name);
 		}
@@ -406,7 +406,7 @@ char* dc_get_first_name(const char* full_name)
  */
 void dc_normalize_name(char* full_name)
 {
-	if (full_name == NULL) {
+	if (full_name==NULL) {
 		return; /* error, however, this can be treated as documented behaviour */
 	}
 

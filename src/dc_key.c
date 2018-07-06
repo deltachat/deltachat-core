@@ -36,7 +36,7 @@
 void dc_wipe_secret_mem(void* buf, size_t buf_bytes)
 {
 	/* wipe private keys or othere secrets with zeros so that secrets are no longer in RAM */
-	if (buf == NULL || buf_bytes <= 0) {
+	if (buf==NULL || buf_bytes <= 0) {
 		return;
 	}
 
@@ -46,7 +46,7 @@ void dc_wipe_secret_mem(void* buf, size_t buf_bytes)
 
 static void dc_key_empty(dc_key_t* key) /* only use before calling setters; take care when using this function together with reference counting, prefer new objects instead */
 {
-	if (key == NULL) {
+	if (key==NULL) {
 		return;
 	}
 
@@ -106,7 +106,7 @@ int dc_key_set_from_binary(dc_key_t* key, const void* data, int bytes, int type)
 		return 0;
     }
     key->binary = malloc(bytes);
-    if (key->binary == NULL) {
+    if (key->binary==NULL) {
 		exit(40);
     }
     memcpy(key->binary, data, bytes);
@@ -148,7 +148,7 @@ int dc_key_set_from_base64(dc_key_t* key, const char* base64, int type)
 	}
 
 	if (mailmime_base64_body_parse(base64, strlen(base64), &indx, &result/*must be freed using mmap_string_unref()*/, &result_len)!=MAILIMF_NO_ERROR
-	 || result == NULL || result_len == 0) {
+	 || result==NULL || result_len==0) {
 		return 0; /* bad key */
 	}
 
@@ -180,7 +180,7 @@ int dc_key_set_from_file(dc_key_t* key, const char* pathNfilename, dc_context_t*
 	}
 
 	if (!dc_split_armored_data(buf, &headerline, NULL, NULL, &base64)
-	 || headerline == NULL || base64 == NULL) {
+	 || headerline==NULL || base64==NULL) {
 		goto cleanup;
 	}
 
@@ -249,7 +249,7 @@ int dc_key_save_self_keypair(const dc_key_t* public_key, const dc_key_t* private
 	sqlite3_bind_blob (stmt, 3, public_key->binary, public_key->bytes, SQLITE_STATIC);
 	sqlite3_bind_blob (stmt, 4, private_key->binary, private_key->bytes, SQLITE_STATIC);
 	sqlite3_bind_int64(stmt, 5, time(NULL));
-	if (sqlite3_step(stmt) != SQLITE_DONE) {
+	if (sqlite3_step(stmt)!=SQLITE_DONE) {
 		goto cleanup;
 	}
 
@@ -274,7 +274,7 @@ int dc_key_load_self_public(dc_key_t* key, const char* self_addr, dc_sqlite3_t* 
 	stmt = dc_sqlite3_prepare(sql,
 		"SELECT public_key FROM keypairs WHERE addr=? AND is_default=1;");
 	sqlite3_bind_text (stmt, 1, self_addr, -1, SQLITE_STATIC);
-	if (sqlite3_step(stmt) != SQLITE_ROW) {
+	if (sqlite3_step(stmt)!=SQLITE_ROW) {
 		goto cleanup;
 	}
 	dc_key_set_from_stmt(key, stmt, 0, DC_KEY_PUBLIC);
@@ -299,7 +299,7 @@ int dc_key_load_self_private(dc_key_t* key, const char* self_addr, dc_sqlite3_t*
 	stmt = dc_sqlite3_prepare(sql,
 		"SELECT private_key FROM keypairs WHERE addr=? AND is_default=1;");
 	sqlite3_bind_text (stmt, 1, self_addr, -1, SQLITE_STATIC);
-	if (sqlite3_step(stmt) != SQLITE_ROW) {
+	if (sqlite3_step(stmt)!=SQLITE_ROW) {
 		goto cleanup;
 	}
 	dc_key_set_from_stmt(key, stmt, 0, DC_KEY_PRIVATE);
@@ -347,7 +347,7 @@ char* dc_render_base64(const void* buf, size_t buf_bytes, int break_every, const
 	}
 
 	#if 0
-	if (add_checksum == 1/*appended checksum*/) {
+	if (add_checksum==1/*appended checksum*/) {
 		long checksum = crc_octets(buf, buf_bytes);
 		uint8_t c[3];
 		c[0] = (uint8_t)((checksum >> 16)&0xFF);
@@ -367,7 +367,7 @@ char* dc_render_base64(const void* buf, size_t buf_bytes, int break_every, const
 		free(temp);
 	}
 
-	if (add_checksum == 2/*checksum with break character*/) {
+	if (add_checksum==2/*checksum with break character*/) {
 		long checksum = crc_octets(buf, buf_bytes);
 		uint8_t c[3];
 		c[0] = (uint8_t)((checksum >> 16)&0xFF);
@@ -425,12 +425,12 @@ int dc_key_render_asc_to_file(const dc_key_t* key, const char* file, dc_context_
 	int   success = 0;
 	char* file_content = NULL;
 
-	if (key == NULL || file == NULL || context == NULL) {
+	if (key==NULL || file==NULL || context==NULL) {
 		goto cleanup;
 	}
 
 	file_content = dc_key_render_asc(key, NULL);
-	if (file_content == NULL) {
+	if (file_content==NULL) {
 		goto cleanup;
 	}
 
@@ -456,11 +456,11 @@ char* dc_format_fingerprint(const char* fingerprint)
     while (fingerprint[i]) {
 		dc_strbuilder_catf(&ret, "%c", fingerprint[i]);
 		i++;
-		if (i != fingerprint_len) {
-			if (i%20 == 0) {
+		if (i!=fingerprint_len) {
+			if (i%20==0) {
 				dc_strbuilder_cat(&ret, "\n");
 			}
-			else if (i%4 == 0) {
+			else if (i%4==0) {
 				dc_strbuilder_cat(&ret, " ");
 			}
 		}
@@ -474,7 +474,7 @@ char* dc_format_fingerprint(const char* fingerprint)
 40-characters-uppercase-hex format */
 char* dc_normalize_fingerprint(const char* in)
 {
-	if (in == NULL) {
+	if (in==NULL) {
 		return NULL;
 	}
 
@@ -499,7 +499,7 @@ char* dc_key_get_fingerprint(const dc_key_t* key)
 	size_t   fingerprint_bytes = 0;
 	char*    fingerprint_hex = NULL;
 
-	if (key == NULL) {
+	if (key==NULL) {
 		goto cleanup;
 	}
 

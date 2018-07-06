@@ -119,7 +119,7 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 
 	char*                  ret_setupfilecontent = NULL;
 
-	if (context==NULL || context->magic != DC_CONTEXT_MAGIC || passphrase==NULL
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || passphrase==NULL
 	 || strlen(passphrase)<2 || curr_private_key==NULL) {
 		goto cleanup;
 	}
@@ -138,7 +138,7 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 			dc_key_load_self_private(curr_private_key, self_addr, context->sql);
 
 			char* payload_key_asc = dc_key_render_asc(curr_private_key, context->e2ee_enabled? "Autocrypt-Prefer-Encrypt: mutual\r\n" : NULL);
-			if (payload_key_asc == NULL) {
+			if (payload_key_asc==NULL) {
 				goto cleanup;
 			}
 
@@ -168,7 +168,7 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 	int s2k_spec = PGP_S2KS_ITERATED_AND_SALTED; // 0=simple, 1=salted, 3=salted+iterated
 	int s2k_iter_id = 96; // 0=1024 iterations, 96=65536 iterations
 	#define HASH_ALG  PGP_HASH_SHA256
-	if ((key = pgp_s2k_do(passphrase, crypt_info.keysize, s2k_spec, HASH_ALG, salt, s2k_iter_id)) == NULL) {
+	if ((key = pgp_s2k_do(passphrase, crypt_info.keysize, s2k_spec, HASH_ALG, salt, s2k_iter_id))==NULL) {
 		goto cleanup;
 	}
 
@@ -205,7 +205,7 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 	/* Tag 18 - PGP_PTAG_CT_SE_IP_DATA */
 	//pgp_write_symm_enc_data((const uint8_t*)payload_mem->buf, payload_mem->length, PGP_SA_AES_128, key, encr_output); //-- would generate Tag 9
 	{
-		uint8_t* iv = calloc(1, crypt_info.blocksize); if (iv == NULL) { goto cleanup; }
+		uint8_t* iv = calloc(1, crypt_info.blocksize); if (iv==NULL) { goto cleanup; }
 		crypt_info.set_iv(&crypt_info, iv);
 		free(iv);
 
@@ -321,7 +321,7 @@ char* dc_decrypt_setup_file(dc_context_t* context, const char* passphrase, const
 
 	/* convert base64 to binary */
 	if (mailmime_base64_body_parse(fc_base64, strlen(fc_base64), &indx, &binary/*must be freed using mmap_string_unref()*/, &binary_bytes)!=MAILIMF_NO_ERROR
-	 || binary == NULL || binary_bytes == 0) {
+	 || binary==NULL || binary_bytes==0) {
 		goto cleanup;
 	}
 
@@ -330,7 +330,7 @@ char* dc_decrypt_setup_file(dc_context_t* context, const char* passphrase, const
 	io.outs = stdout;
 	io.errs = stderr;
 	io.res  = stderr;
-	if ((outmem=pgp_decrypt_buf(&io, binary, binary_bytes, NULL, NULL, 0, 0, passphrase)) == NULL) {
+	if ((outmem=pgp_decrypt_buf(&io, binary, binary_bytes, NULL, NULL, 0, 0, passphrase))==NULL) {
 		goto cleanup;
 	}
 	payload = strndup((const char*)outmem->buf, outmem->length);
@@ -387,7 +387,7 @@ char* dc_create_setup_code(dc_context_t* context)
 /* Function remove all special characters from the given code and brings it to the 9x4 form */
 char* dc_normalize_setup_code(dc_context_t* context, const char* in)
 {
-	if (in == NULL) {
+	if (in==NULL) {
 		return NULL;
 	}
 
@@ -400,7 +400,7 @@ char* dc_normalize_setup_code(dc_context_t* context, const char* in)
 		if (*p1 >= '0' && *p1 <= '9') {
 			dc_strbuilder_catf(&out, "%c", *p1);
 			outlen = strlen(out.buf);
-			if (outlen==4 || outlen==9 || outlen==14 || outlen==19 || outlen==24 || outlen == 29 || outlen == 34 || outlen == 39) {
+			if (outlen==4 || outlen==9 || outlen==14 || outlen==19 || outlen==24 || outlen==29 || outlen==34 || outlen==39) {
 				dc_strbuilder_cat(&out, "-");
 			}
 		}
@@ -471,7 +471,7 @@ char* dc_initiate_key_transfer(dc_context_t* context)
 	}
 	#define CHECK_EXIT if (context->shall_stop_ongoing) { goto cleanup; }
 
-	if ((setup_code=dc_create_setup_code(context)) == NULL) { /* this may require a keypair to be created. this may take a second ... */
+	if ((setup_code=dc_create_setup_code(context))==NULL) { /* this may require a keypair to be created. this may take a second ... */
 		goto cleanup;
 	}
 
@@ -483,7 +483,7 @@ char* dc_initiate_key_transfer(dc_context_t* context)
 
 	CHECK_EXIT
 
-	if ((setup_file_name=dc_get_fine_pathNfilename(context->blobdir, "autocrypt-setup-message.html")) == NULL
+	if ((setup_file_name=dc_get_fine_pathNfilename(context->blobdir, "autocrypt-setup-message.html"))==NULL
 	 || !dc_write_file(setup_file_name, setup_file_content, strlen(setup_file_content), context)) {
 		goto cleanup;
 	}
@@ -501,7 +501,7 @@ char* dc_initiate_key_transfer(dc_context_t* context)
 
 	CHECK_EXIT
 
-	if ((msg_id = dc_send_msg_object(context, chat_id, msg)) == 0) {
+	if ((msg_id = dc_send_msg_object(context, chat_id, msg))==0) {
 		goto cleanup;
 	}
 
@@ -553,7 +553,7 @@ static int set_self_key(dc_context_t* context, const char* armored, int set_defa
 
 	buf = dc_strdup(armored);
 	if (!dc_split_armored_data(buf, &buf_headerline, NULL, &buf_preferencrypt, &buf_base64)
-	 || strcmp(buf_headerline, "-----BEGIN PGP PRIVATE KEY BLOCK-----")!=0 || buf_base64 == NULL) {
+	 || strcmp(buf_headerline, "-----BEGIN PGP PRIVATE KEY BLOCK-----")!=0 || buf_base64==NULL) {
 		dc_log_warning(context, 0, "File does not contain a private key."); /* do not log as error - this is quite normal after entering the bad setup code */
 		goto cleanup;
 	}
@@ -635,7 +635,7 @@ int dc_continue_key_transfer(dc_context_t* context, uint32_t msg_id, const char*
 	char*     armored_key = NULL;
 	char*     norm_sc = NULL;
 
-	if (context == NULL || context->magic != DC_CONTEXT_MAGIC || msg_id <= DC_MSG_ID_LAST_SPECIAL || setup_code == NULL) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || msg_id <= DC_MSG_ID_LAST_SPECIAL || setup_code==NULL) {
 		goto cleanup;
 	}
 
@@ -645,7 +645,7 @@ int dc_continue_key_transfer(dc_context_t* context, uint32_t msg_id, const char*
 		goto cleanup;
 	}
 
-	if (!dc_read_file(filename, (void**)&filecontent, &filebytes, msg->context) || filecontent == NULL || filebytes <= 0) {
+	if (!dc_read_file(filename, (void**)&filecontent, &filebytes, msg->context) || filecontent==NULL || filebytes <= 0) {
 		dc_log_error(context, 0, "Cannot read Autocrypt Setup Message file.");
 		goto cleanup;
 	}
@@ -655,7 +655,7 @@ int dc_continue_key_transfer(dc_context_t* context, uint32_t msg_id, const char*
 		goto cleanup;
 	}
 
-	if ((armored_key=dc_decrypt_setup_file(context, norm_sc, filecontent)) == NULL) {
+	if ((armored_key=dc_decrypt_setup_file(context, norm_sc, filecontent))==NULL) {
 		dc_log_warning(context, 0, "Cannot decrypt Autocrypt Setup Message."); /* do not log as error - this is quite normal after entering the bad setup code */
 		goto cleanup;
 	}
@@ -758,7 +758,7 @@ static int import_self_keys(dc_context_t* context, const char* dir_name)
 	char*          buf2 = NULL;
 	const char*    buf2_headerline = NULL; // a pointer inside buf2, MUST NOT be free()'d
 
-	if (context==NULL || context->magic != DC_CONTEXT_MAGIC || dir_name==NULL) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || dir_name==NULL) {
 		goto cleanup;
 	}
 	if ((dir_handle=opendir(dir_name))==NULL) {
@@ -794,7 +794,7 @@ static int import_self_keys(dc_context_t* context, const char* dir_name)
 			 * However some programs (Thunderbird/Enigmail) put public and private key
 			 * in the same file, so we check if there is a private key following */
 			private_key = strstr(buf, "-----BEGIN PGP PRIVATE KEY BLOCK");
-			if (private_key == NULL) {
+			if (private_key==NULL) {
 				continue; /* this is no error but quite normal as we always export the public keys together with the private ones */
 			}
 		}
@@ -812,7 +812,7 @@ static int import_self_keys(dc_context_t* context, const char* dir_name)
 		imported_cnt++;
 	}
 
-	if (imported_cnt == 0) {
+	if (imported_cnt==0) {
 		dc_log_error(context, 0, "No private keys found in \"%s\".", dir_name);
 		goto cleanup;
 	}
@@ -993,8 +993,8 @@ static void ensure_no_slash(char* path)
 {
 	int path_len = strlen(path);
 	if (path_len > 0) {
-		if (path[path_len-1] == '/'
-		 || path[path_len-1] == '\\') {
+		if (path[path_len-1]=='/'
+		 || path[path_len-1]=='\\') {
 			path[path_len-1] = 0;
 		}
 	}
@@ -1056,7 +1056,7 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 	stmt = NULL;
 
 	stmt = dc_sqlite3_prepare(context->sql, "SELECT file_name, file_content FROM backup_blobs ORDER BY id;");
-	while (sqlite3_step(stmt) == SQLITE_ROW)
+	while (sqlite3_step(stmt)==SQLITE_ROW)
 	{
 		if (context->shall_stop_ongoing) {
 			goto cleanup;
@@ -1095,8 +1095,8 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 
 		dc_log_info(context, 0, "Rewriting paths from '%s' to '%s' ...", repl_from, repl_to);
 
-		assert( 'f' == DC_PARAM_FILE);
-		assert( 'i' == DC_PARAM_PROFILE_IMAGE);
+		assert( 'f'==DC_PARAM_FILE);
+		assert( 'i'==DC_PARAM_PROFILE_IMAGE);
 
 		char* q3 = sqlite3_mprintf("UPDATE msgs SET param=replace(param, 'f=%q/', 'f=%q/');", repl_from, repl_to); /* cannot use dc_mprintf() because of "%q" */
 			dc_sqlite3_execute(context->sql, q3);
@@ -1198,7 +1198,7 @@ void dc_job_do_DC_JOB_IMEX_IMAP(dc_context_t* context, dc_job_t* job)
 	char* param1 = NULL;
 	char* param2 = NULL;
 
-	if (context==NULL || context->magic != DC_CONTEXT_MAGIC || context->sql==NULL) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || context->sql==NULL) {
 		goto cleanup;
 	}
 
@@ -1211,7 +1211,7 @@ void dc_job_do_DC_JOB_IMEX_IMAP(dc_context_t* context, dc_job_t* job)
 	param1 = dc_param_get    (job->param, DC_PARAM_CMD_ARG,  NULL);
 	param2 = dc_param_get    (job->param, DC_PARAM_CMD_ARG2, NULL);
 
-	if (param1 == NULL) {
+	if (param1==NULL) {
 		dc_log_error(context, 0, "No Import/export dir/file given.");
 		goto cleanup;
 	}
@@ -1337,7 +1337,7 @@ char* dc_imex_has_backup(dc_context_t* context, const char* dir_name)
 	char*          curr_pathNfilename = NULL;
 	dc_sqlite3_t*  test_sql = NULL;
 
-	if (context == NULL || context->magic != DC_CONTEXT_MAGIC) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
 		return NULL;
 	}
 
@@ -1398,7 +1398,7 @@ int dc_check_password(dc_context_t* context, const char* test_pw)
 	dc_loginparam_t* loginparam = dc_loginparam_new();
 	int              success = 0;
 
-	if (context==NULL || context->magic != DC_CONTEXT_MAGIC) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
 		goto cleanup;
 	}
 

@@ -58,7 +58,7 @@ void dc_sqlite3_log_error(dc_sqlite3_t* sql, const char* msg_format, ...)
 	const char* notSetUp = "SQLite object not set up.";
 	va_list     va;
 	va_start(va, msg_format);
-		msg = sqlite3_vmprintf(msg_format, va); if (msg == NULL) { dc_log_error(sql->context, 0, "Bad log format string \"%s\".", msg_format); }
+		msg = sqlite3_vmprintf(msg_format, va); if (msg==NULL) { dc_log_error(sql->context, 0, "Bad log format string \"%s\".", msg_format); }
 			dc_log_error(sql->context, 0, "%s SQLite says: %s", msg, sql->cobj? sqlite3_errmsg(sql->cobj) : notSetUp);
 		sqlite3_free(msg);
 	va_end(va);
@@ -69,7 +69,7 @@ sqlite3_stmt* dc_sqlite3_prepare(dc_sqlite3_t* sql, const char* querystr)
 {
 	sqlite3_stmt* stmt = NULL;
 
-	if (sql == NULL || querystr == NULL || sql->cobj == NULL) {
+	if (sql==NULL || querystr==NULL || sql->cobj==NULL) {
 		return NULL;
 	}
 
@@ -94,7 +94,7 @@ int dc_sqlite3_execute(dc_sqlite3_t* sql, const char* querystr)
 	int           sqlState = 0;
 
 	stmt = dc_sqlite3_prepare(sql, querystr);
-	if (stmt == NULL) {
+	if (stmt==NULL) {
 		goto cleanup;
 	}
 
@@ -149,7 +149,7 @@ dc_sqlite3_t* dc_sqlite3_new(dc_context_t* context)
 
 void dc_sqlite3_unref(dc_sqlite3_t* sql)
 {
-	if (sql == NULL) {
+	if (sql==NULL) {
 		return;
 	}
 
@@ -163,11 +163,11 @@ void dc_sqlite3_unref(dc_sqlite3_t* sql)
 
 int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 {
-	if (sql == NULL || dbfile == NULL) {
+	if (sql==NULL || dbfile==NULL) {
 		goto cleanup;
 	}
 
-	if (sqlite3_threadsafe() == 0) {
+	if (sqlite3_threadsafe()==0) {
 		dc_log_error(sql->context, 0, "Sqlite3 compiled thread-unsafe; this is not supported.");
 		goto cleanup;
 	}
@@ -433,7 +433,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 				dc_sqlite3_execute(sql, "ALTER TABLE acpeerstates ADD COLUMN verified_key_fingerprint TEXT DEFAULT '';"); /* do not add `COLLATE NOCASE` case-insensivity is not needed as we force uppercase on store - otoh case-sensivity may be neeed for other/upcoming fingerprint formats */
 				dc_sqlite3_execute(sql, "CREATE INDEX acpeerstates_index5 ON acpeerstates (verified_key_fingerprint);");
 
-				if (dbversion_before_update == 34)
+				if (dbversion_before_update==34)
 				{
 					// migrate database from the use of verified-flags to verified_key,
 					// _only_ version 34 (0.17.0) has the fields public_key_verified and gossip_key_verified
@@ -461,7 +461,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		if (recalc_fingerprints)
 		{
 			sqlite3_stmt* stmt = dc_sqlite3_prepare(sql, "SELECT addr FROM acpeerstates;");
-				while (sqlite3_step(stmt) == SQLITE_ROW) {
+				while (sqlite3_step(stmt)==SQLITE_ROW) {
 					dc_apeerstate_t* peerstate = dc_apeerstate_new(sql->context);
 						if (dc_apeerstate_load_by_addr(peerstate, sql, (const char*)sqlite3_column_text(stmt, 0))
 						 && dc_apeerstate_recalc_fingerprint(peerstate)) {
@@ -484,7 +484,7 @@ cleanup:
 
 void dc_sqlite3_close(dc_sqlite3_t* sql)
 {
-	if (sql == NULL) {
+	if (sql==NULL) {
 		return;
 	}
 
@@ -500,7 +500,7 @@ void dc_sqlite3_close(dc_sqlite3_t* sql)
 
 int dc_sqlite3_is_open(const dc_sqlite3_t* sql)
 {
-	if (sql == NULL || sql->cobj == NULL) {
+	if (sql==NULL || sql->cobj==NULL) {
 		return 0;
 	}
 	return 1;
@@ -514,17 +514,17 @@ int dc_sqlite3_table_exists(dc_sqlite3_t* sql, const char* name)
 	sqlite3_stmt* stmt = NULL;
 	int           sqlState = 0;
 
-	if ((querystr=sqlite3_mprintf("PRAGMA table_info(%s)", name)) == NULL) { /* this statement cannot be used with binded variables */
+	if ((querystr=sqlite3_mprintf("PRAGMA table_info(%s)", name))==NULL) { /* this statement cannot be used with binded variables */
 		dc_log_error(sql->context, 0, "dc_sqlite3_table_exists_(): Out of memory.");
 		goto cleanup;
 	}
 
-	if ((stmt=dc_sqlite3_prepare(sql, querystr)) == NULL) {
+	if ((stmt=dc_sqlite3_prepare(sql, querystr))==NULL) {
 		goto cleanup;
 	}
 
 	sqlState = sqlite3_step(stmt);
-	if (sqlState == SQLITE_ROW) {
+	if (sqlState==SQLITE_ROW) {
 		ret = 1; /* the table exists. Other states are SQLITE_DONE or SQLITE_ERROR in both cases we return 0. */
 	}
 
@@ -555,7 +555,7 @@ int dc_sqlite3_set_config(dc_sqlite3_t* sql, const char* key, const char* value)
 	int           state = 0;
 	sqlite3_stmt* stmt = NULL;
 
-	if (key == NULL) {
+	if (key==NULL) {
 		dc_log_error(sql->context, 0, "dc_sqlite3_set_config(): Bad parameter.");
 		return 0;
 	}
@@ -574,14 +574,14 @@ int dc_sqlite3_set_config(dc_sqlite3_t* sql, const char* key, const char* value)
 		state = sqlite3_step(stmt);
 		sqlite3_finalize(stmt);
 
-		if (state == SQLITE_DONE) {
+		if (state==SQLITE_DONE) {
 			stmt = dc_sqlite3_prepare(sql, "INSERT INTO config (keyname, value) VALUES (?, ?);");
 			sqlite3_bind_text (stmt, 1, key,   -1, SQLITE_STATIC);
 			sqlite3_bind_text (stmt, 2, value, -1, SQLITE_STATIC);
 			state = sqlite3_step(stmt);
 			sqlite3_finalize(stmt);
 		}
-		else if (state == SQLITE_ROW) {
+		else if (state==SQLITE_ROW) {
 			stmt = dc_sqlite3_prepare(sql, "UPDATE config SET value=? WHERE keyname=?;");
 			sqlite3_bind_text (stmt, 1, value, -1, SQLITE_STATIC);
 			sqlite3_bind_text (stmt, 2, key,   -1, SQLITE_STATIC);
@@ -615,13 +615,13 @@ char* dc_sqlite3_get_config(dc_sqlite3_t* sql, const char* key, const char* def)
 {
 	sqlite3_stmt* stmt = NULL;
 
-	if (!dc_sqlite3_is_open(sql) || key == NULL) {
+	if (!dc_sqlite3_is_open(sql) || key==NULL) {
 		return dc_strdup_keep_null(def);
 	}
 
 	stmt = dc_sqlite3_prepare(sql, SELECT_v_FROM_config_k_STATEMENT);
 	sqlite3_bind_text(stmt, 1, key, -1, SQLITE_STATIC);
-	if (sqlite3_step(stmt) == SQLITE_ROW)
+	if (sqlite3_step(stmt)==SQLITE_ROW)
 	{
 		const unsigned char* ptr = sqlite3_column_text(stmt, 0); /* Do not pass the pointers returned from sqlite3_column_text(), etc. into sqlite3_free(). */
 		if (ptr)
@@ -642,7 +642,7 @@ char* dc_sqlite3_get_config(dc_sqlite3_t* sql, const char* key, const char* def)
 int32_t dc_sqlite3_get_config_int(dc_sqlite3_t* sql, const char* key, int32_t def)
 {
     char* str = dc_sqlite3_get_config(sql, key, NULL);
-    if (str == NULL) {
+    if (str==NULL) {
 		return def;
     }
     int32_t ret = atol(str);
@@ -654,7 +654,7 @@ int32_t dc_sqlite3_get_config_int(dc_sqlite3_t* sql, const char* key, int32_t de
 int dc_sqlite3_set_config_int(dc_sqlite3_t* sql, const char* key, int32_t value)
 {
     char* value_str = dc_mprintf("%i", (int)value);
-    if (value_str == NULL) {
+    if (value_str==NULL) {
 		return 0;
     }
     int ret = dc_sqlite3_set_config(sql, key, value_str);

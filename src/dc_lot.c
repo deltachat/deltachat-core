@@ -53,7 +53,7 @@ dc_lot_t* dc_lot_new()
  */
 void dc_lot_unref(dc_lot_t* set)
 {
-	if (set==NULL || set->magic != DC_LOT_MAGIC) {
+	if (set==NULL || set->magic!=DC_LOT_MAGIC) {
 		return;
 	}
 
@@ -65,7 +65,7 @@ void dc_lot_unref(dc_lot_t* set)
 
 void dc_lot_empty(dc_lot_t* lot)
 {
-	if (lot == NULL || lot->magic != DC_LOT_MAGIC) {
+	if (lot==NULL || lot->magic!=DC_LOT_MAGIC) {
 		return;
 	}
 
@@ -100,7 +100,7 @@ void dc_lot_empty(dc_lot_t* lot)
  */
 char* dc_lot_get_text1(const dc_lot_t* lot)
 {
-	if (lot == NULL || lot->magic != DC_LOT_MAGIC) {
+	if (lot==NULL || lot->magic!=DC_LOT_MAGIC) {
 		return NULL;
 	}
 	return dc_strdup_keep_null(lot->text1);
@@ -118,7 +118,7 @@ char* dc_lot_get_text1(const dc_lot_t* lot)
  */
 char* dc_lot_get_text2(const dc_lot_t* lot)
 {
-	if (lot == NULL || lot->magic != DC_LOT_MAGIC) {
+	if (lot==NULL || lot->magic!=DC_LOT_MAGIC) {
 		return NULL;
 	}
 	return dc_strdup_keep_null(lot->text2);
@@ -136,7 +136,7 @@ char* dc_lot_get_text2(const dc_lot_t* lot)
  */
 int dc_lot_get_text1_meaning(const dc_lot_t* lot)
 {
-	if (lot == NULL || lot->magic != DC_LOT_MAGIC) {
+	if (lot==NULL || lot->magic!=DC_LOT_MAGIC) {
 		return 0;
 	}
 	return lot->text1_meaning;
@@ -154,7 +154,7 @@ int dc_lot_get_text1_meaning(const dc_lot_t* lot)
  */
 int dc_lot_get_state(const dc_lot_t* lot)
 {
-	if (lot == NULL || lot->magic != DC_LOT_MAGIC) {
+	if (lot==NULL || lot->magic!=DC_LOT_MAGIC) {
 		return 0;
 	}
 	return lot->state;
@@ -170,7 +170,7 @@ int dc_lot_get_state(const dc_lot_t* lot)
  */
 uint32_t dc_lot_get_id(const dc_lot_t* lot)
 {
-	if (lot == NULL || lot->magic != DC_LOT_MAGIC) {
+	if (lot==NULL || lot->magic!=DC_LOT_MAGIC) {
 		return 0;
 	}
 	return lot->id;
@@ -188,7 +188,7 @@ uint32_t dc_lot_get_id(const dc_lot_t* lot)
  */
 time_t dc_lot_get_timestamp(const dc_lot_t* lot)
 {
-	if (lot == NULL || lot->magic != DC_LOT_MAGIC) {
+	if (lot==NULL || lot->magic!=DC_LOT_MAGIC) {
 		return 0;
 	}
 	return lot->timestamp;
@@ -197,11 +197,11 @@ time_t dc_lot_get_timestamp(const dc_lot_t* lot)
 
 void dc_lot_fill(dc_lot_t* lot, const dc_msg_t* msg, const dc_chat_t* chat, const dc_contact_t* contact, dc_context_t* context)
 {
-	if (lot == NULL || lot->magic != DC_LOT_MAGIC || msg == NULL) {
+	if (lot==NULL || lot->magic!=DC_LOT_MAGIC || msg==NULL) {
 		return;
 	}
 
-	if (msg->from_id == DC_CONTACT_ID_SELF)
+	if (msg->from_id==DC_CONTACT_ID_SELF)
 	{
 		if (dc_msg_is_info(msg)) {
 			lot->text1 = NULL;
@@ -212,7 +212,7 @@ void dc_lot_fill(dc_lot_t* lot, const dc_msg_t* msg, const dc_chat_t* chat, cons
 			lot->text1_meaning = DC_TEXT1_SELF;
 		}
 	}
-	else if (chat == NULL)
+	else if (chat==NULL)
 	{
 		lot->text1 = NULL;
 		lot->text1_meaning = 0;

@@ -38,7 +38,7 @@
  */
 void dc_aheader_empty(dc_aheader_t* aheader)
 {
-	if (aheader == NULL) {
+	if (aheader==NULL) {
 		return;
 	}
 
@@ -85,7 +85,7 @@ char* dc_aheader_render(const dc_aheader_t* aheader)
 
 	/* adds a whitespace every 78 characters, this allows libEtPan to wrap the lines according to RFC 5322
 	(which may insert a linebreak before every whitespace) */
-	if ((keybase64_wrapped = dc_key_render_base64(aheader->public_key, 78, " ", 0/*no checksum*/)) == NULL) {
+	if ((keybase64_wrapped = dc_key_render_base64(aheader->public_key, 78, " ", 0/*no checksum*/))==NULL) {
 		goto cleanup;
 	}
 
@@ -110,7 +110,7 @@ static int add_attribute(dc_aheader_t* aheader, const char* name, const char* va
 	/* returns 0 if the attribute will result in an invalid header, 1 if the attribute is okay */
 	if (strcasecmp(name, "addr")==0)
 	{
-		if (value == NULL
+		if (value==NULL
 		 || strlen(value) < 3 || strchr(value, '@')==NULL || strchr(value, '.')==NULL /* rough check if email-address is valid */
 		 || aheader->addr /* email already given */) {
 			return 0;
@@ -121,7 +121,7 @@ static int add_attribute(dc_aheader_t* aheader, const char* name, const char* va
 	#if 0 /* autocrypt 11/2017 no longer uses the type attribute and it will make the autocrypt header invalid */
 	else if (strcasecmp(name, "type")==0)
 	{
-		if (value == NULL) {
+		if (value==NULL) {
 			return 0; /* attribute with no value results in an invalid header */
 		}
 		if (strcasecmp(value, "1")==0 || strcasecmp(value, "0" /*deprecated*/)==0 || strcasecmp(value, "p" /*deprecated*/)==0) {
@@ -140,7 +140,7 @@ static int add_attribute(dc_aheader_t* aheader, const char* name, const char* va
 	}
 	else if (strcasecmp(name, "keydata")==0)
 	{
-		if (value == NULL
+		if (value==NULL
 		 || aheader->public_key->binary || aheader->public_key->bytes) {
 			return 0; /* there is already a k*/
 		}
@@ -177,7 +177,7 @@ int dc_aheader_set_from_string(dc_aheader_t* aheader, const char* header_str__)
 
 	dc_aheader_empty(aheader);
 
-	if (aheader == NULL || header_str__ == NULL) {
+	if (aheader==NULL || header_str__==NULL) {
 		goto cleanup;
 	}
 
@@ -191,19 +191,19 @@ int dc_aheader_set_from_string(dc_aheader_t* aheader, const char* header_str__)
 		beg_attr_name = p;
 		beg_attr_value = NULL;
 		p += strcspn(p, AHEADER_WS "=;"); /* get end of attribute name (an attribute may have no value) */
-		if (p != beg_attr_name)
+		if (p!=beg_attr_name)
 		{
 			/* attribute found */
 			after_attr_name = p;
 			p += strspn(p, AHEADER_WS); /* skip whitespace between attribute name and possible `=` */
-			if (*p == '=')
+			if (*p=='=')
 			{
 				p += strspn(p, AHEADER_WS "="); /* skip spaces and equal signs */
 
 				/* read unquoted attribute value until the first semicolon */
 				beg_attr_value = p;
 				p += strcspn(p, ";");
-				if (*p != '\0') {
+				if (*p!='\0') {
 					*p = '\0';
 					p++;
 				}
@@ -277,14 +277,14 @@ dc_aheader_t* dc_aheader_new_from_imffields(const char* wanted_from, const struc
 	clistiter*    cur = NULL;
 	dc_aheader_t* fine_header = NULL;
 
-	if (wanted_from == NULL || header == NULL) {
+	if (wanted_from==NULL || header==NULL) {
 		return 0;
 	}
 
 	for (cur = clist_begin(header->fld_list); cur!=NULL ; cur=clist_next(cur))
 	{
 		struct mailimf_field* field = (struct mailimf_field*)clist_content(cur);
-		if (field && field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD)
+		if (field && field->fld_type==MAILIMF_FIELD_OPTIONAL_FIELD)
 		{
 			struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
 			if (optional_field && optional_field->fld_name && strcasecmp(optional_field->fld_name, "Autocrypt")==0)
@@ -297,7 +297,7 @@ dc_aheader_t* dc_aheader_new_from_imffields(const char* wanted_from, const struc
 					test = NULL;
 				}
 
-				if (fine_header == NULL) {
+				if (fine_header==NULL) {
 					fine_header = test; /* may still be NULL */
 				}
 				else if (test) {

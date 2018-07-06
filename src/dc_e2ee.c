@@ -46,7 +46,7 @@ static struct mailmime* new_data_part(void* data, size_t data_bytes, char* defau
   char * content_type_str;
   int do_encoding;
 
-  /*if (filename != NULL) {
+  /*if (filename!=NULL) {
     strncpy(basename_buf, filename, PATH_MAX);
     libetpan_basename(basename_buf);
   }*/
@@ -54,25 +54,25 @@ static struct mailmime* new_data_part(void* data, size_t data_bytes, char* defau
   encoding = NULL;
 
   /* default content-type */
-  if (default_content_type == NULL)
+  if (default_content_type==NULL)
     content_type_str = "application/octet-stream";
   else
     content_type_str = default_content_type;
 
   content = mailmime_content_new_with_str(content_type_str);
-  if (content == NULL) {
+  if (content==NULL) {
     goto free_content;
   }
 
   do_encoding = 1;
-  if (content->ct_type->tp_type == MAILMIME_TYPE_COMPOSITE_TYPE) {
+  if (content->ct_type->tp_type==MAILMIME_TYPE_COMPOSITE_TYPE) {
     struct mailmime_composite_type * composite;
 
     composite = content->ct_type->tp_data.tp_composite_type;
 
     switch (composite->ct_type) {
     case MAILMIME_COMPOSITE_TYPE_MESSAGE:
-      if (strcasecmp(content->ct_subtype, "rfc822") == 0)
+      if (strcasecmp(content->ct_subtype, "rfc822")==0)
         do_encoding = 0;
       break;
 
@@ -83,44 +83,44 @@ static struct mailmime* new_data_part(void* data, size_t data_bytes, char* defau
   }
 
   if (do_encoding) {
-    if (default_encoding == -1)
+    if (default_encoding==-1)
       encoding_type = MAILMIME_MECHANISM_BASE64;
     else
       encoding_type = default_encoding;
 
     /* default Content-Transfer-Encoding */
     encoding = mailmime_mechanism_new(encoding_type, NULL);
-    if (encoding == NULL) {
+    if (encoding==NULL) {
       goto free_content;
     }
   }
 
   mime_fields = mailmime_fields_new_with_data(encoding,
       NULL, NULL, NULL, NULL);
-  if (mime_fields == NULL) {
+  if (mime_fields==NULL) {
     goto free_content;
   }
 
   mime = mailmime_new_empty(content, mime_fields);
-  if (mime == NULL) {
+  if (mime==NULL) {
     goto free_mime_fields;
   }
 
-  /*if ((filename != NULL) && (mime->mm_type == MAILMIME_SINGLE)) {
+  /*if ((filename!=NULL) && (mime->mm_type==MAILMIME_SINGLE)) {
     // duplicates the file so that the file can be deleted when
     // the MIME part is done
     dup_filename = dup_file(privacy, filename);
-    if (dup_filename == NULL) {
+    if (dup_filename==NULL) {
       goto free_mime;
     }
 
     r = mailmime_set_body_file(mime, dup_filename);
-    if (r != MAILIMF_NO_ERROR) {
+    if (r!=MAILIMF_NO_ERROR) {
       free(dup_filename);
       goto free_mime;
     }
   }*/
-  if (data!=NULL && data_bytes>0 && mime->mm_type == MAILMIME_SINGLE) {
+  if (data!=NULL && data_bytes>0 && mime->mm_type==MAILMIME_SINGLE) {
 	mailmime_set_body_text(mime, data, data_bytes);
   }
 
@@ -134,9 +134,9 @@ static struct mailmime* new_data_part(void* data, size_t data_bytes, char* defau
   mailmime_content_free(content);
   goto err;
  free_content:
-  if (encoding != NULL)
+  if (encoding!=NULL)
     mailmime_mechanism_free(encoding);
-  if (content != NULL)
+  if (content!=NULL)
     mailmime_content_free(content);
  err:
   return NULL;
@@ -161,10 +161,10 @@ static struct mailmime* new_data_part(void* data, size_t data_bytes, char* defau
  */
 static int contains_report(struct mailmime* mime)
 {
-	if (mime->mm_type == MAILMIME_MULTIPLE)
+	if (mime->mm_type==MAILMIME_MULTIPLE)
 	{
 		if (mime->mm_content_type->ct_type->tp_type==MAILMIME_TYPE_COMPOSITE_TYPE
-		 && mime->mm_content_type->ct_type->tp_data.tp_composite_type->ct_type == MAILMIME_COMPOSITE_TYPE_MULTIPART
+		 && mime->mm_content_type->ct_type->tp_data.tp_composite_type->ct_type==MAILMIME_COMPOSITE_TYPE_MULTIPART
 		 && strcmp(mime->mm_content_type->ct_subtype, "report")==0) {
 			return 1;
 		}
@@ -176,7 +176,7 @@ static int contains_report(struct mailmime* mime)
 			}
 		}
 	}
-	else if (mime->mm_type == MAILMIME_MESSAGE)
+	else if (mime->mm_type==MAILMIME_MESSAGE)
 	{
 		if (contains_report(mime->mm_data.mm_message.mm_msg_mime)) {
 			return 1;
@@ -198,7 +198,7 @@ static int load_or_generate_self_public_key(dc_context_t* context, dc_key_t* pub
 	int        key_created = 0;
 	int        success = 0, key_creation_here = 0;
 
-	if (context == NULL || context->magic != DC_CONTEXT_MAGIC || public_key == NULL) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || public_key==NULL) {
 		goto cleanup;
 	}
 
@@ -282,7 +282,7 @@ int dc_ensure_secret_key_exists(dc_context_t* context)
 	dc_key_t* public_key = dc_key_new();
 	char*     self_addr = NULL;
 
-	if (context==NULL || context->magic != DC_CONTEXT_MAGIC || public_key==NULL) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || public_key==NULL) {
 		goto cleanup;
 	}
 
@@ -328,9 +328,9 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 
 	if (helper) { memset(helper, 0, sizeof(dc_e2ee_helper_t)); }
 
-	if (context == NULL || context->magic != DC_CONTEXT_MAGIC || recipients_addr == NULL || in_out_message == NULL
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || recipients_addr==NULL || in_out_message==NULL
 	 || in_out_message->mm_parent /* libEtPan's pgp_encrypt_mime() takes the parent as the new root. We just expect the root as being given to this function. */
-	 || autocryptheader == NULL || keyring==NULL || sign_key==NULL || plain == NULL || helper == NULL) {
+	 || autocryptheader==NULL || keyring==NULL || sign_key==NULL || plain==NULL || helper==NULL) {
 		goto cleanup;
 	}
 
@@ -341,7 +341,7 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 		}
 
 		autocryptheader->addr = dc_sqlite3_get_config(context->sql, "configured_addr", NULL);
-		if (autocryptheader->addr == NULL) {
+		if (autocryptheader->addr==NULL) {
 			goto cleanup;
 		}
 
@@ -358,12 +358,12 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 				const char* recipient_addr = clist_content(iter1);
 				dc_apeerstate_t* peerstate = dc_apeerstate_new(context);
 				dc_key_t* key_to_use = NULL;
-				if (strcasecmp(recipient_addr, autocryptheader->addr) == 0)
+				if (strcasecmp(recipient_addr, autocryptheader->addr)==0)
 				{
 					; // encrypt to SELF, this key is added below
 				}
 				else if (dc_apeerstate_load_by_addr(peerstate, context->sql, recipient_addr)
-				      && (key_to_use=dc_apeerstate_peek_key(peerstate, min_verified)) != NULL
+				      && (key_to_use=dc_apeerstate_peek_key(peerstate, min_verified))!=NULL
 				      && (peerstate->prefer_encrypt==DC_PE_MUTUAL || e2ee_guaranteed))
 				{
 					dc_keyring_add(keyring, key_to_use); /* we always add all recipients (even on IMAP upload) as otherwise forwarding may fail */
@@ -423,10 +423,10 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 
 			struct mailimf_field* field = (struct mailimf_field*)clist_content(cur);
 			if (field) {
-				if (field->fld_type == MAILIMF_FIELD_SUBJECT) {
+				if (field->fld_type==MAILIMF_FIELD_SUBJECT) {
 					move_to_encrypted = 1;
 				}
-				else if (field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD) {
+				else if (field->fld_type==MAILIMF_FIELD_OPTIONAL_FIELD) {
 					struct mailimf_optional_field* opt_field = field->fld_data.fld_optional_field;
 					if (opt_field && opt_field->fld_name) {
 						if ( strncmp(opt_field->fld_name, "Secure-Join", 11)==0
@@ -455,7 +455,7 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 
 		/* convert part to encrypt to plain text */
 		mailmime_write_mem(plain, &col, message_to_encrypt);
-		if (plain->str == NULL || plain->len<=0) {
+		if (plain->str==NULL || plain->len<=0) {
 			goto cleanup;
 		}
 		//char* t1=dc_null_terminate(plain->str,plain->len);printf("PLAIN:\n%s\n",t1);free(t1); // DEBUG OUTPUT
@@ -489,7 +489,7 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 	}
 
 	char* p = dc_aheader_render(autocryptheader);
-	if (p == NULL) {
+	if (p==NULL) {
 		goto cleanup;
 	}
 	mailimf_fields_add(imffields_unprotected, mailimf_field_new_custom(strdup("Autocrypt"), p/*takes ownership of pointer*/));
@@ -507,7 +507,7 @@ cleanup:
 
 void dc_e2ee_thanks(dc_e2ee_helper_t* helper)
 {
-	if (helper == NULL) {
+	if (helper==NULL) {
 		return;
 	}
 
@@ -573,19 +573,19 @@ static int decrypt_part(dc_context_t*       context,
 
 	/* get data pointer from `mime` */
 	mime_data = mime->mm_data.mm_single;
-	if (mime_data->dt_type != MAILMIME_DATA_TEXT   /* MAILMIME_DATA_FILE indicates, the data is in a file; AFAIK this is not used on parsing */
-	 || mime_data->dt_data.dt_text.dt_data == NULL
+	if (mime_data->dt_type!=MAILMIME_DATA_TEXT   /* MAILMIME_DATA_FILE indicates, the data is in a file; AFAIK this is not used on parsing */
+	 || mime_data->dt_data.dt_text.dt_data==NULL
 	 || mime_data->dt_data.dt_text.dt_length <= 0) {
 		goto cleanup;
 	}
 
 	/* check headers in `mime` */
-	if (mime->mm_mime_fields != NULL) {
+	if (mime->mm_mime_fields!=NULL) {
 		clistiter* cur;
-		for (cur = clist_begin(mime->mm_mime_fields->fld_list); cur != NULL; cur = clist_next(cur)) {
+		for (cur = clist_begin(mime->mm_mime_fields->fld_list); cur!=NULL; cur = clist_next(cur)) {
 			struct mailmime_field* field = (struct mailmime_field*)clist_content(cur);
 			if (field) {
-				if (field->fld_type == MAILMIME_FIELD_TRANSFER_ENCODING && field->fld_data.fld_encoding) {
+				if (field->fld_type==MAILMIME_FIELD_TRANSFER_ENCODING && field->fld_data.fld_encoding) {
 					mime_transfer_encoding = field->fld_data.fld_encoding->enc_type;
 				}
 			}
@@ -593,13 +593,13 @@ static int decrypt_part(dc_context_t*       context,
 	}
 
 	/* regard `Content-Transfer-Encoding:` */
-	if (mime_transfer_encoding == MAILMIME_MECHANISM_7BIT
-	 || mime_transfer_encoding == MAILMIME_MECHANISM_8BIT
-	 || mime_transfer_encoding == MAILMIME_MECHANISM_BINARY)
+	if (mime_transfer_encoding==MAILMIME_MECHANISM_7BIT
+	 || mime_transfer_encoding==MAILMIME_MECHANISM_8BIT
+	 || mime_transfer_encoding==MAILMIME_MECHANISM_BINARY)
 	{
 		decoded_data       = mime_data->dt_data.dt_text.dt_data;
 		decoded_data_bytes = mime_data->dt_data.dt_text.dt_length;
-		if (decoded_data == NULL || decoded_data_bytes <= 0) {
+		if (decoded_data==NULL || decoded_data_bytes <= 0) {
 			goto cleanup; /* no error - but no data */
 		}
 	}
@@ -610,7 +610,7 @@ static int decrypt_part(dc_context_t*       context,
 		r = mailmime_part_parse(mime_data->dt_data.dt_text.dt_data, mime_data->dt_data.dt_text.dt_length,
 			&current_index, mime_transfer_encoding,
 			&transfer_decoding_buffer, &decoded_data_bytes);
-		if (r != MAILIMF_NO_ERROR || transfer_decoding_buffer == NULL || decoded_data_bytes <= 0) {
+		if (r!=MAILIMF_NO_ERROR || transfer_decoding_buffer==NULL || decoded_data_bytes <= 0) {
 			goto cleanup;
 		}
 		decoded_data = transfer_decoding_buffer;
@@ -635,7 +635,7 @@ static int decrypt_part(dc_context_t*       context,
 		size_t index = 0;
 		struct mailmime* decrypted_mime = NULL;
 		if (mailmime_parse(plain_buf, plain_bytes, &index, &decrypted_mime)!=MAIL_NO_ERROR
-		 || decrypted_mime == NULL) {
+		 || decrypted_mime==NULL) {
 			if(decrypted_mime) {mailmime_free(decrypted_mime);}
 			goto cleanup;
 		}
@@ -668,11 +668,11 @@ static int decrypt_recursive(dc_context_t*           context,
 	struct mailmime_content* ct = NULL;
 	clistiter*               cur = NULL;
 
-	if (context == NULL || mime == NULL) {
+	if (context==NULL || mime==NULL) {
 		return 0;
 	}
 
-	if (mime->mm_type == MAILMIME_MULTIPLE)
+	if (mime->mm_type==MAILMIME_MULTIPLE)
 	{
 		ct = mime->mm_content_type;
 		if (ct && ct->ct_subtype && strcmp(ct->ct_subtype, "encrypted")==0) {
@@ -683,7 +683,7 @@ static int decrypt_recursive(dc_context_t*           context,
 				if (decrypt_part(context, (struct mailmime*)clist_content(cur), private_keyring, public_keyring_for_validate, ret_valid_signatures, &decrypted_mime))
 				{
 					/* remember the header containing potentially Autocrypt-Gossip */
-					if (*ret_gossip_headers == NULL /* use the outermost decrypted part */
+					if (*ret_gossip_headers==NULL /* use the outermost decrypted part */
 					 && dc_hash_cnt(ret_valid_signatures) > 0 /* do not trust the gossipped keys when the message cannot be validated eg. due to a bad signature */)
 					{
 						size_t dummy = 0;
@@ -710,7 +710,7 @@ static int decrypt_recursive(dc_context_t*           context,
 			}
 		}
 	}
-	else if (mime->mm_type == MAILMIME_MESSAGE)
+	else if (mime->mm_type==MAILMIME_MESSAGE)
 	{
 		if (decrypt_recursive(context, mime->mm_data.mm_message.mm_msg_mime, private_keyring, public_keyring_for_validate, ret_valid_signatures, ret_gossip_headers, ret_has_unencrypted_parts)) {
 			return 1; /* sth. decrypted, start over from root searching for encrypted parts */
@@ -734,7 +734,7 @@ static dc_hash_t* update_gossip_peerstates(dc_context_t* context, time_t message
 	for (cur1 = clist_begin(gossip_headers->fld_list); cur1!=NULL ; cur1=clist_next(cur1))
 	{
 		struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
-		if (field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD)
+		if (field->fld_type==MAILIMF_FIELD_OPTIONAL_FIELD)
 		{
 			const struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
 			if (optional_field && optional_field->fld_name && strcasecmp(optional_field->fld_name, "Autocrypt-Gossip")==0)
@@ -744,7 +744,7 @@ static dc_hash_t* update_gossip_peerstates(dc_context_t* context, time_t message
 				 && dc_pgp_is_valid_key(context, gossip_header->public_key))
 				{
 					/* found an Autocrypt-Gossip entry, create recipents list and check if addr matches */
-					if (recipients == NULL) {
+					if (recipients==NULL) {
 						recipients = mailimf_get_recipients(imffields);
 					}
 
@@ -769,7 +769,7 @@ static dc_hash_t* update_gossip_peerstates(dc_context_t* context, time_t message
 
 						// collect all gossipped addresses; we need them later to mark them as being
 						// verified when used in a verified group by a verified sender
-						if (gossipped_addr == NULL) {
+						if (gossipped_addr==NULL) {
 							gossipped_addr = malloc(sizeof(dc_hash_t));
 							dc_hash_init(gossipped_addr, DC_HASH_STRING, 1/*copy key*/);
 						}
@@ -811,8 +811,8 @@ void dc_e2ee_decrypt(dc_context_t* context, struct mailmime* in_out_message,
 
 	if (helper) { memset(helper, 0, sizeof(dc_e2ee_helper_t)); }
 
-	if (context==NULL || context->magic != DC_CONTEXT_MAGIC || in_out_message==NULL
-	 || helper == NULL || imffields==NULL) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || in_out_message==NULL
+	 || helper==NULL || imffields==NULL) {
 		goto cleanup;
 	}
 
@@ -832,7 +832,7 @@ void dc_e2ee_decrypt(dc_context_t* context, struct mailmime* in_out_message,
 			struct mailimf_orig_date* orig_date = field->fld_data.fld_orig_date;
 			if (orig_date) {
 				message_time = dc_timestamp_from_date(orig_date->dt_date_time); /* is not yet checked against bad times! */
-				if (message_time != DC_INVALID_TIMESTAMP && message_time > time(NULL)) {
+				if (message_time!=DC_INVALID_TIMESTAMP && message_time > time(NULL)) {
 					message_time = time(NULL);
 				}
 			}
@@ -882,7 +882,7 @@ void dc_e2ee_decrypt(dc_context_t* context, struct mailmime* in_out_message,
 	}
 
 	/* if not yet done, load peer with public key for verification (should be last as the peer may be modified above) */
-	if (peerstate->last_seen == 0) {
+	if (peerstate->last_seen==0) {
 		dc_apeerstate_load_by_addr(peerstate, context->sql, from);
 	}
 
@@ -911,7 +911,7 @@ void dc_e2ee_decrypt(dc_context_t* context, struct mailmime* in_out_message,
 		// if we're here, sth. was encrypted. if we're on top-level, and there are no
 		// additional unencrypted parts in the message the encryption was fine
 		// (signature is handled separately and returned as `signatures`)
-		if (iterations == 0
+		if (iterations==0
 		 && !has_unencrypted_parts) {
 			helper->encrypted = 1;
 		}

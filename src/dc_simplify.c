@@ -50,7 +50,7 @@ static int is_empty_line(const char* buf)
 
 static int is_plain_quote(const char* buf)
 {
-	if (buf[0] == '>') {
+	if (buf[0]=='>') {
 		return 1;
 	}
 	return 0;
@@ -71,7 +71,7 @@ static int is_quoted_headline(const char* buf)
 		          forget to insert a line break between the answer and the quoted headline ...)) */
 	}
 
-	if (buf_len > 0 && buf[buf_len-1] == ':') {
+	if (buf_len > 0 && buf[buf_len-1]==':') {
 		return 1; /* the buffer is a quoting headline in the meaning described above) */
 	}
 
@@ -99,7 +99,7 @@ dc_simplify_t* dc_simplify_new()
 
 void dc_simplify_unref(dc_simplify_t* simplify)
 {
-	if (simplify == NULL) {
+	if (simplify==NULL) {
 		return;
 	}
 
@@ -165,7 +165,7 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* simplify, const char
 		char* line2 = (char*)carray_get(lines, l_first+2);
 		if (strcmp(line0, "---------- Forwarded message ----------")==0 /* do not chage this! sent exactly in this form in dc_chat.c! */
 		 && strncmp(line1, "From: ", 6)==0
-		 && line2[0] == 0)
+		 && line2[0]==0)
 		{
             simplify->is_forwarded = 1; /* nothing is cutted, the forward state should displayed explicitly in the ui */
             l_first += 3;
@@ -234,7 +234,7 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* simplify, const char
 				l_lastQuotedLine = l;
 			}
 			else if (!is_empty_line(line)) {
-				if (is_quoted_headline(line) && !hasQuotedHeadline && l_lastQuotedLine == -1) {
+				if (is_quoted_headline(line) && !hasQuotedHeadline && l_lastQuotedLine==-1) {
 					hasQuotedHeadline = 1; /* continue, the line may be a headline */
 				}
 				else {
@@ -308,7 +308,7 @@ char* dc_simplify_simplify(dc_simplify_t* simplify, const char* in_unterminated,
 	char* out = NULL;
 	char* temp = NULL;
 
-	if (simplify == NULL || in_unterminated == NULL || in_bytes <= 0) {
+	if (simplify==NULL || in_unterminated==NULL || in_bytes <= 0) {
 		return dc_strdup("");
 	}
 
@@ -317,7 +317,7 @@ char* dc_simplify_simplify(dc_simplify_t* simplify, const char* in_unterminated,
 	simplify->is_cut_at_end   = 0;
 
 	out = strndup((char*)in_unterminated, in_bytes); /* strndup() makes sure, the string is null-terminated */
-	if (out == NULL) {
+	if (out==NULL) {
 		return dc_strdup("");
 	}
 

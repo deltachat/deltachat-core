@@ -53,12 +53,12 @@ char* dc_strdup(const char* s) /* strdup(NULL) is undefined, save_strdup(NULL) r
 {
 	char* ret = NULL;
 	if (s) {
-		if ((ret=strdup(s)) == NULL) {
+		if ((ret=strdup(s))==NULL) {
 			exit(16); /* cannot allocate (little) memory, unrecoverable error */
 		}
 	}
 	else {
-		if ((ret=(char*)calloc(1, 1)) == NULL) {
+		if ((ret=(char*)calloc(1, 1))==NULL) {
 			exit(17); /* cannot allocate little memory, unrecoverable error */
 		}
 	}
@@ -91,7 +91,7 @@ void dc_ltrim(char* buf)
 			cur++; len--;
 		}
 
-		if ((const unsigned char*)buf != cur) {
+		if ((const unsigned char*)buf!=cur) {
 			memmove(buf, cur, len + 1);
 		}
 	}
@@ -107,7 +107,7 @@ void dc_rtrim(char* buf)
 		len = strlen(buf);
 		cur = (unsigned char*)buf + len - 1;
 
-		while (cur != (unsigned char*)buf && isspace(*cur)) {
+		while (cur!=(unsigned char*)buf && isspace(*cur)) {
 			--cur, --len;
 		}
 
@@ -155,7 +155,7 @@ int dc_str_replace(char** haystack, const char* needle, const char* replacement)
 	int needle_len = 0;
 	int replacement_len = 0;
 
-	if (haystack==NULL || *haystack==NULL || needle == NULL || needle[0]==0) {
+	if (haystack==NULL || *haystack==NULL || needle==NULL || needle[0]==0) {
 		return 0;
 	}
 
@@ -182,7 +182,7 @@ int dc_str_replace(char** haystack, const char* needle, const char* replacement)
 int dc_str_contains(const char* haystack, const const char* needle)
 {
 	/* case-insensitive search of needle in haystack, return 1 if found, 0 if not */
-	if (haystack==NULL || needle == NULL) {
+	if (haystack==NULL || needle==NULL) {
 		return 0;
 	}
 
@@ -247,7 +247,7 @@ char* dc_binary_to_uc_hex(const uint8_t* buf, size_t bytes)
 	char* hex = NULL;
 	int   i = 0;
 
-	if (buf == NULL || bytes <= 0) {
+	if (buf==NULL || bytes<=0) {
 		goto cleanup;
 	}
 
@@ -283,7 +283,7 @@ char* dc_mprintf(const char* format, ...)
 	}
 
 	buf = malloc(char_cnt_without_zero+2 /* +1 would be enough, however, protect against off-by-one-errors */);
-	if (buf == NULL) {
+	if (buf==NULL) {
 		va_end(argp_copy);
 		return dc_strdup("ErrMem");
 	}
@@ -300,7 +300,7 @@ char* dc_mprintf(const char* format, ...)
 		sqlite_str = sqlite3_vmprintf(format, argp);
 	va_end(argp);
 
-	if (sqlite_str == NULL) {
+	if (sqlite_str==NULL) {
 		return dc_strdup("ErrFmt"); /* error - the result must be free()'d */
 	}
 
@@ -324,7 +324,7 @@ void dc_remove_cr_chars(char* buf)
 {
 	const char* p1 = buf; /* search for first `\r` */
 	while (*p1) {
-		if (*p1 == '\r') {
+		if (*p1=='\r') {
 			break;
 		}
 		p1++;
@@ -332,7 +332,7 @@ void dc_remove_cr_chars(char* buf)
 
 	char* p2 = (char*)p1; /* p1 is `\r` or null-byte; start removing `\r` */
 	while (*p1) {
-		if (*p1 != '\r') {
+		if (*p1!='\r') {
 			*p2 = *p1;
 			p2++;
 		}
@@ -491,7 +491,7 @@ void dc_truncate_str(char* buf, int approx_chars)
 		*p = 0;
 
 		if (strchr(buf, ' ')!=NULL) {
-			while (p[-1] != ' ' && p[-1] != '\n') { /* rewind to the previous space, avoid half utf-8 characters */
+			while (p[-1]!=' ' && p[-1]!='\n') { /* rewind to the previous space, avoid half utf-8 characters */
 				p--;
 				*p = 0;
 			}
@@ -511,7 +511,7 @@ carray* dc_split_into_lines(const char* buf_terminated)
 	unsigned int l_indx = 0;
 
 	while (*p1) {
-		if (*p1  == '\n') {
+		if (*p1=='\n') {
 			carray_add(lines, (void*)strndup(line_start, line_chars), &l_indx);
 			p1++;
 			line_start = p1;
@@ -545,7 +545,7 @@ char* dc_insert_breaks(const char* in, int break_every, const char* break_chars)
 	/* insert a space every n characters, the return must be free()'d.
 	this is useful to allow lines being wrapped according to RFC 5322 (adds linebreaks before spaces) */
 
-	if (in == NULL || break_every <= 0 || break_chars == NULL) {
+	if (in==NULL || break_every<=0 || break_chars==NULL) {
 		return dc_strdup(in);
 	}
 
@@ -556,7 +556,7 @@ char* dc_insert_breaks(const char* in, int break_every, const char* break_chars)
 	out_len += (out_len/break_every+1)*break_chars_len + 1/*nullbyte*/;
 
 	char* out = malloc(out_len);
-	if (out == NULL) { return NULL; }
+	if (out==NULL) { return NULL; }
 
 	const char* i = in;
 	char* o = out;
@@ -608,11 +608,11 @@ static int tmcomp(struct tm * atmp, struct tm * btmp) /* from mailcore2 */
 {
     int result = 0;
 
-    if ((result = (atmp->tm_year - btmp->tm_year)) == 0 &&
-        (result = (atmp->tm_mon - btmp->tm_mon)) == 0 &&
-        (result = (atmp->tm_mday - btmp->tm_mday)) == 0 &&
-        (result = (atmp->tm_hour - btmp->tm_hour)) == 0 &&
-        (result = (atmp->tm_min - btmp->tm_min)) == 0)
+    if ((result = (atmp->tm_year - btmp->tm_year))==0 &&
+        (result = (atmp->tm_mon - btmp->tm_mon))==0 &&
+        (result = (atmp->tm_mday - btmp->tm_mday))==0 &&
+        (result = (atmp->tm_hour - btmp->tm_hour))==0 &&
+        (result = (atmp->tm_min - btmp->tm_min))==0)
         result = atmp->tm_sec - btmp->tm_sec;
     return result;
 }
@@ -646,7 +646,7 @@ static time_t mkgmtime(struct tm * tmp) /* from mailcore2 */
     for ( ; ;) {
         gmtime_r(&t, &mytm);
         dir = tmcomp(&mytm, &yourtm);
-        if (dir != 0) {
+        if (dir!=0) {
             if (bits-- < 0) {
                 return DC_INVALID_TIMESTAMP;
             }
@@ -890,7 +890,7 @@ char* dc_create_outgoing_rfc724_mid(const char* grpid, const char* from_addr)
 	char*       ret = NULL;
 	const char* at_hostname = strchr(from_addr, '@');
 
-	if (at_hostname == NULL) {
+	if (at_hostname==NULL) {
 		at_hostname = "@nohost";
 	}
 
@@ -917,7 +917,7 @@ char* dc_create_incoming_rfc724_mid(time_t message_timestamp, uint32_t contact_i
 	- when fetching the same message again, this function should generate the same Message-ID
 	*/
 
-	if (message_timestamp == DC_INVALID_TIMESTAMP || contact_ids_to == NULL || dc_array_get_cnt(contact_ids_to)==0) {
+	if (message_timestamp==DC_INVALID_TIMESTAMP || contact_ids_to==NULL || dc_array_get_cnt(contact_ids_to)==0) {
 		return NULL;
 	}
 
@@ -947,14 +947,14 @@ char* dc_extract_grpid_from_rfc724_mid(const char* mid)
 	char* p1 = NULL;
 	int   grpid_len = 0;
 
-	if (mid == NULL || strlen(mid)<8 || mid[0]!='G' || mid[1]!='r' || mid[2]!='.') {
+	if (mid==NULL || strlen(mid)<8 || mid[0]!='G' || mid[1]!='r' || mid[2]!='.') {
 		goto cleanup;
 	}
 
 	grpid = dc_strdup(&mid[3]);
 
 	p1 = strchr(grpid, '.');
-	if (p1 == NULL) {
+	if (p1==NULL) {
 		goto cleanup;
 	}
 	*p1 = 0;
@@ -968,7 +968,7 @@ char* dc_extract_grpid_from_rfc724_mid(const char* mid)
 	success = 1;
 
 cleanup:
-	if (success == 0) { free(grpid); grpid = NULL; }
+	if (success==0) { free(grpid); grpid = NULL; }
 	return success? grpid : NULL;
 }
 
@@ -997,7 +997,7 @@ char* dc_extract_grpid_from_rfc724_mid_list(const clist* list)
 int dc_file_exist(const char* pathNfilename)
 {
 	struct stat st;
-	if (stat(pathNfilename, &st) == 0) {
+	if (stat(pathNfilename, &st)==0) {
 		return 1; /* the size, however, may be 0 */
 	}
 	else {
@@ -1009,7 +1009,7 @@ int dc_file_exist(const char* pathNfilename)
 uint64_t dc_get_filebytes(const char* pathNfilename)
 {
 	struct stat st;
-	if (stat(pathNfilename, &st) == 0) {
+	if (stat(pathNfilename, &st)==0) {
 		return (uint64_t)st.st_size;
 	}
 	else {
@@ -1075,7 +1075,7 @@ int dc_copy_file(const char* src, const char* dest, dc_context_t* log/*may be NU
 	}
 
     while ((bytes_read=read(fd_src, buf, DC_COPY_BUF_SIZE)) > 0) {
-        if (write(fd_dest, buf, bytes_read) != bytes_read) {
+        if (write(fd_dest, buf, bytes_read)!=bytes_read) {
             dc_log_error(log, 0, "Cannot write %i bytes to \"%s\".", bytes_read, dest);
 		}
 		anything_copied = 1;
@@ -1103,8 +1103,8 @@ cleanup:
 int dc_create_folder(const char* pathNfilename, dc_context_t* log)
 {
 	struct stat st;
-	if (stat(pathNfilename, &st) == -1) {
-		if (mkdir(pathNfilename, 0755) != 0) {
+	if (stat(pathNfilename, &st)==-1) {
+		if (mkdir(pathNfilename, 0755)!=0) {
 			dc_log_warning(log, 0, "Cannot create directory \"%s\".", pathNfilename);
 			return 0;
 		}
@@ -1187,7 +1187,7 @@ char* dc_get_fine_pathNfilename(const char* folder, const char* desired_filename
 		else {
 			ret = dc_mprintf("%s/%s%s", folder, basename, dotNSuffix);
 		}
-		if (stat(ret, &st) == -1) {
+		if (stat(ret, &st)==-1) {
 			goto cleanup; /* fine filename found */
 		}
 		free(ret); /* try over with the next index */
@@ -1208,7 +1208,7 @@ int dc_write_file(const char* pathNfilename, const void* buf, size_t buf_bytes, 
 
 	FILE* f = fopen(pathNfilename, "wb");
 	if (f) {
-		if (fwrite(buf, 1, buf_bytes, f) == buf_bytes) {
+		if (fwrite(buf, 1, buf_bytes, f)==buf_bytes) {
 			success = 1;
 		}
 		else {
@@ -1240,7 +1240,7 @@ int dc_read_file(const char* pathNfilename, void** buf, size_t* buf_bytes, dc_co
 	fseek(f, 0, SEEK_END);
 	*buf_bytes = ftell(f);
 	fseek(f, 0, SEEK_SET);
-	if (*buf_bytes <= 0) { goto cleanup; }
+	if (*buf_bytes<=0) { goto cleanup; }
 
 	*buf = malloc( (*buf_bytes) + 1 /*be pragmatic and terminate all files by a null - fine for texts and does not hurt for the rest */);
 	if (*buf==NULL) { goto cleanup; }

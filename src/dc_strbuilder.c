@@ -141,7 +141,7 @@ void dc_strbuilder_catf(dc_strbuilder_t* strbuilder, const char* format, ...)
 	}
 
 	buf = malloc(char_cnt_without_zero+2 /* +1 would be enough, however, protect against off-by-one-errors */);
-	if (buf == NULL) {
+	if (buf==NULL) {
 		va_end(argp_copy);
 		dc_strbuilder_cat(strbuilder, "ErrMem");
 		return;

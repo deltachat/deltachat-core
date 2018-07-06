@@ -65,7 +65,7 @@ dc_chatlist_t* dc_chatlist_new(dc_context_t* context)
  */
 void dc_chatlist_unref(dc_chatlist_t* chatlist)
 {
-	if (chatlist==NULL || chatlist->magic != DC_CHATLIST_MAGIC) {
+	if (chatlist==NULL || chatlist->magic!=DC_CHATLIST_MAGIC) {
 		return;
 	}
 
@@ -87,7 +87,7 @@ void dc_chatlist_unref(dc_chatlist_t* chatlist)
  */
 void dc_chatlist_empty(dc_chatlist_t* chatlist)
 {
-	if (chatlist == NULL || chatlist->magic != DC_CHATLIST_MAGIC) {
+	if (chatlist==NULL || chatlist->magic!=DC_CHATLIST_MAGIC) {
 		return;
 	}
 
@@ -107,7 +107,7 @@ void dc_chatlist_empty(dc_chatlist_t* chatlist)
  */
 size_t dc_chatlist_get_cnt(const dc_chatlist_t* chatlist)
 {
-	if (chatlist == NULL || chatlist->magic != DC_CHATLIST_MAGIC) {
+	if (chatlist==NULL || chatlist->magic!=DC_CHATLIST_MAGIC) {
 		return 0;
 	}
 
@@ -131,7 +131,7 @@ size_t dc_chatlist_get_cnt(const dc_chatlist_t* chatlist)
  */
 uint32_t dc_chatlist_get_chat_id(const dc_chatlist_t* chatlist, size_t index)
 {
-	if (chatlist == NULL || chatlist->magic != DC_CHATLIST_MAGIC || chatlist->chatNlastmsg_ids == NULL || index >= chatlist->cnt) {
+	if (chatlist==NULL || chatlist->magic!=DC_CHATLIST_MAGIC || chatlist->chatNlastmsg_ids==NULL || index>=chatlist->cnt) {
 		return 0;
 	}
 
@@ -155,7 +155,7 @@ uint32_t dc_chatlist_get_chat_id(const dc_chatlist_t* chatlist, size_t index)
  */
 uint32_t dc_chatlist_get_msg_id(const dc_chatlist_t* chatlist, size_t index)
 {
-	if (chatlist == NULL || chatlist->magic != DC_CHATLIST_MAGIC || chatlist->chatNlastmsg_ids == NULL || index >= chatlist->cnt) {
+	if (chatlist==NULL || chatlist->magic!=DC_CHATLIST_MAGIC || chatlist->chatNlastmsg_ids==NULL || index>=chatlist->cnt) {
 		return 0;
 	}
 
@@ -205,7 +205,7 @@ dc_lot_t* dc_chatlist_get_summary(const dc_chatlist_t* chatlist, size_t index, d
 	dc_contact_t*  lastcontact = NULL;
 	dc_chat_t*     chat_to_delete = NULL;
 
-	if (chatlist == NULL || chatlist->magic != DC_CHATLIST_MAGIC || index >= chatlist->cnt) {
+	if (chatlist==NULL || chatlist->magic!=DC_CHATLIST_MAGIC || index>=chatlist->cnt) {
 		ret->text2 = dc_strdup("ErrBadChatlistIndex");
 		goto cleanup;
 	}
@@ -226,14 +226,14 @@ dc_lot_t* dc_chatlist_get_summary(const dc_chatlist_t* chatlist, size_t index, d
 		lastmsg = dc_msg_new();
 		dc_msg_load_from_db(lastmsg, chatlist->context, lastmsg_id);
 
-		if (lastmsg->from_id != DC_CONTACT_ID_SELF  &&  DC_CHAT_TYPE_IS_MULTI(chat->type))
+		if (lastmsg->from_id!=DC_CONTACT_ID_SELF  &&  DC_CHAT_TYPE_IS_MULTI(chat->type))
 		{
 			lastcontact = dc_contact_new(chatlist->context);
 			dc_contact_load_from_db(lastcontact, chatlist->context->sql, lastmsg->from_id);
 		}
 	}
 
-	if (chat->id == DC_CHAT_ID_ARCHIVED_LINK)
+	if (chat->id==DC_CHAT_ID_ARCHIVED_LINK)
 	{
 		ret->text2 = dc_strdup(NULL);
 	}
@@ -250,7 +250,7 @@ dc_lot_t* dc_chatlist_get_summary(const dc_chatlist_t* chatlist, size_t index, d
 
 		ret->timestamp = chat->draft_timestamp;
 	}
-	else if (lastmsg == NULL || lastmsg->from_id == 0)
+	else if (lastmsg==NULL || lastmsg->from_id==0)
 	{
 		/* no messages */
 		ret->text2 = dc_stock_str(chatlist->context, DC_STR_NOMESSAGES);
@@ -280,7 +280,7 @@ cleanup:
  */
 dc_context_t* dc_chatlist_get_context(dc_chatlist_t* chatlist)
 {
-	if (chatlist == NULL || chatlist->magic != DC_CHATLIST_MAGIC) {
+	if (chatlist==NULL || chatlist->magic!=DC_CHATLIST_MAGIC) {
 		return NULL;
 	}
 	return chatlist->context;
@@ -330,7 +330,7 @@ int dc_chatlist_load_from_db(dc_chatlist_t* chatlist, int listflags, const char*
 	char*         strLikeCmd = NULL;
 	char*         query = NULL;
 
-	if (chatlist == NULL || chatlist->magic != DC_CHATLIST_MAGIC || chatlist->context == NULL) {
+	if (chatlist==NULL || chatlist->magic!=DC_CHATLIST_MAGIC || chatlist->context==NULL) {
 		goto cleanup;
 	}
 
@@ -392,7 +392,7 @@ int dc_chatlist_load_from_db(dc_chatlist_t* chatlist, int listflags, const char*
 		sqlite3_bind_text(stmt, 1, strLikeCmd, -1, SQLITE_STATIC);
 	}
 
-    while (sqlite3_step(stmt) == SQLITE_ROW)
+    while (sqlite3_step(stmt)==SQLITE_ROW)
     {
 		dc_array_add_id(chatlist->chatNlastmsg_ids, sqlite3_column_int(stmt, 0));
 		dc_array_add_id(chatlist->chatNlastmsg_ids, sqlite3_column_int(stmt, 1));

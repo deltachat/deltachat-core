@@ -35,10 +35,10 @@ static char* find_param(char* haystack, int key, char** ret_p2)
 	/* let p1 point to the start of the */
 	p1 = haystack;
 	while (1) {
-		if (p1 == NULL || *p1 == 0) {
+		if (p1==NULL || *p1==0) {
 			return NULL;
 		}
-		else if (*p1 == key && p1[1] == '=') {
+		else if (*p1==key && p1[1]=='=') {
 			break;
 		}
 		else {
@@ -51,7 +51,7 @@ static char* find_param(char* haystack, int key, char** ret_p2)
 
 	/* let p2 point to the character _after_ the value - eiter `\n` or `\0` */
 	p2 = strchr(p1, '\n');
-	if (p2 == NULL) {
+	if (p2==NULL) {
 		p2 = &p1[strlen(p1)];
 	}
 
@@ -108,7 +108,7 @@ void dc_param_unref(dc_param_t* param)
  */
 void dc_param_empty(dc_param_t* param)
 {
-	if (param == NULL) {
+	if (param==NULL) {
 		return;
 	}
 
@@ -129,7 +129,7 @@ void dc_param_empty(dc_param_t* param)
  */
 void dc_param_set_packed(dc_param_t* param, const char* packed)
 {
-	if (param == NULL) {
+	if (param==NULL) {
 		return;
 	}
 
@@ -148,7 +148,7 @@ void dc_param_set_packed(dc_param_t* param, const char* packed)
  */
 void dc_param_set_urlencoded(dc_param_t* param, const char* urlencoded)
 {
-	if (param == NULL) {
+	if (param==NULL) {
 		return;
 	}
 
@@ -174,7 +174,7 @@ int dc_param_exists(dc_param_t* param, int key)
 {
 	char *p2 = NULL;
 
-	if (param == NULL || key == 0) {
+	if (param==NULL || key==0) {
 		return 0;
 	}
 
@@ -198,12 +198,12 @@ char* dc_param_get(const dc_param_t* param, int key, const char* def)
 	char  bak = 0;
 	char* ret = NULL;
 
-	if (param == NULL || key == 0) {
+	if (param==NULL || key==0) {
 		return def? dc_strdup(def) : NULL;
 	}
 
 	p1 = find_param(param->packed, key, &p2);
-	if (p1 == NULL) {
+	if (p1==NULL) {
 		return def? dc_strdup(def) : NULL;
 	}
 
@@ -229,12 +229,12 @@ char* dc_param_get(const dc_param_t* param, int key, const char* def)
  */
 int32_t dc_param_get_int(const dc_param_t* param, int key, int32_t def)
 {
-	if (param == NULL || key == 0) {
+	if (param==NULL || key==0) {
 		return def;
 	}
 
     char* str = dc_param_get(param, key, NULL);
-    if (str == NULL) {
+    if (str==NULL) {
 		return def;
     }
     int32_t ret = atol(str);
@@ -258,7 +258,7 @@ void dc_param_set(dc_param_t* param, int key, const char* value)
 	char* old2 = NULL;
 	char* new1 = NULL;
 
-	if (param == NULL || key == 0) {
+	if (param==NULL || key==0) {
 		return;
 	}
 
@@ -317,12 +317,12 @@ void dc_param_set(dc_param_t* param, int key, const char* value)
  */
 void dc_param_set_int(dc_param_t* param, int key, int32_t value)
 {
-	if (param == NULL || key == 0) {
+	if (param==NULL || key==0) {
 		return;
 	}
 
     char* value_str = dc_mprintf("%i", (int)value);
-    if (value_str == NULL) {
+    if (value_str==NULL) {
 		return;
     }
     dc_param_set(param, key, value_str);

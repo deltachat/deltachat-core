@@ -33,7 +33,7 @@
 
 static void dc_apeerstate_empty(dc_apeerstate_t* peerstate)
 {
-	if (peerstate == NULL) {
+	if (peerstate==NULL) {
 		return;
 	}
 
@@ -112,7 +112,7 @@ int dc_apeerstate_load_by_addr(dc_apeerstate_t* peerstate, dc_sqlite3_t* sql, co
 	int           success = 0;
 	sqlite3_stmt* stmt = NULL;
 
-	if (peerstate==NULL || sql == NULL || addr == NULL) {
+	if (peerstate==NULL || sql==NULL || addr==NULL) {
 		goto cleanup;
 	}
 
@@ -123,7 +123,7 @@ int dc_apeerstate_load_by_addr(dc_apeerstate_t* peerstate, dc_sqlite3_t* sql, co
 		 " FROM acpeerstates "
 		 " WHERE addr=? COLLATE NOCASE;");
 	sqlite3_bind_text(stmt, 1, addr, -1, SQLITE_STATIC);
-	if (sqlite3_step(stmt) != SQLITE_ROW) {
+	if (sqlite3_step(stmt)!=SQLITE_ROW) {
 		goto cleanup;
 	}
 	dc_apeerstate_set_from_stmt(peerstate, stmt);
@@ -141,7 +141,7 @@ int dc_apeerstate_load_by_fingerprint(dc_apeerstate_t* peerstate, dc_sqlite3_t* 
 	int           success = 0;
 	sqlite3_stmt* stmt = NULL;
 
-	if (peerstate==NULL || sql == NULL || fingerprint == NULL) {
+	if (peerstate==NULL || sql==NULL || fingerprint==NULL) {
 		goto cleanup;
 	}
 
@@ -156,7 +156,7 @@ int dc_apeerstate_load_by_fingerprint(dc_apeerstate_t* peerstate, dc_sqlite3_t* 
 	sqlite3_bind_text(stmt, 1, fingerprint, -1, SQLITE_STATIC);
 	sqlite3_bind_text(stmt, 2, fingerprint, -1, SQLITE_STATIC);
 	sqlite3_bind_text(stmt, 3, fingerprint, -1, SQLITE_STATIC);
-	if (sqlite3_step(stmt) != SQLITE_ROW) {
+	if (sqlite3_step(stmt)!=SQLITE_ROW) {
 		goto cleanup;
 	}
 	dc_apeerstate_set_from_stmt(peerstate, stmt);
@@ -204,7 +204,7 @@ int dc_apeerstate_save_to_db(const dc_apeerstate_t* peerstate, dc_sqlite3_t* sql
 		sqlite3_bind_blob (stmt, 9, peerstate->verified_key? peerstate->verified_key->binary : NULL/*results in sqlite3_bind_null()*/, peerstate->verified_key? peerstate->verified_key->bytes : 0, SQLITE_STATIC);
 		sqlite3_bind_text (stmt,10, peerstate->verified_key_fingerprint, -1, SQLITE_STATIC);
 		sqlite3_bind_text (stmt,11, peerstate->addr, -1, SQLITE_STATIC);
-		if (sqlite3_step(stmt) != SQLITE_DONE) {
+		if (sqlite3_step(stmt)!=SQLITE_DONE) {
 			goto cleanup;
 		}
 		sqlite3_finalize(stmt);
@@ -218,7 +218,7 @@ int dc_apeerstate_save_to_db(const dc_apeerstate_t* peerstate, dc_sqlite3_t* sql
 		sqlite3_bind_int64(stmt, 2, peerstate->last_seen_autocrypt);
 		sqlite3_bind_int64(stmt, 3, peerstate->gossip_timestamp);
 		sqlite3_bind_text (stmt, 4, peerstate->addr, -1, SQLITE_STATIC);
-		if (sqlite3_step(stmt) != SQLITE_DONE) {
+		if (sqlite3_step(stmt)!=SQLITE_DONE) {
 			goto cleanup;
 		}
 		sqlite3_finalize(stmt);
@@ -282,7 +282,7 @@ char* dc_apeerstate_render_gossip_header(const dc_apeerstate_t* peerstate, int m
 	char*         ret = NULL;
 	dc_aheader_t* autocryptheader = dc_aheader_new();
 
-	if (peerstate == NULL || peerstate->addr == NULL) {
+	if (peerstate==NULL || peerstate->addr==NULL) {
 		goto cleanup;
 	}
 
@@ -318,7 +318,7 @@ cleanup:
  */
 dc_key_t* dc_apeerstate_peek_key(const dc_apeerstate_t* peerstate, int min_verified)
 {
-	if ( peerstate == NULL
+	if ( peerstate==NULL
 	 || (peerstate->public_key && (peerstate->public_key->binary==NULL || peerstate->public_key->bytes<=0))
 	 || (peerstate->gossip_key && (peerstate->gossip_key->binary==NULL || peerstate->gossip_key->bytes<=0))
 	 || (peerstate->verified_key && (peerstate->verified_key->binary==NULL || peerstate->verified_key->bytes<=0))) {
@@ -346,7 +346,7 @@ dc_key_t* dc_apeerstate_peek_key(const dc_apeerstate_t* peerstate, int min_verif
 
 int dc_apeerstate_init_from_header(dc_apeerstate_t* peerstate, const dc_aheader_t* header, time_t message_time)
 {
-	if (peerstate == NULL || header == NULL) {
+	if (peerstate==NULL || header==NULL) {
 		return 0;
 	}
 
@@ -367,7 +367,7 @@ int dc_apeerstate_init_from_header(dc_apeerstate_t* peerstate, const dc_aheader_
 
 int dc_apeerstate_init_from_gossip(dc_apeerstate_t* peerstate, const dc_aheader_t* gossip_header, time_t message_time)
 {
-	if (peerstate == NULL || gossip_header == NULL) {
+	if (peerstate==NULL || gossip_header==NULL) {
 		return 0;
 	}
 
@@ -390,7 +390,7 @@ int dc_apeerstate_degrade_encryption(dc_apeerstate_t* peerstate, time_t message_
 		return 0;
 	}
 
-	if (peerstate->prefer_encrypt == DC_PE_MUTUAL) {
+	if (peerstate->prefer_encrypt==DC_PE_MUTUAL) {
 		peerstate->degrade_event |= DC_DE_ENCRYPTION_PAUSED;
 	}
 
@@ -418,9 +418,9 @@ void dc_apeerstate_apply_header(dc_apeerstate_t* peerstate, const dc_aheader_t* 
 		peerstate->to_save             |= DC_SAVE_TIMESTAMPS;
 
 		if ((header->prefer_encrypt==DC_PE_MUTUAL || header->prefer_encrypt==DC_PE_NOPREFERENCE) /*this also switches from DC_PE_RESET to DC_PE_NOPREFERENCE, which is just fine as the function is only called _if_ the Autocrypt:-header is preset at all */
-		 &&  header->prefer_encrypt != peerstate->prefer_encrypt)
+		 &&  header->prefer_encrypt!=peerstate->prefer_encrypt)
 		{
-			if (peerstate->prefer_encrypt == DC_PE_MUTUAL && header->prefer_encrypt != DC_PE_MUTUAL) {
+			if (peerstate->prefer_encrypt==DC_PE_MUTUAL && header->prefer_encrypt!=DC_PE_MUTUAL) {
 				peerstate->degrade_event |= DC_DE_ENCRYPTION_PAUSED;
 			}
 
@@ -428,7 +428,7 @@ void dc_apeerstate_apply_header(dc_apeerstate_t* peerstate, const dc_aheader_t* 
 			peerstate->to_save |= DC_SAVE_ALL;
 		}
 
-		if (peerstate->public_key == NULL) {
+		if (peerstate->public_key==NULL) {
 			peerstate->public_key = dc_key_new();
 		}
 
@@ -456,7 +456,7 @@ void dc_apeerstate_apply_gossip(dc_apeerstate_t* peerstate, const dc_aheader_t* 
 		peerstate->gossip_timestamp    = message_time;
 		peerstate->to_save             |= DC_SAVE_TIMESTAMPS;
 
-		if (peerstate->gossip_key == NULL) {
+		if (peerstate->gossip_key==NULL) {
 			peerstate->gossip_key = dc_key_new();
 		}
 
@@ -485,7 +485,7 @@ int dc_apeerstate_recalc_fingerprint(dc_apeerstate_t* peerstate)
 	char*          old_public_fingerprint = NULL;
 	char*          old_gossip_fingerprint = NULL;
 
-	if (peerstate == NULL) {
+	if (peerstate==NULL) {
 		goto cleanup;
 	}
 
@@ -494,11 +494,11 @@ int dc_apeerstate_recalc_fingerprint(dc_apeerstate_t* peerstate)
 		old_public_fingerprint = peerstate->public_key_fingerprint;
 		peerstate->public_key_fingerprint = dc_key_get_fingerprint(peerstate->public_key); /* returns the empty string for errors, however, this should be saved as well as it represents an erroneous key */
 
-		if (old_public_fingerprint == NULL
-		 || old_public_fingerprint[0] == 0
-		 || peerstate->public_key_fingerprint == NULL
-		 || peerstate->public_key_fingerprint[0] == 0
-		 || strcasecmp(old_public_fingerprint, peerstate->public_key_fingerprint) != 0)
+		if (old_public_fingerprint==NULL
+		 || old_public_fingerprint[0]==0
+		 || peerstate->public_key_fingerprint==NULL
+		 || peerstate->public_key_fingerprint[0]==0
+		 || strcasecmp(old_public_fingerprint, peerstate->public_key_fingerprint)!=0)
 		{
 			peerstate->to_save  |= DC_SAVE_ALL;
 
@@ -513,11 +513,11 @@ int dc_apeerstate_recalc_fingerprint(dc_apeerstate_t* peerstate)
 		old_gossip_fingerprint = peerstate->gossip_key_fingerprint;
 		peerstate->gossip_key_fingerprint = dc_key_get_fingerprint(peerstate->gossip_key); /* returns the empty string for errors, however, this should be saved as well as it represents an erroneous key */
 
-		if (old_gossip_fingerprint == NULL
-		 || old_gossip_fingerprint[0] == 0
-		 || peerstate->gossip_key_fingerprint == NULL
-		 || peerstate->gossip_key_fingerprint[0] == 0
-		 || strcasecmp(old_gossip_fingerprint, peerstate->gossip_key_fingerprint) != 0)
+		if (old_gossip_fingerprint==NULL
+		 || old_gossip_fingerprint[0]==0
+		 || peerstate->gossip_key_fingerprint==NULL
+		 || peerstate->gossip_key_fingerprint[0]==0
+		 || strcasecmp(old_gossip_fingerprint, peerstate->gossip_key_fingerprint)!=0)
 		{
 			peerstate->to_save  |= DC_SAVE_ALL;
 
@@ -560,34 +560,34 @@ int dc_apeerstate_set_verified(dc_apeerstate_t* peerstate, int which_key, const 
 {
 	int success = 0;
 
-	if (peerstate == NULL
+	if (peerstate==NULL
 	 || (which_key!=DC_PS_GOSSIP_KEY && which_key!=DC_PS_PUBLIC_KEY)
 	 || (verified!=DC_BIDIRECT_VERIFIED)) {
 		goto cleanup;
 	}
 
-	if (which_key == DC_PS_PUBLIC_KEY
-	 && peerstate->public_key_fingerprint != NULL
-	 && peerstate->public_key_fingerprint[0] != 0
-	 && fingerprint[0] != 0
-	 && strcasecmp(peerstate->public_key_fingerprint, fingerprint) == 0)
+	if (which_key==DC_PS_PUBLIC_KEY
+	 && peerstate->public_key_fingerprint!=NULL
+	 && peerstate->public_key_fingerprint[0]!=0
+	 && fingerprint[0]!=0
+	 && strcasecmp(peerstate->public_key_fingerprint, fingerprint)==0)
 	{
 		peerstate->to_save                 |= DC_SAVE_ALL;
 		peerstate->verified_key             = dc_key_ref(peerstate->public_key);
 		peerstate->verified_key_fingerprint = dc_strdup(peerstate->public_key_fingerprint);
-		success                               = 1;
+		success                             = 1;
 	}
 
-	if (which_key == DC_PS_GOSSIP_KEY
-	 && peerstate->gossip_key_fingerprint != NULL
-	 && peerstate->gossip_key_fingerprint[0] != 0
-	 && fingerprint[0] != 0
-	 && strcasecmp(peerstate->gossip_key_fingerprint, fingerprint) == 0)
+	if (which_key==DC_PS_GOSSIP_KEY
+	 && peerstate->gossip_key_fingerprint!=NULL
+	 && peerstate->gossip_key_fingerprint[0]!=0
+	 && fingerprint[0]!=0
+	 && strcasecmp(peerstate->gossip_key_fingerprint, fingerprint)==0)
 	{
 		peerstate->to_save                 |= DC_SAVE_ALL;
 		peerstate->verified_key             = dc_key_ref(peerstate->gossip_key);
 		peerstate->verified_key_fingerprint = dc_strdup(peerstate->gossip_key_fingerprint);
-		success                               = 1;
+		success                             = 1;
 	}
 
 cleanup:
@@ -597,7 +597,7 @@ cleanup:
 
 int dc_apeerstate_has_verified_key(const dc_apeerstate_t* peerstate, const dc_hash_t* fingerprints)
 {
-	if (peerstate == NULL || fingerprints == NULL) {
+	if (peerstate==NULL || fingerprints==NULL) {
 		return 0;
 	}
 

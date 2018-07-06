@@ -71,7 +71,7 @@ void dc_pgp_exit(void)
 
 void dc_pgp_rand_seed(dc_context_t* context, const void* buf, size_t bytes)
 {
-	if (buf == NULL || bytes <= 0) {
+	if (buf==NULL || bytes<=0) {
 		return;
 	}
 
@@ -99,16 +99,16 @@ int dc_split_armored_data(char* buf, const char** ret_headerline, const char** r
 	if (ret_preferencrypt)  { *ret_preferencrypt = NULL; }
 	if (ret_base64)         { *ret_base64 = NULL; }
 
-	if (buf == NULL || ret_headerline == NULL) {
+	if (buf==NULL || ret_headerline==NULL) {
 		goto cleanup;
 	}
 
 	dc_remove_cr_chars(buf);
 	while (*p1) {
-		if (*p1  == '\n') {
+		if (*p1=='\n') {
 			/* line found ... */
 			line[line_chars] = 0;
-			if (headerline == NULL) {
+			if (headerline==NULL) {
 				/* ... headerline */
 				dc_trim(line);
 				if (strncmp(line, "-----BEGIN ", 11)==0 && strncmp(&line[strlen(line)-5], "-----", 5)==0) {
@@ -160,7 +160,7 @@ int dc_split_armored_data(char* buf, const char** ret_headerline, const char** r
 		}
 	}
 
-	if (headerline == NULL || base64 == NULL) {
+	if (headerline==NULL || base64==NULL) {
 		goto cleanup;
 	}
 
@@ -377,13 +377,13 @@ int dc_pgp_create_keypair(dc_context_t* context, const char* addr, dc_key_t* ret
 
 	pgp_writer_set_memory(pubout, pubmem);
 	if (!pgp_write_xfer_key(pubout, &pubkey, 0/*armored*/)
-	 || pubmem->buf == NULL || pubmem->length <= 0) {
+	 || pubmem->buf==NULL || pubmem->length <= 0) {
 		goto cleanup;
 	}
 
 	pgp_writer_set_memory(secout, secmem);
 	if (!pgp_write_xfer_key(secout, &seckey, 0/*armored*/)
-	 || secmem->buf == NULL || secmem->length <= 0) {
+	 || secmem->buf==NULL || secmem->length <= 0) {
 		goto cleanup;
 	}
 
@@ -418,7 +418,7 @@ int dc_pgp_is_valid_key(dc_context_t* context, const dc_key_t* raw_key)
 	pgp_memory_t*   keysmem = pgp_memory_new();
 
 	if (context==NULL || raw_key==NULL
-	 || raw_key->binary == NULL || raw_key->bytes <= 0
+	 || raw_key->binary==NULL || raw_key->bytes <= 0
 	 || public_keys==NULL || private_keys==NULL || keysmem==NULL) {
 		goto cleanup;
 	}
@@ -426,10 +426,10 @@ int dc_pgp_is_valid_key(dc_context_t* context, const dc_key_t* raw_key)
 	pgp_memory_add(keysmem, raw_key->binary, raw_key->bytes);
 	pgp_filter_keys_from_mem(&s_io, public_keys, private_keys, NULL, 0, keysmem); /* function returns 0 on any error in any packet - this does not mean, we cannot use the key. We check the details below therefore. */
 
-	if (raw_key->type == DC_KEY_PUBLIC && public_keys->keyc >= 1) {
+	if (raw_key->type==DC_KEY_PUBLIC && public_keys->keyc >= 1) {
 		key_is_valid = 1;
 	}
-	else if (raw_key->type == DC_KEY_PRIVATE && private_keys->keyc >= 1) {
+	else if (raw_key->type==DC_KEY_PRIVATE && private_keys->keyc >= 1) {
 		key_is_valid = 1;
 	}
 
@@ -449,7 +449,7 @@ int dc_pgp_calc_fingerprint(const dc_key_t* raw_key, uint8_t** ret_fingerprint, 
 	pgp_memory_t*   keysmem = pgp_memory_new();
 
 	if (raw_key==NULL || ret_fingerprint==NULL || *ret_fingerprint!=NULL || ret_fingerprint_bytes==NULL || *ret_fingerprint_bytes!=0
-	 || raw_key->binary == NULL || raw_key->bytes <= 0
+	 || raw_key->binary==NULL || raw_key->bytes <= 0
 	 || public_keys==NULL || private_keys==NULL || keysmem==NULL) {
 		goto cleanup;
 	}
@@ -490,7 +490,7 @@ int dc_pgp_split_key(dc_context_t* context, const dc_key_t* private_in, dc_key_t
 	pgp_memory_t*   pubmem = pgp_memory_new();
 	pgp_output_t*   pubout = pgp_output_new();
 
-	if (context == NULL || private_in==NULL || ret_public_key==NULL
+	if (context==NULL || private_in==NULL || ret_public_key==NULL
 	 || public_keys==NULL || private_keys==NULL || keysmem==NULL || pubmem==NULL || pubout==NULL) {
 		goto cleanup;
 	}
@@ -510,7 +510,7 @@ int dc_pgp_split_key(dc_context_t* context, const dc_key_t* private_in, dc_key_t
 
 	pgp_writer_set_memory(pubout, pubmem);
 	if (!pgp_write_xfer_key(pubout, &public_keys->keys[0], 0/*armored*/)
-	 || pubmem->buf == NULL || pubmem->length <= 0) {
+	 || pubmem->buf==NULL || pubmem->length <= 0) {
 		goto cleanup;
 	}
 
@@ -589,7 +589,7 @@ int dc_pgp_pk_encrypt(  dc_context_t*       context,
 			pgp_key_t* sk0 = &private_keys->keys[0];
 			signedmem = pgp_sign_buf(&s_io, plain_text, plain_bytes, &sk0->key.seckey, time(NULL)/*birthtime*/, 0/*duration*/,
 				NULL/*hash, defaults to sha256*/, 0/*armored*/, 0/*cleartext*/);
-			if (signedmem == NULL) {
+			if (signedmem==NULL) {
 				dc_log_warning(context, 0, "Signing failed.");
 				goto cleanup;
 			}
@@ -604,7 +604,7 @@ int dc_pgp_pk_encrypt(  dc_context_t*       context,
 		}
 
 		pgp_memory_t* outmem = pgp_encrypt_buf(&s_io, signed_text, signed_bytes, public_keys, use_armor, NULL/*cipher*/, encrypt_raw_packet);
-		if (outmem == NULL) {
+		if (outmem==NULL) {
 			dc_log_warning(context, 0, "Encryption failed.");
 			goto cleanup;
 		}
@@ -678,7 +678,7 @@ int dc_pgp_pk_decrypt(  dc_context_t*       context,
 	{
 		pgp_memory_t* outmem = pgp_decrypt_and_validate_buf(&s_io, vresult, ctext, ctext_bytes, private_keys, public_keys,
 			use_armor, &recipients_key_ids, &recipients_cnt);
-		if (outmem == NULL) {
+		if (outmem==NULL) {
 			dc_log_warning(context, 0, "Decryption failed.");
 			goto cleanup;
 		}

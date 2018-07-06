@@ -40,9 +40,9 @@ static void add_or_lookup_contact_by_addr(dc_context_t* context, const char* dis
 {
 	/* is addr_spec equal to SELF? */
 	int dummy = 0;
-	if (check_self == NULL) { check_self = &dummy; }
+	if (check_self==NULL) { check_self = &dummy; }
 
-	if (context == NULL || context->magic != DC_CONTEXT_MAGIC || addr_spec == NULL) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || addr_spec==NULL) {
 		return;
 	}
 
@@ -79,7 +79,7 @@ static void add_or_lookup_contact_by_addr(dc_context_t* context, const char* dis
 
 static void dc_add_or_lookup_contacts_by_mailbox_list(dc_context_t* context, const struct mailimf_mailbox_list* mb_list, int origin, dc_array_t* ids, int* check_self)
 {
-	if (context == NULL || context->magic != DC_CONTEXT_MAGIC || mb_list == NULL) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || mb_list==NULL) {
 		return;
 	}
 
@@ -94,20 +94,20 @@ static void dc_add_or_lookup_contacts_by_mailbox_list(dc_context_t* context, con
 
 static void dc_add_or_lookup_contacts_by_address_list(dc_context_t* context, const struct mailimf_address_list* adr_list, int origin, dc_array_t* ids, int* check_self)
 {
-	if (context == NULL || context->magic != DC_CONTEXT_MAGIC || adr_list == NULL /*may be NULL eg. if bcc is given as `Bcc: \n` in the header */) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || adr_list==NULL /*may be NULL eg. if bcc is given as `Bcc: \n` in the header */) {
 		return;
 	}
 
 	for (clistiter* cur = clist_begin(adr_list->ad_list); cur!=NULL ; cur=clist_next(cur)) {
 		struct mailimf_address* adr = (struct mailimf_address*)clist_content(cur);
 		if (adr) {
-			if (adr->ad_type == MAILIMF_ADDRESS_MAILBOX) {
+			if (adr->ad_type==MAILIMF_ADDRESS_MAILBOX) {
 				struct mailimf_mailbox* mb = adr->ad_data.ad_mailbox; /* can be NULL */
 				if (mb) {
 					add_or_lookup_contact_by_addr(context, mb->mb_display_name, mb->mb_addr_spec, origin, ids, check_self);
 				}
 			}
-			else if (adr->ad_type == MAILIMF_ADDRESS_GROUP) {
+			else if (adr->ad_type==MAILIMF_ADDRESS_GROUP) {
 				struct mailimf_group* group = adr->ad_data.ad_group; /* can be NULL */
 				if (group && group->grp_mb_list /*can be NULL*/) {
 					dc_add_or_lookup_contacts_by_mailbox_list(context, group->grp_mb_list, origin, ids, check_self);
@@ -134,7 +134,7 @@ static int is_known_rfc724_mid(dc_context_t* context, const char* rfc724_mid)
 			" AND m.chat_id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL)
 			" AND c.blocked=0;");
 		sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
-		if (sqlite3_step(stmt) == SQLITE_ROW) {
+		if (sqlite3_step(stmt)==SQLITE_ROW) {
 			is_known = 1;
 		}
 		sqlite3_finalize(stmt);
@@ -164,7 +164,7 @@ static int dc_is_reply_to_known_message(dc_context_t* context, dc_mimeparser_t* 
 	`In-Reply-To`/`References:` (to support non-Delta-Clients) or from `Chat-Predecessor:` (Delta clients, see comment in dc_chat.c) */
 
 	struct mailimf_optional_field* optional_field = NULL;
-	if ((optional_field=dc_mimeparser_lookup_optional_field2(mime_parser, "Chat-Predecessor", "X-MrPredecessor")) != NULL)
+	if ((optional_field=dc_mimeparser_lookup_optional_field2(mime_parser, "Chat-Predecessor", "X-MrPredecessor"))!=NULL)
 	{
 		if (is_known_rfc724_mid(context, optional_field->fld_value)) {
 			return 1;
@@ -173,7 +173,7 @@ static int dc_is_reply_to_known_message(dc_context_t* context, dc_mimeparser_t* 
 
 	struct mailimf_field* field = NULL;
 	if ((field=dc_mimeparser_lookup_field(mime_parser, "In-Reply-To"))!=NULL
-	 && field->fld_type == MAILIMF_FIELD_IN_REPLY_TO)
+	 && field->fld_type==MAILIMF_FIELD_IN_REPLY_TO)
 	{
 		struct mailimf_in_reply_to* fld_in_reply_to = field->fld_data.fld_in_reply_to;
 		if (fld_in_reply_to) {
@@ -184,7 +184,7 @@ static int dc_is_reply_to_known_message(dc_context_t* context, dc_mimeparser_t* 
 	}
 
 	if ((field=dc_mimeparser_lookup_field(mime_parser, "References"))!=NULL
-	 && field->fld_type == MAILIMF_FIELD_REFERENCES)
+	 && field->fld_type==MAILIMF_FIELD_REFERENCES)
 	{
 		struct mailimf_references* fld_references = field->fld_data.fld_references;
 		if (fld_references) {
@@ -213,7 +213,7 @@ static int is_msgrmsg_rfc724_mid(dc_context_t* context, const char* rfc724_mid)
 			" AND msgrmsg!=0 "
 			" AND chat_id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL) ";");
 		sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
-		if (sqlite3_step(stmt) == SQLITE_ROW) {
+		if (sqlite3_step(stmt)==SQLITE_ROW) {
 			is_msgrmsg = 1;
 		}
 		sqlite3_finalize(stmt);
@@ -329,7 +329,7 @@ static dc_array_t* search_chat_ids_by_contact_ids(dc_context_t* context, const d
 	char*         q3 = NULL;
 	dc_array_t*   chat_ids = dc_array_new(context, 23);
 
-	if (context == NULL || context->magic != DC_CONTEXT_MAGIC) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
 		goto cleanup;
 	}
 
@@ -342,7 +342,7 @@ static dc_array_t* search_chat_ids_by_contact_ids(dc_context_t* context, const d
 
 		for (i = 0; i < iCnt; i++) {
 			uint32_t curr_id = dc_array_get_id(unsorted_contact_ids, i);
-			if (curr_id != DC_CONTACT_ID_SELF && !dc_array_search_id(contact_ids, curr_id, NULL)) {
+			if (curr_id!=DC_CONTACT_ID_SELF && !dc_array_search_id(contact_ids, curr_id, NULL)) {
 				dc_array_add_id(contact_ids, curr_id);
 			}
 		}
@@ -373,8 +373,8 @@ static dc_array_t* search_chat_ids_by_contact_ids(dc_context_t* context, const d
 			uint32_t chat_id    = sqlite3_column_int(stmt, 0);
 			uint32_t contact_id = sqlite3_column_int(stmt, 1);
 
-			if (chat_id != last_chat_id) {
-				if (matches == dc_array_get_cnt(contact_ids) && mismatches == 0) {
+			if (chat_id!=last_chat_id) {
+				if (matches==dc_array_get_cnt(contact_ids) && mismatches==0) {
 					dc_array_add_id(chat_ids, last_chat_id);
 				}
 				last_chat_id = chat_id;
@@ -382,7 +382,7 @@ static dc_array_t* search_chat_ids_by_contact_ids(dc_context_t* context, const d
 				mismatches = 0;
 			}
 
-			if (contact_id == dc_array_get_id(contact_ids, matches)) {
+			if (contact_id==dc_array_get_id(contact_ids, matches)) {
 				matches++;
 			}
 			else {
@@ -390,7 +390,7 @@ static dc_array_t* search_chat_ids_by_contact_ids(dc_context_t* context, const d
 			}
 		}
 
-		if (matches == dc_array_get_cnt(contact_ids) && mismatches == 0) {
+		if (matches==dc_array_get_cnt(contact_ids) && mismatches==0) {
 			dc_array_add_id(chat_ids, last_chat_id);
 		}
 	}
@@ -551,7 +551,7 @@ static void create_or_lookup_adhoc_group(dc_context_t* context, dc_mimeparser_t*
 
 	/* create a new ad-hoc group
 	- there is no need to check if this group exists; otherwise we would have catched it above */
-	if ((grpid = create_adhoc_grp_id(context, member_ids)) == NULL) {
+	if ((grpid = create_adhoc_grp_id(context, member_ids))==NULL) {
 		goto cleanup;
 	}
 
@@ -710,7 +710,7 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 			grpid = dc_strdup(optional_field->fld_value);
 		}
 
-		if (grpid == NULL)
+		if (grpid==NULL)
 		{
 			if ((field=dc_mimeparser_lookup_field(mime_parser, "Message-ID"))!=NULL && field->fld_type==MAILIMF_FIELD_MESSAGE_ID) {
 				struct mailimf_message_id* fld_message_id = field->fld_data.fld_message_id;
@@ -719,7 +719,7 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 				}
 			}
 
-			if (grpid == NULL)
+			if (grpid==NULL)
 			{
 				if ((field=dc_mimeparser_lookup_field(mime_parser, "In-Reply-To"))!=NULL && field->fld_type==MAILIMF_FIELD_IN_REPLY_TO) {
 					struct mailimf_in_reply_to* fld_in_reply_to = field->fld_data.fld_in_reply_to;
@@ -728,7 +728,7 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 					}
 				}
 
-				if (grpid == NULL)
+				if (grpid==NULL)
 				{
 					if ((field=dc_mimeparser_lookup_field(mime_parser, "References"))!=NULL && field->fld_type==MAILIMF_FIELD_REFERENCES) {
 						struct mailimf_references* fld_references = field->fld_data.fld_references;
@@ -737,7 +737,7 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 						}
 					}
 
-					if (grpid == NULL)
+					if (grpid==NULL)
 					{
 						create_or_lookup_adhoc_group(context, mime_parser, create_blocked, from_id, to_ids, &chat_id, &chat_id_blocked);
 						goto cleanup;
@@ -794,7 +794,7 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 	int group_explicitly_left = dc_is_group_explicitly_left(context, grpid);
 
 	self_addr = dc_sqlite3_get_config(context->sql, "configured_addr", "");
-	if (chat_id == 0
+	if (chat_id==0
 	 && !dc_mimeparser_is_mailinglist_message(mime_parser)
 	 && grpid
 	 && grpname
@@ -848,10 +848,10 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 		char* grpimage = NULL;
 		if (carray_count(mime_parser->parts)>=1) {
 			dc_mimepart_t* textpart = (dc_mimepart_t*)carray_get(mime_parser->parts, 0);
-			if (textpart->type == DC_MSG_TEXT) {
+			if (textpart->type==DC_MSG_TEXT) {
 				if (carray_count(mime_parser->parts)>=2) {
 					dc_mimepart_t* imgpart = (dc_mimepart_t*)carray_get(mime_parser->parts, 1);
-					if (imgpart->type == DC_MSG_IMAGE) {
+					if (imgpart->type==DC_MSG_IMAGE) {
 						grpimage = dc_param_get(imgpart->param, DC_PARAM_FILE, NULL);
 						ok = 1;
 					}
@@ -885,7 +885,7 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 		sqlite3_step(stmt);
 		sqlite3_finalize(stmt);
 
-		if (skip==NULL || dc_addr_cmp(self_addr, skip) != 0) {
+		if (skip==NULL || dc_addr_cmp(self_addr, skip)!=0) {
 			dc_add_to_chat_contacts_table(context, chat_id, DC_CONTACT_ID_SELF);
 		}
 
@@ -913,7 +913,7 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 
 	/* check the number of receivers -
 	the only critical situation is if the user hits "Reply" instead of "Reply all" in a non-messenger-client */
-	if (to_ids_cnt == 1 && mime_parser->is_send_by_messenger==0) {
+	if (to_ids_cnt==1 && mime_parser->is_send_by_messenger==0) {
 		int is_contact_cnt = dc_get_chat_contact_cnt(context, chat_id);
 		if (is_contact_cnt > 3 /* to_ids_cnt==1 may be "From: A, To: B, SELF" as SELF is not counted in to_ids_cnt. So everything up to 3 is no error. */) {
 			chat_id = 0;
@@ -978,7 +978,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 	dc_log_info(context, 0, "Receiving message %s/%lu...", server_folder? server_folder:"?", server_uid);
 
 	to_ids = dc_array_new(context, 16);
-	if (to_ids==NULL || created_db_entries==NULL || rr_event_to_send==NULL || mime_parser == NULL) {
+	if (to_ids==NULL || created_db_entries==NULL || rr_event_to_send==NULL || mime_parser==NULL) {
 		dc_log_info(context, 0, "Bad param.");
 		goto cleanup;
 	}
@@ -987,8 +987,8 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 	        mailimf_fields* msg_fields {
 	          clist* fld_list; // list of mailimf_field
 	        }
-	        mailimf_body* msg_body { // != NULL
-                const char * bd_text; // != NULL
+	        mailimf_body* msg_body { //!=NULL
+                const char * bd_text; //!=NULL
                 size_t bd_size;
 	        }
 	   };
@@ -1094,9 +1094,9 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				}
 			}
 
-			if (rfc724_mid == NULL) {
+			if (rfc724_mid==NULL) {
 				rfc724_mid = dc_create_incoming_rfc724_mid(sort_timestamp, from_id, to_ids);
-				if (rfc724_mid == NULL) {
+				if (rfc724_mid==NULL) {
 					dc_log_info(context, 0, "Cannot create Message-ID.");
 					goto cleanup;
 				}
@@ -1129,7 +1129,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				to_id = DC_CONTACT_ID_SELF;
 
 				// handshake messages must be processed before chats are created (eg. contacs may be marked as verified)
-				assert( chat_id == 0);
+				assert( chat_id==0);
 				if (dc_mimeparser_lookup_field(mime_parser, "Secure-Join")) {
 					dc_sqlite3_commit(context->sql);
 						int handshake = dc_handle_securejoin_handshake(context, mime_parser, from_id);
@@ -1148,7 +1148,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 
 				/* get the chat_id - a chat_id here is no indicator that the chat is displayed in the normal list, it might also be
 				blocked and displayed in the deaddrop as a result */
-				if (chat_id == 0)
+				if (chat_id==0)
 				{
 					/* try to create a group
 					(groups appear automatically only if the _sender_ is known, see core issue #54) */
@@ -1160,7 +1160,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 					}
 				}
 
-				if (chat_id == 0)
+				if (chat_id==0)
 				{
 					/* check if the message belongs to a mailing list */
 					if (dc_mimeparser_is_mailinglist_message(mime_parser)) {
@@ -1169,7 +1169,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 					}
 				}
 
-				if (chat_id == 0)
+				if (chat_id==0)
 				{
 					/* try to create a normal chat */
 					int create_blocked = (incoming_origin>=DC_ORIGIN_MIN_START_NEW_NCHAT/*always false, for now*/ || from_id==to_id)? DC_CHAT_NOT_BLOCKED : DC_CHAT_DEADDROP_BLOCKED;
@@ -1194,7 +1194,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 					}
 				}
 
-				if (chat_id == 0)
+				if (chat_id==0)
 				{
 					/* maybe from_id is null or sth. else is suspicious, move message to trash */
 					chat_id = DC_CHAT_ID_TRASH;
@@ -1203,7 +1203,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				/* degrade state for unknown senders and non-delta messages
 				(the latter may be removed if we run into spam problems, currently this is fine)
 				(noticed messages do count as being unread; therefore, the deaddrop will not popup in the chatlist) */
-				if (chat_id_blocked && state == DC_STATE_IN_FRESH) {
+				if (chat_id_blocked && state==DC_STATE_IN_FRESH) {
 					if (incoming_origin<DC_ORIGIN_MIN_VERIFIED && mime_parser->is_send_by_messenger==0) {
 						state = DC_STATE_IN_NOTICED;
 					}
@@ -1216,7 +1216,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				if (dc_array_get_cnt(to_ids) >= 1) {
 					to_id   = dc_array_get_id(to_ids, 0);
 
-					if (chat_id == 0)
+					if (chat_id==0)
 					{
 						create_or_lookup_group(context, mime_parser, DC_CHAT_NOT_BLOCKED, from_id, to_ids, &chat_id, &chat_id_blocked);
 						if (chat_id && chat_id_blocked) {
@@ -1225,7 +1225,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 						}
 					}
 
-					if (chat_id == 0)
+					if (chat_id==0)
 					{
 						int create_blocked = (mime_parser->is_send_by_messenger && !dc_is_contact_blocked(context, to_id))? DC_CHAT_NOT_BLOCKED : DC_CHAT_DEADDROP_BLOCKED;
 						dc_create_or_lookup_nchat_by_contact_id(context, to_id, create_blocked, &chat_id, &chat_id_blocked);
@@ -1236,9 +1236,9 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 					}
 				}
 
-				if (chat_id == 0) {
-					if (dc_array_get_cnt(to_ids) == 0 && to_self) {
-						/* from_id == to_id == DC_CONTACT_ID_SELF - this is a self-sent messages, maybe an Autocrypt Setup Message */
+				if (chat_id==0) {
+					if (dc_array_get_cnt(to_ids)==0 && to_self) {
+						/* from_id==to_id==DC_CONTACT_ID_SELF - this is a self-sent messages, maybe an Autocrypt Setup Message */
 						dc_create_or_lookup_nchat_by_contact_id(context, DC_CONTACT_ID_SELF, DC_CHAT_NOT_BLOCKED, &chat_id, &chat_id_blocked);
 						if (chat_id && chat_id_blocked) {
 							dc_unblock_chat(context, chat_id);
@@ -1247,7 +1247,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 					}
 				}
 
-				if (chat_id == 0) {
+				if (chat_id==0) {
 					chat_id = DC_CHAT_ID_TRASH;
 				}
 			}
@@ -1290,7 +1290,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 					continue;
 				}
 
-				if (part->type == DC_MSG_TEXT) {
+				if (part->type==DC_MSG_TEXT) {
 					txt_raw = dc_mprintf("%s\n\n%s", mime_parser->subject? mime_parser->subject : "", part->msg_raw);
 				}
 
@@ -1316,7 +1316,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				sqlite3_bind_text (stmt, 15, part->param->packed, -1, SQLITE_STATIC);
 				sqlite3_bind_int  (stmt, 16, part->bytes);
 				sqlite3_bind_int  (stmt, 17, hidden);
-				if (sqlite3_step(stmt) != SQLITE_DONE) {
+				if (sqlite3_step(stmt)!=SQLITE_DONE) {
 					dc_log_info(context, 0, "Cannot write DB.");
 					goto cleanup; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
 				}
@@ -1324,7 +1324,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				free(txt_raw);
 				txt_raw = NULL;
 
-				if (first_dblocal_id == 0) {
+				if (first_dblocal_id==0) {
 					first_dblocal_id = dc_sqlite3_get_rowid(context->sql, "msgs", "rfc724_mid", rfc724_mid); // rfc724_mid is unique only for the first insert
 				}
 
@@ -1335,7 +1335,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 			dc_log_info(context, 0, "Message has %i parts and is assigned to chat #%i.", icnt, chat_id);
 
 			/* check event to send */
-			if (chat_id == DC_CHAT_ID_TRASH)
+			if (chat_id==DC_CHAT_ID_TRASH)
 			{
 				create_event_to_send = 0;
 			}
@@ -1381,7 +1381,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 					continue;
 				}
 
-				if (strcmp(report_type->pa_value, "disposition-notification") == 0
+				if (strcmp(report_type->pa_value, "disposition-notification")==0
 				 && clist_count(report_root->mm_data.mm_multipart.mm_mp_list) >= 2 /* the first part is for humans, the second for machines */)
 				{
 					if (mdns_enabled /*to get a clear functionality, do not show incoming MDNs if the options is disabled*/)

@@ -307,7 +307,7 @@ void dc_saxparser_init(dc_saxparser_t* saxparser, void* userdata)
 
 void dc_saxparser_set_tag_handler(dc_saxparser_t* saxparser, dc_saxparser_starttag_cb_t starttag_cb, dc_saxparser_endtag_cb_t endtag_cb)
 {
-	if (saxparser == NULL) {
+	if (saxparser==NULL) {
 		return;
 	}
 
@@ -318,7 +318,7 @@ void dc_saxparser_set_tag_handler(dc_saxparser_t* saxparser, dc_saxparser_startt
 
 void dc_saxparser_set_text_handler (dc_saxparser_t* saxparser, dc_saxparser_text_cb_t text_cb)
 {
-	if (saxparser == NULL) {
+	if (saxparser==NULL) {
 		return;
 	}
 
@@ -339,7 +339,7 @@ void dc_saxparser_parse(dc_saxparser_t* saxparser, const char* buf_start__)
 
 	attr[0] = NULL; /* null-terminate list, this also terminates "free_values" */
 
-	if (saxparser == NULL) {
+	if (saxparser==NULL) {
 		return;
 	}
 
@@ -348,21 +348,21 @@ void dc_saxparser_parse(dc_saxparser_t* saxparser, const char* buf_start__)
 	p               = buf_start;
 	while (*p)
 	{
-		if (*p == '<')
+		if (*p=='<')
 		{
 			call_text_cb(saxparser, last_text_start, p - last_text_start, '&'); /* flush pending text */
 
 			p++;
-			if (strncmp(p, "!--", 3) == 0)
+			if (strncmp(p, "!--", 3)==0)
 			{
 				/* skip <!-- ... --> comment
 				 **************************************************************/
 
 				p = strstr(p, "-->");
-				if (p == NULL) { goto cleanup; }
+				if (p==NULL) { goto cleanup; }
 				p += 3;
 			}
-			else if (strncmp(p, "![CDATA[", 8) == 0)
+			else if (strncmp(p, "![CDATA[", 8)==0)
 			{
 				/* process <![CDATA[ ... ]]> text
 				 **************************************************************/
@@ -377,18 +377,18 @@ void dc_saxparser_parse(dc_saxparser_t* saxparser, const char* buf_start__)
 					goto cleanup;
 				}
 			}
-			else if (strncmp(p, "!DOCTYPE", 8) == 0)
+			else if (strncmp(p, "!DOCTYPE", 8)==0)
 			{
 				/* skip <!DOCTYPE ...> or <!DOCTYPE name [ ... ]>
 				 **************************************************************/
 
 				while (*p && *p != '[' && *p != '>' ) p++; /* search for [ or >, whatever comes first */
-				if (*p == 0) {
+				if (*p==0) {
 					goto cleanup; /* unclosed doctype */
 				}
-				else if (*p == '[') {
+				else if (*p=='[') {
 					p = strstr(p, "]>"); /* search end of inline doctype */
-					if (p == NULL) {
+					if (p==NULL) {
 						goto cleanup; /* unclosed inline doctype */
 					}
 					else {
@@ -399,19 +399,19 @@ void dc_saxparser_parse(dc_saxparser_t* saxparser, const char* buf_start__)
 					p++;
 				}
 			}
-			else if (*p == '?')
+			else if (*p=='?')
 			{
 				/* skip <? ... ?> processing instruction
 				 **************************************************************/
 
 				p = strstr(p, "?>");
-				if (p == NULL) { goto cleanup; } /* unclosed processing instruction */
+				if (p==NULL) { goto cleanup; } /* unclosed processing instruction */
 				p += 2;
 			}
 			else
 			{
 				p += strspn(p, XML_WS); /* skip whitespace between `<` and tagname */
-				if (*p == '/')
+				if (*p=='/')
 				{
 					/* process </tag> end tag
 					 **************************************************************/
@@ -459,11 +459,11 @@ void dc_saxparser_parse(dc_saxparser_t* saxparser, const char* buf_start__)
 								/* attribute found */
 								char* after_attr_name = p;
 								p += strspn(p, XML_WS); /* skip whitespace between attribute name and possible `=` */
-								if (*p == '=')
+								if (*p=='=')
 								{
 									p += strspn(p, XML_WS "="); /* skip spaces and equal signs */
 									char quote = *p;
-									if (quote == '"' || quote == '\'')
+									if (quote=='"' || quote=='\'')
 									{
 										/* quoted attribute value */
 										p++;
@@ -500,7 +500,7 @@ void dc_saxparser_parse(dc_saxparser_t* saxparser, const char* buf_start__)
 								{
 									char* beg_attr_name_new = beg_attr_name;
 									int   free_bits = (beg_attr_value_new != beg_attr_value)? FREE_VALUE : 0;
-									if (after_attr_name == p) {
+									if (after_attr_name==p) {
 										/* take care not to overwrite the current pointer (happens eg. for `<tag attrWithoutValue>` */
 										bak = *after_attr_name;
 										*after_attr_name = '\0';
@@ -532,7 +532,7 @@ void dc_saxparser_parse(dc_saxparser_t* saxparser, const char* buf_start__)
 
 						/* self-closing tag */
 						p += strspn(p, XML_WS); /* skip whitespace before possible `/` */
-						if (*p == '/')
+						if (*p=='/')
 						{
 							p++;
 							*after_tag_name = 0;
@@ -543,7 +543,7 @@ void dc_saxparser_parse(dc_saxparser_t* saxparser, const char* buf_start__)
 				} /* end of processing start-tag */
 
 				p = strchr(p, '>');
-				if (p == NULL) { goto cleanup; } /* unclosed start-tag or end-tag */
+				if (p==NULL) { goto cleanup; } /* unclosed start-tag or end-tag */
 				p++;
 
 			} /* end of processing start-tag or end-tag */

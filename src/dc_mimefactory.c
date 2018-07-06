@@ -36,7 +36,7 @@
 
 void dc_mimefactory_init(dc_mimefactory_t* factory, dc_context_t* context)
 {
-	if (factory == NULL || context == NULL) {
+	if (factory==NULL || context==NULL) {
 		return;
 	}
 
@@ -47,7 +47,7 @@ void dc_mimefactory_init(dc_mimefactory_t* factory, dc_context_t* context)
 
 void dc_mimefactory_empty(dc_mimefactory_t* factory)
 {
-	if (factory == NULL) {
+	if (factory==NULL) {
 		return;
 	}
 
@@ -95,7 +95,7 @@ static void load_from(dc_mimefactory_t* factory)
 	factory->from_displayname = dc_sqlite3_get_config(factory->context->sql, "displayname", NULL);
 
 	factory->selfstatus       = dc_sqlite3_get_config(factory->context->sql, "selfstatus", NULL);
-	if (factory->selfstatus == NULL) {
+	if (factory->selfstatus==NULL) {
 		factory->selfstatus = dc_stock_str(factory->context, DC_STR_STATUSLINE);
 	}
 }
@@ -106,8 +106,8 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 	int           success = 0;
 	sqlite3_stmt* stmt = NULL;
 
-	if (factory == NULL || msg_id <= DC_MSG_ID_LAST_SPECIAL
-	 || factory->context == NULL
+	if (factory==NULL || msg_id <= DC_MSG_ID_LAST_SPECIAL
+	 || factory->context==NULL
 	 || factory->msg /*call empty() before */) {
 		goto cleanup;
 	}
@@ -139,7 +139,7 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 					" LEFT JOIN contacts c ON cc.contact_id=c.id "
 					" WHERE cc.chat_id=? AND cc.contact_id>" DC_STRINGIFY(DC_CONTACT_ID_LAST_SPECIAL) ";");
 				sqlite3_bind_int(stmt, 1, factory->msg->chat_id);
-				while (sqlite3_step(stmt) == SQLITE_ROW)
+				while (sqlite3_step(stmt)==SQLITE_ROW)
 				{
 					const char* authname            = (const char*)sqlite3_column_text(stmt, 0);
 					const char* addr                = (const char*)sqlite3_column_text(stmt, 1);
@@ -190,7 +190,7 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 				"SELECT rfc724_mid FROM msgs WHERE timestamp=(SELECT max(timestamp) FROM msgs WHERE chat_id=? AND from_id!=?);");
 			sqlite3_bind_int  (stmt, 1, factory->msg->chat_id);
 			sqlite3_bind_int  (stmt, 2, DC_CONTACT_ID_SELF);
-			if (sqlite3_step(stmt) == SQLITE_ROW) {
+			if (sqlite3_step(stmt)==SQLITE_ROW) {
 				factory->predecessor = dc_strdup_keep_null((const char*)sqlite3_column_text(stmt, 0));
 			}
 			sqlite3_finalize(stmt);
@@ -208,18 +208,18 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 				"SELECT max(timestamp) FROM msgs WHERE chat_id=? AND id!=?");
 			sqlite3_bind_int  (stmt, 1, factory->msg->chat_id);
 			sqlite3_bind_int  (stmt, 2, factory->msg->id);
-			if (sqlite3_step(stmt) == SQLITE_ROW) {
+			if (sqlite3_step(stmt)==SQLITE_ROW) {
 				prev_msg_time = sqlite3_column_int64(stmt, 0);
 			}
 			sqlite3_finalize(stmt);
 			stmt = NULL;
 
 			#define NEW_THREAD_THRESHOLD 24*60*60
-			if (prev_msg_time != 0 && factory->msg->timestamp - prev_msg_time < NEW_THREAD_THRESHOLD) {
+			if (prev_msg_time!=0 && factory->msg->timestamp - prev_msg_time < NEW_THREAD_THRESHOLD) {
 				factory->references = dc_param_get(factory->chat->param, DC_PARAM_REFERENCES, NULL);
 			}
 
-			if (factory->references == NULL) {
+			if (factory->references==NULL) {
 				factory->references = dc_create_dummy_references_mid();
 				dc_param_set(factory->chat->param, DC_PARAM_REFERENCES, factory->references);
 				dc_chat_update_param(factory->chat);
@@ -246,7 +246,7 @@ int dc_mimefactory_load_mdn(dc_mimefactory_t* factory, uint32_t msg_id)
 	int           success = 0;
 	dc_contact_t* contact = dc_contact_new(factory->context);
 
-	if (factory == NULL) {
+	if (factory==NULL) {
 		goto cleanup;
 	}
 
@@ -325,12 +325,12 @@ static struct mailmime* build_body_file(const dc_msg_t* msg, const char* base_na
 	char* filename_to_send = NULL;
 	char* filename_encoded = NULL;
 
-	if (pathNfilename == NULL) {
+	if (pathNfilename==NULL) {
 		goto cleanup;
 	}
 
 	/* get file name to use for sending (for privacy purposes, we do not transfer the original filenames eg. for images; these names are normally not needed and contain timesamps, running numbers etc.) */
-	if (msg->type == DC_MSG_VOICE) {
+	if (msg->type==DC_MSG_VOICE) {
 		struct tm wanted_struct;
 		memcpy(&wanted_struct, localtime(&msg->timestamp), sizeof(struct tm));
 		filename_to_send = dc_mprintf("voice-message_%04i-%02i-%02i_%02i-%02i-%02i.%s",
@@ -338,7 +338,7 @@ static struct mailmime* build_body_file(const dc_msg_t* msg, const char* base_na
 			(int)wanted_struct.tm_hour, (int)wanted_struct.tm_min, (int)wanted_struct.tm_sec,
 			suffix? suffix : "dat");
 	}
-	else if (msg->type == DC_MSG_AUDIO) {
+	else if (msg->type==DC_MSG_AUDIO) {
 		char* author = dc_param_get(msg->param, DC_PARAM_AUTHORNAME, NULL);
 		char* title = dc_param_get(msg->param, DC_PARAM_TRACKNAME, NULL);
 		if (author && author[0] && title && title[0] && suffix) {
@@ -350,13 +350,13 @@ static struct mailmime* build_body_file(const dc_msg_t* msg, const char* base_na
 		free(author);
 		free(title);
 	}
-	else if (msg->type == DC_MSG_IMAGE || msg->type == DC_MSG_GIF) {
-		if (base_name == NULL) {
+	else if (msg->type==DC_MSG_IMAGE || msg->type==DC_MSG_GIF) {
+		if (base_name==NULL) {
 			base_name = "image";
 		}
 		filename_to_send = dc_mprintf("%s.%s", base_name, suffix? suffix : "dat");
 	}
-	else if (msg->type == DC_MSG_VIDEO) {
+	else if (msg->type==DC_MSG_VIDEO) {
 		filename_to_send = dc_mprintf("video.%s", suffix? suffix : "dat");
 	}
 	else {
@@ -364,7 +364,7 @@ static struct mailmime* build_body_file(const dc_msg_t* msg, const char* base_na
 	}
 
 	/* check mimetype */
-	if (mimetype == NULL && suffix != NULL) {
+	if (mimetype==NULL && suffix!=NULL) {
 		if (strcmp(suffix, "png")==0) {
 			mimetype = dc_strdup("image/png");
 		}
@@ -379,7 +379,7 @@ static struct mailmime* build_body_file(const dc_msg_t* msg, const char* base_na
 		}
 	}
 
-	if (mimetype == NULL) {
+	if (mimetype==NULL) {
 		goto cleanup;
 	}
 
@@ -392,9 +392,9 @@ static struct mailmime* build_body_file(const dc_msg_t* msg, const char* base_na
 		needs_ext? NULL : dc_strdup(filename_to_send), MAILMIME_MECHANISM_BASE64);
 
 	if (needs_ext) {
-		for (clistiter* cur1 = clist_begin(mime_fields->fld_list); cur1 != NULL; cur1 = clist_next(cur1)) {
+		for (clistiter* cur1 = clist_begin(mime_fields->fld_list); cur1!=NULL; cur1 = clist_next(cur1)) {
 			struct mailmime_field* field = (struct mailmime_field*)clist_content(cur1);
-			if (field && field->fld_type == MAILMIME_FIELD_DISPOSITION && field->fld_data.fld_disposition)
+			if (field && field->fld_type==MAILMIME_FIELD_DISPOSITION && field->fld_data.fld_disposition)
 			{
 				struct mailmime_disposition* file_disposition = field->fld_data.fld_disposition;
 				if (file_disposition)
@@ -441,7 +441,7 @@ static char* get_subject(const dc_chat_t* chat, const dc_msg_t* msg, int afwd_em
 	char*         raw_subject = dc_msg_get_summarytext_by_raw(msg->type, msg->text, msg->param, DC_APPROX_SUBJECT_CHARS, context);
 	const char*   fwd = afwd_email? "Fwd: " : "";
 
-	if (dc_param_get_int(msg->param, DC_PARAM_CMD, 0) == DC_CMD_AUTOCRYPT_SETUP_MESSAGE)
+	if (dc_param_get_int(msg->param, DC_PARAM_CMD, 0)==DC_CMD_AUTOCRYPT_SETUP_MESSAGE)
 	{
 		ret = dc_stock_str(context, DC_STR_AC_SETUP_MSG_SUBJECT); /* do not add the "Chat:" prefix for setup messages */
 	}
@@ -461,8 +461,8 @@ static char* get_subject(const dc_chat_t* chat, const dc_msg_t* msg, int afwd_em
 
 int dc_mimefactory_render(dc_mimefactory_t* factory)
 {
-	if (factory == NULL
-	 || factory->loaded == DC_MF_NOTHING_LOADED
+	if (factory==NULL
+	 || factory->loaded==DC_MF_NOTHING_LOADED
 	 || factory->out/*call empty() before*/) {
 		return 0;
 	}
@@ -536,7 +536,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 		mailmime_set_imf_fields(message, imf_fields);
 	}
 
-	if (factory->loaded == DC_MF_MSG_LOADED)
+	if (factory->loaded==DC_MF_MSG_LOADED)
 	{
 		/* Render a normal message
 		 *********************************************************************/
@@ -547,14 +547,14 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 		struct mailmime* meta_part = NULL;
 		char* placeholdertext = NULL;
 
-		if (chat->type == DC_CHAT_TYPE_VERIFIED_GROUP) {
+		if (chat->type==DC_CHAT_TYPE_VERIFIED_GROUP) {
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Verified"), strdup("1")));
 			force_plaintext   = 0;
 			e2ee_guaranteed   = 1;
 			min_verified      = DC_BIDIRECT_VERIFIED;
 		}
 		else {
-			if ((force_plaintext = dc_param_get_int(factory->msg->param, DC_PARAM_FORCE_PLAINTEXT, 0)) == 0) {
+			if ((force_plaintext = dc_param_get_int(factory->msg->param, DC_PARAM_FORCE_PLAINTEXT, 0))==0) {
 				e2ee_guaranteed = dc_param_get_int(factory->msg->param, DC_PARAM_GUARANTEE_E2EE, 0);
 			}
 		}
@@ -567,14 +567,14 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Name"), dc_encode_header_words(chat->name)));
 
 
-			if (command == DC_CMD_MEMBER_REMOVED_FROM_GROUP)
+			if (command==DC_CMD_MEMBER_REMOVED_FROM_GROUP)
 			{
 				char* email_to_remove = dc_param_get(msg->param, DC_PARAM_CMD_ARG, NULL);
 				if (email_to_remove) {
 					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Member-Removed"), email_to_remove));
 				}
 			}
-			else if (command == DC_CMD_MEMBER_ADDED_TO_GROUP)
+			else if (command==DC_CMD_MEMBER_ADDED_TO_GROUP)
 			{
 				char* email_to_add = dc_param_get(msg->param, DC_PARAM_CMD_ARG, NULL);
 				if (email_to_add) {
@@ -587,11 +587,11 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Secure-Join"), strdup("vg-member-added")));
 				}
 			}
-			else if (command == DC_CMD_GROUPNAME_CHANGED)
+			else if (command==DC_CMD_GROUPNAME_CHANGED)
 			{
 				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Name-Changed"), strdup("1")));
 			}
-			else if (command == DC_CMD_GROUPIMAGE_CHANGED)
+			else if (command==DC_CMD_GROUPIMAGE_CHANGED)
 			{
 				grpimage = dc_param_get(msg->param, DC_PARAM_CMD_ARG, NULL);
 				if (grpimage==NULL) {
@@ -600,12 +600,12 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 			}
 		}
 
-		if (command == DC_CMD_AUTOCRYPT_SETUP_MESSAGE) {
+		if (command==DC_CMD_AUTOCRYPT_SETUP_MESSAGE) {
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Autocrypt-Setup-Message"), strdup("v1")));
 			placeholdertext = dc_stock_str(factory->context, DC_STR_AC_SETUP_MSG_BODY);
 		}
 
-		if (command == DC_CMD_SECUREJOIN_MESSAGE) {
+		if (command==DC_CMD_SECUREJOIN_MESSAGE) {
 			char* step = dc_param_get(msg->param, DC_PARAM_CMD_ARG, NULL);
 			if (step) {
 				dc_log_info(msg->context, 0, "sending secure-join message '%s' >>>>>>>>>>>>>>>>>>>>>>>>>", step);
@@ -647,9 +647,9 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 			dc_msg_unref(meta);
 		}
 
-		if (msg->type == DC_MSG_VOICE || msg->type == DC_MSG_AUDIO || msg->type == DC_MSG_VIDEO)
+		if (msg->type==DC_MSG_VOICE || msg->type==DC_MSG_AUDIO || msg->type==DC_MSG_VIDEO)
 		{
-			if (msg->type == DC_MSG_VOICE) {
+			if (msg->type==DC_MSG_VOICE) {
 				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Voice-Message"), strdup("1")));
 			}
 
@@ -700,7 +700,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 			}
 		}
 
-		if (parts == 0) {
+		if (parts==0) {
 			goto cleanup;
 		}
 
@@ -709,7 +709,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 			parts++;
 		}
 	}
-	else if (factory->loaded == DC_MF_MDN_LOADED)
+	else if (factory->loaded==DC_MF_MDN_LOADED)
 	{
 		/* Render a MDN
 		 *********************************************************************/
@@ -784,7 +784,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 	struct mailimf_subject* subject = mailimf_subject_new(dc_encode_header_words(subject_str));
 	mailimf_fields_add(imf_fields, mailimf_field_new(MAILIMF_FIELD_SUBJECT, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, subject, NULL, NULL, NULL));
 
-	if (force_plaintext != DC_FP_NO_AUTOCRYPT_HEADER) {
+	if (force_plaintext!=DC_FP_NO_AUTOCRYPT_HEADER) {
 		dc_e2ee_encrypt(factory->context, factory->recipients_addr, force_plaintext, e2ee_guaranteed, min_verified, message, &e2ee_helper);
 	}
 
