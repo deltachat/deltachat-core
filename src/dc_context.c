@@ -50,7 +50,7 @@ static uintptr_t cb_dummy(dc_context_t* context, int event, uintptr_t data1, uin
 
 
 /**
- * The following three callback are used by dc_imap_new() to read/write configuration
+ * The following three callback are given to dc_imap_new() to read/write configuration
  * and to handle received messages. As the imap-functions are typically used in
  * a separate user-thread, also these functions may be called from a different thread.
  *

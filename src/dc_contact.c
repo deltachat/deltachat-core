@@ -837,17 +837,15 @@ cleanup:
  * To add a single contact entered by the user, you should prefer dc_create_contact(),
  * however, for adding a bunch of addresses, this function is _much_ faster.
  *
- * The function takes are of not overwriting names manually added or edited by dc_create_contact().
- *
  * @memberof dc_context_t
  * @param context the context object as created by dc_context_new().
- * @param adr_book A multi-line string in the format in the format
- *     `Name one\nAddress one\nName two\Address two`.  If an email address
- *      already exists, the name is updated and the origin is increased to
- *      "manually created".
+ * @param adr_book A multi-line string in the format
+ *     `Name one\nAddress one\nName two\nAddress two`.
+ *      If an email address already exists, the name is updated
+ *      unless it was edited manually by dc_create_contact() before.
  * @return The number of modified or added contacts.
  */
-int dc_add_address_book(dc_context_t* context, const char* adr_book) /* format: Name one\nAddress one\nName two\Address two */
+int dc_add_address_book(dc_context_t* context, const char* adr_book)
 {
 	carray* lines = NULL;
 	size_t  i = 0;
