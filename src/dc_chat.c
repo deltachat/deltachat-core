@@ -1741,7 +1741,6 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 {
 	int              success = 0;
 	dc_contact_t*    contact = dc_get_contact(context, contact_id);
-	dc_apeerstate_t* peerstate = dc_apeerstate_new(context);
 	dc_chat_t*       chat = dc_chat_new(context);
 	dc_msg_t*        msg = dc_msg_new();
 	char*            self_addr = NULL;
@@ -1784,8 +1783,7 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 	{
 		if (chat->type==DC_CHAT_TYPE_VERIFIED_GROUP)
 		{
-			if (!dc_apeerstate_load_by_addr(peerstate, context->sql, contact->addr)
-			 || dc_contact_n_peerstate_are_verified(contact, peerstate)!=DC_BIDIRECT_VERIFIED) {
+			if (dc_contact_is_verified(contact)!=DC_BIDIRECT_VERIFIED) {
 				dc_log_error(context, 0, "Only bidirectional verified contacts can be added to verfied groups.");
 				goto cleanup;
 			}
@@ -1814,7 +1812,6 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 cleanup:
 	dc_chat_unref(chat);
 	dc_contact_unref(contact);
-	dc_apeerstate_unref(peerstate);
 	dc_msg_unref(msg);
 	free(self_addr);
 	return success;

@@ -253,9 +253,17 @@ int dc_contact_is_blocked(const dc_contact_t* contact)
 }
 
 
-int dc_contact_n_peerstate_are_verified(const dc_contact_t* contact, const dc_apeerstate_t* peerstate)
+/**
+ * Same as dc_contact_is_verified() but allows speeding up things
+ * by adding the peerstate belonging to the contact.
+ * If you do not have the peerstate available, it is loaded automatically.
+ *
+ * @private @memberof dc_context_t
+ */
+int dc_contact_is_verified_ex(dc_contact_t* contact, const dc_apeerstate_t* peerstate)
 {
-	int             contact_verified = DC_NOT_VERIFIED;
+	int              contact_verified = DC_NOT_VERIFIED;
+	dc_apeerstate_t* peerstate_to_delete = NULL;
 
 	if (contact == NULL || contact->magic != DC_CONTACT_MAGIC) {
 		goto cleanup;
@@ -266,9 +274,18 @@ int dc_contact_n_peerstate_are_verified(const dc_contact_t* contact, const dc_ap
 		goto cleanup; // we're always sort of secured-verified as we could verify the key on this device any time with the key on this device
 	}
 
+	if (peerstate==NULL) {
+		peerstate_to_delete = dc_apeerstate_new(contact->context);
+		if (!dc_apeerstate_load_by_addr(peerstate_to_delete, contact->context->sql, contact->addr)) {
+			goto cleanup;
+		}
+		peerstate = peerstate_to_delete;
+	}
+
 	contact_verified = peerstate->verified_key? DC_BIDIRECT_VERIFIED : 0;
 
 cleanup:
+	dc_apeerstate_unref(peerstate_to_delete);
 	return contact_verified;
 }
 
@@ -284,26 +301,9 @@ cleanup:
  * @return 0: contact is not verified.
  *    2: SELF and contact have verified their fingerprints in both directions; in the UI typically checkmarks are shown.
  */
-int dc_contact_is_verified(const dc_contact_t* contact)
+int dc_contact_is_verified(dc_contact_t* contact)
 {
-	int              contact_verified = DC_NOT_VERIFIED;
-	dc_apeerstate_t* peerstate        = NULL;
-
-	if (contact == NULL || contact->magic != DC_CONTACT_MAGIC) {
-		goto cleanup;
-	}
-
-	peerstate = dc_apeerstate_new(contact->context);
-
-	if (!dc_apeerstate_load_by_addr(peerstate, contact->context->sql, contact->addr)) {
-		goto cleanup;
-	}
-
-	contact_verified = dc_contact_n_peerstate_are_verified(contact, peerstate);
-
-cleanup:
-	dc_apeerstate_unref(peerstate);
-	return contact_verified;
+	return dc_contact_is_verified_ex(contact, NULL);
 }
 
 

@@ -1108,7 +1108,7 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 
 	else if (strcmp(cmd, "listcontacts")==0 || strcmp(cmd, "contacts")==0 || strcmp(cmd, "listverified")==0)
 	{
-		dc_array_t* contacts = dc_get_contacts(context, strcmp(cmd, "listverified")==0? DC_GCL_VERIFIED_ONLY : 0, arg1);
+		dc_array_t* contacts = dc_get_contacts(context, strcmp(cmd, "listverified")==0? DC_GCL_VERIFIED_ONLY|DC_GCL_ADD_SELF : DC_GCL_ADD_SELF, arg1);
 		if (contacts) {
 			log_contactlist(context, contacts);
 			ret = dc_mprintf("%i contacts.", (int)dc_array_get_cnt(contacts));
