@@ -115,7 +115,7 @@ static int add_attribute(dc_aheader_t* aheader, const char* name, const char* va
 		 || aheader->addr /* email already given */) {
 			return 0;
 		}
-		aheader->addr = dc_normalize_addr(value);
+		aheader->addr = dc_addr_normalize(value);
 		return 1;
 	}
 	#if 0 /* autocrypt 11/2017 no longer uses the type attribute and it will make the autocrypt header invalid */
@@ -289,7 +289,7 @@ dc_aheader_t* dc_aheader_new_from_imffields(const char* wanted_from, const struc
 				/* header found, check if it is valid and matched the wanted address */
 				dc_aheader_t* test = dc_aheader_new();
 				if (!dc_aheader_set_from_string(test, optional_field->fld_value)
-				 || strcasecmp(test->addr, wanted_from)!=0) {
+				 || dc_addr_cmp(test->addr, wanted_from)!=0) {
 					dc_aheader_unref(test);
 					test = NULL;
 				}

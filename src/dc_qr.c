@@ -176,7 +176,7 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 
 	if (addr) {
 		char* temp = dc_urldecode(addr);      free(addr); addr = temp; /* urldecoding is needed at least for OPENPGP4FPR but should not hurt in the other cases */
-		      temp = dc_normalize_addr(addr); free(addr); addr = temp;
+		      temp = dc_addr_normalize(addr); free(addr); addr = temp;
 
 		if (strlen(addr) < 3 || strchr(addr, '@')==NULL || strchr(addr, '.')==NULL) {
 			qr_parsed->state = DC_QR_ERROR;

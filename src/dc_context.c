@@ -2901,7 +2901,7 @@ uint32_t dc_add_or_lookup_contact( dc_context_t* context,
 
 	/* normalize the email-address:
 	- remove leading `mailto:` */
-	addr = dc_normalize_addr(addr__);
+	addr = dc_addr_normalize(addr__);
 
 	/* rough check if email-address is valid */
 	if (strlen(addr) < 3 || strchr(addr, '@')==NULL || strchr(addr, '.')==NULL) {
@@ -3611,24 +3611,6 @@ int dc_delete_contact(dc_context_t* context, uint32_t contact_id)
 cleanup:
 	sqlite3_finalize(stmt);
 	return success;
-}
-
-
-int dc_contact_addr_equals(dc_context_t* context, uint32_t contact_id, const char* other_addr)
-{
-	int addr_are_equal = 0;
-	if (other_addr) {
-		dc_contact_t* contact = dc_contact_new(context);
-		if (dc_contact_load_from_db(contact, context->sql, contact_id)) {
-			if (contact->addr) {
-				if (strcasecmp(contact->addr, other_addr)==0) {
-					addr_are_equal = 1;
-				}
-			}
-		}
-		dc_contact_unref(contact);
-	}
-	return addr_are_equal;
 }
 
 

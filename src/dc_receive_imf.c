@@ -49,7 +49,7 @@ static void add_or_lookup_contact_by_addr(dc_context_t* context, const char* dis
 	*check_self = 0;
 
 	char* self_addr = dc_sqlite3_get_config(context->sql, "configured_addr", "");
-		if (strcasecmp(self_addr, addr_spec)==0) {
+		if (dc_addr_cmp(self_addr, addr_spec)==0) {
 			*check_self = 1;
 		}
 	free(self_addr);
@@ -800,7 +800,7 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 	 && grpid
 	 && grpname
 	 && X_MrRemoveFromGrp==NULL /*otherwise, a pending "quit" message may pop up*/
-	 && (!group_explicitly_left || (X_MrAddToGrp&&strcasecmp(self_addr,X_MrAddToGrp)==0)) /*re-create explicitly left groups only if ourself is re-added*/
+	 && (!group_explicitly_left || (X_MrAddToGrp&&dc_addr_cmp(self_addr,X_MrAddToGrp)==0)) /*re-create explicitly left groups only if ourself is re-added*/
 	)
 	{
 		int create_verified = 0;
@@ -886,13 +886,13 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 		sqlite3_step(stmt);
 		sqlite3_finalize(stmt);
 
-		if (skip==NULL || strcasecmp(self_addr, skip) != 0) {
+		if (skip==NULL || dc_addr_cmp(self_addr, skip) != 0) {
 			dc_add_to_chat_contacts_table(context, chat_id, DC_CONTACT_ID_SELF);
 		}
 
 		if (from_id > DC_CONTACT_ID_LAST_SPECIAL) {
-			if (dc_contact_addr_equals(context, from_id, self_addr)==0
-			 && (skip==NULL || dc_contact_addr_equals(context, from_id, skip)==0)) {
+			if (dc_addr_equals_contact(context, self_addr, from_id)==0
+			 && (skip==NULL || dc_addr_equals_contact(context, skip, from_id)==0)) {
 				dc_add_to_chat_contacts_table(context, chat_id, from_id);
 			}
 		}
@@ -900,8 +900,8 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 		for (i = 0; i < to_ids_cnt; i++)
 		{
 			uint32_t to_id = dc_array_get_id(to_ids, i); /* to_id is only once in to_ids and is non-special */
-			if (dc_contact_addr_equals(context, to_id, self_addr)==0
-			 && (skip==NULL || dc_contact_addr_equals(context, to_id, skip)==0)) {
+			if (dc_addr_equals_contact(context, self_addr, to_id)==0
+			 && (skip==NULL || dc_addr_equals_contact(context, skip, to_id)==0)) {
 				dc_add_to_chat_contacts_table(context, chat_id, to_id);
 			}
 		}

@@ -135,7 +135,6 @@ uint32_t        dc_add_or_lookup_contact                   (dc_context_t*, const
 int             dc_get_contact_origin                      (dc_context_t*, uint32_t id, int* ret_blocked);
 int             dc_is_contact_blocked                      (dc_context_t*, uint32_t id);
 int             dc_real_contact_exists                     (dc_context_t*, uint32_t id);
-int             dc_contact_addr_equals                     (dc_context_t*, uint32_t contact_id, const char* other_addr);
 void            dc_scaleup_contact_origin                  (dc_context_t*, uint32_t contact_id, int origin);
 void            dc_unarchive_chat                          (dc_context_t*, uint32_t chat_id);
 size_t          dc_get_chat_cnt                            (dc_context_t*);

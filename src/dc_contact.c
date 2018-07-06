@@ -34,7 +34,6 @@
  * objects using dc_get_contact().
  *
  * @private @memberof dc_contact_t
- *
  * @return The contact object. Must be freed using dc_contact_unref() when done.
  */
 dc_contact_t* dc_contact_new(dc_context_t* context)
@@ -56,9 +55,7 @@ dc_contact_t* dc_contact_new(dc_context_t* context)
  * Free a contact object.
  *
  * @memberof dc_contact_t
- *
  * @param contact The contact object as created eg. by dc_get_contact().
- *
  * @return None.
  */
 void dc_contact_unref(dc_contact_t* contact)
@@ -79,9 +76,7 @@ void dc_contact_unref(dc_contact_t* contact)
  * use dc_contact_unref().
  *
  * @private @memberof dc_contact_t
- *
  * @param contact The contact object to free.
- *
  * @return None.
  */
 void dc_contact_empty(dc_contact_t* contact)
@@ -115,9 +110,7 @@ void dc_contact_empty(dc_contact_t* contact)
  * Get the ID of the contact.
  *
  * @memberof dc_contact_t
- *
  * @param contact The contact object.
- *
  * @return the ID of the contact, 0 on errors.
  */
 uint32_t dc_contact_get_id(const dc_contact_t* contact)
@@ -133,9 +126,7 @@ uint32_t dc_contact_get_id(const dc_contact_t* contact)
  * Get email address.  The email address is always set for a contact.
  *
  * @memberof dc_contact_t
- *
  * @param contact The contact object.
- *
  * @return String with the email address, must be free()'d. Never returns NULL.
  */
 char* dc_contact_get_addr(const dc_contact_t* contact)
@@ -157,9 +148,7 @@ char* dc_contact_get_addr(const dc_contact_t* contact)
  * To get a fine name to display in lists etc., use dc_contact_get_display_name() or dc_contact_get_name_n_addr().
  *
  * @memberof dc_contact_t
- *
  * @param contact The contact object.
- *
  * @return String with the name to display, must be free()'d. Empty string if unset, never returns NULL.
  */
 char* dc_contact_get_name(const dc_contact_t* contact)
@@ -180,9 +169,7 @@ char* dc_contact_get_name(const dc_contact_t* contact)
  * To get the name editable in a formular, use dc_contact_get_name().
  *
  * @memberof dc_contact_t
- *
  * @param contact The contact object.
- *
  * @return String with the name to display, must be free()'d. Never returns NULL.
  */
 char* dc_contact_get_display_name(const dc_contact_t* contact)
@@ -211,9 +198,7 @@ char* dc_contact_get_display_name(const dc_contact_t* contact)
  * The summary must not be spreaded via mail (To:, CC: ...) as it as it may contain sth. like "Daddy".
  *
  * @memberof dc_contact_t
- *
  * @param contact The contact object.
- *
  * @return Summary string, must be free()'d. Never returns NULL.
  */
 char* dc_contact_get_name_n_addr(const dc_contact_t* contact)
@@ -236,9 +221,7 @@ char* dc_contact_get_name_n_addr(const dc_contact_t* contact)
  * If the display name is not set, the e-mail address is returned.
  *
  * @memberof dc_contact_t
- *
  * @param contact The contact object.
- *
  * @return String with the name to display, must be free()'d. Never returns NULL.
  */
 char* dc_contact_get_first_name(const dc_contact_t* contact)
@@ -261,9 +244,7 @@ char* dc_contact_get_first_name(const dc_contact_t* contact)
  * To block or unblock a contact, use dc_block_contact().
  *
  * @memberof dc_contact_t
- *
  * @param contact The contact object.
- *
  * @return 1=contact is blocked, 0=contact is not blocked.
  */
 int dc_contact_is_blocked(const dc_contact_t* contact)
@@ -302,9 +283,7 @@ cleanup:
  * The UI may draw a checkbox or sth. like that beside verified contacts.
  *
  * @memberof dc_contact_t
- *
  * @param contact The contact object.
- *
  * @return 0: contact is not verified.
  *    2: SELF and contact have verified their fingerprints in both directions; in the UI typically checkmarks are shown.
  */
@@ -338,9 +317,7 @@ cleanup:
  * If there is no space in the string, the whole string is returned.
  *
  * @private @memberof dc_contact_t
- *
  * @param full_name Full name of the contact.
- *
  * @return String with the first name, must be free()'d after usage.
  */
 char* dc_get_first_name(const char* full_name)
@@ -375,10 +352,8 @@ char* dc_get_first_name(const char* full_name)
  * Typically, this function is not needed as it is called implicitly by dc_add_address_book()
  *
  * @private @memberof dc_contact_t
- *
  * @param full_name Buffer with the name, is modified during processing; the
  *     resulting string may be shorter but never longer.
- *
  * @return None. But the given buffer may be modified.
  */
 void dc_normalize_name(char* full_name)
@@ -415,35 +390,6 @@ void dc_normalize_name(char* full_name)
 	else {
 		dc_trim(full_name);
 	}
-}
-
-
-/**
- * Normalize an email address.
- *
- * Normalization includes:
- * - removing `mailto:` prefix
- *
- * Not sure if we should also unifiy international characters before the @,
- * see also https://autocrypt.readthedocs.io/en/latest/address-canonicalization.html
- *
- * @private @memberof dc_contact_t
- *
- * @param email_addr__ The email address to normalize.
- *
- * @return The normalized email address, must be free()'d. NULL is never returned.
- */
-char* dc_normalize_addr(const char* email_addr__)
-{
-	char* addr = dc_strdup(email_addr__);
-	dc_trim(addr);
-	if (strncmp(addr, "mailto:", 7)==0) {
-		char* old = addr;
-		addr = dc_strdup(&old[7]);
-		free(old);
-		dc_trim(addr);
-	}
-	return addr;
 }
 
 
@@ -498,12 +444,63 @@ cleanup:
 }
 
 
+/*******************************************************************************
+ * Working with e-mail-addresses
+ ******************************************************************************/
+
+
+/**
+ * Normalize an email address.
+ *
+ * Normalization includes:
+ * - Trimming
+ * - removing `mailto:` prefix
+ *
+ * Not sure if we should also unifiy international characters before the @,
+ * see also https://autocrypt.readthedocs.io/en/latest/address-canonicalization.html
+ *
+ * @private @memberof dc_contact_t
+ * @param addr The email address to normalize.
+ * @return The normalized email address, must be free()'d. NULL is never returned.
+ */
+char* dc_addr_normalize(const char* addr)
+{
+	char* addr_normalized = dc_strdup(addr);
+	dc_trim(addr_normalized);
+	if (strncmp(addr_normalized, "mailto:", 7)==0) {
+		char* old = addr_normalized;
+		addr_normalized = dc_strdup(&old[7]);
+		free(old);
+		dc_trim(addr_normalized);
+	}
+	return addr_normalized;
+}
+
+
+/**
+ * Compare two e-mail-addresses.
+ * The adresses will be normalized before compare and the comparison is case-insensitive.
+ *
+ * @private @memberof dc_contact_t
+ * @return 0: addresses are equal, >0: addr1 is larger than addr2, <0: addr1 is smaller than addr2
+ */
+int dc_addr_cmp(const char* addr1, const char* addr2)
+{
+	char* norm1 = dc_addr_normalize(addr1);
+	char* norm2 = dc_addr_normalize(addr2);
+	int ret = strcasecmp(addr1, addr2);
+	free(norm1);
+	free(norm2);
+	return ret;
+}
+
+
 /**
  * Check if a given e-mail-address is equal to the configured-self-address.
  *
  * @private @memberof dc_contact_t
  */
-int dc_addr_is_self(dc_context_t* context, const char* addr)
+int dc_addr_equals_self(dc_context_t* context, const char* addr)
 {
 	int   ret             = 0;
 	char* normalized_addr = NULL;
@@ -513,7 +510,7 @@ int dc_addr_is_self(dc_context_t* context, const char* addr)
 		goto cleanup;
 	}
 
-	normalized_addr = dc_normalize_addr(addr);
+	normalized_addr = dc_addr_normalize(addr);
 
 	if (NULL==(self_addr=dc_sqlite3_get_config(context->sql, "configured_addr", NULL))) {
 		goto cleanup;
@@ -525,4 +522,24 @@ cleanup:
 	free(self_addr);
 	free(normalized_addr);
 	return ret;
+}
+
+
+int dc_addr_equals_contact(dc_context_t* context, const char* addr, uint32_t contact_id)
+{
+	int addr_are_equal = 0;
+	if (addr) {
+		dc_contact_t* contact = dc_contact_new(context);
+		if (dc_contact_load_from_db(contact, context->sql, contact_id)) {
+			if (contact->addr) {
+				char* normalized_addr = dc_addr_normalize(addr);
+				if (strcasecmp(contact->addr, normalized_addr)==0) {
+					addr_are_equal = 1;
+				}
+				free(normalized_addr);
+			}
+		}
+		dc_contact_unref(contact);
+	}
+	return addr_are_equal;
 }

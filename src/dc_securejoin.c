@@ -740,7 +740,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 		context->cb(context, DC_EVENT_CONTACTS_CHANGED, 0/*no select event*/, 0);
 
 		if (join_vg) {
-			if (!dc_addr_is_self(context, lookup_field(mimeparser, "Chat-Group-Member-Added"))) {
+			if (!dc_addr_equals_self(context, lookup_field(mimeparser, "Chat-Group-Member-Added"))) {
 				dc_log_info(context, 0, "Message belongs to a different handshake (scaled up contact anyway to allow creation of group).");
 				goto cleanup;
 			}

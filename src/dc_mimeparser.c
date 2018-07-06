@@ -415,7 +415,7 @@ static void mailimf_get_recipients__add_addr(dc_hash_t* recipients, struct maili
 {
 	/* only used internally by mailimf_get_recipients() */
 	if (mb)  {
-		char* addr_norm = dc_normalize_addr(mb->mb_addr_spec);
+		char* addr_norm = dc_addr_normalize(mb->mb_addr_spec);
 		dc_hash_insert(recipients, addr_norm, strlen(addr_norm), (void*)1);
 		free(addr_norm);
 	}
@@ -586,7 +586,7 @@ char* mailimf_find_first_addr(const struct mailimf_mailbox_list* mb_list)
 	for (cur = clist_begin(mb_list->mb_list); cur!=NULL ; cur=clist_next(cur)) {
 		struct mailimf_mailbox* mb = (struct mailimf_mailbox*)clist_content(cur);
 		if (mb && mb->mb_addr_spec) {
-			return dc_normalize_addr(mb->mb_addr_spec);
+			return dc_addr_normalize(mb->mb_addr_spec);
 		}
 	}
 	return NULL;
@@ -1878,7 +1878,7 @@ int dc_mimeparser_sender_equals_recipient(dc_mimeparser_t* mimeparser)
 		goto cleanup;
 	}
 
-	from_addr_norm = dc_normalize_addr(mb->mb_addr_spec);
+	from_addr_norm = dc_addr_normalize(mb->mb_addr_spec);
 
 	/* get To:/Cc: and check there is exactly one recipent */
 	recipients = mailimf_get_recipients(mimeparser->header_root);
