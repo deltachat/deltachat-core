@@ -106,11 +106,6 @@ void dc_msg_empty(dc_msg_t* msg)
 }
 
 
-/*******************************************************************************
- * Getters
- ******************************************************************************/
-
-
 /**
  * Get the ID of the message.
  *
@@ -812,11 +807,6 @@ cleanup:
 }
 
 
-/*******************************************************************************
- * Misc.
- ******************************************************************************/
-
-
 #define DC_MSG_FIELDS " m.id,rfc724_mid,m.server_folder,m.server_uid,m.chat_id, " \
                       " m.from_id,m.to_id,m.timestamp,m.timestamp_sent,m.timestamp_rcvd, m.type,m.state,m.msgrmsg,m.txt, " \
                       " m.param,m.starred,m.hidden,c.blocked "
@@ -1138,4 +1128,619 @@ void dc_msg_latefiling_mediasize(dc_msg_t* msg, int width, int height, int durat
 
 cleanup:
 	;
+}
+
+
+/*******************************************************************************
+ * Context functions to work with messages
+ ******************************************************************************/
+
+
+void dc_update_msg_chat_id(dc_context_t* context, uint32_t msg_id, uint32_t chat_id)
+{
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->sql,
+		"UPDATE msgs SET chat_id=? WHERE id=?;");
+	sqlite3_bind_int(stmt, 1, chat_id);
+	sqlite3_bind_int(stmt, 2, msg_id);
+	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+}
+
+
+void dc_update_msg_state(dc_context_t* context, uint32_t msg_id, int state)
+{
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->sql,
+		"UPDATE msgs SET state=? WHERE id=?;");
+	sqlite3_bind_int(stmt, 1, state);
+	sqlite3_bind_int(stmt, 2, msg_id);
+	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+}
+
+
+size_t dc_get_real_msg_cnt(dc_context_t* context)
+{
+	sqlite3_stmt* stmt = NULL;
+	size_t        ret = 0;
+
+	if (context->sql->cobj==NULL) {
+		goto cleanup;
+	}
+
+	stmt = dc_sqlite3_prepare(context->sql,
+		"SELECT COUNT(*) "
+		" FROM msgs m "
+		" LEFT JOIN chats c ON c.id=m.chat_id "
+		" WHERE m.id>" DC_STRINGIFY(DC_MSG_ID_LAST_SPECIAL)
+		" AND m.chat_id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL)
+		" AND c.blocked=0;");
+	if (sqlite3_step(stmt)!=SQLITE_ROW) {
+		dc_sqlite3_log_error(context->sql, "dc_get_real_msg_cnt() failed.");
+		goto cleanup;
+	}
+
+	ret = sqlite3_column_int(stmt, 0);
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return ret;
+}
+
+
+size_t dc_get_deaddrop_msg_cnt(dc_context_t* context)
+{
+	sqlite3_stmt* stmt = NULL;
+	size_t        ret = 0;
+
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || context->sql->cobj==NULL) {
+		goto cleanup;
+	}
+
+	stmt = dc_sqlite3_prepare(context->sql,
+		"SELECT COUNT(*) FROM msgs m LEFT JOIN chats c ON c.id=m.chat_id WHERE c.blocked=2;");
+	if (sqlite3_step(stmt)!=SQLITE_ROW) {
+		goto cleanup;
+	}
+
+	ret = sqlite3_column_int(stmt, 0);
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return ret;
+}
+
+
+int dc_rfc724_mid_cnt(dc_context_t* context, const char* rfc724_mid)
+{
+	/* check the number of messages with the same rfc724_mid */
+	int           ret = 0;
+	sqlite3_stmt* stmt = NULL;
+
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || context->sql->cobj==NULL) {
+		goto cleanup;
+	}
+
+	stmt = dc_sqlite3_prepare(context->sql,
+		"SELECT COUNT(*) FROM msgs WHERE rfc724_mid=?;");
+	sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
+	if (sqlite3_step(stmt)!=SQLITE_ROW) {
+		goto cleanup;
+	}
+
+	ret = sqlite3_column_int(stmt, 0);
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return ret;
+}
+
+
+/* check, if the given Message-ID exists in the database (if not, the message is normally downloaded from the server and parsed,
+so, we should even keep unuseful messages in the database (we can leave the other fields empty to save space) */
+uint32_t dc_rfc724_mid_exists(dc_context_t* context, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid)
+{
+	uint32_t ret = 0;
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->sql,
+		"SELECT server_folder, server_uid, id FROM msgs WHERE rfc724_mid=?;");
+	sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
+	if (sqlite3_step(stmt)!=SQLITE_ROW) {
+		if (ret_server_folder) { *ret_server_folder = NULL; }
+		if (ret_server_uid)    { *ret_server_uid    = 0; }
+		goto cleanup;
+	}
+
+	if (ret_server_folder) { *ret_server_folder = dc_strdup((char*)sqlite3_column_text(stmt, 0)); }
+	if (ret_server_uid)    { *ret_server_uid = sqlite3_column_int(stmt, 1); /* may be 0 */ }
+	ret = sqlite3_column_int(stmt, 2);
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return ret;
+}
+
+
+void dc_update_server_uid(dc_context_t* context, const char* rfc724_mid, const char* server_folder, uint32_t server_uid)
+{
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->sql,
+		"UPDATE msgs SET server_folder=?, server_uid=? WHERE rfc724_mid=?;"); /* we update by "rfc724_mid" instead of "id" as there may be several db-entries refering to the same "rfc724_mid" */
+	sqlite3_bind_text(stmt, 1, server_folder, -1, SQLITE_STATIC);
+	sqlite3_bind_int (stmt, 2, server_uid);
+	sqlite3_bind_text(stmt, 3, rfc724_mid, -1, SQLITE_STATIC);
+	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+}
+
+
+/**
+ * Get a single message object of the type dc_msg_t.
+ * For a list of messages in a chat, see dc_get_chat_msgs()
+ * For a list or chats, see dc_get_chatlist()
+ *
+ * @memberof dc_context_t
+ * @param context The context as created by dc_context_new().
+ * @param msg_id The message ID for which the message object should be created.
+ * @return A dc_msg_t message object. When done, the object must be freed using dc_msg_unref()
+ */
+dc_msg_t* dc_get_msg(dc_context_t* context, uint32_t msg_id)
+{
+	int success = 0;
+	dc_msg_t* obj = dc_msg_new();
+
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		goto cleanup;
+	}
+
+	if (!dc_msg_load_from_db(obj, context, msg_id)) {
+		goto cleanup;
+	}
+
+	success = 1;
+
+cleanup:
+	if (success) {
+		return obj;
+	}
+	else {
+		dc_msg_unref(obj);
+		return NULL;
+	}
+}
+
+
+/**
+ * Get an informational text for a single message. the text is multiline and may
+ * contain eg. the raw text of the message.
+ *
+ * The max. text returned is typically longer (about 100000 characters) than the
+ * max. text returned by dc_msg_get_text() (about 30000 characters).
+ *
+ * If the library is compiled for andoid, some basic html-formatting for he
+ * subject and the footer is added. However we should change this function so
+ * that it returns eg. an array of pairwise key-value strings and the caller
+ * can show the whole stuff eg. in a table.
+ *
+ * @memberof dc_context_t
+ * @param context the context object as created by dc_context_new().
+ * @param msg_id the message id for which information should be generated
+ * @return text string, must be free()'d after usage
+ */
+char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
+{
+	sqlite3_stmt*   stmt = NULL;
+	dc_msg_t*       msg = dc_msg_new();
+	dc_contact_t*   contact_from = dc_contact_new(context);
+	char*           rawtxt = NULL;
+	char*           p = NULL;
+	dc_strbuilder_t ret;
+	dc_strbuilder_init(&ret, 0);
+
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		goto cleanup;
+	}
+
+	dc_msg_load_from_db(msg, context, msg_id);
+	dc_contact_load_from_db(contact_from, context->sql, msg->from_id);
+
+	stmt = dc_sqlite3_prepare(context->sql,
+		"SELECT txt_raw FROM msgs WHERE id=?;");
+	sqlite3_bind_int(stmt, 1, msg_id);
+	if (sqlite3_step(stmt)!=SQLITE_ROW) {
+		p = dc_mprintf("Cannot load message #%i.", (int)msg_id); dc_strbuilder_cat(&ret, p); free(p);
+		goto cleanup;
+	}
+	rawtxt = dc_strdup((char*)sqlite3_column_text(stmt, 0));
+	sqlite3_finalize(stmt);
+	stmt = NULL;
+
+	#ifdef __ANDROID__
+		p = strchr(rawtxt, '\n');
+		if (p) {
+			char* subject = rawtxt;
+			*p = 0;
+			p++;
+			rawtxt = dc_mprintf("<b>%s</b>\n%s", subject, p);
+			free(subject);
+		}
+	#endif
+
+	dc_trim(rawtxt);
+	dc_truncate_str(rawtxt, DC_MAX_GET_INFO_LEN);
+
+	/* add time */
+	dc_strbuilder_cat(&ret, "Sent: ");
+	p = dc_timestamp_to_str(dc_msg_get_timestamp(msg)); dc_strbuilder_cat(&ret, p); free(p);
+	dc_strbuilder_cat(&ret, "\n");
+
+	if (msg->from_id!=DC_CONTACT_ID_SELF) {
+		dc_strbuilder_cat(&ret, "Received: ");
+		p = dc_timestamp_to_str(msg->timestamp_rcvd? msg->timestamp_rcvd : msg->timestamp); dc_strbuilder_cat(&ret, p); free(p);
+		dc_strbuilder_cat(&ret, "\n");
+	}
+
+	if (msg->from_id==DC_CONTACT_ID_DEVICE || msg->to_id==DC_CONTACT_ID_DEVICE) {
+		goto cleanup; // device-internal message, no further details needed
+	}
+
+	/* add mdn's time and readers */
+	stmt = dc_sqlite3_prepare(context->sql,
+		"SELECT contact_id, timestamp_sent FROM msgs_mdns WHERE msg_id=?;");
+	sqlite3_bind_int (stmt, 1, msg_id);
+	while (sqlite3_step(stmt)==SQLITE_ROW) {
+		dc_strbuilder_cat(&ret, "Read: ");
+		p = dc_timestamp_to_str(sqlite3_column_int64(stmt, 1)); dc_strbuilder_cat(&ret, p); free(p);
+		dc_strbuilder_cat(&ret, " by ");
+
+		dc_contact_t* contact = dc_contact_new(context);
+			dc_contact_load_from_db(contact, context->sql, sqlite3_column_int64(stmt, 0));
+			p = dc_contact_get_display_name(contact); dc_strbuilder_cat(&ret, p); free(p);
+		dc_contact_unref(contact);
+		dc_strbuilder_cat(&ret, "\n");
+	}
+	sqlite3_finalize(stmt);
+	stmt = NULL;
+
+	/* add state */
+	p = NULL;
+	switch (msg->state) {
+		case DC_STATE_IN_FRESH:      p = dc_strdup("Fresh");           break;
+		case DC_STATE_IN_NOTICED:    p = dc_strdup("Noticed");         break;
+		case DC_STATE_IN_SEEN:       p = dc_strdup("Seen");            break;
+		case DC_STATE_OUT_DELIVERED: p = dc_strdup("Delivered");       break;
+		case DC_STATE_OUT_ERROR:     p = dc_strdup("Error");           break;
+		case DC_STATE_OUT_MDN_RCVD:  p = dc_strdup("Read");            break;
+		case DC_STATE_OUT_PENDING:   p = dc_strdup("Pending");         break;
+		default:                     p = dc_mprintf("%i", msg->state); break;
+	}
+	dc_strbuilder_catf(&ret, "State: %s", p);
+	free(p);
+
+	p = NULL;
+	int e2ee_errors;
+	if ((e2ee_errors=dc_param_get_int(msg->param, DC_PARAM_ERRONEOUS_E2EE, 0))) {
+		if (e2ee_errors&DC_E2EE_NO_VALID_SIGNATURE) {
+			p = dc_strdup("Encrypted, no valid signature");
+		}
+	}
+	else if (dc_param_get_int(msg->param, DC_PARAM_GUARANTEE_E2EE, 0)) {
+		p = dc_strdup("Encrypted");
+	}
+
+	if (p) {
+		dc_strbuilder_catf(&ret, ", %s", p);
+		free(p);
+	}
+	dc_strbuilder_cat(&ret, "\n");
+
+	/* add sender (only for info messages as the avatar may not be shown for them) */
+	if (dc_msg_is_info(msg)) {
+		dc_strbuilder_cat(&ret, "Sender: ");
+		p = dc_contact_get_name_n_addr(contact_from); dc_strbuilder_cat(&ret, p); free(p);
+		dc_strbuilder_cat(&ret, "\n");
+	}
+
+	/* add file info */
+	char* file = dc_param_get(msg->param, DC_PARAM_FILE, NULL);
+	if (file) {
+		p = dc_mprintf("\nFile: %s, %i bytes\n", file, (int)dc_get_filebytes(file)); dc_strbuilder_cat(&ret, p); free(p);
+	}
+
+	if (msg->type!=DC_MSG_TEXT) {
+		p = NULL;
+		switch (msg->type)  {
+			case DC_MSG_AUDIO: p = dc_strdup("Audio");          break;
+			case DC_MSG_FILE:  p = dc_strdup("File");           break;
+			case DC_MSG_GIF:   p = dc_strdup("GIF");            break;
+			case DC_MSG_IMAGE: p = dc_strdup("Image");          break;
+			case DC_MSG_VIDEO: p = dc_strdup("Video");          break;
+			case DC_MSG_VOICE: p = dc_strdup("Voice");          break;
+			default:           p = dc_mprintf("%i", msg->type); break;
+		}
+		dc_strbuilder_catf(&ret, "Type: %s\n", p);
+		free(p);
+	}
+
+	int w = dc_param_get_int(msg->param, DC_PARAM_WIDTH, 0), h = dc_param_get_int(msg->param, DC_PARAM_HEIGHT, 0);
+	if (w!=0 || h!=0) {
+		p = dc_mprintf("Dimension: %i x %i\n", w, h); dc_strbuilder_cat(&ret, p); free(p);
+	}
+
+	int duration = dc_param_get_int(msg->param, DC_PARAM_DURATION, 0);
+	if (duration!=0) {
+		p = dc_mprintf("Duration: %i ms\n", duration); dc_strbuilder_cat(&ret, p); free(p);
+	}
+
+	/* add rawtext */
+	if (rawtxt && rawtxt[0]) {
+		dc_strbuilder_cat(&ret, "\n");
+		dc_strbuilder_cat(&ret, rawtxt);
+		dc_strbuilder_cat(&ret, "\n");
+	}
+
+	/* add Message-ID, Server-Folder and Server-UID; the database ID is normally only of interest if you have access to sqlite; if so you can easily get it from the "msgs" table. */
+	#ifdef __ANDROID__
+		dc_strbuilder_cat(&ret, "<c#808080>");
+	#endif
+
+	if (msg->rfc724_mid && msg->rfc724_mid[0]) {
+		dc_strbuilder_catf(&ret, "\nMessage-ID: %s", msg->rfc724_mid);
+	}
+
+	if (msg->server_folder && msg->server_folder[0]) {
+		dc_strbuilder_catf(&ret, "\nLast seen as: %s/%i", msg->server_folder, (int)msg->server_uid);
+	}
+
+	#ifdef __ANDROID__
+		dc_strbuilder_cat(&ret, "</c>");
+	#endif
+
+cleanup:
+	sqlite3_finalize(stmt);
+	dc_msg_unref(msg);
+	dc_contact_unref(contact_from);
+	free(rawtxt);
+	return ret.buf;
+}
+
+
+/**
+ * Star/unstar messages by setting the last parameter to 0 (unstar) or 1 (star).
+ * Starred messages are collected in a virtual chat that can be shown using
+ * dc_get_chat_msgs() using the chat_id DC_CHAT_ID_STARRED.
+ *
+ * @memberof dc_context_t
+ * @param context The context object as created by dc_context_new()
+ * @param msg_ids An array of uint32_t message IDs defining the messages to star or unstar
+ * @param msg_cnt The number of IDs in msg_ids
+ * @param star 0=unstar the messages in msg_ids, 1=star them
+ * @return none
+ */
+void dc_star_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt, int star)
+{
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || msg_ids==NULL || msg_cnt<=0 || (star!=0 && star!=1)) {
+		return;
+	}
+
+	dc_sqlite3_begin_transaction(context->sql);
+
+		sqlite3_stmt* stmt = dc_sqlite3_prepare(context->sql,
+			"UPDATE msgs SET starred=? WHERE id=?;");
+		for (int i = 0; i < msg_cnt; i++)
+		{
+			sqlite3_reset(stmt);
+			sqlite3_bind_int(stmt, 1, star);
+			sqlite3_bind_int(stmt, 2, msg_ids[i]);
+			sqlite3_step(stmt);
+		}
+		sqlite3_finalize(stmt);
+
+	dc_sqlite3_commit(context->sql);
+}
+
+
+/*******************************************************************************
+ * Delete messages
+ ******************************************************************************/
+
+
+/**
+ * Delete messages. The messages are deleted on the current device and
+ * on the IMAP server.
+ *
+ * @memberof dc_context_t
+ * @param context the context object as created by dc_context_new()
+ * @param msg_ids an array of uint32_t containing all message IDs that should be deleted
+ * @param msg_cnt the number of messages IDs in the msg_ids array
+ * @return none
+ */
+void dc_delete_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt)
+{
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || msg_ids==NULL || msg_cnt<=0) {
+		return;
+	}
+
+	dc_sqlite3_begin_transaction(context->sql);
+
+		for (int i = 0; i < msg_cnt; i++)
+		{
+			dc_update_msg_chat_id(context, msg_ids[i], DC_CHAT_ID_TRASH);
+			dc_job_add(context, DC_JOB_DELETE_MSG_ON_IMAP, msg_ids[i], NULL, 0);
+		}
+
+	dc_sqlite3_commit(context->sql);
+}
+
+
+/*******************************************************************************
+ * mark message as seen
+ ******************************************************************************/
+
+
+/**
+ * Mark a message as _seen_, updates the IMAP state and
+ * sends MDNs. If the message is not in a real chat (eg. a contact request), the
+ * message is only marked as NOTICED and no IMAP/MDNs is done.  See also
+ * dc_marknoticed_chat() and dc_marknoticed_contact()
+ *
+ * @memberof dc_context_t
+ * @param context The context object.
+ * @param msg_ids an array of uint32_t containing all the messages IDs that should be marked as seen.
+ * @param msg_cnt The number of message IDs in msg_ids.
+ * @return none
+ */
+void dc_markseen_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt)
+{
+	int transaction_pending = 0;
+	int i = 0;
+	int send_event = 0;
+	int curr_state = 0;
+	int curr_blocked = 0;
+	sqlite3_stmt* stmt = NULL;
+
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || msg_ids==NULL || msg_cnt<=0) {
+		goto cleanup;
+	}
+
+	dc_sqlite3_begin_transaction(context->sql);
+	transaction_pending = 1;
+
+		stmt = dc_sqlite3_prepare(context->sql,
+			"SELECT m.state, c.blocked "
+			" FROM msgs m "
+			" LEFT JOIN chats c ON c.id=m.chat_id "
+			" WHERE m.id=? AND m.chat_id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL));
+		for (i = 0; i < msg_cnt; i++)
+		{
+			sqlite3_reset(stmt);
+			sqlite3_bind_int(stmt, 1, msg_ids[i]);
+			if (sqlite3_step(stmt)!=SQLITE_ROW) {
+				continue;
+			}
+			curr_state   = sqlite3_column_int(stmt, 0);
+			curr_blocked = sqlite3_column_int(stmt, 1);
+			if (curr_blocked==0)
+			{
+				if (curr_state==DC_STATE_IN_FRESH || curr_state==DC_STATE_IN_NOTICED) {
+					dc_update_msg_state(context, msg_ids[i], DC_STATE_IN_SEEN);
+					dc_log_info(context, 0, "Seen message #%i.", msg_ids[i]);
+					dc_job_add(context, DC_JOB_MARKSEEN_MSG_ON_IMAP, msg_ids[i], NULL, 0); /* results in a call to dc_markseen_msg_on_imap() */
+					send_event = 1;
+				}
+			}
+			else
+			{
+				/* message may be in contact requests, mark as NOTICED, this does not force IMAP updated nor send MDNs */
+				if (curr_state==DC_STATE_IN_FRESH) {
+					dc_update_msg_state(context, msg_ids[i], DC_STATE_IN_NOTICED);
+					send_event = 1;
+				}
+			}
+		}
+
+	dc_sqlite3_commit(context->sql);
+	transaction_pending = 0;
+
+	/* the event is needed eg. to remove the deaddrop from the chatlist */
+	if (send_event) {
+		context->cb(context, DC_EVENT_MSGS_CHANGED, 0, 0);
+	}
+
+cleanup:
+	if (transaction_pending) { dc_sqlite3_rollback(context->sql); }
+	sqlite3_finalize(stmt);
+}
+
+
+int dc_mdn_from_ext(dc_context_t* context, uint32_t from_id, const char* rfc724_mid, time_t timestamp_sent,
+                    uint32_t* ret_chat_id, uint32_t* ret_msg_id)
+{
+	int           read_by_all = 0;
+	sqlite3_stmt* stmt = NULL;
+
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || from_id<=DC_CONTACT_ID_LAST_SPECIAL || rfc724_mid==NULL || ret_chat_id==NULL || ret_msg_id==NULL
+	 || *ret_chat_id!=0 || *ret_msg_id!=0) {
+		goto cleanup;
+	}
+
+	stmt = dc_sqlite3_prepare(context->sql,
+		"SELECT m.id, c.id, c.type, m.state FROM msgs m "
+		" LEFT JOIN chats c ON m.chat_id=c.id "
+		" WHERE rfc724_mid=? AND from_id=1 "
+		" ORDER BY m.id;"); /* the ORDER BY makes sure, if one rfc724_mid is splitted into its parts, we always catch the same one. However, we do not send multiparts, we do not request MDNs for multiparts, and should not receive read requests for multiparts. So this is currently more theoretical. */
+	sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
+	if (sqlite3_step(stmt)!=SQLITE_ROW) {
+		goto cleanup;
+	}
+	*ret_msg_id    = sqlite3_column_int(stmt, 0);
+	*ret_chat_id   = sqlite3_column_int(stmt, 1);
+	int chat_type  = sqlite3_column_int(stmt, 2);
+	int msg_state  = sqlite3_column_int(stmt, 3);
+	sqlite3_finalize(stmt);
+	stmt = NULL;
+
+	if (msg_state!=DC_STATE_OUT_PENDING && msg_state!=DC_STATE_OUT_DELIVERED) {
+		goto cleanup; /* eg. already marked as MDNS_RCVD. however, it is importent, that the message ID is set above as this will allow the caller eg. to move the message away */
+	}
+
+	// collect receipt senders, we do this also for normal chats as we may want to show the timestamp
+	stmt = dc_sqlite3_prepare(context->sql,
+		"SELECT contact_id FROM msgs_mdns WHERE msg_id=? AND contact_id=?;");
+	sqlite3_bind_int(stmt, 1, *ret_msg_id);
+	sqlite3_bind_int(stmt, 2, from_id);
+	int mdn_already_in_table = (sqlite3_step(stmt)==SQLITE_ROW)? 1 : 0;
+	sqlite3_finalize(stmt);
+	stmt = NULL;
+
+	if (!mdn_already_in_table) {
+		stmt = dc_sqlite3_prepare(context->sql,
+			"INSERT INTO msgs_mdns (msg_id, contact_id, timestamp_sent) VALUES (?, ?, ?);");
+		sqlite3_bind_int  (stmt, 1, *ret_msg_id);
+		sqlite3_bind_int  (stmt, 2, from_id);
+		sqlite3_bind_int64(stmt, 3, timestamp_sent);
+		sqlite3_step(stmt);
+		sqlite3_finalize(stmt);
+		stmt = NULL;
+	}
+
+	// Normal chat? that's quite easy.
+	if (chat_type==DC_CHAT_TYPE_SINGLE) {
+		dc_update_msg_state(context, *ret_msg_id, DC_STATE_OUT_MDN_RCVD);
+		read_by_all = 1;
+		goto cleanup; /* send event about new state */
+	}
+
+	// Group chat: get the number of receipt senders
+	stmt = dc_sqlite3_prepare(context->sql,
+		"SELECT COUNT(*) FROM msgs_mdns WHERE msg_id=?;");
+	sqlite3_bind_int(stmt, 1, *ret_msg_id);
+	if (sqlite3_step(stmt)!=SQLITE_ROW) {
+		goto cleanup; /* error */
+	}
+	int ist_cnt  = sqlite3_column_int(stmt, 0);
+	sqlite3_finalize(stmt);
+	stmt = NULL;
+
+	/*
+	Groupsize:  Min. MDNs
+
+	1 S         n/a
+	2 SR        1
+	3 SRR       2
+	4 SRRR      2
+	5 SRRRR     3
+	6 SRRRRR    3
+
+	(S=Sender, R=Recipient)
+	*/
+	int soll_cnt = (dc_get_chat_contact_cnt(context, *ret_chat_id)+1/*for rounding, SELF is already included!*/) / 2;
+	if (ist_cnt < soll_cnt) {
+		goto cleanup; /* wait for more receipts */
+	}
+
+	/* got enough receipts :-) */
+	dc_update_msg_state(context, *ret_msg_id, DC_STATE_OUT_MDN_RCVD);
+	read_by_all = 1;
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return read_by_all;
 }

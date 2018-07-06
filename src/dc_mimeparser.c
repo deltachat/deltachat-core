@@ -939,7 +939,7 @@ void dc_mimeparser_empty(dc_mimeparser_t* mimeparser)
 static void do_add_single_part(dc_mimeparser_t* parser, dc_mimepart_t* part)
 {
 	/* add a single part to the list of parts, the parser takes the ownership of the part, so you MUST NOT unref it after calling this function. */
-	if (parser->e2ee_helper->encrypted && dc_hash_count(parser->e2ee_helper->signatures)>0) {
+	if (parser->e2ee_helper->encrypted && dc_hash_cnt(parser->e2ee_helper->signatures)>0) {
 		dc_param_set_int(part->param, DC_PARAM_GUARANTEE_E2EE, 1);
 	}
 	else if (parser->e2ee_helper->encrypted) {
@@ -1877,7 +1877,7 @@ int dc_mimeparser_sender_equals_recipient(dc_mimeparser_t* mimeparser)
 
 	/* get To:/Cc: and check there is exactly one recipent */
 	recipients = mailimf_get_recipients(mimeparser->header_root);
-	if (dc_hash_count(recipients) != 1) {
+	if (dc_hash_cnt(recipients) != 1) {
 		goto cleanup;
 	}
 

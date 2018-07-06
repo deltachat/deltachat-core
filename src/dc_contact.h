@@ -55,8 +55,6 @@ struct _dc_contact
 	int             origin;   /**< The origin/source of the contact. One of the DC_ORIGIN_* constants. */
 };
 
-
-/* library-internal */
 #define DC_ORIGIN_INCOMING_UNKNOWN_FROM      0x10 /* From: of incoming messages of unknown sender */
 #define DC_ORIGIN_INCOMING_UNKNOWN_CC        0x20 /* Cc: of incoming messages of unknown sender */
 #define DC_ORIGIN_INCOMING_UNKNOWN_TO        0x40 /* To: of incoming messages of unknown sender */
@@ -78,17 +76,29 @@ struct _dc_contact
 #define DC_ORIGIN_MIN_VERIFIED        (DC_ORIGIN_INCOMING_REPLY_TO) /* contacts with at least this origin value are verified and known not to be spam */
 #define DC_ORIGIN_MIN_START_NEW_NCHAT (0x7FFFFFFF)                  /* contacts with at least this origin value start a new "normal" chat, defaults to off */
 
-
 int          dc_contact_load_from_db             (dc_contact_t*, dc_sqlite3_t*, uint32_t contact_id);
 int          dc_contact_n_peerstate_are_verified (const dc_contact_t*, const dc_apeerstate_t*);
 
+
+// Working with names
 void         dc_normalize_name                   (char* full_name);
 char*        dc_get_first_name                   (const char* full_name);
 
+
+// Working with e-mail-addresses
 int          dc_addr_cmp                         (const char* addr1, const char* addr2);
 char*        dc_addr_normalize                   (const char* addr);
 int          dc_addr_equals_self                 (dc_context_t*, const char* addr);
 int          dc_addr_equals_contact              (dc_context_t*, const char* addr, uint32_t contact_id);
+
+
+// Context functions to work with contacts
+size_t       dc_get_real_contact_cnt             (dc_context_t*);
+uint32_t     dc_add_or_lookup_contact            (dc_context_t*, const char* display_name /*can be NULL*/, const char* addr_spec, int origin, int* sth_modified);
+int          dc_get_contact_origin               (dc_context_t*, uint32_t contact_id, int* ret_blocked);
+int          dc_is_contact_blocked               (dc_context_t*, uint32_t contact_id);
+int          dc_real_contact_exists              (dc_context_t*, uint32_t contact_id);
+void         dc_scaleup_contact_origin           (dc_context_t*, uint32_t contact_id, int origin);
 
 
 #ifdef __cplusplus

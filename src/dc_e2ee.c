@@ -621,7 +621,7 @@ static int decrypt_part(dc_context_t*       context,
 		goto cleanup;
 	}
 
-	dc_hash_t* add_signatures = dc_hash_count(ret_valid_signatures)<=0?
+	dc_hash_t* add_signatures = dc_hash_cnt(ret_valid_signatures)<=0?
 		ret_valid_signatures : NULL; /*if we already have fingerprints, do not add more; this ensures, only the fingerprints from the outer-most part are collected */
 
 	if (!dc_pgp_pk_decrypt(context, decoded_data, decoded_data_bytes, private_keyring, public_keyring_for_validate, 1, &plain_buf, &plain_bytes, add_signatures)
@@ -684,7 +684,7 @@ static int decrypt_recursive(dc_context_t*           context,
 				{
 					/* remember the header containing potentially Autocrypt-Gossip */
 					if (*ret_gossip_headers == NULL /* use the outermost decrypted part */
-					 && dc_hash_count(ret_valid_signatures) > 0 /* do not trust the gossipped keys when the message cannot be validated eg. due to a bad signature */)
+					 && dc_hash_cnt(ret_valid_signatures) > 0 /* do not trust the gossipped keys when the message cannot be validated eg. due to a bad signature */)
 					{
 						size_t dummy = 0;
 						struct mailimf_fields* test = NULL;

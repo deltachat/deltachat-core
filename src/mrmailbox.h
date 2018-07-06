@@ -64,8 +64,8 @@ extern "C" {
 #define mrmailbox_send_vcard_msg            dc_send_vcard_msg
 #define mrmailbox_set_draft                 dc_set_draft
 #define mrmailbox_get_chat_msgs             dc_get_chat_msgs
-#define mrmailbox_get_total_msg_count       dc_get_total_msg_count
-#define mrmailbox_get_fresh_msg_count       dc_get_fresh_msg_count
+#define mrmailbox_get_total_msg_count       dc_get_msg_cnt
+#define mrmailbox_get_fresh_msg_count       dc_get_fresh_msg_cnt
 #define mrmailbox_get_fresh_msgs            dc_get_fresh_msgs
 #define mrmailbox_marknoticed_chat          dc_marknoticed_chat
 #define mrmailbox_get_chat_media            dc_get_chat_media
@@ -91,7 +91,7 @@ extern "C" {
 #define mrmailbox_create_contact            dc_create_contact
 #define mrmailbox_add_address_book          dc_add_address_book
 #define mrmailbox_get_contacts              dc_get_contacts
-#define mrmailbox_get_blocked_count         dc_get_blocked_count
+#define mrmailbox_get_blocked_count         dc_get_blocked_cnt
 #define mrmailbox_get_blocked_contacts      dc_get_blocked_contacts
 #define mrmailbox_block_contact             dc_block_contact
 #define mrmailbox_get_contact_encrinfo      dc_get_contact_encrinfo

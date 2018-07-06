@@ -914,7 +914,7 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 	/* check the number of receivers -
 	the only critical situation is if the user hits "Reply" instead of "Reply all" in a non-messenger-client */
 	if (to_ids_cnt == 1 && mime_parser->is_send_by_messenger==0) {
-		int is_contact_cnt = dc_get_chat_contact_count(context, chat_id);
+		int is_contact_cnt = dc_get_chat_contact_cnt(context, chat_id);
 		if (is_contact_cnt > 3 /* to_ids_cnt==1 may be "From: A, To: B, SELF" as SELF is not counted in to_ids_cnt. So everything up to 3 is no error. */) {
 			chat_id = 0;
 			create_or_lookup_adhoc_group(context, mime_parser, create_blocked, from_id, to_ids, &chat_id, &chat_id_blocked);
@@ -996,7 +996,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 	we use mailmime_parse() through dc_mimeparser (both call mailimf_struct_multiple_parse() somewhen, I did not found out anything
 	that speaks against this approach yet) */
 	dc_mimeparser_parse(mime_parser, imf_raw_not_terminated, imf_raw_bytes);
-	if (dc_hash_count(&mime_parser->header)==0) {
+	if (dc_hash_cnt(&mime_parser->header)==0) {
 		dc_log_info(context, 0, "No header.");
 		goto cleanup; /* Error - even adding an empty record won't help as we do not know the message ID */
 	}

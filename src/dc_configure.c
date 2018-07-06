@@ -261,10 +261,10 @@ typedef struct outlk_autodiscover_t
 	#define                OUTLK_PORT         3
 	#define                OUTLK_SSL          4
 	#define                OUTLK_REDIRECTURL  5
-	#define                _OUTLK_COUNT_      6
+	#define                _OUTLK_CNT_        6
 	int                    tag_config;
 
-	char*                  config[_OUTLK_COUNT_];
+	char*                  config[_OUTLK_CNT_];
 	char*                  redirect;
 
 } outlk_autodiscover_t;
@@ -273,7 +273,7 @@ typedef struct outlk_autodiscover_t
 static void outlk_clean_config(outlk_autodiscover_t* outlk_ad)
 {
 	int i;
-	for (i = 0; i < _OUTLK_COUNT_; i++) {
+	for (i = 0; i < _OUTLK_CNT_; i++) {
 		free(outlk_ad->config[i]);
 		outlk_ad->config[i] = NULL;
 	}

@@ -746,7 +746,7 @@ static int import_self_keys(dc_context_t* context, const char* dir_name)
 	Maybe we should make the "default" key handlong also a little bit smarter
 	(currently, the last imported key is the standard key unless it contains the string "legacy" in its name) */
 
-	int            imported_count = 0;
+	int            imported_cnt = 0;
 	DIR*           dir_handle = NULL;
 	struct dirent* dir_entry = NULL;
 	char*          suffix = NULL;
@@ -809,10 +809,10 @@ static int import_self_keys(dc_context_t* context, const char* dir_name)
 			continue;
 		}
 
-		imported_count++;
+		imported_cnt++;
 	}
 
-	if (imported_count == 0) {
+	if (imported_cnt == 0) {
 		dc_log_error(context, 0, "No private keys found in \"%s\".", dir_name);
 		goto cleanup;
 	}
@@ -823,7 +823,7 @@ cleanup:
 	free(path_plus_name);
 	free(buf);
 	free(buf2);
-	return imported_count;
+	return imported_cnt;
 }
 
 
@@ -835,8 +835,8 @@ cleanup:
 /* the FILE_PROGRESS macro calls the callback with the permille of files processed.
 The macro avoids weird values of 0% or 100% while still working. */
 #define FILE_PROGRESS \
-	processed_files_count++; \
-	int permille = (processed_files_count*1000)/total_files_count; \
+	processed_files_cnt++; \
+	int permille = (processed_files_cnt*1000)/total_files_cnt; \
 	if (permille <  10) { permille =  10; } \
 	if (permille > 990) { permille = 990; } \
 	context->cb(context, DC_EVENT_IMEX_PROGRESS, permille, 0);
@@ -857,8 +857,8 @@ static int export_backup(dc_context_t* context, const char* dir)
 	void*          buf = NULL;
 	size_t         buf_bytes = 0;
 	sqlite3_stmt*  stmt = NULL;
-	int            total_files_count = 0;
-	int            processed_files_count = 0;
+	int            total_files_cnt = 0;
+	int            processed_files_cnt = 0;
 	int            delete_dest_file = 0;
 
 	/* get a fine backup file name (the name includes the date so that multiple backup instances are possible)
@@ -899,20 +899,20 @@ static int export_backup(dc_context_t* context, const char* dir)
 	}
 
 	/* scan directory, pass 1: collect file info */
-	total_files_count = 0;
+	total_files_cnt = 0;
 	if ((dir_handle=opendir(context->blobdir))==NULL) {
 		dc_log_error(context, 0, "Backup: Cannot get info for blob-directory \"%s\".", context->blobdir);
 		goto cleanup;
 	}
 
 	while ((dir_entry=readdir(dir_handle))!=NULL) {
-		total_files_count++;
+		total_files_cnt++;
 	}
 
 	closedir(dir_handle);
 	dir_handle = NULL;
 
-	if (total_files_count>0)
+	if (total_files_cnt>0)
 	{
 		/* scan directory, pass 2: copy files */
 		if ((dir_handle=opendir(context->blobdir))==NULL) {
@@ -1008,8 +1008,8 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 	*/
 
 	int           success = 0;
-	int           processed_files_count = 0;
-	int           total_files_count = 0;
+	int           processed_files_cnt = 0;
+	int           total_files_cnt = 0;
 	sqlite3_stmt* stmt = NULL;
 	char*         pathNfilename = NULL;
 	char*         repl_from = NULL;
@@ -1051,7 +1051,7 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 	/* copy all blobs to files */
 	stmt = dc_sqlite3_prepare(context->sql, "SELECT COUNT(*) FROM backup_blobs;");
 	sqlite3_step(stmt);
-	total_files_count = sqlite3_column_int(stmt, 0);
+	total_files_cnt = sqlite3_column_int(stmt, 0);
 	sqlite3_finalize(stmt);
 	stmt = NULL;
 

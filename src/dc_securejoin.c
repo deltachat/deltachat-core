@@ -89,7 +89,7 @@ static int encrypted_and_signed(dc_mimeparser_t* mimeparser, const char* expecte
 		return 0;
 	}
 
-	if (dc_hash_count(mimeparser->e2ee_helper->signatures)<=0) {
+	if (dc_hash_cnt(mimeparser->e2ee_helper->signatures)<=0) {
 		dc_log_warning(mimeparser->context, 0, "Message not signed.");
 		return 0;
 	}

@@ -640,7 +640,7 @@ int dc_pgp_pk_decrypt(  dc_context_t*       context,
 	pgp_keyring_t*    dummy_keys = calloc(1, sizeof(pgp_keyring_t));
 	pgp_validation_t* vresult = calloc(1, sizeof(pgp_validation_t));
 	key_id_t*         recipients_key_ids = NULL;
-	unsigned          recipients_count = 0;
+	unsigned          recipients_cnt = 0;
 	pgp_memory_t*     keysmem = pgp_memory_new();
 	int               i = 0;
 	int               success = 0;
@@ -677,7 +677,7 @@ int dc_pgp_pk_decrypt(  dc_context_t*       context,
 	/* decrypt */
 	{
 		pgp_memory_t* outmem = pgp_decrypt_and_validate_buf(&s_io, vresult, ctext, ctext_bytes, private_keys, public_keys,
-			use_armor, &recipients_key_ids, &recipients_count);
+			use_armor, &recipients_key_ids, &recipients_cnt);
 		if (outmem == NULL) {
 			dc_log_warning(context, 0, "Decryption failed.");
 			goto cleanup;

@@ -118,50 +118,11 @@ struct _dc_context
 	int              shall_stop_ongoing;
 };
 
-
-/* logging and error handling */
 void            dc_log_error         (dc_context_t*, int code, const char* msg, ...);
 void            dc_log_error_if      (int* condition, dc_context_t*, int code, const char* msg, ...);
 void            dc_log_warning       (dc_context_t*, int code, const char* msg, ...);
 void            dc_log_info          (dc_context_t*, int code, const char* msg, ...);
-
-
-/* misc.*/
 void            dc_receive_imf                             (dc_context_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags);
-uint32_t        dc_send_msg_object                         (dc_context_t*, uint32_t chat_id, dc_msg_t*);
-int             dc_get_archived_count                      (dc_context_t*);
-size_t          dc_get_real_contact_cnt                    (dc_context_t*);
-uint32_t        dc_add_or_lookup_contact                   (dc_context_t*, const char* display_name /*can be NULL*/, const char* addr_spec, int origin, int* sth_modified);
-int             dc_get_contact_origin                      (dc_context_t*, uint32_t id, int* ret_blocked);
-int             dc_is_contact_blocked                      (dc_context_t*, uint32_t id);
-int             dc_real_contact_exists                     (dc_context_t*, uint32_t id);
-void            dc_scaleup_contact_origin                  (dc_context_t*, uint32_t contact_id, int origin);
-void            dc_unarchive_chat                          (dc_context_t*, uint32_t chat_id);
-size_t          dc_get_chat_cnt                            (dc_context_t*);
-void            dc_block_chat                              (dc_context_t*, uint32_t chat_id, int new_blocking);
-void            dc_unblock_chat                            (dc_context_t*, uint32_t chat_id);
-void            dc_create_or_lookup_nchat_by_contact_id    (dc_context_t*, uint32_t contact_id, int create_blocked, uint32_t* ret_chat_id, int* ret_chat_blocked);
-void            dc_lookup_real_nchat_by_contact_id         (dc_context_t*, uint32_t contact_id, uint32_t* ret_chat_id, int* ret_chat_blocked);
-uint32_t        dc_get_last_deaddrop_fresh_msg             (dc_context_t*);
-int             dc_add_to_chat_contacts_table              (dc_context_t*, uint32_t chat_id, uint32_t contact_id);
-int             dc_is_contact_in_chat                      (dc_context_t*, uint32_t chat_id, uint32_t contact_id);
-int             dc_get_chat_contact_count                  (dc_context_t*, uint32_t chat_id);
-int             dc_is_group_explicitly_left                (dc_context_t*, const char* grpid);
-void            dc_set_group_explicitly_left               (dc_context_t*, const char* grpid);
-size_t          dc_get_real_msg_cnt                        (dc_context_t*); /* the number of messages assigned to real chat (!=deaddrop, !=trash) */
-size_t          dc_get_deaddrop_msg_cnt                    (dc_context_t*);
-int             dc_rfc724_mid_cnt                          (dc_context_t*, const char* rfc724_mid);
-uint32_t        dc_rfc724_mid_exists                       (dc_context_t*, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid);
-void            dc_update_server_uid                       (dc_context_t*, const char* rfc724_mid, const char* server_folder, uint32_t server_uid);
-void            dc_update_msg_chat_id                      (dc_context_t*, uint32_t msg_id, uint32_t chat_id);
-void            dc_update_msg_state                        (dc_context_t*, uint32_t msg_id, int state);
-int             dc_mdn_from_ext                            (dc_context_t*, uint32_t from_id, const char* rfc724_mid, time_t, uint32_t* ret_chat_id, uint32_t* ret_msg_id); /* returns 1 if an event should be send */
-void            dc_add_device_msg                          (dc_context_t*, uint32_t chat_id, const char* text);
-
-#define         DC_FROM_HANDSHAKE                          0x01
-int             dc_add_contact_to_chat_ex                  (dc_context_t*, uint32_t chat_id, uint32_t contact_id, int flags);
-
-uint32_t        dc_get_chat_id_by_grpid                    (dc_context_t*, const char* grpid, int* ret_blocked, int* ret_verified);
 
 #define         DC_BAK_PREFIX                "delta-chat"
 #define         DC_BAK_SUFFIX                "bak"

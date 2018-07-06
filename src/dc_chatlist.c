@@ -287,6 +287,32 @@ dc_context_t* dc_chatlist_get_context(dc_chatlist_t* chatlist)
 }
 
 
+static uint32_t get_last_deaddrop_fresh_msg(dc_context_t* context)
+{
+	uint32_t      ret = 0;
+	sqlite3_stmt* stmt = NULL;
+
+	stmt = dc_sqlite3_prepare(context->sql,
+		"SELECT m.id "
+		" FROM msgs m "
+		" LEFT JOIN chats c ON c.id=m.chat_id "
+		" WHERE m.state=" DC_STRINGIFY(DC_STATE_IN_FRESH)
+		"   AND m.hidden=0 "
+		"   AND c.blocked=" DC_STRINGIFY(DC_CHAT_DEADDROP_BLOCKED)
+		" ORDER BY m.timestamp DESC, m.id DESC;"); /* we have an index over the state-column, this should be sufficient as there are typically only few fresh messages */
+
+	if (sqlite3_step(stmt)!=SQLITE_ROW) {
+		goto cleanup;
+	}
+
+	ret = sqlite3_column_int(stmt, 0);
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return ret;
+}
+
+
 /**
  * Library-internal.
  *
@@ -340,7 +366,7 @@ int dc_chatlist_load_from_db(dc_chatlist_t* chatlist, int listflags, const char*
 	{
 		/* show normal chatlist  */
 		if (!(listflags & DC_GCL_NO_SPECIALS)) {
-			uint32_t last_deaddrop_fresh_msg_id = dc_get_last_deaddrop_fresh_msg(chatlist->context);
+			uint32_t last_deaddrop_fresh_msg_id = get_last_deaddrop_fresh_msg(chatlist->context);
 			if (last_deaddrop_fresh_msg_id > 0) {
 				dc_array_add_id(chatlist->chatNlastmsg_ids, DC_CHAT_ID_DEADDROP); /* show deaddrop with the last fresh message */
 				dc_array_add_id(chatlist->chatNlastmsg_ids, last_deaddrop_fresh_msg_id);
@@ -372,7 +398,7 @@ int dc_chatlist_load_from_db(dc_chatlist_t* chatlist, int listflags, const char*
 		dc_array_add_id(chatlist->chatNlastmsg_ids, sqlite3_column_int(stmt, 1));
     }
 
-    if (add_archived_link_item && dc_get_archived_count(chatlist->context)>0)
+    if (add_archived_link_item && dc_get_archived_cnt(chatlist->context)>0)
     {
 		dc_array_add_id(chatlist->chatNlastmsg_ids, DC_CHAT_ID_ARCHIVED_LINK);
 		dc_array_add_id(chatlist->chatNlastmsg_ids, 0);
@@ -387,4 +413,69 @@ cleanup:
 	free(query);
 	free(strLikeCmd);
 	return success;
+}
+
+
+/*******************************************************************************
+ * Context functions to work with chatlists
+ ******************************************************************************/
+
+
+int dc_get_archived_cnt(dc_context_t* context)
+{
+	int ret = 0;
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->sql,
+		"SELECT COUNT(*) FROM chats WHERE blocked=0 AND archived=1;");
+	if (sqlite3_step(stmt)==SQLITE_ROW) {
+		ret = sqlite3_column_int(stmt, 0);
+	}
+	sqlite3_finalize(stmt);
+	return ret;
+}
+
+
+/**
+ * Get a list of chats. The list can be filtered by query parameters.
+ * To get the chat messages, use dc_get_chat_msgs().
+ *
+ * @memberof dc_context_t
+ * @param context The context object as returned by dc_context_new()
+ * @param listflags A combination of flags:
+ *     - if the flag DC_GCL_ARCHIVED_ONLY is set, only archived chats are returned.
+ *       if DC_GCL_ARCHIVED_ONLY is not set, only unarchived chats are returned and
+ *       the pseudo-chat DC_CHAT_ID_ARCHIVED_LINK is added if there are _any_ archived
+ *       chats
+ *     - if the flag DC_GCL_NO_SPECIALS is set, deaddrop and archive link are not added
+ *       to the list (may be used eg. for selecting chats on forwarding, the flag is
+ *       not needed when DC_GCL_ARCHIVED_ONLY is already set)
+ * @param query_str An optional query for filtering the list.  Only chats matching this query
+ *     are returned.  Give NULL for no filtering.
+ * @param query_id An optional contact ID for filtering the list.  Only chats including this contact ID
+ *     are returned.  Give 0 for no filtering.
+ * @return A chatlist as an dc_chatlist_t object. Must be freed using
+ *     dc_chatlist_unref() when no longer used
+ */
+dc_chatlist_t* dc_get_chatlist(dc_context_t* context, int listflags, const char* query_str, uint32_t query_id)
+{
+	int            success = 0;
+	dc_chatlist_t* obj = dc_chatlist_new(context);
+
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		goto cleanup;
+	}
+
+	if (!dc_chatlist_load_from_db(obj, listflags, query_str, query_id)) {
+		goto cleanup;
+	}
+
+	success = 1;
+
+cleanup:
+	if (success) {
+		return obj;
+	}
+	else {
+		dc_chatlist_unref(obj);
+		return NULL;
+	}
 }

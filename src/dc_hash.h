@@ -127,7 +127,7 @@ void    dc_hash_clear    (dc_hash_t*);
 /*
  * Number of entries in a hash table
  */
-#define dc_hash_count(H)      ((H)->count)
+#define dc_hash_cnt(H)        ((H)->count)
 
 
 #ifdef __cplusplus

@@ -265,8 +265,8 @@ void            dc_set_draft                 (dc_context_t*, uint32_t chat_id, c
 
 #define         DC_GCM_ADDDAYMARKER          0x01
 dc_array_t*     dc_get_chat_msgs             (dc_context_t*, uint32_t chat_id, uint32_t flags, uint32_t marker1before);
-int             dc_get_total_msg_count       (dc_context_t*, uint32_t chat_id);
-int             dc_get_fresh_msg_count       (dc_context_t*, uint32_t chat_id);
+int             dc_get_msg_cnt               (dc_context_t*, uint32_t chat_id);
+int             dc_get_fresh_msg_cnt         (dc_context_t*, uint32_t chat_id);
 dc_array_t*     dc_get_fresh_msgs            (dc_context_t*);
 void            dc_marknoticed_chat          (dc_context_t*, uint32_t chat_id);
 dc_array_t*     dc_get_chat_media            (dc_context_t*, uint32_t chat_id, int msg_type, int or_msg_type);
@@ -308,7 +308,7 @@ int             dc_add_address_book          (dc_context_t*, const char*);
 #define         DC_GCL_ADD_SELF              0x02
 dc_array_t*     dc_get_contacts              (dc_context_t*, uint32_t flags, const char* query);
 
-int             dc_get_blocked_count         (dc_context_t*);
+int             dc_get_blocked_cnt           (dc_context_t*);
 dc_array_t*     dc_get_blocked_contacts      (dc_context_t*);
 void            dc_block_contact             (dc_context_t*, uint32_t contact_id, int block);
 char*           dc_get_contact_encrinfo      (dc_context_t*, uint32_t contact_id);

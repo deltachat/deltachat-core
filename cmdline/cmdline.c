@@ -687,7 +687,7 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 					char* temp_name = dc_chat_get_name(chat);
 						dc_log_info(context, 0, "%s#%i: %s [%s] [%i fresh]",
 							chat_prefix(chat),
-							(int)dc_chat_get_id(chat), temp_name, temp_subtitle, (int)dc_get_fresh_msg_count(context, dc_chat_get_id(chat)));
+							(int)dc_chat_get_id(chat), temp_name, temp_subtitle, (int)dc_get_fresh_msg_cnt(context, dc_chat_get_id(chat)));
 					free(temp_subtitle);
 					free(temp_name);
 
@@ -762,7 +762,7 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 				free(drafttext);
 				free(timestr);
 			}
-			ret = dc_mprintf("%i messages.", dc_get_total_msg_count(context, dc_chat_get_id(sel_chat)));
+			ret = dc_mprintf("%i messages.", dc_get_msg_cnt(context, dc_chat_get_id(sel_chat)));
 			dc_marknoticed_chat(context, dc_chat_get_id(sel_chat));
 		}
 		else {

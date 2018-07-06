@@ -829,21 +829,21 @@ void stress_functions(dc_context_t* context)
 			ok = dc_pgp_pk_decrypt(context, ctext_signed, ctext_signed_bytes, keyring, public_keyring/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
-			assert( dc_hash_count(&valid_signatures) == 1 );
+			assert( dc_hash_cnt(&valid_signatures) == 1 );
 			free(plain); plain = NULL;
 			dc_hash_clear(&valid_signatures);
 
 			ok = dc_pgp_pk_decrypt(context, ctext_signed, ctext_signed_bytes, keyring, NULL/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
-			assert( dc_hash_count(&valid_signatures) == 0 );
+			assert( dc_hash_cnt(&valid_signatures) == 0 );
 			free(plain); plain = NULL;
 			dc_hash_clear(&valid_signatures);
 
 			ok = dc_pgp_pk_decrypt(context, ctext_signed, ctext_signed_bytes, keyring, public_keyring2/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
-			assert( dc_hash_count(&valid_signatures) == 0 );
+			assert( dc_hash_cnt(&valid_signatures) == 0 );
 			free(plain); plain = NULL;
 			dc_hash_clear(&valid_signatures);
 
@@ -851,14 +851,14 @@ void stress_functions(dc_context_t* context)
 			ok = dc_pgp_pk_decrypt(context, ctext_signed, ctext_signed_bytes, keyring, public_keyring2/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
-			assert( dc_hash_count(&valid_signatures) == 1 );
+			assert( dc_hash_cnt(&valid_signatures) == 1 );
 			free(plain); plain = NULL;
 			dc_hash_clear(&valid_signatures);
 
 			ok = dc_pgp_pk_decrypt(context, ctext_unsigned, ctext_unsigned_bytes, keyring, public_keyring/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
-			assert( dc_hash_count(&valid_signatures) == 0 );
+			assert( dc_hash_cnt(&valid_signatures) == 0 );
 			free(plain); plain = NULL;
 			dc_hash_clear(&valid_signatures);
 

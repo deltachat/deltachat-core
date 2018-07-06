@@ -99,11 +99,23 @@ void            dc_msg_get_authorNtitle_from_filename (const char* pathNfilename
 #define DC_MSG_MAKE_FILENAME_SEARCHABLE(a) ((a)==DC_MSG_AUDIO || (a)==DC_MSG_FILE || (a)==DC_MSG_VIDEO) /* add filename.ext (without path) to text? this is needed for the fulltext search. The extension is useful to get all PDF, all MP3 etc. */
 #define DC_MSG_MAKE_SUFFIX_SEARCHABLE(a)   ((a)==DC_MSG_IMAGE || (a)==DC_MSG_GIF || (a)==DC_MSG_VOICE)
 
-#define DC_APPROX_SUBJECT_CHARS 32  /* as we do not cut inside words, this results in about 32-42 characters.
-                                    Do not use too long subjects - we add a tag after the subject which gets truncated by the clients otherwise.
-                                    It should also be very clear, the subject is _not_ the whole message.
-                                    The value is also used for CC:-summaries */
 
+/* as we do not cut inside words, this results in about 32-42 characters.
+Do not use too long subjects - we add a tag after the subject which gets truncated by the clients otherwise.
+It should also be very clear, the subject is _not_ the whole message.
+The value is also used for CC:-summaries */
+#define DC_APPROX_SUBJECT_CHARS 32
+
+
+// Context functions to work with messages
+void            dc_update_msg_chat_id                      (dc_context_t*, uint32_t msg_id, uint32_t chat_id);
+void            dc_update_msg_state                        (dc_context_t*, uint32_t msg_id, int state);
+int             dc_mdn_from_ext                            (dc_context_t*, uint32_t from_id, const char* rfc724_mid, time_t, uint32_t* ret_chat_id, uint32_t* ret_msg_id); /* returns 1 if an event should be send */
+size_t          dc_get_real_msg_cnt                        (dc_context_t*); /* the number of messages assigned to real chat (!=deaddrop, !=trash) */
+size_t          dc_get_deaddrop_msg_cnt                    (dc_context_t*);
+int             dc_rfc724_mid_cnt                          (dc_context_t*, const char* rfc724_mid);
+uint32_t        dc_rfc724_mid_exists                       (dc_context_t*, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid);
+void            dc_update_server_uid                       (dc_context_t*, const char* rfc724_mid, const char* server_folder, uint32_t server_uid);
 
 
 #ifdef __cplusplus
