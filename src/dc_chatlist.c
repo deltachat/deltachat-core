@@ -105,7 +105,7 @@ void dc_chatlist_empty(dc_chatlist_t* chatlist)
  *
  * @return Returns the number of items in a dc_chatlist_t object. 0 on errors or if the list is empty.
  */
-size_t dc_chatlist_get_cnt(dc_chatlist_t* chatlist)
+size_t dc_chatlist_get_cnt(const dc_chatlist_t* chatlist)
 {
 	if (chatlist == NULL || chatlist->magic != DC_CHATLIST_MAGIC) {
 		return 0;
@@ -129,7 +129,7 @@ size_t dc_chatlist_get_cnt(dc_chatlist_t* chatlist)
  * @return Returns the chat_id of the item at the given index.  Index must be between
  *     0 and dc_chatlist_get_cnt()-1.
  */
-uint32_t dc_chatlist_get_chat_id(dc_chatlist_t* chatlist, size_t index)
+uint32_t dc_chatlist_get_chat_id(const dc_chatlist_t* chatlist, size_t index)
 {
 	if (chatlist == NULL || chatlist->magic != DC_CHATLIST_MAGIC || chatlist->chatNlastmsg_ids == NULL || index >= chatlist->cnt) {
 		return 0;
@@ -153,7 +153,7 @@ uint32_t dc_chatlist_get_chat_id(dc_chatlist_t* chatlist, size_t index)
  * @return Returns the message_id of the item at the given index.  Index must be between
  *     0 and dc_chatlist_get_cnt()-1.  If there is no message at the given index (eg. the chat may be empty), 0 is returned.
  */
-uint32_t dc_chatlist_get_msg_id(dc_chatlist_t* chatlist, size_t index)
+uint32_t dc_chatlist_get_msg_id(const dc_chatlist_t* chatlist, size_t index)
 {
 	if (chatlist == NULL || chatlist->magic != DC_CHATLIST_MAGIC || chatlist->chatNlastmsg_ids == NULL || index >= chatlist->cnt) {
 		return 0;
@@ -191,7 +191,7 @@ uint32_t dc_chatlist_get_msg_id(dc_chatlist_t* chatlist, size_t index)
  *
  * @return The summary as an dc_lot_t object. Must be freed using dc_lot_unref().  NULL is never returned.
  */
-dc_lot_t* dc_chatlist_get_summary(dc_chatlist_t* chatlist, size_t index, dc_chat_t* chat /*may be NULL*/)
+dc_lot_t* dc_chatlist_get_summary(const dc_chatlist_t* chatlist, size_t index, dc_chat_t* chat /*may be NULL*/)
 {
 	/* The summary is created by the chat, not by the last message.
 	This is because we may want to display drafts here or stuff as

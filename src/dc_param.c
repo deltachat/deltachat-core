@@ -191,7 +191,7 @@ int dc_param_exists(dc_param_t* param, int key)
  * @param def Value to return if the parameter is not set.
  * @return The stored value or the default value.  In both cases, the returned value must be free()'d.
  */
-char* dc_param_get(dc_param_t* param, int key, const char* def)
+char* dc_param_get(const dc_param_t* param, int key, const char* def)
 {
 	char* p1 = NULL;
 	char* p2 = NULL;
@@ -227,7 +227,7 @@ char* dc_param_get(dc_param_t* param, int key, const char* def)
  * @param def Value to return if the parameter is not set.
  * @return The stored value or the default value.
  */
-int32_t dc_param_get_int(dc_param_t* param, int key, int32_t def)
+int32_t dc_param_get_int(const dc_param_t* param, int key, int32_t def)
 {
 	if (param == NULL || key == 0) {
 		return def;

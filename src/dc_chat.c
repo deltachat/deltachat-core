@@ -134,7 +134,7 @@ void dc_chat_empty(dc_chat_t* chat)
  *
  * @return Chat ID. 0 on errors.
  */
-uint32_t dc_chat_get_id(dc_chat_t* chat)
+uint32_t dc_chat_get_id(const dc_chat_t* chat)
 {
 	if (chat==NULL || chat->magic!=DC_CHAT_MAGIC) {
 		return 0;
@@ -165,7 +165,7 @@ uint32_t dc_chat_get_id(dc_chat_t* chat)
  *
  * @return Chat type.
  */
-int dc_chat_get_type(dc_chat_t* chat)
+int dc_chat_get_type(const dc_chat_t* chat)
 {
 	if (chat==NULL || chat->magic!=DC_CHAT_MAGIC) {
 		return DC_CHAT_TYPE_UNDEFINED;
@@ -189,7 +189,7 @@ int dc_chat_get_type(dc_chat_t* chat)
  *
  * @return Chat name as a string. Must be free()'d after usage. Never NULL.
  */
-char* dc_chat_get_name(dc_chat_t* chat)
+char* dc_chat_get_name(const dc_chat_t* chat)
 {
 	if (chat==NULL || chat->magic!=DC_CHAT_MAGIC) {
 		return dc_strdup("Err");
@@ -211,7 +211,7 @@ char* dc_chat_get_name(dc_chat_t* chat)
  *
  * @return Subtitle as a string. Must be free()'d after usage. Never NULL.
  */
-char* dc_chat_get_subtitle(dc_chat_t* chat)
+char* dc_chat_get_subtitle(const dc_chat_t* chat)
 {
 	/* returns either the address or the number of chat members */
 	char*         ret = NULL;
@@ -270,7 +270,7 @@ char* dc_chat_get_subtitle(dc_chat_t* chat)
  * @return Path and file if the profile image, if any.  NULL otherwise.
  *     Must be free()'d after usage.
  */
-char* dc_chat_get_profile_image(dc_chat_t* chat)
+char* dc_chat_get_profile_image(const dc_chat_t* chat)
 {
 	if (chat==NULL || chat->magic!=DC_CHAT_MAGIC) {
 		return NULL;
@@ -293,7 +293,7 @@ char* dc_chat_get_profile_image(dc_chat_t* chat)
  *
  * @return Draft text, must be free()'d. Returns NULL if there is no draft.
  */
-char* dc_chat_get_draft(dc_chat_t* chat)
+char* dc_chat_get_draft(const dc_chat_t* chat)
 {
 	if (chat==NULL || chat->magic!=DC_CHAT_MAGIC) {
 		return NULL;
@@ -314,7 +314,7 @@ char* dc_chat_get_draft(dc_chat_t* chat)
  *
  * @return Timestamp of the draft. 0 if there is no draft.
  */
-time_t dc_chat_get_draft_timestamp(dc_chat_t* chat)
+time_t dc_chat_get_draft_timestamp(const dc_chat_t* chat)
 {
 	if (chat==NULL || chat->magic!=DC_CHAT_MAGIC) {
 		return 0;
@@ -340,7 +340,7 @@ time_t dc_chat_get_draft_timestamp(dc_chat_t* chat)
  *
  * @return Archived state.
  */
-int dc_chat_get_archived(dc_chat_t* chat)
+int dc_chat_get_archived(const dc_chat_t* chat)
 {
 	if (chat==NULL || chat->magic!=DC_CHAT_MAGIC) {
 		return 0;
@@ -364,7 +364,7 @@ int dc_chat_get_archived(dc_chat_t* chat)
  * @return 1=chat is still unpromoted, no message was ever send to the chat,
  *     0=chat is not unpromoted, messages were send and/or received
  */
-int dc_chat_is_unpromoted(dc_chat_t* chat)
+int dc_chat_is_unpromoted(const dc_chat_t* chat)
 {
 	if (chat==NULL || chat->magic!=DC_CHAT_MAGIC) {
 		return 0;
@@ -384,7 +384,7 @@ int dc_chat_is_unpromoted(dc_chat_t* chat)
  *
  * @return 1=chat verified, 0=chat is not verified
  */
-int dc_chat_is_verified(dc_chat_t* chat)
+int dc_chat_is_verified(const dc_chat_t* chat)
 {
 	if (chat==NULL || chat->magic!=DC_CHAT_MAGIC) {
 		return 0;
@@ -403,7 +403,7 @@ int dc_chat_is_verified(dc_chat_t* chat)
  *
  * @return 1=chat is self talk, 0=chat is no self talk
  */
-int dc_chat_is_self_talk(dc_chat_t* chat)
+int dc_chat_is_self_talk(const dc_chat_t* chat)
 {
 	if (chat==NULL || chat->magic!=DC_CHAT_MAGIC) {
 		return 0;

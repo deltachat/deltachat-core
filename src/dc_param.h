@@ -78,8 +78,8 @@ typedef struct dc_param_t
 
 /* user functions */
 int             dc_param_exists         (dc_param_t*, int key);
-char*           dc_param_get            (dc_param_t*, int key, const char* def); /* the value may be an empty string, "def" is returned only if the value unset.  The result must be free()'d in any case. */
-int32_t         dc_param_get_int        (dc_param_t*, int key, int32_t def);
+char*           dc_param_get            (const dc_param_t*, int key, const char* def); /* the value may be an empty string, "def" is returned only if the value unset.  The result must be free()'d in any case. */
+int32_t         dc_param_get_int        (const dc_param_t*, int key, int32_t def);
 void            dc_param_set            (dc_param_t*, int key, const char* value);
 void            dc_param_set_int        (dc_param_t*, int key, int32_t value);
 

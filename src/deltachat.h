@@ -387,10 +387,10 @@ typedef struct _dc_chatlist dc_chatlist_t;
 dc_chatlist_t*   dc_chatlist_new             (dc_context_t*);
 void             dc_chatlist_empty           (dc_chatlist_t*);
 void             dc_chatlist_unref           (dc_chatlist_t*);
-size_t           dc_chatlist_get_cnt         (dc_chatlist_t*);
-uint32_t         dc_chatlist_get_chat_id     (dc_chatlist_t*, size_t index);
-uint32_t         dc_chatlist_get_msg_id      (dc_chatlist_t*, size_t index);
-dc_lot_t*        dc_chatlist_get_summary     (dc_chatlist_t*, size_t index, dc_chat_t*);
+size_t           dc_chatlist_get_cnt         (const dc_chatlist_t*);
+uint32_t         dc_chatlist_get_chat_id     (const dc_chatlist_t*, size_t index);
+uint32_t         dc_chatlist_get_msg_id      (const dc_chatlist_t*, size_t index);
+dc_lot_t*        dc_chatlist_get_summary     (const dc_chatlist_t*, size_t index, dc_chat_t*);
 dc_context_t*    dc_chatlist_get_context     (dc_chatlist_t*);
 
 
@@ -422,17 +422,17 @@ dc_chat_t*      dc_chat_new                  (dc_context_t*);
 void            dc_chat_empty                (dc_chat_t*);
 void            dc_chat_unref                (dc_chat_t*);
 
-uint32_t        dc_chat_get_id               (dc_chat_t*);
-int             dc_chat_get_type             (dc_chat_t*);
-char*           dc_chat_get_name             (dc_chat_t*);
-char*           dc_chat_get_subtitle         (dc_chat_t*);
-char*           dc_chat_get_profile_image    (dc_chat_t*);
-char*           dc_chat_get_draft            (dc_chat_t*);
-time_t          dc_chat_get_draft_timestamp  (dc_chat_t*);
-int             dc_chat_get_archived         (dc_chat_t*);
-int             dc_chat_is_unpromoted        (dc_chat_t*);
-int             dc_chat_is_self_talk         (dc_chat_t*);
-int             dc_chat_is_verified          (dc_chat_t*);
+uint32_t        dc_chat_get_id               (const dc_chat_t*);
+int             dc_chat_get_type             (const dc_chat_t*);
+char*           dc_chat_get_name             (const dc_chat_t*);
+char*           dc_chat_get_subtitle         (const dc_chat_t*);
+char*           dc_chat_get_profile_image    (const dc_chat_t*);
+char*           dc_chat_get_draft            (const dc_chat_t*);
+time_t          dc_chat_get_draft_timestamp  (const dc_chat_t*);
+int             dc_chat_get_archived         (const dc_chat_t*);
+int             dc_chat_is_unpromoted        (const dc_chat_t*);
+int             dc_chat_is_self_talk         (const dc_chat_t*);
+int             dc_chat_is_verified          (const dc_chat_t*);
 
 
 /**
@@ -551,12 +551,12 @@ typedef struct _dc_lot dc_lot_t;
 dc_lot_t*       dc_lot_new               ();
 void            dc_lot_empty             (dc_lot_t*);
 void            dc_lot_unref             (dc_lot_t*);
-char*           dc_lot_get_text1         (dc_lot_t*);
-char*           dc_lot_get_text2         (dc_lot_t*);
-int             dc_lot_get_text1_meaning (dc_lot_t*);
-int             dc_lot_get_state         (dc_lot_t*);
-uint32_t        dc_lot_get_id            (dc_lot_t*);
-time_t          dc_lot_get_timestamp     (dc_lot_t*);
+char*           dc_lot_get_text1         (const dc_lot_t*);
+char*           dc_lot_get_text2         (const dc_lot_t*);
+int             dc_lot_get_text1_meaning (const dc_lot_t*);
+int             dc_lot_get_state         (const dc_lot_t*);
+uint32_t        dc_lot_get_id            (const dc_lot_t*);
+time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 
 
 /**

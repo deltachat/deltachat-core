@@ -98,7 +98,7 @@ void dc_lot_empty(dc_lot_t* lot)
  * @param lot The lot object.
  * @return A string, the string may be empty and the returned value must be free()'d. NULL if there is no such string.
  */
-char* dc_lot_get_text1(dc_lot_t* lot)
+char* dc_lot_get_text1(const dc_lot_t* lot)
 {
 	if (lot == NULL || lot->magic != DC_LOT_MAGIC) {
 		return NULL;
@@ -116,7 +116,7 @@ char* dc_lot_get_text1(dc_lot_t* lot)
  *
  * @return A string, the string may be empty and the returned value must be free()'d	. NULL if there is no such string.
  */
-char* dc_lot_get_text2(dc_lot_t* lot)
+char* dc_lot_get_text2(const dc_lot_t* lot)
 {
 	if (lot == NULL || lot->magic != DC_LOT_MAGIC) {
 		return NULL;
@@ -134,7 +134,7 @@ char* dc_lot_get_text2(dc_lot_t* lot)
  * @return Returns the meaning of the first string, possible meanings are defined by the creator of the object.
  *    0 if there is no concrete meaning or on errors.
  */
-int dc_lot_get_text1_meaning(dc_lot_t* lot)
+int dc_lot_get_text1_meaning(const dc_lot_t* lot)
 {
 	if (lot == NULL || lot->magic != DC_LOT_MAGIC) {
 		return 0;
@@ -152,7 +152,7 @@ int dc_lot_get_text1_meaning(dc_lot_t* lot)
  *
  * @return The state as defined by the creator of the object. 0 if there is not state or on errors.
  */
-int dc_lot_get_state(dc_lot_t* lot)
+int dc_lot_get_state(const dc_lot_t* lot)
 {
 	if (lot == NULL || lot->magic != DC_LOT_MAGIC) {
 		return 0;
@@ -168,7 +168,7 @@ int dc_lot_get_state(dc_lot_t* lot)
  * @param lot The lot object.
  * @return The state as defined by the creator of the object. 0 if there is not state or on errors.
  */
-uint32_t dc_lot_get_id(dc_lot_t* lot)
+uint32_t dc_lot_get_id(const dc_lot_t* lot)
 {
 	if (lot == NULL || lot->magic != DC_LOT_MAGIC) {
 		return 0;
@@ -186,7 +186,7 @@ uint32_t dc_lot_get_id(dc_lot_t* lot)
  *
  * @return The timestamp as defined by the creator of the object. 0 if there is not timestamp or on errors.
  */
-time_t dc_lot_get_timestamp(dc_lot_t* lot)
+time_t dc_lot_get_timestamp(const dc_lot_t* lot)
 {
 	if (lot == NULL || lot->magic != DC_LOT_MAGIC) {
 		return 0;
