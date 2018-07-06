@@ -37,12 +37,25 @@
 #include "dc_apeerstate.h"
 
 
+/**
+ * A callback function that is used if no user-defined callback is given to dc_context_new().
+ * The callback function simply returns 0 which is safe for every event.
+ *
+ * @private @memberof dc_context_t
+ */
 static uintptr_t cb_dummy(dc_context_t* context, int event, uintptr_t data1, uintptr_t data2)
 {
 	return 0;
 }
 
 
+/**
+ * The following three callback are used by dc_imap_new() to read/write configuration
+ * and to handle received messages. As the imap-functions are typically used in
+ * a separate user-thread, also these functions may be called from a different thread.
+ *
+ * @private @memberof dc_context_t
+ */
 static char* cb_get_config(dc_imap_t* imap, const char* key, const char* def)
 {
 	dc_context_t* context = (dc_context_t*)imap->userData;
@@ -192,6 +205,13 @@ void* dc_get_userdata(dc_context_t* context)
 }
 
 
+/**
+ * This function reads some simple integer flags for fast and easy access.
+ * To keep multi-thread-safety, we must not cache strings this way.
+ * The function is called by dc_config_set*() and by dc_open().
+ *
+ * @private @memberof dc_context_t
+ */
 static void update_config_cache(dc_context_t* context, const char* key)
 {
 	if (key==NULL || strcmp(key, "e2ee_enabled")==0) {
