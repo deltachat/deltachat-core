@@ -161,10 +161,12 @@ int dc_key_set_from_base64(dc_key_t* key, const char* base64, int type)
 
 int dc_key_set_from_file(dc_key_t* key, const char* pathNfilename, dc_context_t* context)
 {
-	char*      buf = NULL;
-	const char *headerline, *base64; // just pointers inside buf, must not be freed
-	size_t     buf_bytes;
-	int        type = -1, success = 0;
+	char*       buf = NULL;
+	const char* headerline = NULL; // just pointer inside buf, must not be freed
+	const char* base64 = NULL;     //   - " -
+	size_t      buf_bytes = 0;
+	int         type = -1;
+	int         success = 0;
 
 	dc_key_empty(key);
 
@@ -319,10 +321,9 @@ static long crc_octets(const unsigned char *octets, size_t len)
 	#define CRC24_INIT 0xB704CEL
 	#define CRC24_POLY 0x1864CFBL
 	long crc = CRC24_INIT;
-	int i;
 	while (len--) {
 		crc ^= (*octets++) << 16;
-		for (i = 0; i < 8; i++) {
+		for (int i = 0; i < 8; i++) {
 			crc <<= 1;
 			if (crc & 0x1000000)
 			crc ^= CRC24_POLY;
@@ -396,7 +397,8 @@ char* dc_key_render_base64(const dc_key_t* key, int break_every, const char* bre
 char* dc_key_render_asc(const dc_key_t* key, const char* add_header_lines /*must be terminated by \r\n*/)
 {
 	/* see RFC 4880, 6.2.  Forming ASCII Armor, https://tools.ietf.org/html/rfc4880#section-6.2 */
-	char *base64 = NULL, *ret = NULL;
+	char* base64 = NULL;
+	char* ret = NULL;
 
 	if (key==NULL) {
 		goto cleanup;
@@ -446,7 +448,8 @@ cleanup:
 /* make a fingerprint human-readable */
 char* dc_format_fingerprint(const char* fingerprint)
 {
-	int i = 0, fingerprint_len = strlen(fingerprint);
+	int             i = 0;
+	int             fingerprint_len = strlen(fingerprint);
 	dc_strbuilder_t ret;
 	dc_strbuilder_init(&ret, 0);
 

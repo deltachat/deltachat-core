@@ -143,9 +143,13 @@ Function based upon ezxml_decode() from the "ezxml" parser which is
 Copyright 2004-2006 Aaron Voisine <aaron@voisine.org> */
 static char* xml_decode(char* s, char type)
 {
-	char *e, *r = s;
+	char*       e = NULL;
+	char*       r = s;
 	const char* original_buf = s;
-	long b, c, d, l;
+	long        b = 0;
+	long        c = 0;
+	long        d = 0;
+	long        l = 0;
 
 	for (; *s; s++) { /* normalize line endings */
 		while (*s == '\r') {
@@ -263,7 +267,7 @@ static void do_free_attr(char** attr, int* free_attr)
 	#define FREE_VALUE  0x02
 	int i = 0;
 	while (attr[i]) {
-		if (free_attr[i>>1]&FREE_KEY   && attr[i] ) { free(attr[i]);   }
+		if (free_attr[i>>1]&FREE_KEY   && attr[i])   { free(attr[i]); }
 		if (free_attr[i>>1]&FREE_VALUE && attr[i+1]) { free(attr[i+1]); }
 		i += 2;
 	}
@@ -324,7 +328,10 @@ void dc_saxparser_set_text_handler (dc_saxparser_t* saxparser, dc_saxparser_text
 
 void dc_saxparser_parse(dc_saxparser_t* saxparser, const char* buf_start__)
 {
-	char bak, *buf_start, *last_text_start, *p;
+	char  bak = 0;
+	char* buf_start = NULL;
+	char* last_text_start = NULL;
+	char* p = NULL;
 
 	#define MAX_ATTR 100 /* attributes per tag - a fixed border here is a security feature, not a limit */
 	char*   attr[(MAX_ATTR+1)*2]; /* attributes as key/value pairs, +1 for terminating the list */

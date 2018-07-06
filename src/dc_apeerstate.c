@@ -482,7 +482,8 @@ void dc_apeerstate_apply_gossip(dc_apeerstate_t* peerstate, const dc_aheader_t* 
 int dc_apeerstate_recalc_fingerprint(dc_apeerstate_t* peerstate)
 {
 	int            success = 0;
-	char*          old_public_fingerprint = NULL, *old_gossip_fingerprint = NULL;
+	char*          old_public_fingerprint = NULL;
+	char*          old_gossip_fingerprint = NULL;
 
 	if (peerstate == NULL) {
 		goto cleanup;

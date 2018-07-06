@@ -301,7 +301,8 @@ int dc_chatlist_load_from_db(dc_chatlist_t* chatlist, int listflags, const char*
 	int           success = 0;
 	int           add_archived_link_item = 0;
 	sqlite3_stmt* stmt = NULL;
-	char*         strLikeCmd = NULL, *query = NULL;
+	char*         strLikeCmd = NULL;
+	char*         query = NULL;
 
 	if (chatlist == NULL || chatlist->magic != DC_CHATLIST_MAGIC || chatlist->context == NULL) {
 		goto cleanup;

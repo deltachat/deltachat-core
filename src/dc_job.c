@@ -43,7 +43,7 @@ static int connect_to_imap(dc_context_t* context, dc_job_t* job /*may be NULL if
 	int              ret_connected = NOT_CONNECTED;
 	dc_loginparam_t* param = dc_loginparam_new();
 
-	if (context == NULL || context->magic != DC_CONTEXT_MAGIC || context->imap == NULL) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || context->imap==NULL) {
 		dc_log_warning(context, 0, "Cannot connect to IMAP: Bad parameters.");
 		goto cleanup;
 	}
@@ -53,7 +53,7 @@ static int connect_to_imap(dc_context_t* context, dc_job_t* job /*may be NULL if
 		goto cleanup;
 	}
 
-	if (dc_sqlite3_get_config_int(context->sql, "configured", 0) == 0) {
+	if (dc_sqlite3_get_config_int(context->sql, "configured", 0)==0) {
 		dc_log_warning(context, 0, "Not configured, cannot connect."); // this is no error, connect() is called eg. when the screen is switched on, it's okay if the caller does not check all circumstances here
 		goto cleanup;
 	}
@@ -75,10 +75,9 @@ cleanup:
 
 static void dc_job_do_DC_JOB_SEND_MSG_TO_IMAP(dc_context_t* context, dc_job_t* job)
 {
-	dc_mimefactory_t  mimefactory;
 	char*             server_folder = NULL;
 	uint32_t          server_uid = 0;
-
+	dc_mimefactory_t  mimefactory;
 	dc_mimefactory_init(&mimefactory, context);
 
 	/* connect to IMAP-server */
@@ -92,7 +91,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_IMAP(dc_context_t* context, dc_job_t* j
 
 	/* create message */
 	if (dc_mimefactory_load_msg(&mimefactory, job->foreign_id)==0
-	 || mimefactory.from_addr == NULL) {
+	 || mimefactory.from_addr==NULL) {
 		goto cleanup; /* should not happen as we've sent the message to the SMTP server before */
 	}
 
@@ -121,11 +120,11 @@ static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(dc_context_t* context, dc_job_t*
 	sqlite3_stmt* stmt = NULL;
 
 	if (!dc_msg_load_from_db(msg, context, job->foreign_id)
-	 || msg->rfc724_mid == NULL || msg->rfc724_mid[0] == 0 /* eg. device messages have no Message-ID */) {
+	 || msg->rfc724_mid==NULL || msg->rfc724_mid[0]==0 /* eg. device messages have no Message-ID */) {
 		goto cleanup;
 	}
 
-	if (dc_rfc724_mid_cnt(context, msg->rfc724_mid) != 1) {
+	if (dc_rfc724_mid_cnt(context, msg->rfc724_mid)!=1) {
 		dc_log_info(context, 0, "The message is deleted from the server when all parts are deleted.");
 		delete_from_server = 0;
 	}
@@ -242,7 +241,7 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* context, dc_job_
 	}
 
 	if (dc_imap_markseen_msg(context->imap, msg->server_folder, msg->server_uid,
-		   in_ms_flags, &new_server_folder, &new_server_uid, &out_ms_flags) != 0)
+		   in_ms_flags, &new_server_folder, &new_server_uid, &out_ms_flags)!=0)
 	{
 		if ((new_server_folder && new_server_uid) || out_ms_flags&DC_MS_MDNSent_JUST_SET)
 		{
@@ -270,10 +269,10 @@ cleanup:
 
 static void dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP(dc_context_t* context, dc_job_t* job)
 {
-	char*    server_folder = dc_param_get    (job->param, DC_PARAM_SERVER_FOLDER, NULL);
-	uint32_t server_uid    = dc_param_get_int(job->param, DC_PARAM_SERVER_UID, 0);
+	char*    server_folder = dc_param_get(job->param, DC_PARAM_SERVER_FOLDER, NULL);
+	uint32_t server_uid = dc_param_get_int(job->param, DC_PARAM_SERVER_UID, 0);
 	char*    new_server_folder = NULL;
-	uint32_t new_server_uid    = 0;
+	uint32_t new_server_uid = 0;
 	int      out_ms_flags = 0;
 
 	if (!dc_imap_is_connected(context->imap)) {
@@ -284,7 +283,7 @@ static void dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP(dc_context_t* context, dc_job_
 		}
 	}
 
-	if (dc_imap_markseen_msg(context->imap, server_folder, server_uid, DC_MS_ALSO_MOVE, &new_server_folder, &new_server_uid, &out_ms_flags) == 0) {
+	if (dc_imap_markseen_msg(context->imap, server_folder, server_uid, DC_MS_ALSO_MOVE, &new_server_folder, &new_server_uid, &out_ms_flags)==0) {
 		dc_job_try_again_later(job, DC_AT_ONCE);
 	}
 
@@ -329,7 +328,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 
 	/* load message data */
 	if (!dc_mimefactory_load_msg(&mimefactory, job->foreign_id)
-	 || mimefactory.from_addr == NULL) {
+	 || mimefactory.from_addr==NULL) {
 		dc_log_warning(context, 0, "Cannot load data to send, maybe the message is deleted in between.");
 		goto cleanup; /* no redo, no IMAP - there won't be more recipients next time (as the data does not exist, there is no need in calling mark_as_error()) */
 	}
@@ -408,7 +407,7 @@ static void dc_job_do_DC_JOB_SEND_MDN(dc_context_t* context, dc_job_t* job)
 	dc_mimefactory_t mimefactory;
 	dc_mimefactory_init(&mimefactory, context);
 
-	if (context == NULL || context->magic != DC_CONTEXT_MAGIC || job == NULL) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || job==NULL) {
 		return;
 	}
 
@@ -476,8 +475,8 @@ static void dc_suspend_smtp_thread(dc_context_t* context, int suspend)
 void dc_job_add(dc_context_t* context, int action, int foreign_id, const char* param, int delay_seconds)
 {
 	time_t        timestamp = time(NULL);
-	sqlite3_stmt* stmt;
-	int           thread;
+	sqlite3_stmt* stmt = NULL;
+	int           thread = 0;
 
 	if (action >= DC_IMAP_THREAD && action < DC_IMAP_THREAD+1000) {
 		thread = DC_IMAP_THREAD;
@@ -500,7 +499,7 @@ void dc_job_add(dc_context_t* context, int action, int foreign_id, const char* p
 	sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
 
-	if (thread == DC_IMAP_THREAD) {
+	if (thread==DC_IMAP_THREAD) {
 		dc_interrupt_imap_idle(context);
 	}
 	else {
@@ -511,7 +510,7 @@ void dc_job_add(dc_context_t* context, int action, int foreign_id, const char* p
 
 void dc_job_try_again_later(dc_job_t* job, int try_again)
 {
-	if (job == NULL) {
+	if (job==NULL) {
 		return;
 	}
 
@@ -521,7 +520,7 @@ void dc_job_try_again_later(dc_job_t* job, int try_again)
 
 void dc_job_kill_actions(dc_context_t* context, int action1, int action2)
 {
-	if (context == NULL) {
+	if (context==NULL) {
 		return;
 	}
 
@@ -544,7 +543,7 @@ static void dc_job_perform(dc_context_t* context, int thread)
 	memset(&job, 0, sizeof(dc_job_t));
 	job.param = dc_param_new();
 
-	if (context == NULL || context->magic != DC_CONTEXT_MAGIC) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
 		goto cleanup;
 	}
 
@@ -552,7 +551,7 @@ static void dc_job_perform(dc_context_t* context, int thread)
 		"SELECT id, action, foreign_id, param FROM jobs WHERE thread=? AND desired_timestamp<=? ORDER BY action DESC, added_timestamp;");
 	sqlite3_bind_int64(select_stmt, 1, thread);
 	sqlite3_bind_int64(select_stmt, 2, time(NULL));
-	while (sqlite3_step(select_stmt) == SQLITE_ROW)
+	while (sqlite3_step(select_stmt)==SQLITE_ROW)
 	{
 		job.job_id                         = sqlite3_column_int (select_stmt, 0);
 		job.action                         = sqlite3_column_int (select_stmt, 1);
@@ -587,7 +586,7 @@ static void dc_job_perform(dc_context_t* context, int thread)
 				case DC_JOB_IMEX_IMAP:            dc_job_do_DC_JOB_IMEX_IMAP            (context, &job); break;
 			}
 
-			if (job.try_again != DC_AT_ONCE) {
+			if (job.try_again!=DC_AT_ONCE) {
 				break;
 			}
 		}
@@ -596,12 +595,12 @@ static void dc_job_perform(dc_context_t* context, int thread)
 			dc_suspend_smtp_thread(context, 0);
 			goto cleanup;
 		}
-		else if (job.try_again == DC_INCREATION_POLL)
+		else if (job.try_again==DC_INCREATION_POLL)
 		{
 			// just try over next loop unconditionally, the ui typically interrupts idle when the file (video) is ready
 			dc_log_info(context, 0, "%s-job #%i not yet ready and will be delayed.", THREAD_STR, (int)job.job_id);
 		}
-		else if (job.try_again == DC_AT_ONCE || job.try_again == DC_STANDARD_DELAY)
+		else if (job.try_again==DC_AT_ONCE || job.try_again==DC_STANDARD_DELAY)
 		{
 			int tries = dc_param_get_int(job.param, DC_PARAM_TIMES, 0) + 1;
 			dc_param_set_int(job.param, DC_PARAM_TIMES, tries);
@@ -617,7 +616,7 @@ static void dc_job_perform(dc_context_t* context, int thread)
 			// if the job did not succeeded AND this is a smtp-job AND we're online, try over after a mini-delay of one second.
 			// if we're not online, the ui calls interrupt idle as soon as we're online again.
 			// if nothing of this happens, after DC_SMTP_IDLE_SEC (60) we try again.
-			if (thread == DC_SMTP_THREAD
+			if (thread==DC_SMTP_THREAD
 			 && dc_is_online(context))
 			{
 				pthread_mutex_lock(&context->smtpidle_condmutex);
@@ -774,7 +773,7 @@ void dc_perform_imap_idle(dc_context_t* context)
  */
 void dc_interrupt_imap_idle(dc_context_t* context)
 {
-	if (context == NULL || context->magic != DC_CONTEXT_MAGIC || context->imap == NULL) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || context->imap==NULL) {
 		dc_log_warning(context, 0, "Interrupt IMAP-IDLE: Bad parameters.");
 		return;
 	}
@@ -835,7 +834,7 @@ void dc_perform_smtp_jobs(dc_context_t* context)
  */
 void dc_perform_smtp_idle(dc_context_t* context)
 {
-	if (context == NULL || context->magic != DC_CONTEXT_MAGIC) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
 		dc_log_warning(context, 0, "Cannot perform SMTP-idle: Bad parameters.");
 		return;
 	}
@@ -844,7 +843,7 @@ void dc_perform_smtp_idle(dc_context_t* context)
 
 	pthread_mutex_lock(&context->smtpidle_condmutex);
 
-		if (context->perform_smtp_jobs_needed == DC_JOBS_NEEDED_AT_ONCE)
+		if (context->perform_smtp_jobs_needed==DC_JOBS_NEEDED_AT_ONCE)
 		{
 			dc_log_info(context, 0, "SMTP-idle will not be started because of waiting jobs.");
 		}
@@ -906,7 +905,7 @@ void dc_perform_smtp_idle(dc_context_t* context)
  */
 void dc_interrupt_smtp_idle(dc_context_t* context)
 {
-	if (context == NULL || context->magic != DC_CONTEXT_MAGIC) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
 		dc_log_warning(context, 0, "Interrupt SMTP-idle: Bad parameters.");
 		return;
 	}

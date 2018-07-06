@@ -38,7 +38,7 @@
  */
 dc_array_t* dc_array_new(dc_context_t* context, size_t initsize)
 {
-	dc_array_t* array;
+	dc_array_t* array = NULL;
 
 	array = (dc_array_t*) malloc(sizeof(dc_array_t));
 	if (array==NULL) {
@@ -93,13 +93,11 @@ void dc_array_unref(dc_array_t* array)
  */
 void dc_array_free_ptr(dc_array_t* array)
 {
-	size_t i;
-
 	if (array==NULL || array->magic != DC_ARRAY_MAGIC) {
 		return;
 	}
 
-	for (i = 0; i < array->count; i++) {
+	for (size_t i = 0; i < array->count; i++) {
 		free((void*)array->array[i]);
 		array->array[i] = 0;
 	}
@@ -135,7 +133,8 @@ dc_array_t* dc_array_duplicate(const dc_array_t* array)
 
 static int cmp_intptr_t(const void* p1, const void* p2)
 {
-	uintptr_t v1 = *(uintptr_t*)p1, v2 = *(uintptr_t*)p2;
+	uintptr_t v1 = *(uintptr_t*)p1;
+	uintptr_t v2 = *(uintptr_t*)p2;
 	return (v1<v2)? -1 : ((v1>v2)? 1 : 0); /* CAVE: do not use v1-v2 as the uintptr_t may be 64bit and the return value may be 32bit only... */
 }
 

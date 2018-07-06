@@ -303,9 +303,11 @@ cleanup:
 char* dc_decrypt_setup_file(dc_context_t* context, const char* passphrase, const char* filecontent)
 {
 	char*         fc_buf = NULL;
-	const char    *fc_headerline = NULL, *fc_base64 = NULL;
+	const char*   fc_headerline = NULL;
+	const char*   fc_base64 = NULL;
 	char*         binary = NULL;
-	size_t        binary_bytes = 0, indx = 0;
+	size_t        binary_bytes = 0;
+	size_t        indx = 0;
 	pgp_io_t      io;
 	pgp_memory_t* outmem = NULL;
 	char*         payload = NULL;
@@ -357,10 +359,9 @@ cleanup:
 char* dc_create_setup_code(dc_context_t* context)
 {
 	#define         CODE_ELEMS 9
-	uint16_t        random_val;
-	int             i;
+	uint16_t        random_val = 0;
+	int             i = 0;
 	dc_strbuilder_t ret;
-
 	dc_strbuilder_init(&ret, 0);
 
 	for (i = 0; i < CODE_ELEMS; i++)
@@ -392,7 +393,7 @@ char* dc_normalize_setup_code(dc_context_t* context, const char* in)
 
 	dc_strbuilder_t out;
 	dc_strbuilder_init(&out, 0);
-	int   outlen;
+	int outlen = 0;
 
 	const char* p1 = in;
 	while (*p1) {
@@ -457,13 +458,13 @@ char* dc_normalize_setup_code(dc_context_t* context, const char* in)
  */
 char* dc_initiate_key_transfer(dc_context_t* context)
 {
-	int      success = 0;
-	char*    setup_code = NULL;
-	char*    setup_file_content = NULL;
-	char*    setup_file_name = NULL;
-	uint32_t chat_id = 0;
+	int       success = 0;
+	char*     setup_code = NULL;
+	char*     setup_file_content = NULL;
+	char*     setup_file_name = NULL;
+	uint32_t  chat_id = 0;
 	dc_msg_t* msg = NULL;
-	uint32_t msg_id = 0;
+	uint32_t  msg_id = 0;
 
 	if (!dc_alloc_ongoing(context)) {
 		return 0; /* no cleanup as this would call dc_free_ongoing() */
@@ -540,13 +541,15 @@ cleanup:
 
 static int set_self_key(dc_context_t* context, const char* armored, int set_default)
 {
-	int            success      = 0;
-	char*          buf          = NULL;
-	const char*    buf_headerline, *buf_preferencrypt, *buf_base64; // pointers inside buf, MUST NOT be free()'d
-	dc_key_t*      private_key  = dc_key_new();
-	dc_key_t*      public_key   = dc_key_new();
-	sqlite3_stmt*  stmt         = NULL;
-	char*          self_addr    = NULL;
+	int            success = 0;
+	char*          buf = NULL;
+	const char*    buf_headerline = NULL;    // pointer inside buf, MUST NOT be free()'d
+	const char*    buf_preferencrypt = NULL; //   - " -
+	const char*    buf_base64 = NULL;        //   - " -
+	dc_key_t*      private_key = dc_key_new();
+	dc_key_t*      public_key = dc_key_new();
+	sqlite3_stmt*  stmt = NULL;
+	char*          self_addr = NULL;
 
 	buf = dc_strdup(armored);
 	if (!dc_split_armored_data(buf, &buf_headerline, NULL, &buf_preferencrypt, &buf_base64)
@@ -624,13 +627,13 @@ cleanup:
  */
 int dc_continue_key_transfer(dc_context_t* context, uint32_t msg_id, const char* setup_code)
 {
-	int      success     = 0;
-	dc_msg_t* msg         = NULL;
-	char*    filename    = NULL;
-	char*    filecontent = NULL;
-	size_t   filebytes   = 0;
-	char*    armored_key = NULL;
-	char*    norm_sc     = NULL;
+	int       success = 0;
+	dc_msg_t* msg = NULL;
+	char*     filename = NULL;
+	char*     filecontent = NULL;
+	size_t    filebytes = 0;
+	char*     armored_key = NULL;
+	char*     norm_sc = NULL;
 
 	if (context == NULL || context->magic != DC_CONTEXT_MAGIC || msg_id <= DC_MSG_ID_LAST_SPECIAL || setup_code == NULL) {
 		goto cleanup;
@@ -701,9 +704,10 @@ static int export_self_keys(dc_context_t* context, const char* dir)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt = NULL;
-	int           id = 0, is_default = 0;
-	dc_key_t*      public_key = dc_key_new();
-	dc_key_t*      private_key = dc_key_new();
+	int           id = 0;
+	int           is_default = 0;
+	dc_key_t*     public_key = dc_key_new();
+	dc_key_t*     private_key = dc_key_new();
 
 		if ((stmt=dc_sqlite3_prepare(context->sql, "SELECT id, public_key, private_key, is_default FROM keypairs;"))==NULL) {
 			goto cleanup;
@@ -750,9 +754,9 @@ static int import_self_keys(dc_context_t* context, const char* dir_name)
 	int            set_default = 0;
 	char*          buf = NULL;
 	size_t         buf_bytes = 0;
-	const char*    private_key; // a pointer inside buf, MUST NOT be free()'d
+	const char*    private_key = NULL; // a pointer inside buf, MUST NOT be free()'d
 	char*          buf2 = NULL;
-	const char*    buf2_headerline; // a pointer inside buf2, MUST NOT be free()'d
+	const char*    buf2_headerline = NULL; // a pointer inside buf2, MUST NOT be free()'d
 
 	if (context==NULL || context->magic != DC_CONTEXT_MAGIC || dir_name==NULL) {
 		goto cleanup;
@@ -840,19 +844,21 @@ The macro avoids weird values of 0% or 100% while still working. */
 
 static int export_backup(dc_context_t* context, const char* dir)
 {
-	int            success = 0, closed = 0;
+	int            success = 0;
+	int            closed = 0;
 	char*          dest_pathNfilename = NULL;
 	dc_sqlite3_t*  dest_sql = NULL;
 	time_t         now = time(NULL);
 	DIR*           dir_handle = NULL;
-	struct dirent* dir_entry;
+	struct dirent* dir_entry = NULL;
 	int            prefix_len = strlen(DC_BAK_PREFIX);
 	int            suffix_len = strlen(DC_BAK_SUFFIX);
 	char*          curr_pathNfilename = NULL;
 	void*          buf = NULL;
 	size_t         buf_bytes = 0;
 	sqlite3_stmt*  stmt = NULL;
-	int            total_files_count = 0, processed_files_count = 0;
+	int            total_files_count = 0;
+	int            processed_files_count = 0;
 	int            delete_dest_file = 0;
 
 	/* get a fine backup file name (the name includes the date so that multiple backup instances are possible)
@@ -1002,7 +1008,8 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 	*/
 
 	int           success = 0;
-	int           processed_files_count = 0, total_files_count = 0;
+	int           processed_files_count = 0;
+	int           total_files_count = 0;
 	sqlite3_stmt* stmt = NULL;
 	char*         pathNfilename = NULL;
 	char*         repl_from = NULL;
@@ -1324,7 +1331,7 @@ char* dc_imex_has_backup(dc_context_t* context, const char* dir_name)
 	char*          ret = NULL;
 	time_t         ret_backup_time = 0;
 	DIR*           dir_handle = NULL;
-	struct dirent* dir_entry;
+	struct dirent* dir_entry = NULL;
 	int            prefix_len = strlen(DC_BAK_PREFIX);
 	int            suffix_len = strlen(DC_BAK_SUFFIX);
 	char*          curr_pathNfilename = NULL;

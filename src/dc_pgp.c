@@ -88,7 +88,8 @@ int dc_split_armored_data(char* buf, const char** ret_headerline, const char** r
 	int    success = 0;
 	size_t line_chars = 0;
 	char*  line = buf;
-	char*  p1 = buf, *p2;
+	char*  p1 = buf;
+	char*  p2 = NULL;
 	char*  headerline = NULL;
 	char*  base64 = NULL;
 	#define PGP_WS "\t\r\n "
@@ -218,10 +219,10 @@ static unsigned add_key_prefs(pgp_create_sig_t *sig)
 static void add_selfsigned_userid(pgp_key_t *skey, pgp_key_t *pkey, const uint8_t *userid, time_t key_expiry)
 {
 	/* similar to pgp_add_selfsigned_userid() which, however, uses different key flags */
-	pgp_create_sig_t	*sig;
-	pgp_subpacket_t	 sigpacket;
-	pgp_memory_t		*mem_sig = NULL;
-	pgp_output_t		*sigoutput = NULL;
+	pgp_create_sig_t* sig = NULL;
+	pgp_subpacket_t	  sigpacket;
+	pgp_memory_t*     mem_sig = NULL;
+	pgp_output_t*     sigoutput = NULL;
 
 	/* create sig for this pkt */
 	sig = pgp_create_sig_new();
@@ -261,7 +262,7 @@ static void add_selfsigned_userid(pgp_key_t *skey, pgp_key_t *pkey, const uint8_
 static void add_subkey_binding_signature(pgp_subkeysig_t* p, pgp_key_t* primarykey, pgp_key_t* subkey, pgp_key_t* seckey)
 {
 	/*add "0x18: Subkey Binding Signature" packet, PGP_SIG_SUBKEY */
-	pgp_create_sig_t* sig;
+	pgp_create_sig_t* sig = NULL;
 	pgp_output_t*     sigoutput = NULL;
 	pgp_memory_t*     mem_sig = NULL;
 
@@ -293,11 +294,15 @@ static void add_subkey_binding_signature(pgp_subkeysig_t* p, pgp_key_t* primaryk
 int dc_pgp_create_keypair(dc_context_t* context, const char* addr, dc_key_t* ret_public_key, dc_key_t* ret_private_key)
 {
 	int              success = 0;
-	pgp_key_t        seckey, pubkey, subkey;
+	pgp_key_t        seckey;
+	pgp_key_t        pubkey;
+	pgp_key_t        subkey;
 	uint8_t          subkeyid[PGP_KEY_ID_SIZE];
 	uint8_t*         user_id = NULL;
-	pgp_memory_t     *pubmem = pgp_memory_new(), *secmem = pgp_memory_new();
-	pgp_output_t     *pubout = pgp_output_new(), *secout = pgp_output_new();
+	pgp_memory_t*    pubmem = pgp_memory_new();
+	pgp_memory_t*    secmem = pgp_memory_new();
+	pgp_output_t*    pubout = pgp_output_new();
+	pgp_output_t*    secout = pgp_output_new();
 
 	memset(&seckey, 0, sizeof(pgp_key_t));
 	memset(&pubkey, 0, sizeof(pgp_key_t));
@@ -542,7 +547,8 @@ int dc_pgp_pk_encrypt(  dc_context_t*       context,
 	pgp_keyring_t*  dummy_keys = calloc(1, sizeof(pgp_keyring_t));
 	pgp_memory_t*   keysmem = pgp_memory_new();
 	pgp_memory_t*   signedmem = NULL;
-	int             i, success = 0;
+	int             i = 0;
+	int             success = 0;
 
 	if (context==NULL || plain_text==NULL || plain_bytes==0 || ret_ctext==NULL || ret_ctext_bytes==NULL
 	 || raw_public_keys_for_encryption==NULL || raw_public_keys_for_encryption->count<=0
@@ -636,7 +642,8 @@ int dc_pgp_pk_decrypt(  dc_context_t*       context,
 	key_id_t*         recipients_key_ids = NULL;
 	unsigned          recipients_count = 0;
 	pgp_memory_t*     keysmem = pgp_memory_new();
-	int               i, success = 0;
+	int               i = 0;
+	int               success = 0;
 
 	if (context==NULL || ctext==NULL || ctext_bytes==0 || ret_plain==NULL || ret_plain_bytes==NULL
 	 || raw_private_keys_for_decryption==NULL || raw_private_keys_for_decryption->count<=0

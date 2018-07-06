@@ -44,18 +44,18 @@
  */
 dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 {
-	char*            payload       = NULL;
-	char*            addr          = NULL; /* must be normalized, if set */
-	char*            fingerprint   = NULL; /* must be normalized, if set */
-	char*            name          = NULL;
-	char*            invitenumber  = NULL;
-	char*            auth          = NULL;
-	dc_apeerstate_t* peerstate     = dc_apeerstate_new(context);
-	dc_lot_t*        qr_parsed     = dc_lot_new();
-	uint32_t         chat_id       = 0;
-	char*            device_msg    = NULL;
-	char*            grpid         = NULL;
-	char*            grpname       = NULL;
+	char*            payload = NULL;
+	char*            addr = NULL; // must be normalized, if set
+	char*            fingerprint = NULL; // must be normalized, if set
+	char*            name = NULL;
+	char*            invitenumber = NULL;
+	char*            auth = NULL;
+	dc_apeerstate_t* peerstate = dc_apeerstate_new(context);
+	dc_lot_t*        qr_parsed = dc_lot_new();
+	uint32_t         chat_id = 0;
+	char*            device_msg = NULL;
+	char*            grpid = NULL;
+	char*            grpname = NULL;
 
 	qr_parsed->state = 0;
 
@@ -68,7 +68,7 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 	/* split parameters from the qr code
 	 ------------------------------------ */
 
-	if (strncasecmp(qr, DC_OPENPGP4FPR_SCHEME, strlen(DC_OPENPGP4FPR_SCHEME)) == 0)
+	if (strncasecmp(qr, DC_OPENPGP4FPR_SCHEME, strlen(DC_OPENPGP4FPR_SCHEME))==0)
 	{
 		/* scheme: OPENPGP4FPR:FINGERPRINT#a=ADDR&n=NAME&i=INVITENUMBER&s=AUTH
 		       or: OPENPGP4FPR:FINGERPRINT#a=ADDR&g=GROUPNAME&x=GROUPID&i=INVITENUMBER&s=AUTH */
@@ -110,7 +110,7 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 
 		fingerprint = dc_normalize_fingerprint(payload);
 	}
-	else if (strncasecmp(qr, MAILTO_SCHEME, strlen(MAILTO_SCHEME)) == 0)
+	else if (strncasecmp(qr, MAILTO_SCHEME, strlen(MAILTO_SCHEME))==0)
 	{
 		/* scheme: mailto:addr...?subject=...&body=... */
 		payload = dc_strdup(&qr[strlen(MAILTO_SCHEME)]);
@@ -120,7 +120,7 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 		}
 		addr = dc_strdup(payload);
 	}
-	else if (strncasecmp(qr, SMTP_SCHEME, strlen(SMTP_SCHEME)) == 0)
+	else if (strncasecmp(qr, SMTP_SCHEME, strlen(SMTP_SCHEME))==0)
 	{
 		/* scheme: `SMTP:addr...:subject...:body...` */
 		payload = dc_strdup(&qr[strlen(SMTP_SCHEME)]);
@@ -130,7 +130,7 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 		}
 		addr = dc_strdup(payload);
 	}
-	else if (strncasecmp(qr, MATMSG_SCHEME, strlen(MATMSG_SCHEME)) == 0)
+	else if (strncasecmp(qr, MATMSG_SCHEME, strlen(MATMSG_SCHEME))==0)
 	{
 		/* scheme: `MATMSG:TO:addr...;SUB:subject...;BODY:body...;` - there may or may not be linebreaks after the fields */
 		char* to = strstr(qr, "TO:"); /* does not work when the text `TO:` is used in subject/body _and_ TO: is not the first field. we ignore this case. */
@@ -145,7 +145,7 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 			goto cleanup;
 		}
 	}
-	else if (strncasecmp(qr, VCARD_BEGIN, strlen(VCARD_BEGIN)) == 0)
+	else if (strncasecmp(qr, VCARD_BEGIN, strlen(VCARD_BEGIN))==0)
 	{
 		/* scheme: `VCARD:BEGIN\nN:last name;first name;...;\nEMAIL:addr...;` */
 		carray* lines = dc_split_into_lines(qr);
@@ -156,11 +156,11 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 				*value = 0;
 				value++;
 				char* semicolon = strchr(key, ';'); if (semicolon) { *semicolon = 0; } /* handle `EMAIL;type=work:` stuff */
-				if (strcasecmp(key, "EMAIL") == 0) {
+				if (strcasecmp(key, "EMAIL")==0) {
 					semicolon = strchr(value, ';'); if (semicolon) { *semicolon = 0; } /* use the first EMAIL */
 					addr = dc_strdup(value);
 				}
-				else if (strcasecmp(key, "N") == 0) {
+				else if (strcasecmp(key, "N")==0) {
 					semicolon = strchr(value, ';'); if (semicolon) { semicolon = strchr(semicolon+1, ';'); if (semicolon) { *semicolon = 0; } } /* the N format is `lastname;prename;wtf;title` - skip everything after the second semicolon */
 					name = dc_strdup(value);
 					dc_str_replace(&name, ";", ","); /* the format "lastname,prename" is handled by dc_normalize_name() */
@@ -200,7 +200,7 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 	{
 		/* fingerprint set ... */
 
-		if (addr == NULL || invitenumber == NULL || auth == NULL)
+		if (addr==NULL || invitenumber==NULL || auth==NULL)
 		{
 			// _only_ fingerprint set ...
 			// (we could also do this before/instead of a secure-join, however, this may require complicated questions in the ui)

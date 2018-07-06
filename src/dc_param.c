@@ -29,7 +29,8 @@
 
 static char* find_param(char* haystack, int key, char** ret_p2)
 {
-	char *p1, *p2;
+	char* p1 = NULL;
+	char* p2 = NULL;
 
 	/* let p1 point to the start of the */
 	p1 = haystack;
@@ -68,7 +69,7 @@ static char* find_param(char* haystack, int key, char** ret_p2)
  */
 dc_param_t* dc_param_new()
 {
-	dc_param_t* param;
+	dc_param_t* param = NULL;
 
 	if ((param=calloc(1, sizeof(dc_param_t)))==NULL) {
 		exit(28); /* cannot allocate little memory, unrecoverable error */
@@ -171,7 +172,7 @@ void dc_param_set_urlencoded(dc_param_t* param, const char* urlencoded)
  */
 int dc_param_exists(dc_param_t* param, int key)
 {
-	char *p2;
+	char *p2 = NULL;
 
 	if (param == NULL || key == 0) {
 		return 0;
@@ -192,7 +193,10 @@ int dc_param_exists(dc_param_t* param, int key)
  */
 char* dc_param_get(dc_param_t* param, int key, const char* def)
 {
-	char *p1, *p2, bak, *ret;
+	char* p1 = NULL;
+	char* p2 = NULL;
+	char  bak = 0;
+	char* ret = NULL;
 
 	if (param == NULL || key == 0) {
 		return def? dc_strdup(def) : NULL;
@@ -250,7 +254,9 @@ int32_t dc_param_get_int(dc_param_t* param, int key, int32_t def)
  */
 void dc_param_set(dc_param_t* param, int key, const char* value)
 {
-	char *old1, *old2, *new1 = NULL;
+	char* old1 = NULL;
+	char* old2 = NULL;
+	char* new1 = NULL;
 
 	if (param == NULL || key == 0) {
 		return;

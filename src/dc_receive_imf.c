@@ -39,7 +39,7 @@
 static void add_or_lookup_contact_by_addr(dc_context_t* context, const char* display_name_enc, const char* addr_spec, int origin, dc_array_t* ids, int* check_self)
 {
 	/* is addr_spec equal to SELF? */
-	int dummy;
+	int dummy = 0;
 	if (check_self == NULL) { check_self = &dummy; }
 
 	if (context == NULL || context->magic != DC_CONTEXT_MAGIC || addr_spec == NULL) {
@@ -79,13 +79,11 @@ static void add_or_lookup_contact_by_addr(dc_context_t* context, const char* dis
 
 static void dc_add_or_lookup_contacts_by_mailbox_list(dc_context_t* context, const struct mailimf_mailbox_list* mb_list, int origin, dc_array_t* ids, int* check_self)
 {
-	clistiter* cur;
-
 	if (context == NULL || context->magic != DC_CONTEXT_MAGIC || mb_list == NULL) {
 		return;
 	}
 
-	for (cur = clist_begin(mb_list->mb_list); cur!=NULL ; cur=clist_next(cur)) {
+	for (clistiter* cur = clist_begin(mb_list->mb_list); cur!=NULL ; cur=clist_next(cur)) {
 		struct mailimf_mailbox* mb = (struct mailimf_mailbox*)clist_content(cur);
 		if (mb) {
 			add_or_lookup_contact_by_addr(context, mb->mb_display_name, mb->mb_addr_spec, origin, ids, check_self);
@@ -96,13 +94,11 @@ static void dc_add_or_lookup_contacts_by_mailbox_list(dc_context_t* context, con
 
 static void dc_add_or_lookup_contacts_by_address_list(dc_context_t* context, const struct mailimf_address_list* adr_list, int origin, dc_array_t* ids, int* check_self)
 {
-	clistiter* cur;
-
 	if (context == NULL || context->magic != DC_CONTEXT_MAGIC || adr_list == NULL /*may be NULL eg. if bcc is given as `Bcc: \n` in the header */) {
 		return;
 	}
 
-	for (cur = clist_begin(adr_list->ad_list); cur!=NULL ; cur=clist_next(cur)) {
+	for (clistiter* cur = clist_begin(adr_list->ad_list); cur!=NULL ; cur=clist_next(cur)) {
 		struct mailimf_address* adr = (struct mailimf_address*)clist_content(cur);
 		if (adr) {
 			if (adr->ad_type == MAILIMF_ADDRESS_MAILBOX) {
@@ -167,7 +163,7 @@ static int dc_is_reply_to_known_message(dc_context_t* context, dc_mimeparser_t* 
 	/* check if the message is a reply to a known message; the replies are identified by the Message-ID from
 	`In-Reply-To`/`References:` (to support non-Delta-Clients) or from `Chat-Predecessor:` (Delta clients, see comment in dc_chat.c) */
 
-	struct mailimf_optional_field* optional_field;
+	struct mailimf_optional_field* optional_field = NULL;
 	if ((optional_field=dc_mimeparser_lookup_optional_field2(mime_parser, "Chat-Predecessor", "X-MrPredecessor")) != NULL)
 	{
 		if (is_known_rfc724_mid(context, optional_field->fld_value)) {
@@ -175,7 +171,7 @@ static int dc_is_reply_to_known_message(dc_context_t* context, dc_mimeparser_t* 
 		}
 	}
 
-	struct mailimf_field* field;
+	struct mailimf_field* field = NULL;
 	if ((field=dc_mimeparser_lookup_field(mime_parser, "In-Reply-To"))!=NULL
 	 && field->fld_type == MAILIMF_FIELD_IN_REPLY_TO)
 	{
@@ -229,8 +225,7 @@ static int is_msgrmsg_rfc724_mid(dc_context_t* context, const char* rfc724_mid)
 static int is_msgrmsg_rfc724_mid_in_list(dc_context_t* context, const clist* mid_list)
 {
 	if (mid_list) {
-		clistiter* cur;
-		for (cur = clist_begin(mid_list); cur!=NULL ; cur=clist_next(cur)) {
+		for (clistiter* cur = clist_begin(mid_list); cur!=NULL ; cur=clist_next(cur)) {
 			if (is_msgrmsg_rfc724_mid(context, clist_content(cur))) {
 				return 1;
 			}
@@ -250,7 +245,7 @@ static int dc_is_reply_to_messenger_message(dc_context_t* context, dc_mimeparser
 	- it is okay, if the referenced messages are moved to trash here
 	- no check for the Chat-* headers (function is only called if it is no messenger message itself) */
 
-	struct mailimf_field* field;
+	struct mailimf_field* field = NULL;
 	if ((field=dc_mimeparser_lookup_field(mime_parser, "In-Reply-To"))!=NULL
 	 && field->fld_type==MAILIMF_FIELD_IN_REPLY_TO)
 	{
@@ -329,9 +324,10 @@ static dc_array_t* search_chat_ids_by_contact_ids(dc_context_t* context, const d
 {
 	/* searches chat_id's by the given contact IDs, may return zero, one or more chat_id's */
 	sqlite3_stmt* stmt = NULL;
-	dc_array_t*    contact_ids = dc_array_new(context, 23);
-	char*         contact_ids_str = NULL, *q3 = NULL;
-	dc_array_t*    chat_ids = dc_array_new(context, 23);
+	dc_array_t*   contact_ids = dc_array_new(context, 23);
+	char*         contact_ids_str = NULL;
+	char*         q3 = NULL;
+	dc_array_t*   chat_ids = dc_array_new(context, 23);
 
 	if (context == NULL || context->magic != DC_CONTEXT_MAGIC) {
 		goto cleanup;
@@ -418,13 +414,14 @@ static char* create_adhoc_grp_id(dc_context_t* context, dc_array_t* member_ids /
 	 */
 	dc_array_t*     member_addrs = dc_array_new(context, 23);
 	char*           member_ids_str = dc_array_get_string(member_ids, ",");
-	dc_strbuilder_t member_cs;
 	sqlite3_stmt*   stmt = NULL;
-	char*           q3 = NULL, *addr;
-	int             i, iCnt;
+	char*           q3 = NULL;
+	char*           addr = NULL;
+	int             i = 0;
+	int             iCnt = 0;
 	uint8_t*        binary_hash = NULL;
 	char*           ret = NULL;
-
+	dc_strbuilder_t member_cs;
 	dc_strbuilder_init(&member_cs, 0);
 
 	/* collect all addresses and sort them */
@@ -508,14 +505,16 @@ static void create_or_lookup_adhoc_group(dc_context_t* context, dc_mimeparser_t*
 {
 	/* if we're here, no grpid was found, check there is an existing ad-hoc
 	group matching the to-list or if we can create one */
-	dc_array_t*    member_ids      = NULL;
-	uint32_t       chat_id         = 0;
-	int            chat_id_blocked = 0, i;
-	dc_array_t*    chat_ids        = NULL;
-	char*          chat_ids_str    = NULL, *q3 = NULL;
-	sqlite3_stmt*  stmt            = NULL;
-	char*          grpid           = NULL;
-	char*          grpname         = NULL;
+	dc_array_t*    member_ids = NULL;
+	uint32_t       chat_id = 0;
+	int            chat_id_blocked = 0;
+	int            i = 0;
+	dc_array_t*    chat_ids = NULL;
+	char*          chat_ids_str = NULL;
+	char*          q3 = NULL;
+	sqlite3_stmt*  stmt = NULL;
+	char*          grpid = NULL;
+	char*          grpname = NULL;
 
 	/* build member list from the given ids */
 	if (dc_array_get_cnt(to_ids)==0 || dc_mimeparser_is_mailinglist_message(mime_parser)) {
@@ -590,11 +589,11 @@ static int check_verified_properties(dc_context_t* context, dc_mimeparser_t* mim
                                        uint32_t from_id, const dc_array_t* to_ids)
 {
 	int              everythings_okay = 0;
-	dc_contact_t*    contact          = dc_contact_new(context);
-	dc_apeerstate_t* peerstate        = dc_apeerstate_new(context);
-	char*            to_ids_str       = NULL;
-	char*            q3               = NULL;
-	sqlite3_stmt*    stmt             = NULL;
+	dc_contact_t*    contact = dc_contact_new(context);
+	dc_apeerstate_t* peerstate = dc_apeerstate_new(context);
+	char*            to_ids_str = NULL;
+	char*            q3 = NULL;
+	sqlite3_stmt*    stmt = NULL;
 
 	// ensure, the contact is verified
 	if (!dc_contact_load_from_db(contact, context->sql, from_id)
@@ -686,21 +685,21 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
                                      int32_t from_id, const dc_array_t* to_ids,
                                      uint32_t* ret_chat_id, int* ret_chat_id_blocked)
 {
-	uint32_t              chat_id          = 0;
-	int                   chat_id_blocked  = 0;
-	int                   chat_id_verified = 0;
-	char*                 grpid            = NULL;
-	char*                 grpname          = NULL;
-	sqlite3_stmt*         stmt;
-	int                   i, to_ids_cnt = dc_array_get_cnt(to_ids);
-	char*                 self_addr = NULL;
-	int                   recreate_member_list = 0;
-	int                   send_EVENT_CHAT_MODIFIED = 0;
-
-	char*                 X_MrRemoveFromGrp = NULL; /* pointer somewhere into mime_parser, must not be freed */
-	char*                 X_MrAddToGrp = NULL; /* pointer somewhere into mime_parser, must not be freed */
-	int                   X_MrGrpNameChanged = 0;
-	int                   X_MrGrpImageChanged = 0;
+	uint32_t      chat_id = 0;
+	int           chat_id_blocked = 0;
+	int           chat_id_verified = 0;
+	char*         grpid = NULL;
+	char*         grpname = NULL;
+	sqlite3_stmt* stmt;
+	int           i = 0;
+	int           to_ids_cnt = dc_array_get_cnt(to_ids);
+	char*         self_addr = NULL;
+	int           recreate_member_list = 0;
+	int           send_EVENT_CHAT_MODIFIED = 0;
+	char*         X_MrRemoveFromGrp = NULL; /* pointer somewhere into mime_parser, must not be freed */
+	char*         X_MrAddToGrp = NULL; /* pointer somewhere into mime_parser, must not be freed */
+	int           X_MrGrpNameChanged = 0;
+	int           X_MrGrpImageChanged = 0;
 
 	/* search the grpid in the header */
 	{
@@ -927,7 +926,7 @@ cleanup:
 	free(grpid);
 	free(grpname);
 	free(self_addr);
-	if (ret_chat_id)         { *ret_chat_id         = chat_id;                   }
+	if (ret_chat_id)         { *ret_chat_id = chat_id; }
 	if (ret_chat_id_blocked) { *ret_chat_id_blocked = chat_id? chat_id_blocked : 0; }
 }
 
@@ -950,15 +949,16 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 
 	uint32_t         from_id = 0;
 	int              from_id_blocked = 0;
-	uint32_t         to_id   = 0;
+	uint32_t         to_id = 0;
 	uint32_t         chat_id = 0;
 	int              chat_id_blocked = 0;
-	int              state   = DC_STATE_UNDEFINED;
+	int              state = DC_STATE_UNDEFINED;
 	int              hidden = 0;
 	int              add_delete_job = 0;
 
 	sqlite3_stmt*    stmt = NULL;
-	size_t           i, icnt;
+	size_t           i = 0;
+	size_t           icnt = 0;
 	uint32_t         first_dblocal_id = 0;
 	char*            rfc724_mid = NULL; /* Message-ID from the header */
 	time_t           sort_timestamp = DC_INVALID_TIMESTAMP;

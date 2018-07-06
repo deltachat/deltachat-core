@@ -38,11 +38,11 @@
 
 void dc_handle_degrade_event(dc_context_t* context, dc_apeerstate_t* peerstate)
 {
-	sqlite3_stmt* stmt            = NULL;
-	uint32_t      contact_id      = 0;
+	sqlite3_stmt* stmt = NULL;
+	uint32_t      contact_id = 0;
 	uint32_t      contact_chat_id = 0;
 
-	if (context == NULL || peerstate == NULL) {
+	if (context==NULL || peerstate==NULL) {
 		goto cleanup;
 	}
 
@@ -60,7 +60,7 @@ void dc_handle_degrade_event(dc_context_t* context, dc_apeerstate_t* peerstate)
 			contact_id = sqlite3_column_int(stmt, 0);
 		sqlite3_finalize(stmt);
 
-		if (contact_id == 0) {
+		if (contact_id==0) {
 			goto cleanup;
 		}
 
@@ -94,12 +94,12 @@ static int encrypted_and_signed(dc_mimeparser_t* mimeparser, const char* expecte
 		return 0;
 	}
 
-	if (expected_fingerprint == NULL) {
+	if (expected_fingerprint==NULL) {
 		dc_log_warning(mimeparser->context, 0, "Fingerprint for comparison missing.");
 		return 0;
 	}
 
-	if (dc_hash_find_str(mimeparser->e2ee_helper->signatures, expected_fingerprint) == NULL) {
+	if (dc_hash_find_str(mimeparser->e2ee_helper->signatures, expected_fingerprint)==NULL) {
 		dc_log_warning(mimeparser->context, 0, "Message does not match expected fingerprint %s.", expected_fingerprint);
 		return 0;
 	}
@@ -110,16 +110,16 @@ static int encrypted_and_signed(dc_mimeparser_t* mimeparser, const char* expecte
 
 static char* get_self_fingerprint(dc_context_t* context)
 {
-	char*     self_addr   = NULL;
-	dc_key_t* self_key    = dc_key_new();
+	char*     self_addr = NULL;
+	dc_key_t* self_key = dc_key_new();
 	char*     fingerprint = NULL;
 
-	if ((self_addr = dc_sqlite3_get_config(context->sql, "configured_addr", NULL)) == NULL
+	if ((self_addr = dc_sqlite3_get_config(context->sql, "configured_addr", NULL))==NULL
 	 || !dc_key_load_self_public(self_key, self_addr, context->sql)) {
 		goto cleanup;
 	}
 
-	if ((fingerprint=dc_key_get_fingerprint(self_key)) == NULL) {
+	if ((fingerprint=dc_key_get_fingerprint(self_key))==NULL) {
 		goto cleanup;
 	}
 
@@ -135,7 +135,7 @@ static uint32_t chat_id_2_contact_id(dc_context_t* context, uint32_t contact_cha
 	uint32_t    contact_id = 0;
 	dc_array_t* contacts   = dc_get_chat_contacts(context, contact_chat_id);
 
-	if (dc_array_get_cnt(contacts) != 1) {
+	if (dc_array_get_cnt(contacts)!=1) {
 		goto cleanup;
 	}
 
@@ -149,13 +149,13 @@ cleanup:
 
 static int fingerprint_equals_sender(dc_context_t* context, const char* fingerprint, uint32_t contact_chat_id)
 {
-	int              fingerprint_equal      = 0;
-	dc_array_t*      contacts               = dc_get_chat_contacts(context, contact_chat_id);
-	dc_contact_t*    contact                = dc_contact_new(context);
-	dc_apeerstate_t* peerstate              = dc_apeerstate_new(context);
+	int              fingerprint_equal = 0;
+	dc_array_t*      contacts = dc_get_chat_contacts(context, contact_chat_id);
+	dc_contact_t*    contact = dc_contact_new(context);
+	dc_apeerstate_t* peerstate = dc_apeerstate_new(context);
 	char*            fingerprint_normalized = NULL;
 
-	if (dc_array_get_cnt(contacts) != 1) {
+	if (dc_array_get_cnt(contacts)!=1) {
 		goto cleanup;
 	}
 
@@ -166,7 +166,7 @@ static int fingerprint_equals_sender(dc_context_t* context, const char* fingerpr
 
 	fingerprint_normalized = dc_normalize_fingerprint(fingerprint);
 
-	if (strcasecmp(fingerprint_normalized, peerstate->public_key_fingerprint) == 0) {
+	if (strcasecmp(fingerprint_normalized, peerstate->public_key_fingerprint)==0) {
 		fingerprint_equal = 1;
 	}
 
@@ -180,7 +180,7 @@ cleanup:
 
 static int mark_peer_as_verified(dc_context_t* context, const char* fingerprint)
 {
-	int              success   = 0;
+	int              success = 0;
 	dc_apeerstate_t* peerstate = dc_apeerstate_new(context);
 
 	if (!dc_apeerstate_load_by_fingerprint(peerstate, context->sql, fingerprint)) {
@@ -210,8 +210,8 @@ static const char* lookup_field(dc_mimeparser_t* mimeparser, const char* key)
 {
 	const char* value = NULL;
 	struct mailimf_field* field = dc_mimeparser_lookup_field(mimeparser, key);
-	if (field == NULL || field->fld_type != MAILIMF_FIELD_OPTIONAL_FIELD
-	 || field->fld_data.fld_optional_field == NULL || (value=field->fld_data.fld_optional_field->fld_value) == NULL) {
+	if (field==NULL || field->fld_type!=MAILIMF_FIELD_OPTIONAL_FIELD
+	 || field->fld_data.fld_optional_field==NULL || (value=field->fld_data.fld_optional_field->fld_value)==NULL) {
 		return NULL;
 	}
 	return value;
@@ -256,8 +256,8 @@ static void send_handshake_msg(dc_context_t* context, uint32_t contact_chat_id, 
 static void could_not_establish_secure_connection(dc_context_t* context, uint32_t contact_chat_id, const char* details)
 {
 	uint32_t      contact_id = chat_id_2_contact_id(context, contact_chat_id);
-	dc_contact_t* contact    = dc_get_contact(context, contact_id);
-	char*         msg        = dc_mprintf("Could not establish secure connection to %s.", contact? contact->addr : "?");
+	dc_contact_t* contact = dc_get_contact(context, contact_id);
+	char*         msg = dc_mprintf("Could not establish secure connection to %s.", contact? contact->addr : "?");
 
 	dc_add_device_msg(context, contact_chat_id, msg);
 
@@ -271,8 +271,8 @@ static void could_not_establish_secure_connection(dc_context_t* context, uint32_
 static void secure_connection_established(dc_context_t* context, uint32_t contact_chat_id)
 {
 	uint32_t      contact_id = chat_id_2_contact_id(context, contact_chat_id);
-	dc_contact_t* contact    = dc_get_contact(context, contact_id);
-	char*         msg        = dc_mprintf("Secure connection to %s established.", contact? contact->addr : "?");
+	dc_contact_t* contact = dc_get_contact(context, contact_id);
+	char*         msg = dc_mprintf("Secure connection to %s established.", contact? contact->addr : "?");
 
 	dc_add_device_msg(context, contact_chat_id, msg);
 
@@ -319,19 +319,19 @@ char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
 	   ====   Step 1 in "Setup verified contact" protocol   ====
 	   ========================================================= */
 
-	char*      qr                   = NULL;
-	char*      self_addr            = NULL;
+	char*      qr = NULL;
+	char*      self_addr = NULL;
 	char*      self_addr_urlencoded = NULL;
-	char*      self_name            = NULL;
+	char*      self_name = NULL;
 	char*      self_name_urlencoded = NULL;
-	char*      fingerprint          = NULL;
-	char*      invitenumber         = NULL;
-	char*      auth                 = NULL;
-	dc_chat_t* chat                 = NULL;
-	char*      group_name           = NULL;
+	char*      fingerprint = NULL;
+	char*      invitenumber = NULL;
+	char*      auth = NULL;
+	dc_chat_t* chat = NULL;
+	char*      group_name = NULL;
 	char*      group_name_urlencoded= NULL;
 
-	if (context == NULL || context->magic!=DC_CONTEXT_MAGIC) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
 		goto cleanup;
 	}
 
@@ -339,25 +339,25 @@ char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
 
 		// invitenumber will be used to allow starting the handshake, auth will be used to verify the fingerprint
 		invitenumber = dc_token_lookup(context, DC_TOKEN_INVITENUMBER, group_chat_id);
-		if (invitenumber == NULL) {
+		if (invitenumber==NULL) {
 			invitenumber = dc_create_id();
 			dc_token_save(context, DC_TOKEN_INVITENUMBER, group_chat_id, invitenumber);
 		}
 
 		auth = dc_token_lookup(context, DC_TOKEN_AUTH, group_chat_id);
-		if (auth == NULL) {
+		if (auth==NULL) {
 			auth = dc_create_id();
 			dc_token_save(context, DC_TOKEN_AUTH, group_chat_id, auth);
 		}
 
-		if ((self_addr = dc_sqlite3_get_config(context->sql, "configured_addr", NULL)) == NULL) {
+		if ((self_addr = dc_sqlite3_get_config(context->sql, "configured_addr", NULL))==NULL) {
 			dc_log_error(context, 0, "Not configured, cannot generate QR code.");
 			goto cleanup;
 		}
 
 		self_name = dc_sqlite3_get_config(context->sql, "displayname", "");
 
-	if ((fingerprint=get_self_fingerprint(context)) == NULL) {
+	if ((fingerprint=get_self_fingerprint(context))==NULL) {
 		goto cleanup;
 	}
 
@@ -368,7 +368,7 @@ char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
 	{
 		// parameters used: a=g=x=i=s=
 		chat = dc_get_chat(context, group_chat_id);
-		if (chat == NULL || chat->type != DC_CHAT_TYPE_VERIFIED_GROUP) {
+		if (chat==NULL || chat->type!=DC_CHAT_TYPE_VERIFIED_GROUP) {
 			dc_log_error(context, 0, "Secure join is only available for verified groups.");
 			goto cleanup;
 		}
@@ -422,21 +422,21 @@ uint32_t dc_join_securejoin(dc_context_t* context, const char* qr)
 	   ====   Step 2 in "Setup verified contact" protocol   =====
 	   ========================================================== */
 
-	int       ret_chat_id       = 0;
+	int       ret_chat_id = 0;
 	int       ongoing_allocated = 0;
-	uint32_t  contact_chat_id   = 0;
-	int       join_vg           = 0;
-	dc_lot_t* qr_scan           = NULL;
-	int       qr_locked         = 0;
-	#define   LOCK_QR           { pthread_mutex_lock(&context->bobs_qr_critical); qr_locked = 1; }
-	#define   UNLOCK_QR         if (qr_locked) { pthread_mutex_unlock(&context->bobs_qr_critical); qr_locked = 0; }
-	#define   CHECK_EXIT        if (context->shall_stop_ongoing) { goto cleanup; }
+	uint32_t  contact_chat_id = 0;
+	int       join_vg = 0;
+	dc_lot_t* qr_scan = NULL;
+	int       qr_locked = 0;
+	#define   LOCK_QR    { pthread_mutex_lock(&context->bobs_qr_critical); qr_locked = 1; }
+	#define   UNLOCK_QR  if (qr_locked) { pthread_mutex_unlock(&context->bobs_qr_critical); qr_locked = 0; }
+	#define   CHECK_EXIT if (context->shall_stop_ongoing) { goto cleanup; }
 
 	dc_log_info(context, 0, "Requesting secure-join ...");
 
 	dc_ensure_secret_key_exists(context);
 
-	if ((ongoing_allocated=dc_alloc_ongoing(context)) == 0) {
+	if ((ongoing_allocated=dc_alloc_ongoing(context))==0) {
 		goto cleanup;
 	}
 
@@ -446,7 +446,7 @@ uint32_t dc_join_securejoin(dc_context_t* context, const char* qr)
 		goto cleanup;
 	}
 
-	if ((contact_chat_id=dc_create_chat_by_contact_id(context, qr_scan->id)) == 0) {
+	if ((contact_chat_id=dc_create_chat_by_contact_id(context, qr_scan->id))==0) {
 		dc_log_error(context, 0, "Unknown contact.");
 		goto cleanup;
 	}
@@ -492,7 +492,7 @@ uint32_t dc_join_securejoin(dc_context_t* context, const char* qr)
 cleanup:
 	context->bob_expects = 0;
 
-	if (context->bobs_status == DC_BOB_SUCCESS) {
+	if (context->bobs_status==DC_BOB_SUCCESS) {
 		if (join_vg) {
 			ret_chat_id = dc_get_chat_id_by_grpid(context, qr_scan->text2, NULL, NULL);
 		}
@@ -525,23 +525,23 @@ cleanup:
  */
 int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimeparser, uint32_t contact_id)
 {
-	int           qr_locked                    = 0;
-	const char*   step                         = NULL;
-	int           join_vg                      = 0;
+	int           qr_locked = 0;
+	const char*   step = NULL;
+	int           join_vg = 0;
 	char*         scanned_fingerprint_of_alice = NULL;
-	char*         auth                         = NULL;
-	char*         own_fingerprint              = NULL;
-	uint32_t      contact_chat_id              = 0;
-	int           contact_chat_id_blocked      = 0;
-	char*         grpid                        = NULL;
-	int           ret                          = 0;
-	dc_contact_t* contact                      = NULL;
+	char*         auth = NULL;
+	char*         own_fingerprint = NULL;
+	uint32_t      contact_chat_id = 0;
+	int           contact_chat_id_blocked = 0;
+	char*         grpid = NULL;
+	int           ret = 0;
+	dc_contact_t* contact = NULL;
 
-	if (context == NULL || mimeparser == NULL || contact_id <= DC_CONTACT_ID_LAST_SPECIAL) {
+	if (context==NULL || mimeparser==NULL || contact_id <= DC_CONTACT_ID_LAST_SPECIAL) {
 		goto cleanup;
 	}
 
-	if ((step=lookup_field(mimeparser, "Secure-Join")) == NULL) {
+	if ((step=lookup_field(mimeparser, "Secure-Join"))==NULL) {
 		goto cleanup;
 	}
 	dc_log_info(context, 0, ">>>>>>>>>>>>>>>>>>>>>>>>> secure-join message '%s' received", step);
@@ -568,12 +568,12 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 
 		// verify that the `Secure-Join-Invitenumber:`-header matches invitenumber written to the QR code
 		const char* invitenumber = NULL;
-		if ((invitenumber=lookup_field(mimeparser, "Secure-Join-Invitenumber")) == NULL) {
+		if ((invitenumber=lookup_field(mimeparser, "Secure-Join-Invitenumber"))==NULL) {
 			dc_log_warning(context, 0, "Secure-join denied (invitenumber missing)."); // do not raise an error, this might just be spam or come from an old request
 			goto cleanup;
 		}
 
-		if (dc_token_exists(context, DC_TOKEN_INVITENUMBER, invitenumber) == 0) {
+		if (dc_token_exists(context, DC_TOKEN_INVITENUMBER, invitenumber)==0) {
 			dc_log_warning(context, 0, "Secure-join denied (bad invitenumber).");  // do not raise an error, this might just be spam or come from an old request
 			goto cleanup;
 		}
@@ -640,7 +640,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 
 		// verify that Secure-Join-Fingerprint:-header matches the fingerprint of Bob
 		const char* fingerprint = NULL;
-		if ((fingerprint=lookup_field(mimeparser, "Secure-Join-Fingerprint")) == NULL) {
+		if ((fingerprint=lookup_field(mimeparser, "Secure-Join-Fingerprint"))==NULL) {
 			could_not_establish_secure_connection(context, contact_chat_id, "Fingerprint not provided.");
 			goto cleanup;
 		}
@@ -660,12 +660,12 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 
 		// verify that the `Secure-Join-Auth:`-header matches the secret written to the QR code
 		const char* auth = NULL;
-		if ((auth=lookup_field(mimeparser, "Secure-Join-Auth")) == NULL) {
+		if ((auth=lookup_field(mimeparser, "Secure-Join-Auth"))==NULL) {
 			could_not_establish_secure_connection(context, contact_chat_id, "Auth not provided.");
 			goto cleanup;
 		}
 
-		if (dc_token_exists(context, DC_TOKEN_AUTH, auth) == 0) {
+		if (dc_token_exists(context, DC_TOKEN_AUTH, auth)==0) {
 			could_not_establish_secure_connection(context, contact_chat_id, "Auth invalid.");
 			goto cleanup;
 		}
@@ -688,7 +688,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 			grpid = dc_strdup(lookup_field(mimeparser, "Secure-Join-Group"));
 			int is_verified = 0;
 			uint32_t verified_chat_id = dc_get_chat_id_by_grpid(context, grpid, NULL, &is_verified);
-			if (verified_chat_id == 0 || !is_verified) {
+			if (verified_chat_id==0 || !is_verified) {
 				dc_log_error(context, 0, "Verified chat not found.");
 				goto cleanup;
 			}

@@ -124,8 +124,8 @@ char* dc_strbuilder_cat(dc_strbuilder_t* strbuilder, const char* text)
 void dc_strbuilder_catf(dc_strbuilder_t* strbuilder, const char* format, ...)
 {
 	char  testbuf[1];
-	char* buf;
-	int   char_cnt_without_zero;
+	char* buf = NULL;
+	int   char_cnt_without_zero = 0;
 
 	va_list argp;
 	va_list argp_copy;

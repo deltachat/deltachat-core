@@ -45,12 +45,11 @@ dc_keyring_t* dc_keyring_new()
 
 void dc_keyring_unref(dc_keyring_t* keyring)
 {
-	int i;
 	if (keyring == NULL) {
 		return;
 	}
 
-	for (i = 0; i < keyring->count; i++) {
+	for (int i = 0; i < keyring->count; i++) {
 		dc_key_unref(keyring->keys[i]);
 	}
 	free(keyring->keys);

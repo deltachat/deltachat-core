@@ -168,8 +168,11 @@ int dc_aheader_set_from_string(dc_aheader_t* aheader, const char* header_str__)
 	(b) for the key, non-base64-characters are ignored and
 	(c) for parsing, we ignore `\r\n` as well as tabs for spaces */
 	#define AHEADER_WS "\t\r\n "
-	char    *header_str = NULL;
-	char    *p, *beg_attr_name, *after_attr_name, *beg_attr_value;
+	char*   header_str = NULL;
+	char*   p = NULL;
+	char*   beg_attr_name = NULL;
+	char*   after_attr_name = NULL;
+	char*   beg_attr_value = NULL;
 	int     success = 0;
 
 	dc_aheader_empty(aheader);
@@ -271,7 +274,7 @@ void dc_aheader_unref(dc_aheader_t* aheader)
  */
 dc_aheader_t* dc_aheader_new_from_imffields(const char* wanted_from, const struct mailimf_fields* header)
 {
-	clistiter*    cur;
+	clistiter*    cur = NULL;
 	dc_aheader_t* fine_header = NULL;
 
 	if (wanted_from == NULL || header == NULL) {

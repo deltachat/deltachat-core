@@ -244,7 +244,7 @@ cleanup:
 int dc_mimefactory_load_mdn(dc_mimefactory_t* factory, uint32_t msg_id)
 {
 	int           success = 0;
-	dc_contact_t*  contact = dc_contact_new(factory->context);
+	dc_contact_t* contact = dc_contact_new(factory->context);
 
 	if (factory == NULL) {
 		goto cleanup;
@@ -297,9 +297,9 @@ cleanup:
 
 static struct mailmime* build_body_text(char* text)
 {
-	struct mailmime_fields*    mime_fields;
-	struct mailmime*           message_part;
-	struct mailmime_content*   content;
+	struct mailmime_fields*  mime_fields = NULL;
+	struct mailmime*         message_part = NULL;
+	struct mailmime_content* content = NULL;
 
 	content = mailmime_content_new_with_str("text/plain");
 	clist_append(content->ct_parameters, mailmime_param_new_with_data("charset", "utf-8")); /* format=flowed currently does not really affect us, see https://www.ietf.org/rfc/rfc3676.txt */
@@ -315,9 +315,9 @@ static struct mailmime* build_body_text(char* text)
 
 static struct mailmime* build_body_file(const dc_msg_t* msg, const char* base_name, char** ret_file_name_as_sent)
 {
-	struct mailmime_fields*  mime_fields;
+	struct mailmime_fields*  mime_fields = NULL;
 	struct mailmime*         mime_sub = NULL;
-	struct mailmime_content* content;
+	struct mailmime_content* content = NULL;
 
 	char* pathNfilename = dc_param_get(msg->param, DC_PARAM_FILE, NULL);
 	char* mimetype = dc_param_get(msg->param, DC_PARAM_MIMETYPE, NULL);
@@ -437,8 +437,9 @@ cleanup:
 static char* get_subject(const dc_chat_t* chat, const dc_msg_t* msg, int afwd_email)
 {
 	dc_context_t* context = chat? chat->context : NULL;
-	char *ret, *raw_subject = dc_msg_get_summarytext_by_raw(msg->type, msg->text, msg->param, DC_APPROX_SUBJECT_CHARS, context);
-	const char* fwd = afwd_email? "Fwd: " : "";
+	char*         ret = NULL;
+	char*         raw_subject = dc_msg_get_summarytext_by_raw(msg->type, msg->text, msg->param, DC_APPROX_SUBJECT_CHARS, context);
+	const char*   fwd = afwd_email? "Fwd: " : "";
 
 	if (dc_param_get_int(msg->param, DC_PARAM_CMD, 0) == DC_CMD_AUTOCRYPT_SETUP_MESSAGE)
 	{
@@ -466,19 +467,20 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 		return 0;
 	}
 
-	struct mailimf_fields*       imf_fields;
+	struct mailimf_fields*       imf_fields = NULL;
 	struct mailmime*             message = NULL;
-	char*                        message_text = NULL, *message_text2 = NULL, *subject_str = NULL;
+	char*                        message_text = NULL;
+	char*                        message_text2 = NULL;
+	char*                        subject_str = NULL;
 	int                          afwd_email = 0;
 	int                          col = 0;
 	int                          success = 0;
 	int                          parts = 0;
-	dc_e2ee_helper_t             e2ee_helper;
 	int                          e2ee_guaranteed = 0;
 	int                          min_verified = DC_NOT_VERIFIED;
 	int                          force_plaintext = 0; // 1=add Autocrypt-header (needed eg. for handshaking), 2=no Autocrypte-header (used for MDN)
 	char*                        grpimage = NULL;
-
+	dc_e2ee_helper_t             e2ee_helper;
 	memset(&e2ee_helper, 0, sizeof(dc_e2ee_helper_t));
 
 

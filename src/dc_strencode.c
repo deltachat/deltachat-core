@@ -155,7 +155,7 @@ char* dc_urldecode(const char* to_decode)
 static int to_be_quoted(const char * word, size_t size)
 {
 	const char* cur = word;
-	size_t      i;
+	size_t      i = 0;
 
 	for (i = 0; i < size; i++)
 	{
@@ -198,10 +198,10 @@ static int to_be_quoted(const char * word, size_t size)
 
 static int quote_word(const char* display_charset, MMAPString* mmapstr, const char* word, size_t size)
 {
-	const char * cur;
-	size_t i;
-	char hex[4];
-	int col;
+	const char* cur = NULL;
+	size_t      i = 0;
+	char        hex[4];
+	int         col = 0;
 
 	if (mmap_string_append(mmapstr, "=?") == NULL) {
 		return 0;
@@ -502,9 +502,16 @@ char* dc_encode_modified_utf7(const char* to_encode, int change_spaces)
 	#define UTF16LOEND      0xDFFFUL
 	#define UNDEFINED       64
 
-	unsigned int  utf8pos, utf8total, c, utf7mode, bitstogo, utf16flag;
-	unsigned long ucs4 = 0, bitbuf = 0;
-	char          *dst, *res;
+	unsigned int  utf8pos = 0;
+	unsigned int  utf8total = 0;
+	unsigned int  c = 0;
+	unsigned int  utf7mode = 0;
+	unsigned int  bitstogo = 0;
+	unsigned int  utf16flag = 0;
+	unsigned long ucs4 = 0;
+	unsigned long bitbuf = 0;
+	char*         dst = NULL;
+	char*         res = NULL;
 
 	if (!to_encode) {
 		return dc_strdup("");
@@ -635,11 +642,16 @@ char* dc_encode_modified_utf7(const char* to_encode, int change_spaces)
  */
 char* dc_decode_modified_utf7(const char *to_decode, int change_spaces)
 {
-	unsigned      c, i, bitcount;
-	unsigned long ucs4, utf16, bitbuf;
+	unsigned      c = 0;
+	unsigned      i = 0;
+	unsigned      bitcount = 0;
+	unsigned long ucs4 = 0;
+	unsigned long utf16 = 0;
+	unsigned long bitbuf = 0;
 	unsigned char base64[256];
-	const char    *src;
-	char          *dst, *res;
+	const char*   src = NULL;
+	char*         dst = NULL;
+	char*         res = NULL;
 
 	if (to_decode == NULL) {
 		return dc_strdup("");
@@ -825,8 +837,9 @@ char* dc_encode_ext_header(const char* to_encode)
  */
 char* dc_decode_ext_header(const char* to_decode)
 {
-	char       *decoded = NULL, *charset = NULL;
-	const char *p2 = NULL;
+	char*       decoded = NULL;
+	char*       charset = NULL;
+	const char* p2 = NULL;
 
 	if (to_decode == NULL) {
 		goto cleanup;

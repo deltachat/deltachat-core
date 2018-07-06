@@ -264,7 +264,7 @@ time_t dc_msg_get_timestamp(const dc_msg_t* msg)
  */
 char* dc_msg_get_text(const dc_msg_t* msg)
 {
-	char* ret;
+	char* ret = NULL;
 
 	if (msg == NULL || msg->magic != DC_MSG_MAGIC) {
 		return dc_strdup(NULL);
@@ -316,7 +316,8 @@ cleanup:
  */
 char* dc_msg_get_filename(const dc_msg_t* msg)
 {
-	char* ret = NULL, *pathNfilename = NULL;
+	char* ret = NULL;
+	char* pathNfilename = NULL;
 
 	if (msg == NULL || msg->magic != DC_MSG_MAGIC) {
 		goto cleanup;
@@ -423,8 +424,8 @@ cleanup:
  */
 dc_lot_t* dc_msg_get_mediainfo(const dc_msg_t* msg)
 {
-	dc_lot_t*   ret = dc_lot_new();
-	char*        pathNfilename = NULL;
+	dc_lot_t*     ret = dc_lot_new();
+	char*         pathNfilename = NULL;
 	dc_contact_t* contact = NULL;
 
 	if (msg == NULL || msg->magic != DC_MSG_MAGIC || msg->context == NULL) {
@@ -957,7 +958,10 @@ void dc_msg_get_authorNtitle_from_filename(const char* pathNfilename, char** ret
 {
 	/* function extracts AUTHOR and TITLE from a path given as `/path/other folder/AUTHOR - TITLE.mp3`
 	if the mark ` - ` is not preset, the whole name (without suffix) is used as the title and the author is NULL. */
-	char *author = NULL, *title = NULL, *p;
+	char* author = NULL;
+	char* title = NULL;
+	char* p = NULL;
+
 	dc_split_filename(pathNfilename, &title, NULL);
 	p = strstr(title, " - ");
 	if (p) {
@@ -967,7 +971,7 @@ void dc_msg_get_authorNtitle_from_filename(const char* pathNfilename, char** ret
 	}
 
 	if (ret_author) { *ret_author = author; } else { free(author); }
-	if (ret_title) { *ret_title  = title;  } else { free(title);  }
+	if (ret_title)  { *ret_title  = title; }  else { free(title); }
 }
 
 
@@ -975,7 +979,9 @@ char* dc_msg_get_summarytext_by_raw(int type, const char* text, dc_param_t* para
 {
 	/* get a summary text, result must be free()'d, never returns NULL. */
 	char* ret = NULL;
-	char* pathNfilename = NULL, *label = NULL, *value = NULL;
+	char* pathNfilename = NULL;
+	char* label = NULL;
+	char* value = NULL;
 
 	switch (type) {
 		case DC_MSG_IMAGE:

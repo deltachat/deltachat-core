@@ -54,10 +54,9 @@ safe. However, there are some points to keep in mind:
 
 void dc_sqlite3_log_error(dc_sqlite3_t* sql, const char* msg_format, ...)
 {
-	char*       msg;
+	char*       msg = NULL;
 	const char* notSetUp = "SQLite object not set up.";
 	va_list     va;
-
 	va_start(va, msg_format);
 		msg = sqlite3_vmprintf(msg_format, va); if (msg == NULL) { dc_log_error(sql->context, 0, "Bad log format string \"%s\".", msg_format); }
 			dc_log_error(sql->context, 0, "%s SQLite says: %s", msg, sql->cobj? sqlite3_errmsg(sql->cobj) : notSetUp);
@@ -92,7 +91,7 @@ int dc_sqlite3_execute(dc_sqlite3_t* sql, const char* querystr)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt = NULL;
-	int           sqlState;
+	int           sqlState = 0;
 
 	stmt = dc_sqlite3_prepare(sql, querystr);
 	if (stmt == NULL) {
@@ -513,7 +512,7 @@ int dc_sqlite3_table_exists(dc_sqlite3_t* sql, const char* name)
 	int           ret = 0;
 	char*         querystr = NULL;
 	sqlite3_stmt* stmt = NULL;
-	int           sqlState;
+	int           sqlState = 0;
 
 	if ((querystr=sqlite3_mprintf("PRAGMA table_info(%s)", name)) == NULL) { /* this statement cannot be used with binded variables */
 		dc_log_error(sql->context, 0, "dc_sqlite3_table_exists_(): Out of memory.");
@@ -553,8 +552,8 @@ cleanup:
 
 int dc_sqlite3_set_config(dc_sqlite3_t* sql, const char* key, const char* value)
 {
-	int           state;
-	sqlite3_stmt* stmt;
+	int           state = 0;
+	sqlite3_stmt* stmt = NULL;
 
 	if (key == NULL) {
 		dc_log_error(sql->context, 0, "dc_sqlite3_set_config(): Bad parameter.");
@@ -614,7 +613,7 @@ int dc_sqlite3_set_config(dc_sqlite3_t* sql, const char* key, const char* value)
 
 char* dc_sqlite3_get_config(dc_sqlite3_t* sql, const char* key, const char* def) /* the returned string must be free()'d, NULL is only returned if def is NULL */
 {
-	sqlite3_stmt* stmt;
+	sqlite3_stmt* stmt = NULL;
 
 	if (!dc_sqlite3_is_open(sql) || key == NULL) {
 		return dc_strdup_keep_null(def);

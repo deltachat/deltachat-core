@@ -577,13 +577,11 @@ struct mailimf_fields* mailmime_find_mailimf_fields(struct mailmime* mime)
 
 char* mailimf_find_first_addr(const struct mailimf_mailbox_list* mb_list)
 {
-	clistiter* cur;
-
 	if (mb_list == NULL) {
 		return NULL;
 	}
 
-	for (cur = clist_begin(mb_list->mb_list); cur!=NULL ; cur=clist_next(cur)) {
+	for (clistiter* cur = clist_begin(mb_list->mb_list); cur!=NULL ; cur=clist_next(cur)) {
 		struct mailimf_mailbox* mb = (struct mailimf_mailbox*)clist_content(cur);
 		if (mb && mb->mb_addr_spec) {
 			return dc_addr_normalize(mb->mb_addr_spec);
@@ -599,8 +597,7 @@ struct mailimf_field* mailimf_find_field(struct mailimf_fields* header, int want
 		return NULL;
 	}
 
-	clistiter* cur1;
-	for (cur1 = clist_begin(header->fld_list); cur1!=NULL ; cur1=clist_next(cur1))
+	for (clistiter* cur1 = clist_begin(header->fld_list); cur1!=NULL ; cur1=clist_next(cur1))
 	{
 		struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
 		if (field)
@@ -622,8 +619,7 @@ struct mailimf_optional_field* mailimf_find_optional_field(struct mailimf_fields
 		return NULL;
 	}
 
-	clistiter* cur1;
-	for (cur1 = clist_begin(header->fld_list); cur1!=NULL ; cur1=clist_next(cur1))
+	for (clistiter* cur1 = clist_begin(header->fld_list); cur1!=NULL ; cur1=clist_next(cur1))
 	{
 		struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
 		if (field && field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD)
@@ -642,8 +638,7 @@ struct mailimf_optional_field* mailimf_find_optional_field(struct mailimf_fields
 static int mailmime_is_attachment_disposition(struct mailmime* mime)
 {
 	if (mime->mm_mime_fields != NULL) {
-		clistiter* cur;
-		for (cur = clist_begin(mime->mm_mime_fields->fld_list); cur != NULL; cur = clist_next(cur)) {
+		for (clistiter* cur = clist_begin(mime->mm_mime_fields->fld_list); cur != NULL; cur = clist_next(cur)) {
 			struct mailmime_field* field = (struct mailmime_field*)clist_content(cur);
 			if (field && field->fld_type == MAILMIME_FIELD_DISPOSITION && field->fld_data.fld_disposition) {
 				if (field->fld_data.fld_disposition->dsp_type
@@ -676,7 +671,7 @@ static int mailmime_get_mime_type(struct mailmime* mime, int* msg_type)
 	#define DC_MIMETYPE_AC_SETUP_FILE      111
 
 	struct mailmime_content* c = mime->mm_content_type;
-	int dummy; if (msg_type == NULL) { msg_type = &dummy; }
+	int dummy = 0; if (msg_type == NULL) { msg_type = &dummy; }
 	*msg_type = DC_MSG_UNDEFINED;
 
 	if (c == NULL || c->ct_type == NULL) {
@@ -1858,7 +1853,7 @@ int dc_mimeparser_sender_equals_recipient(dc_mimeparser_t* mimeparser)
 	const struct mailimf_from*  fld_from = NULL;
 	struct mailimf_mailbox*     mb = NULL;
 	char*                       from_addr_norm = NULL;
-	dc_hash_t*                  recipients   = NULL;
+	dc_hash_t*                  recipients = NULL;
 
 	if (mimeparser == NULL || mimeparser->header_root == NULL) {
 		goto cleanup;

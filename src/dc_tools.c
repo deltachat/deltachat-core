@@ -51,7 +51,7 @@ int dc_exactly_one_bit_set(int v)
 
 char* dc_strdup(const char* s) /* strdup(NULL) is undefined, save_strdup(NULL) returns an empty string in this case */
 {
-	char* ret;
+	char* ret = NULL;
 	if (s) {
 		if ((ret=strdup(s)) == NULL) {
 			exit(16); /* cannot allocate (little) memory, unrecoverable error */
@@ -80,8 +80,8 @@ int dc_atoi_null_is_0(const char* s)
 
 void dc_ltrim(char* buf)
 {
-	size_t len;
-	const unsigned char* cur;
+	size_t               len = 0;
+	const unsigned char* cur = NULL;
 
 	if (buf && *buf) {
 		len = strlen(buf);
@@ -100,8 +100,8 @@ void dc_ltrim(char* buf)
 
 void dc_rtrim(char* buf)
 {
-	size_t len;
-	unsigned char* cur;
+	size_t         len = 0;
+	unsigned char* cur = NULL;
 
 	if (buf && *buf) {
 		len = strlen(buf);
@@ -150,7 +150,10 @@ char* dc_strlower(const char* in) /* the result must be free()'d */
  */
 int dc_str_replace(char** haystack, const char* needle, const char* replacement)
 {
-	int replacements = 0, start_search_pos = 0, needle_len, replacement_len;
+	int replacements = 0;
+	int start_search_pos = 0;
+	int needle_len = 0;
+	int replacement_len = 0;
 
 	if (haystack==NULL || *haystack==NULL || needle == NULL || needle[0]==0) {
 		return 0;
@@ -242,7 +245,7 @@ char* dc_null_terminate(const char* in, int bytes) /* the result must be free()'
 char* dc_binary_to_uc_hex(const uint8_t* buf, size_t bytes)
 {
 	char* hex = NULL;
-	int   i;
+	int   i = 0;
 
 	if (buf == NULL || bytes <= 0) {
 		goto cleanup;
@@ -264,8 +267,8 @@ cleanup:
 char* dc_mprintf(const char* format, ...)
 {
 	char  testbuf[1];
-	char* buf;
-	int   char_cnt_without_zero;
+	char* buf = NULL;
+	int   char_cnt_without_zero = 0;
 
 	va_list argp;
 	va_list argp_copy;
@@ -369,14 +372,19 @@ void dc_replace_bad_utf8_chars(char* buf)
 
 	unsigned char* p1 = (unsigned char*)buf; /* force unsigned - otherwise the `> ' '` comparison will fail */
 	int            p1len = strlen(buf);
-	int            c, i, ix, n, j;
+	int            c = 0;
+	int            i = 0;
+	int            ix = 0;
+	int            n = 0;
+	int            j = 0;
+
 	for (i=0, ix=p1len; i < ix; i++)
 	{
 		c = p1[i];
-		     if (c > 0 && c <= 0x7f)                           { n=0; }        /* 0bbbbbbb */
-		else if ((c & 0xE0) == 0xC0)                           { n=1; }        /* 110bbbbb */
+		     if (c > 0 && c <= 0x7f)                            { n=0; }        /* 0bbbbbbb */
+		else if ((c & 0xE0) == 0xC0)                            { n=1; }        /* 110bbbbb */
 		else if (c==0xed && i<(ix-1) && (p1[i+1] & 0xa0)==0xa0) { goto error; } /* U+d800 to U+dfff */
-		else if ((c & 0xF0) == 0xE0)                           { n=2; }        /* 1110bbbb */
+		else if ((c & 0xF0) == 0xE0)                            { n=2; }        /* 1110bbbb */
 		else if ((c & 0xF8) == 0xF0)                            { n=3; }        /* 11110bbb */
 		//else if ((c & 0xFC) == 0xF8)                          { n=4; }        /* 111110bb - not valid in https://tools.ietf.org/html/rfc3629 */
 		//else if ((c & 0xFE) == 0xFC)                          { n=5; }        /* 1111110b - not valid in https://tools.ietf.org/html/rfc3629 */
@@ -407,7 +415,8 @@ error:
 #if 0 /* not needed at the moment */
 static size_t dc_utf8_strlen(const char* s)
 {
-	size_t i = 0, j = 0;
+	size_t i = 0;
+	size_t j = 0;
 	while (s[i]) {
 		if ((s[i]&0xC0) != 0x80)
 			j++;
@@ -420,7 +429,8 @@ static size_t dc_utf8_strlen(const char* s)
 
 static size_t dc_utf8_strnlen(const char* s, size_t n)
 {
-	size_t i = 0, j = 0;
+	size_t i = 0;
+	size_t j = 0;
 	while (i < n) {
 		if ((s[i]&0xC0) != 0x80)
 			j++;
@@ -494,12 +504,12 @@ void dc_truncate_str(char* buf, int approx_chars)
 
 carray* dc_split_into_lines(const char* buf_terminated)
 {
-	carray* lines = carray_new(1024);
+	carray*      lines = carray_new(1024);
+	size_t       line_chars = 0;
+	const char*  p1 = buf_terminated;
+	const char*  line_start = p1;
+	unsigned int l_indx = 0;
 
-	size_t line_chars = 0;
-	const char* p1 = buf_terminated;
-	const char* line_start = p1;
-	unsigned int l_indx;
 	while (*p1) {
 		if (*p1  == '\n') {
 			carray_add(lines, (void*)strndup(line_start, line_chars), &l_indx);
@@ -539,8 +549,10 @@ char* dc_insert_breaks(const char* in, int break_every, const char* break_chars)
 		return dc_strdup(in);
 	}
 
-	int out_len = strlen(in), chars_added = 0;
+	int out_len = strlen(in);
+	int chars_added = 0;
 	int break_chars_len = strlen(break_chars);
+
 	out_len += (out_len/break_every+1)*break_chars_len + 1/*nullbyte*/;
 
 	char* out = malloc(out_len);
@@ -569,8 +581,7 @@ char* dc_insert_breaks(const char* in, int break_every, const char* break_chars)
 
 void clist_free_content(const clist* haystack)
 {
-	clistiter* iter;
-	for (iter=clist_begin(haystack); iter!=NULL; iter=clist_next(iter)) {
+	for (clistiter* iter=clist_begin(haystack); iter!=NULL; iter=clist_next(iter)) {
 		free(iter->data);
 		iter->data = NULL;
 	}
@@ -579,8 +590,7 @@ void clist_free_content(const clist* haystack)
 
 int clist_search_string_nocase(const clist* haystack, const char* needle)
 {
-	clistiter* iter;
-	for (iter=clist_begin(haystack); iter!=NULL; iter=clist_next(iter)) {
+	for (clistiter* iter=clist_begin(haystack); iter!=NULL; iter=clist_next(iter)) {
 		if (strcasecmp((const char*)iter->data, needle)==0) {
 			return 1;
 		}
@@ -596,7 +606,7 @@ int clist_search_string_nocase(const clist* haystack, const char* needle)
 
 static int tmcomp(struct tm * atmp, struct tm * btmp) /* from mailcore2 */
 {
-    int    result;
+    int result = 0;
 
     if ((result = (atmp->tm_year - btmp->tm_year)) == 0 &&
         (result = (atmp->tm_mon - btmp->tm_mon)) == 0 &&
@@ -610,11 +620,12 @@ static int tmcomp(struct tm * atmp, struct tm * btmp) /* from mailcore2 */
 
 static time_t mkgmtime(struct tm * tmp) /* from mailcore2 */
 {
-    int            dir;
-    int            bits;
-    int            saved_seconds;
-    time_t         t;
-    struct tm      yourtm, mytm;
+    int       dir = 0;
+    int       bits = 0;
+    int       saved_seconds = 0;
+    time_t    t = 0;
+    struct tm yourtm;
+    struct tm mytm;
 
     yourtm = *tmp;
     saved_seconds = yourtm.tm_sec;
@@ -656,9 +667,9 @@ static time_t mkgmtime(struct tm * tmp) /* from mailcore2 */
 time_t dc_timestamp_from_date(struct mailimf_date_time * date_time) /* from mailcore2 */
 {
     struct tm tmval;
-    time_t timeval;
-    int zone_min;
-    int zone_hour;
+    time_t    timeval = 0;
+    int       zone_min = 0;
+    int       zone_hour = 0;
 
     tmval.tm_sec  = date_time->dt_sec;
     tmval.tm_min  = date_time->dt_min;
@@ -693,7 +704,7 @@ long dc_gm2local_offset(void)
 {
 	/* returns the offset that must be _added_ to an UTC/GMT-time to create the localtime.
 	the function may return nagative values. */
-	time_t gmtime = time(NULL);
+	time_t    gmtime = time(NULL);
 	struct tm timeinfo = {0};
 	localtime_r(&gmtime, &timeinfo);
     return timeinfo.tm_gmtoff;
@@ -720,13 +731,13 @@ char* dc_timestamp_to_str(time_t wanted)
 
 struct mailimap_date_time* dc_timestamp_to_mailimap_date_time(time_t timeval)
 {
-    struct tm gmt;
-    struct tm lt;
-    int off;
-    struct mailimap_date_time * date_time;
-    int sign;
-    int hour;
-    int min;
+    struct tm                  gmt;
+    struct tm                  lt;
+    int                        off = 0;
+    struct mailimap_date_time* date_time;
+    int                        sign = 0;
+    int                        hour = 0;
+    int                        min = 0;
 
     gmtime_r(&timeval, &gmt);
     localtime_r(&timeval, &lt);
@@ -911,8 +922,10 @@ char* dc_create_incoming_rfc724_mid(time_t message_timestamp, uint32_t contact_i
 	}
 
 	/* find out the largest receiver ID (we could also take the smallest, but it should be unique) */
-	size_t   i, icnt = dc_array_get_cnt(contact_ids_to);
+	size_t   i = 0;
+	size_t   icnt = dc_array_get_cnt(contact_ids_to);
 	uint32_t largest_id_to = 0;
+
 	for (i = 0; i < icnt; i++) {
 		uint32_t cur_id = dc_array_get_id(contact_ids_to, i);
 		if (cur_id > largest_id_to) {
@@ -930,8 +943,9 @@ char* dc_extract_grpid_from_rfc724_mid(const char* mid)
 {
 	/* extract our group ID from Message-IDs as `Gr.12345678901.morerandom@domain.de`; "12345678901" is the wanted ID in this example. */
 	int   success = 0;
-	char* grpid = NULL, *p1;
-	int   grpid_len;
+	char* grpid = NULL;
+	char* p1 = NULL;
+	int   grpid_len = 0;
 
 	if (mid == NULL || strlen(mid)<8 || mid[0]!='G' || mid[1]!='r' || mid[2]!='.') {
 		goto cleanup;
@@ -961,9 +975,8 @@ cleanup:
 
 char* dc_extract_grpid_from_rfc724_mid_list(const clist* list)
 {
-	clistiter* cur;
 	if (list) {
-		for (cur = clist_begin(list); cur!=NULL ; cur=clist_next(cur)) {
+		for (clistiter* cur = clist_begin(list); cur!=NULL ; cur=clist_next(cur)) {
 			const char* mid = clist_content(cur);
 			char* grpid = dc_extract_grpid_from_rfc724_mid(mid);
 			if (grpid) {
@@ -1039,10 +1052,12 @@ int dc_delete_file(const char* pathNfilename, dc_context_t* log/*may be NULL*/)
 
 int dc_copy_file(const char* src, const char* dest, dc_context_t* log/*may be NULL*/)
 {
-    int     success = 0, fd_src = -1, fd_dest = -1;
+    int     success = 0;
+    int     fd_src = -1;
+    int     fd_dest = -1;
     #define DC_COPY_BUF_SIZE 4096
     char    buf[DC_COPY_BUF_SIZE];
-    size_t  bytes_read;
+    size_t  bytes_read = 0;
     int     anything_copied = 0;
 
 	if (src==NULL || dest==NULL) {
@@ -1118,8 +1133,10 @@ void dc_split_filename(const char* pathNfilename, char** ret_basename, char** re
 	maybe the detection could be more intelligent, however, for the moment, it is just file)
 	- if there is no suffix, the returned suffix string is empty, eg. "/path/foobar" is split into "foobar" and ""
 	- the case of the returned suffix is preserved; this is to allow reconstruction of (similar) names */
-	char* basename = dc_get_filename(pathNfilename), *suffix;
+	char* basename = dc_get_filename(pathNfilename);
+	char* suffix = NULL;
 	char* p1 = strrchr(basename, '.');
+
 	if (p1) {
 		suffix = dc_strdup(p1);
 		*p1 = 0;
@@ -1150,10 +1167,13 @@ void dc_validate_filename(char* filename)
 
 char* dc_get_fine_pathNfilename(const char* folder, const char* desired_filenameNsuffix__)
 {
-	char*       ret = NULL, *filenameNsuffix, *basename = NULL, *dotNSuffix = NULL;
+	char*       ret = NULL;
+	char*       filenameNsuffix = NULL;
+	char*       basename = NULL;
+	char*       dotNSuffix = NULL;
 	time_t      now = time(NULL);
 	struct stat st;
-	int         i;
+	int         i = 0;
 
 	filenameNsuffix = dc_strdup(desired_filenameNsuffix__);
 	dc_validate_filename(filenameNsuffix);

@@ -125,8 +125,10 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* simplify, const char
 
 	/* split the given buffer into lines */
 	carray* lines = dc_split_into_lines(buf_terminated);
-	int l, l_first = 0, l_last = carray_count(lines)-1; /* if l_last is -1, there are no lines */
-	char* line;
+	int     l = 0;
+	int     l_first = 0;
+	int     l_last = carray_count(lines)-1; /* if l_last is -1, there are no lines */
+	char*   line = NULL;
 
 	/* search for the line `-- ` and ignore this and all following lines
 	If the line contains more characters, it is _not_ treated as the footer start mark (hi, Thorsten) */
@@ -303,7 +305,8 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* simplify, const char
 char* dc_simplify_simplify(dc_simplify_t* simplify, const char* in_unterminated, int in_bytes, int is_html)
 {
 	/* create a copy of the given buffer */
-	char* out = NULL, *temp = NULL;
+	char* out = NULL;
+	char* temp = NULL;
 
 	if (simplify == NULL || in_unterminated == NULL || in_bytes <= 0) {
 		return dc_strdup("");
