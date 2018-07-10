@@ -31,7 +31,7 @@ extern "C" {
 #include <time.h>
 
 
-#define DC_VERSION_STR "0.18.2"
+#define DC_VERSION_STR "0.19.0"
 
 
 /**
