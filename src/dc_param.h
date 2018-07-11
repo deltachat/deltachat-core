@@ -60,6 +60,7 @@ typedef struct dc_param_t
 #define DC_PARAM_CMD_ARG2          'F'  /* for msgs */
 #define DC_PARAM_CMD_ARG3          'G'  /* for msgs */
 #define DC_PARAM_CMD_ARG4          'H'  /* for msgs */
+#define DC_PARAM_ERROR             'L'  /* for msgs */
 
 #define DC_PARAM_SERVER_FOLDER     'Z'  /* for jobs */
 #define DC_PARAM_SERVER_UID        'z'  /* for jobs */

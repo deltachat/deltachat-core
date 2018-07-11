@@ -69,7 +69,9 @@ typedef struct dc_job_t
 	int         action;
 	uint32_t    foreign_id;
 	dc_param_t* param;
+
 	int         try_again;
+	char*       pending_error; // discarded if the retry succeeds
 } dc_job_t;
 
 
@@ -80,7 +82,7 @@ void     dc_job_kill_actions          (dc_context_t*, int action1, int action2);
 #define  DC_AT_ONCE                 -1
 #define  DC_INCREATION_POLL          2 // this value does not increase the number of tries
 #define  DC_STANDARD_DELAY           3
-void     dc_job_try_again_later       (dc_job_t*, int try_again);
+void     dc_job_try_again_later       (dc_job_t*, int try_again, const char* error);
 
 
 // the other dc_job_do_DC_JOB_*() functions are declared static in the c-file

@@ -42,6 +42,8 @@ typedef struct dc_smtp_t
 	int             log_usual_error;
 
 	dc_context_t*   context; /* only for logging! */
+
+	char*           error;
 } dc_smtp_t;
 
 dc_smtp_t*   dc_smtp_new          (dc_context_t*);

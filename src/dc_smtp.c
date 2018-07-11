@@ -53,13 +53,18 @@ void dc_smtp_unref(dc_smtp_t* smtp)
 	}
 	dc_smtp_disconnect(smtp);
 	free(smtp->from);
+	free(smtp->error);
 	free(smtp);
 }
 
 
-/*******************************************************************************
- * Connect/Disconnect
- ******************************************************************************/
+static void log_error(dc_smtp_t* smtp, const char* what_failed, int r)
+{
+	char* error_msg = dc_mprintf("%s: %s: %s", what_failed, mailsmtp_strerror(r), smtp->etpan->response);
+	dc_log_warning(smtp->context, 0, "%s", error_msg);
+	free(smtp->error);
+	smtp->error = error_msg;
+}
 
 
 int dc_smtp_is_connected(const dc_smtp_t* smtp)
@@ -256,11 +261,12 @@ int dc_smtp_send_msg(dc_smtp_t* smtp, const clist* recipients, const char* data_
 	clistiter* iter = NULL;
 
 	if (smtp==NULL) {
-		return 0;
+		goto cleanup;
 	}
 
 	if (recipients==NULL || clist_count(recipients)==0 || data_not_terminated==NULL || data_bytes==0) {
-		return 1; // "null message" send
+		success = 1;
+		goto cleanup; // "null message" send
 	}
 
 	if (smtp->etpan==NULL) {
@@ -290,19 +296,19 @@ int dc_smtp_send_msg(dc_smtp_t* smtp, const clist* recipients, const char* data_
 		if ((r = (smtp->esmtp?
 				 mailesmtp_rcpt(smtp->etpan, rcpt, MAILSMTP_DSN_NOTIFY_FAILURE|MAILSMTP_DSN_NOTIFY_DELAY, NULL) :
 				  mailsmtp_rcpt(smtp->etpan, rcpt))) != MAILSMTP_NO_ERROR) {
-			dc_log_error_if(&smtp->log_connect_errors, smtp->context, 0, "Cannot add recipient %s: %s - %s", rcpt, mailsmtp_strerror(r), smtp->etpan->response);
+			log_error(smtp, "SMTP failed to add recipient", r);
 			goto cleanup;
 		}
 	}
 
 	// message
 	if ((r = mailsmtp_data(smtp->etpan)) != MAILSMTP_NO_ERROR) {
-		fprintf(stderr, "mailsmtp_data: %s\n", mailsmtp_strerror(r));
+		log_error(smtp, "SMTP failed to set data", r);
 		goto cleanup;
 	}
 
 	if ((r = mailsmtp_data_message(smtp->etpan, data_not_terminated, data_bytes)) != MAILSMTP_NO_ERROR) {
-		fprintf(stderr, "mailsmtp_data_message: %s\n", mailsmtp_strerror(r));
+		log_error(smtp, "SMTP failed to send message", r);
 		goto cleanup;
 	}
 

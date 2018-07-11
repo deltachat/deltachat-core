@@ -193,8 +193,8 @@ int dc_msg_get_type(const dc_msg_t* msg)
  * Outgoing message states:
  * - DC_STATE_OUT_PENDING (20) - The user has send the "send" button but the
  *   message is not yet sent and is pending in some way. Maybe we're offline (no checkmark).
- * - DC_STATE_OUT_ERROR (24) - _Unrecoverable_ error (_recoverable_ errors result in pending messages)
- * - DC_STATE_OUT_DELIVERED (26) - Outgoing message successfully delivered to server (one checkmark). Note, that already delivered messages may get into the state DC_STATE_OUT_ERROR if we get such a hint from the server.
+ * - DC_STATE_OUT_FAILED (24) - _Unrecoverable_ error (_recoverable_ errors result in pending messages), you'll receive the event #DC_EVENT_MSG_FAILED.
+ * - DC_STATE_OUT_DELIVERED (26) - Outgoing message successfully delivered to server (one checkmark). Note, that already delivered messages may get into the state DC_STATE_OUT_FAILED if we get such a hint from the server.
  *   If a sent message changes to this state, you'll receive the event #DC_EVENT_MSG_DELIVERED.
  * - DC_STATE_OUT_MDN_RCVD (28) - Outgoing message read by the recipient (two checkmarks; this requires goodwill on the receiver's side)
  *   If a sent message changes to this state, you'll receive the event #DC_EVENT_MSG_READ.
@@ -1158,6 +1158,36 @@ void dc_update_msg_state(dc_context_t* context, uint32_t msg_id, int state)
 }
 
 
+void dc_set_msg_failed(dc_context_t* context, uint32_t msg_id, const char* error)
+{
+	dc_msg_t*     msg = dc_msg_new();
+	sqlite3_stmt* stmt = NULL;
+
+	if (!dc_msg_load_from_db(msg, context, msg_id)) {
+		goto cleanup;
+	}
+
+	msg->state = DC_STATE_OUT_FAILED;
+	if (error) {
+		dc_param_set(msg->param, DC_PARAM_ERROR, error);
+		dc_log_error(context, 0, "%s", error);
+	}
+
+	stmt = dc_sqlite3_prepare(context->sql,
+		"UPDATE msgs SET state=?, param=? WHERE id=?;");
+	sqlite3_bind_int (stmt, 1, msg->state);
+	sqlite3_bind_text(stmt, 2, msg->param->packed, -1, SQLITE_STATIC);
+	sqlite3_bind_int (stmt, 3, msg_id);
+	sqlite3_step(stmt);
+
+	context->cb(context, DC_EVENT_MSG_FAILED, msg->chat_id, msg_id);
+
+cleanup:
+	sqlite3_finalize(stmt);
+	dc_msg_unref(msg);
+}
+
+
 size_t dc_get_real_msg_cnt(dc_context_t* context)
 {
 	sqlite3_stmt* stmt = NULL;
@@ -1406,7 +1436,7 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 		case DC_STATE_IN_NOTICED:    p = dc_strdup("Noticed");         break;
 		case DC_STATE_IN_SEEN:       p = dc_strdup("Seen");            break;
 		case DC_STATE_OUT_DELIVERED: p = dc_strdup("Delivered");       break;
-		case DC_STATE_OUT_ERROR:     p = dc_strdup("Error");           break;
+		case DC_STATE_OUT_FAILED:    p = dc_strdup("Failed");          break;
 		case DC_STATE_OUT_MDN_RCVD:  p = dc_strdup("Read");            break;
 		case DC_STATE_OUT_PENDING:   p = dc_strdup("Pending");         break;
 		default:                     p = dc_mprintf("%i", msg->state); break;
@@ -1431,6 +1461,12 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 	}
 	dc_strbuilder_cat(&ret, "\n");
 
+
+	if ((p=dc_param_get(msg->param, DC_PARAM_ERROR, NULL))!=NULL) {
+		dc_strbuilder_catf(&ret, "Error: %s\n", p);
+		free(p);
+	}
+
 	/* add sender (only for info messages as the avatar may not be shown for them) */
 	if (dc_msg_is_info(msg)) {
 		dc_strbuilder_cat(&ret, "Sender: ");
@@ -1439,9 +1475,9 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 	}
 
 	/* add file info */
-	char* file = dc_param_get(msg->param, DC_PARAM_FILE, NULL);
-	if (file) {
-		p = dc_mprintf("\nFile: %s, %i bytes\n", file, (int)dc_get_filebytes(file)); dc_strbuilder_cat(&ret, p); free(p);
+	if ((p=dc_param_get(msg->param, DC_PARAM_FILE, NULL))!=NULL) {
+		dc_strbuilder_catf(&ret, "\nFile: %s, %i bytes\n", p, (int)dc_get_filebytes(p));
+		free(p);
 	}
 
 	if (msg->type!=DC_MSG_TEXT) {
@@ -1459,7 +1495,8 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 		free(p);
 	}
 
-	int w = dc_param_get_int(msg->param, DC_PARAM_WIDTH, 0), h = dc_param_get_int(msg->param, DC_PARAM_HEIGHT, 0);
+	int w = dc_param_get_int(msg->param, DC_PARAM_WIDTH, 0);
+	int h = dc_param_get_int(msg->param, DC_PARAM_HEIGHT, 0);
 	if (w!=0 || h!=0) {
 		p = dc_mprintf("Dimension: %i x %i\n", w, h); dc_strbuilder_cat(&ret, p); free(p);
 	}

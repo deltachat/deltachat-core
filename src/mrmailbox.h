@@ -177,7 +177,7 @@ extern "C" {
 #define MR_STATE_IN_NOTICED                 DC_STATE_IN_NOTICED
 #define MR_STATE_IN_SEEN                    DC_STATE_IN_SEEN
 #define MR_STATE_OUT_PENDING                DC_STATE_OUT_PENDING
-#define MR_STATE_OUT_ERROR                  DC_STATE_OUT_ERROR
+#define MR_STATE_OUT_ERROR                  DC_STATE_OUT_FAILED
 #define MR_STATE_OUT_DELIVERED              DC_STATE_OUT_DELIVERED
 #define MR_STATE_OUT_MDN_RCVD               DC_STATE_OUT_MDN_RCVD
 #define mrmsg_new                           dc_msg_new

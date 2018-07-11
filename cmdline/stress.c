@@ -363,7 +363,7 @@ void stress_functions(dc_context_t* context)
 		assert( strcmp("noticed="   DC_STRINGIFY(DC_STATE_IN_NOTICED),    "noticed=13")==0 );
 		assert( strcmp("seen="      DC_STRINGIFY(DC_STATE_IN_SEEN),       "seen=16")==0 );
 		assert( strcmp("pending="   DC_STRINGIFY(DC_STATE_OUT_PENDING),   "pending=20")==0 );
-		assert( strcmp("error="     DC_STRINGIFY(DC_STATE_OUT_ERROR),     "error=24")==0 );
+		assert( strcmp("failed="    DC_STRINGIFY(DC_STATE_OUT_FAILED),    "failed=24")==0 );
 		assert( strcmp("delivered=" DC_STRINGIFY(DC_STATE_OUT_DELIVERED), "delivered=26")==0 );
 		assert( strcmp("mdn_rcvd="  DC_STRINGIFY(DC_STATE_OUT_MDN_RCVD),  "mdn_rcvd=28")==0 );
 
