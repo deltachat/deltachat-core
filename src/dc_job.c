@@ -633,7 +633,7 @@ static void dc_job_perform(dc_context_t* context, int thread)
 				}
 			}
 			else {
-				if (job.foreign_id && job.action==DC_JOB_SEND_MSG_TO_SMTP) { // in all other cases, the messages is already sent
+				if (job.action==DC_JOB_SEND_MSG_TO_SMTP) { // in all other cases, the messages is already sent
 					dc_update_msg_error(context, job.foreign_id, job.pending_error);
 				}
 				dc_job_delete(context, &job);
