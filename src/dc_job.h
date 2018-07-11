@@ -67,13 +67,13 @@ typedef struct dc_job_t
 
 	uint32_t    job_id;
 	int         action;
-	uint32_t    foreign_id;
+	uint32_t    msg_id;
 	dc_param_t* param;
 	int         try_again;
 } dc_job_t;
 
 
-void     dc_job_add                   (dc_context_t*, int action, int foreign_id, const char* param, int delay);
+void     dc_job_add                   (dc_context_t*, int action, int msg_id, const char* param, int delay);
 void     dc_job_kill_actions          (dc_context_t*, int action1, int action2); /* delete all pending jobs with the given actions */
 
 #define  DC_DONT_TRY_AGAIN           0

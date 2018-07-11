@@ -274,7 +274,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 						" added_timestamp INTEGER,"
 						" desired_timestamp INTEGER DEFAULT 0,"
 						" action INTEGER,"
-						" foreign_id INTEGER,"
+						" foreign_id INTEGER," // currently, this is always msg_id
 						" param TEXT DEFAULT '');");
 			dc_sqlite3_execute(sql, "CREATE INDEX jobs_index1 ON jobs (desired_timestamp);");
 
