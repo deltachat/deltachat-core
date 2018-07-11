@@ -1431,6 +1431,12 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 	}
 	dc_strbuilder_cat(&ret, "\n");
 
+
+	if ((p=dc_param_get(msg->param, DC_PARAM_ERROR, NULL))!=NULL) {
+		dc_strbuilder_catf(&ret, "Error: %s\n", p);
+		free(p);
+	}
+
 	/* add sender (only for info messages as the avatar may not be shown for them) */
 	if (dc_msg_is_info(msg)) {
 		dc_strbuilder_cat(&ret, "Sender: ");
@@ -1439,9 +1445,9 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 	}
 
 	/* add file info */
-	char* file = dc_param_get(msg->param, DC_PARAM_FILE, NULL);
-	if (file) {
-		p = dc_mprintf("\nFile: %s, %i bytes\n", file, (int)dc_get_filebytes(file)); dc_strbuilder_cat(&ret, p); free(p);
+	if ((p=dc_param_get(msg->param, DC_PARAM_FILE, NULL))!=NULL) {
+		dc_strbuilder_catf(&ret, "\nFile: %s, %i bytes\n", p, (int)dc_get_filebytes(p));
+		free(p);
 	}
 
 	if (msg->type!=DC_MSG_TEXT) {
@@ -1459,7 +1465,8 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 		free(p);
 	}
 
-	int w = dc_param_get_int(msg->param, DC_PARAM_WIDTH, 0), h = dc_param_get_int(msg->param, DC_PARAM_HEIGHT, 0);
+	int w = dc_param_get_int(msg->param, DC_PARAM_WIDTH, 0);
+	int h = dc_param_get_int(msg->param, DC_PARAM_HEIGHT, 0);
 	if (w!=0 || h!=0) {
 		p = dc_mprintf("Dimension: %i x %i\n", w, h); dc_strbuilder_cat(&ret, p); free(p);
 	}
