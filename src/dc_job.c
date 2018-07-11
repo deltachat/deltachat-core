@@ -61,7 +61,7 @@ static int connect_to_imap(dc_context_t* context, dc_job_t* job /*may be NULL if
 	dc_loginparam_read(param, context->sql, "configured_" /*the trailing underscore is correct*/);
 
 	if (!dc_imap_connect(context->imap, param)) {
-		dc_job_try_again_later(job, DC_STANDARD_DELAY);
+		dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
 		goto cleanup;
 	}
 
@@ -84,7 +84,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_IMAP(dc_context_t* context, dc_job_t* j
 	if (!dc_imap_is_connected(context->imap)) {
 		connect_to_imap(context, NULL);
 		if (!dc_imap_is_connected(context->imap)) {
-			dc_job_try_again_later(job, DC_STANDARD_DELAY);
+			dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
 			goto cleanup;
 		}
 	}
@@ -100,7 +100,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_IMAP(dc_context_t* context, dc_job_t* j
 	}
 
 	if (!dc_imap_append_msg(context->imap, mimefactory.msg->timestamp, mimefactory.out->str, mimefactory.out->len, &server_folder, &server_uid)) {
-		dc_job_try_again_later(job, DC_AT_ONCE);
+		dc_job_try_again_later(job, DC_AT_ONCE, NULL);
 		goto cleanup;
 	}
 	else {
@@ -135,14 +135,14 @@ static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(dc_context_t* context, dc_job_t*
 		if (!dc_imap_is_connected(context->imap)) {
 			connect_to_imap(context, NULL);
 			if (!dc_imap_is_connected(context->imap)) {
-				dc_job_try_again_later(job, DC_STANDARD_DELAY);
+				dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
 				goto cleanup;
 			}
 		}
 
 		if (!dc_imap_delete_msg(context->imap, msg->rfc724_mid, msg->server_folder, msg->server_uid))
 		{
-			dc_job_try_again_later(job, DC_AT_ONCE);
+			dc_job_try_again_later(job, DC_AT_ONCE, NULL);
 			goto cleanup;
 		}
 	}
@@ -221,7 +221,7 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* context, dc_job_
 	if (!dc_imap_is_connected(context->imap)) {
 		connect_to_imap(context, NULL);
 		if (!dc_imap_is_connected(context->imap)) {
-			dc_job_try_again_later(job, DC_STANDARD_DELAY);
+			dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
 			goto cleanup;
 		}
 	}
@@ -258,7 +258,7 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* context, dc_job_
 	}
 	else
 	{
-		dc_job_try_again_later(job, DC_AT_ONCE);
+		dc_job_try_again_later(job, DC_AT_ONCE, NULL);
 	}
 
 cleanup:
@@ -278,13 +278,13 @@ static void dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP(dc_context_t* context, dc_job_
 	if (!dc_imap_is_connected(context->imap)) {
 		connect_to_imap(context, NULL);
 		if (!dc_imap_is_connected(context->imap)) {
-			dc_job_try_again_later(job, DC_STANDARD_DELAY);
+			dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
 			goto cleanup;
 		}
 	}
 
 	if (dc_imap_markseen_msg(context->imap, server_folder, server_uid, DC_MS_ALSO_MOVE, &new_server_folder, &new_server_uid, &out_ms_flags)==0) {
-		dc_job_try_again_later(job, DC_AT_ONCE);
+		dc_job_try_again_later(job, DC_AT_ONCE, NULL);
 	}
 
 cleanup:
@@ -321,7 +321,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 			int connected = dc_smtp_connect(context->smtp, loginparam);
 		dc_loginparam_unref(loginparam);
 		if (!connected) {
-			dc_job_try_again_later(job, DC_STANDARD_DELAY);
+			dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
 			goto cleanup;
 		}
 	}
@@ -336,7 +336,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 	/* check if the message is ready (normally, only video files may be delayed this way) */
 	if (mimefactory.increation) {
 		dc_log_info(context, 0, "File is in creation, retrying later.");
-		dc_job_try_again_later(job, DC_INCREATION_POLL);
+		dc_job_try_again_later(job, DC_INCREATION_POLL, NULL);
 		goto cleanup;
 	}
 
@@ -357,7 +357,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 
 		if (!dc_smtp_send_msg(context->smtp, mimefactory.recipients_addr, mimefactory.out->str, mimefactory.out->len)) {
 			dc_smtp_disconnect(context->smtp);
-			dc_job_try_again_later(job, DC_AT_ONCE); /* DC_AT_ONCE is only the _initial_ delay, if the second try failes, the delay gets larger */
+			dc_job_try_again_later(job, DC_AT_ONCE, NULL); /* DC_AT_ONCE is only the _initial_ delay, if the second try failes, the delay gets larger */
 			goto cleanup;
 		}
 	}
@@ -419,7 +419,7 @@ static void dc_job_do_DC_JOB_SEND_MDN(dc_context_t* context, dc_job_t* job)
 			int connected = dc_smtp_connect(context->smtp, loginparam);
 		dc_loginparam_unref(loginparam);
 		if (!connected) {
-			dc_job_try_again_later(job, DC_STANDARD_DELAY);
+			dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
 			goto cleanup;
 		}
 	}
@@ -433,7 +433,7 @@ static void dc_job_do_DC_JOB_SEND_MDN(dc_context_t* context, dc_job_t* job)
 
 	if (!dc_smtp_send_msg(context->smtp, mimefactory.recipients_addr, mimefactory.out->str, mimefactory.out->len)) {
 		dc_smtp_disconnect(context->smtp);
-		dc_job_try_again_later(job, DC_AT_ONCE); /* DC_AT_ONCE is only the _initial_ delay, if the second try failes, the delay gets larger */
+		dc_job_try_again_later(job, DC_AT_ONCE, NULL); /* DC_AT_ONCE is only the _initial_ delay, if the second try failes, the delay gets larger */
 		goto cleanup;
 	}
 
@@ -508,13 +508,16 @@ void dc_job_add(dc_context_t* context, int action, int msg_id, const char* param
 }
 
 
-void dc_job_try_again_later(dc_job_t* job, int try_again)
+void dc_job_try_again_later(dc_job_t* job, int try_again, const char* pending_error)
 {
 	if (job==NULL) {
 		return;
 	}
 
 	job->try_again = try_again;
+
+	free(job->pending_error);
+	job->pending_error = dc_strdup_keep_null(pending_error);
 }
 
 
@@ -636,6 +639,7 @@ static void dc_job_perform(dc_context_t* context, int thread)
 
 cleanup:
 	dc_param_unref(job.param);
+	free(job.pending_error);
 	sqlite3_finalize(select_stmt);
 }
 
