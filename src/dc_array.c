@@ -355,7 +355,7 @@ void* dc_array_get_ptr(const dc_array_t* array, size_t index)
  *
  * @param array The array object to search in.
  * @param needle The ID to search for.
- * @param ret_index If set, this will receive the index. Set to NULL if you're not interested in the index.
+ * @param[out] ret_index If set, this will receive the index. Set to NULL if you're not interested in the index.
  *
  * @return 1=ID is present in array, 0=ID not found.
  */
