@@ -90,7 +90,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_IMAP(dc_context_t* context, dc_job_t* j
 	}
 
 	/* create message */
-	if (dc_mimefactory_load_msg(&mimefactory, job->msg_id)==0
+	if (dc_mimefactory_load_msg(&mimefactory, job->foreign_id)==0
 	 || mimefactory.from_addr==NULL) {
 		goto cleanup; /* should not happen as we've sent the message to the SMTP server before */
 	}
@@ -119,7 +119,7 @@ static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(dc_context_t* context, dc_job_t*
 	dc_msg_t*     msg = dc_msg_new();
 	sqlite3_stmt* stmt = NULL;
 
-	if (!dc_msg_load_from_db(msg, context, job->msg_id)
+	if (!dc_msg_load_from_db(msg, context, job->foreign_id)
 	 || msg->rfc724_mid==NULL || msg->rfc724_mid[0]==0 /* eg. device messages have no Message-ID */) {
 		goto cleanup;
 	}
@@ -226,7 +226,7 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* context, dc_job_
 		}
 	}
 
-	if (!dc_msg_load_from_db(msg, context, job->msg_id)) {
+	if (!dc_msg_load_from_db(msg, context, job->foreign_id)) {
 		goto cleanup;
 	}
 
@@ -316,7 +316,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 	}
 
 	/* load message data */
-	if (!dc_mimefactory_load_msg(&mimefactory, job->msg_id)
+	if (!dc_mimefactory_load_msg(&mimefactory, job->foreign_id)
 	 || mimefactory.from_addr==NULL) {
 		dc_log_warning(context, 0, "Cannot load data to send, maybe the message is deleted in between.");
 		goto cleanup; /* no redo, no IMAP - there won't be more recipients next time (as the data does not exist, there is no need in calling mark_as_error()) */
@@ -332,13 +332,13 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 	/* send message - it's okay if there are no recipients, this is a group with only OURSELF; we only upload to IMAP in this case */
 	if (clist_count(mimefactory.recipients_addr) > 0) {
 		if (!dc_mimefactory_render(&mimefactory)) {
-			dc_update_msg_error(context, job->msg_id, "Empty message.");
+			dc_update_msg_error(context, job->foreign_id, "Empty message.");
 			goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */
 		}
 
 		/* have we guaranteed encryption but cannot fulfill it for any reason? Do not send the message then.*/
 		if (dc_param_get_int(mimefactory.msg->param, DC_PARAM_GUARANTEE_E2EE, 0) && !mimefactory.out_encrypted) {
-			dc_update_msg_error(context, job->msg_id, "End-to-end-encryption unavailable unexpectedly.");
+			dc_update_msg_error(context, job->foreign_id, "End-to-end-encryption unavailable unexpectedly.");
 			goto cleanup; /* unrecoverable */
 		}
 
@@ -411,7 +411,7 @@ static void dc_job_do_DC_JOB_SEND_MDN(dc_context_t* context, dc_job_t* job)
 		}
 	}
 
-    if (!dc_mimefactory_load_mdn(&mimefactory, job->msg_id)
+    if (!dc_mimefactory_load_mdn(&mimefactory, job->foreign_id)
      || !dc_mimefactory_render(&mimefactory)) {
 		goto cleanup;
     }
@@ -459,7 +459,7 @@ static void dc_suspend_smtp_thread(dc_context_t* context, int suspend)
  ******************************************************************************/
 
 
-void dc_job_add(dc_context_t* context, int action, int msg_id, const char* param, int delay_seconds)
+void dc_job_add(dc_context_t* context, int action, int foreign_id, const char* param, int delay_seconds)
 {
 	time_t        timestamp = time(NULL);
 	sqlite3_stmt* stmt = NULL;
@@ -480,7 +480,7 @@ void dc_job_add(dc_context_t* context, int action, int msg_id, const char* param
 	sqlite3_bind_int64(stmt, 1, timestamp);
 	sqlite3_bind_int  (stmt, 2, thread);
 	sqlite3_bind_int  (stmt, 3, action);
-	sqlite3_bind_int  (stmt, 4, msg_id);
+	sqlite3_bind_int  (stmt, 4, foreign_id);
 	sqlite3_bind_text (stmt, 5, param? param : "",  -1, SQLITE_STATIC);
 	sqlite3_bind_int64(stmt, 6, delay_seconds>0? (timestamp+delay_seconds) : 0);
 	sqlite3_step(stmt);
@@ -566,7 +566,7 @@ static void dc_job_perform(dc_context_t* context, int thread)
 	{
 		job.job_id                          = sqlite3_column_int (select_stmt, 0);
 		job.action                          = sqlite3_column_int (select_stmt, 1);
-		job.msg_id                          = sqlite3_column_int (select_stmt, 2);
+		job.foreign_id                      = sqlite3_column_int (select_stmt, 2);
 		dc_param_set_packed(job.param, (char*)sqlite3_column_text(select_stmt, 3));
 
 		dc_log_info(context, 0, "%s-job #%i, action %i started...", THREAD_STR, (int)job.job_id, (int)job.action);
@@ -633,8 +633,8 @@ static void dc_job_perform(dc_context_t* context, int thread)
 				}
 			}
 			else {
-				if (job.msg_id && job.action==DC_JOB_SEND_MSG_TO_SMTP) { // in all other cases, the messages is already sent
-					dc_update_msg_error(context, job.msg_id, job.pending_error);
+				if (job.foreign_id && job.action==DC_JOB_SEND_MSG_TO_SMTP) { // in all other cases, the messages is already sent
+					dc_update_msg_error(context, job.foreign_id, job.pending_error);
 				}
 				dc_job_delete(context, &job);
 			}

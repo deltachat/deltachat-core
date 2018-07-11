@@ -67,7 +67,7 @@ typedef struct dc_job_t
 
 	uint32_t    job_id;
 	int         action;
-	uint32_t    msg_id;
+	uint32_t    foreign_id;
 	dc_param_t* param;
 
 	int         try_again;
