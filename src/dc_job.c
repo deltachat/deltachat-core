@@ -344,7 +344,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 
 		if (!dc_smtp_send_msg(context->smtp, mimefactory.recipients_addr, mimefactory.out->str, mimefactory.out->len)) {
 			dc_smtp_disconnect(context->smtp);
-			dc_job_try_again_later(job, DC_AT_ONCE, NULL); /* DC_AT_ONCE is only the _initial_ delay, if the second try failes, the delay gets larger */
+			dc_job_try_again_later(job, DC_AT_ONCE, context->smtp->error);
 			goto cleanup;
 		}
 	}
@@ -420,7 +420,7 @@ static void dc_job_do_DC_JOB_SEND_MDN(dc_context_t* context, dc_job_t* job)
 
 	if (!dc_smtp_send_msg(context->smtp, mimefactory.recipients_addr, mimefactory.out->str, mimefactory.out->len)) {
 		dc_smtp_disconnect(context->smtp);
-		dc_job_try_again_later(job, DC_AT_ONCE, NULL); /* DC_AT_ONCE is only the _initial_ delay, if the second try failes, the delay gets larger */
+		dc_job_try_again_later(job, DC_AT_ONCE, NULL);
 		goto cleanup;
 	}
 
@@ -633,7 +633,7 @@ static void dc_job_perform(dc_context_t* context, int thread)
 				}
 			}
 			else {
-				if (job.msg_id) {
+				if (job.msg_id && job.action==DC_JOB_SEND_MSG_TO_SMTP) { // in all other cases, the messages is already sent
 					dc_update_msg_error(context, job.msg_id, job.pending_error);
 				}
 				dc_job_delete(context, &job);
