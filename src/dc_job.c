@@ -613,21 +613,30 @@ static void dc_job_perform(dc_context_t* context, int thread)
 		}
 		else if (job.try_again==DC_AT_ONCE || job.try_again==DC_STANDARD_DELAY)
 		{
-			int tries = dc_param_get_int(job.param, DC_PARAM_TIMES, 0) + 1;
-			dc_param_set_int(job.param, DC_PARAM_TIMES, tries);
+			// Define the number of job-retries, each retry may result in 2 tries (for fast network-failure-recover).
+			// The first job-retries are done asap, the last retry is delayed about a minute.
+			// Network errors do not count as failed tries.
+			#define JOB_RETRIES 3
 
-			dc_job_update(context, &job);
-			dc_log_info(context, 0, "%s-job #%i not succeeded, trying again asap.", THREAD_STR, (int)job.job_id);
+			int is_online = dc_is_online(context)? 1 : 0;
+			int tries_while_online = dc_param_get_int(job.param, DC_PARAM_TIMES, 0) + is_online;
 
-			// if the job did not succeeded AND this is a smtp-job AND we're online, try over after a mini-delay of one second.
-			// if we're not online, the ui calls interrupt idle as soon as we're online again.
-			// if nothing of this happens, after DC_SMTP_IDLE_SEC (60) we try again.
-			if (thread==DC_SMTP_THREAD
-			 && dc_is_online(context))
-			{
-				pthread_mutex_lock(&context->smtpidle_condmutex);
-					context->perform_smtp_jobs_needed = DC_JOBS_NEEDED_AVOID_DOS;
-				pthread_mutex_unlock(&context->smtpidle_condmutex);
+			if( tries_while_online < JOB_RETRIES ) {
+				dc_param_set_int(job.param, DC_PARAM_TIMES, tries_while_online);
+				dc_job_update(context, &job);
+				dc_log_info(context, 0, "%s-job #%i not succeeded on try #%i.", THREAD_STR, (int)job.job_id, tries_while_online);
+
+				if (thread==DC_SMTP_THREAD && is_online && tries_while_online<(JOB_RETRIES-1)) {
+					pthread_mutex_lock(&context->smtpidle_condmutex);
+						context->perform_smtp_jobs_needed = DC_JOBS_NEEDED_AVOID_DOS;
+					pthread_mutex_unlock(&context->smtpidle_condmutex);
+				}
+			}
+			else {
+				if (job.msg_id) {
+					dc_update_msg_error(context, job.msg_id, job.pending_error);
+				}
+				dc_job_delete(context, &job);
 			}
 		}
 		else
