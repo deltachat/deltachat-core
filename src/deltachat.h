@@ -465,7 +465,7 @@ typedef struct _dc_msg dc_msg_t;
 #define         DC_STATE_IN_NOTICED          13
 #define         DC_STATE_IN_SEEN             16
 #define         DC_STATE_OUT_PENDING         20
-#define         DC_STATE_OUT_ERROR           24
+#define         DC_STATE_OUT_FAILED          24
 #define         DC_STATE_OUT_DELIVERED       26 // to check if a mail was sent, use dc_msg_is_sent()
 #define         DC_STATE_OUT_MDN_RCVD        28
 
@@ -621,7 +621,6 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * Messages or chats changed.  One or more messages or chats changed for various
  * reasons in the database:
  * - Messages sent, received or removed
- * - A message could not be sent (see dc_msg_get_state()/DC_STATE_OUT_ERROR)
  * - Chats created, deleted or archived
  * - A draft has been set
  *
@@ -646,7 +645,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 
 
 /**
- * A single message is sent successfully; state changed from  DC_STATE_OUT_PENDING to
+ * A single message is sent successfully. State changed from  DC_STATE_OUT_PENDING to
  * DC_STATE_OUT_DELIVERED, see dc_msg_get_state().
  *
  * @param data1 chat_id
@@ -657,7 +656,18 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 
 
 /**
- * A single message is read by the receiver; state changed from DC_STATE_OUT_DELIVERED to
+ * A single message could not be sent. State changed from DC_STATE_OUT_PENDING or DC_STATE_OUT_DELIVERED to
+ * DC_STATE_OUT_FAILED, see dc_msg_get_state().
+ *
+ * @param data1 chat_id
+ * @param data2 msg_id
+ * @return 0
+ */
+#define DC_EVENT_MSG_FAILED               2012
+
+
+/**
+ * A single message is read by the receiver. State changed from DC_STATE_OUT_DELIVERED to
  * DC_STATE_OUT_MDN_RCVD, see dc_msg_get_state().
  *
  * @param data1 chat_id

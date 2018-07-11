@@ -332,13 +332,13 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 	/* send message - it's okay if there are no recipients, this is a group with only OURSELF; we only upload to IMAP in this case */
 	if (clist_count(mimefactory.recipients_addr) > 0) {
 		if (!dc_mimefactory_render(&mimefactory)) {
-			dc_update_msg_error(context, job->foreign_id, "Empty message.");
+			dc_set_msg_failed(context, job->foreign_id, "Empty message.");
 			goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */
 		}
 
 		/* have we guaranteed encryption but cannot fulfill it for any reason? Do not send the message then.*/
 		if (dc_param_get_int(mimefactory.msg->param, DC_PARAM_GUARANTEE_E2EE, 0) && !mimefactory.out_encrypted) {
-			dc_update_msg_error(context, job->foreign_id, "End-to-end-encryption unavailable unexpectedly.");
+			dc_set_msg_failed(context, job->foreign_id, "End-to-end-encryption unavailable unexpectedly.");
 			goto cleanup; /* unrecoverable */
 		}
 
@@ -634,7 +634,7 @@ static void dc_job_perform(dc_context_t* context, int thread)
 			}
 			else {
 				if (job.action==DC_JOB_SEND_MSG_TO_SMTP) { // in all other cases, the messages is already sent
-					dc_update_msg_error(context, job.foreign_id, job.pending_error);
+					dc_set_msg_failed(context, job.foreign_id, job.pending_error);
 				}
 				dc_job_delete(context, &job);
 			}

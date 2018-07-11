@@ -110,7 +110,7 @@ The value is also used for CC:-summaries */
 // Context functions to work with messages
 void            dc_update_msg_chat_id                      (dc_context_t*, uint32_t msg_id, uint32_t chat_id);
 void            dc_update_msg_state                        (dc_context_t*, uint32_t msg_id, int state);
-void            dc_update_msg_error                        (dc_context_t*, uint32_t msg_id, const char* error);
+void            dc_set_msg_failed                          (dc_context_t*, uint32_t msg_id, const char* error);
 int             dc_mdn_from_ext                            (dc_context_t*, uint32_t from_id, const char* rfc724_mid, time_t, uint32_t* ret_chat_id, uint32_t* ret_msg_id); /* returns 1 if an event should be send */
 size_t          dc_get_real_msg_cnt                        (dc_context_t*); /* the number of messages assigned to real chat (!=deaddrop, !=trash) */
 size_t          dc_get_deaddrop_msg_cnt                    (dc_context_t*);

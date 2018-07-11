@@ -61,7 +61,7 @@ void dc_smtp_unref(dc_smtp_t* smtp)
 static void log_error(dc_smtp_t* smtp, const char* what_failed, int r)
 {
 	char* error_msg = dc_mprintf("%s: %s: %s", what_failed, mailsmtp_strerror(r), smtp->etpan->response);
-	dc_log_error_if(&smtp->log_connect_errors, smtp->context, 0, "%s", error_msg);
+	dc_log_warning(smtp->context, 0, "%s", error_msg);
 	free(smtp->error);
 	smtp->error = error_msg;
 }

@@ -287,7 +287,7 @@ static void log_msglist(dc_context_t* context, dc_array_t* msglist)
 				case DC_STATE_OUT_PENDING:   statestr = " o";   break;
 				case DC_STATE_OUT_DELIVERED: statestr = " √";   break;
 				case DC_STATE_OUT_MDN_RCVD:  statestr = " √√";  break;
-				case DC_STATE_OUT_ERROR:     statestr = " ERR"; break;
+				case DC_STATE_OUT_FAILED:    statestr = " !!";  break;
 			}
 
 			char* temp2 = dc_timestamp_to_str(dc_msg_get_timestamp(msg));
@@ -701,7 +701,7 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 							case DC_STATE_OUT_PENDING:   statestr = " o";   break;
 							case DC_STATE_OUT_DELIVERED: statestr = " √";   break;
 							case DC_STATE_OUT_MDN_RCVD:  statestr = " √√";  break;
-							case DC_STATE_OUT_ERROR:     statestr = " ERR"; break;
+							case DC_STATE_OUT_FAILED:    statestr = " !!";  break;
 						}
 
 						char* timestr = dc_timestamp_to_str(dc_lot_get_timestamp(lot));
