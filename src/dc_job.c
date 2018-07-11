@@ -508,6 +508,27 @@ void dc_job_add(dc_context_t* context, int action, int msg_id, const char* param
 }
 
 
+static void dc_job_update(dc_context_t* context, const dc_job_t* job)
+{
+	sqlite3_stmt* update_stmt = dc_sqlite3_prepare(context->sql,
+		"UPDATE jobs SET desired_timestamp=0, param=? WHERE id=?;");
+	sqlite3_bind_text (update_stmt, 1, job->param->packed, -1, SQLITE_STATIC);
+	sqlite3_bind_int  (update_stmt, 2, job->job_id);
+	sqlite3_step(update_stmt);
+	sqlite3_finalize(update_stmt);
+}
+
+
+static void dc_job_delete(dc_context_t* context, const dc_job_t* job)
+{
+	sqlite3_stmt* delete_stmt = dc_sqlite3_prepare(context->sql,
+		"DELETE FROM jobs WHERE id=?;");
+	sqlite3_bind_int(delete_stmt, 1, job->job_id);
+	sqlite3_step(delete_stmt);
+	sqlite3_finalize(delete_stmt);
+}
+
+
 void dc_job_try_again_later(dc_job_t* job, int try_again, const char* pending_error)
 {
 	if (job==NULL) {
@@ -608,12 +629,7 @@ static void dc_job_perform(dc_context_t* context, int thread)
 			int tries = dc_param_get_int(job.param, DC_PARAM_TIMES, 0) + 1;
 			dc_param_set_int(job.param, DC_PARAM_TIMES, tries);
 
-			sqlite3_stmt* update_stmt = dc_sqlite3_prepare(context->sql,
-				"UPDATE jobs SET desired_timestamp=0, param=? WHERE id=?;");
-			sqlite3_bind_text (update_stmt, 1, job.param->packed, -1, SQLITE_STATIC);
-			sqlite3_bind_int  (update_stmt, 2, job.job_id);
-			sqlite3_step(update_stmt);
-			sqlite3_finalize(update_stmt);
+			dc_job_update(context, &job);
 			dc_log_info(context, 0, "%s-job #%i not succeeded, trying again asap.", THREAD_STR, (int)job.job_id);
 
 			// if the job did not succeeded AND this is a smtp-job AND we're online, try over after a mini-delay of one second.
@@ -629,11 +645,7 @@ static void dc_job_perform(dc_context_t* context, int thread)
 		}
 		else
 		{
-			sqlite3_stmt* delete_stmt = dc_sqlite3_prepare(context->sql,
-				"DELETE FROM jobs WHERE id=?;");
-			sqlite3_bind_int(delete_stmt, 1, job.job_id);
-			sqlite3_step(delete_stmt);
-			sqlite3_finalize(delete_stmt);
+			dc_job_delete(context, &job);
 		}
 	}
 
