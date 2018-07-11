@@ -1158,6 +1158,36 @@ void dc_update_msg_state(dc_context_t* context, uint32_t msg_id, int state)
 }
 
 
+void dc_update_msg_error(dc_context_t* context, uint32_t msg_id, const char* error)
+{
+	dc_msg_t*     msg = dc_msg_new();
+	sqlite3_stmt* stmt = NULL;
+
+	if (!dc_msg_load_from_db(msg, context, msg_id)) {
+		goto cleanup;
+	}
+
+	msg->state = DC_STATE_OUT_ERROR;
+	if (error) {
+		dc_param_set(msg->param, DC_PARAM_ERROR, error);
+		dc_log_error(context, 0, "%s", error);
+	}
+
+	stmt = dc_sqlite3_prepare(context->sql,
+		"UPDATE msgs SET state=?, param=? WHERE id=?;");
+	sqlite3_bind_int (stmt, 1, msg->state);
+	sqlite3_bind_text(stmt, 2, msg->param->packed, -1, SQLITE_STATIC);
+	sqlite3_bind_int (stmt, 3, msg_id);
+	sqlite3_step(stmt);
+
+	context->cb(context, DC_EVENT_MSGS_CHANGED, msg->chat_id, 0);
+
+cleanup:
+	sqlite3_finalize(stmt);
+	dc_msg_unref(msg);
+}
+
+
 size_t dc_get_real_msg_cnt(dc_context_t* context)
 {
 	sqlite3_stmt* stmt = NULL;

@@ -298,17 +298,6 @@ cleanup:
  ******************************************************************************/
 
 
-static void mark_as_error(dc_context_t* context, dc_msg_t* msg)
-{
-	if (context==NULL || msg==NULL) {
-		return;
-	}
-
-	dc_update_msg_state(context, msg->id, DC_STATE_OUT_ERROR);
-	context->cb(context, DC_EVENT_MSGS_CHANGED, msg->chat_id, 0);
-}
-
-
 static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* job)
 {
 	dc_mimefactory_t mimefactory;
@@ -343,15 +332,13 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 	/* send message - it's okay if there are no recipients, this is a group with only OURSELF; we only upload to IMAP in this case */
 	if (clist_count(mimefactory.recipients_addr) > 0) {
 		if (!dc_mimefactory_render(&mimefactory)) {
-			mark_as_error(context, mimefactory.msg);
-			dc_log_error(context, 0, "Empty message."); /* should not happen */
+			dc_update_msg_error(context, job->msg_id, "Empty message.");
 			goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */
 		}
 
 		/* have we guaranteed encryption but cannot fulfill it for any reason? Do not send the message then.*/
 		if (dc_param_get_int(mimefactory.msg->param, DC_PARAM_GUARANTEE_E2EE, 0) && !mimefactory.out_encrypted) {
-			mark_as_error(context, mimefactory.msg);
-			dc_log_error(context, 0, "End-to-end-encryption unavailable unexpectedly.");
+			dc_update_msg_error(context, job->msg_id, "End-to-end-encryption unavailable unexpectedly.");
 			goto cleanup; /* unrecoverable */
 		}
 
