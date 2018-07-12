@@ -126,7 +126,7 @@ static uintptr_t receive_event(dc_context_t* context, int event, uintptr_t data1
 
 
 static pthread_t imap_thread = 0;
-static int       run_threads = 1;
+static int       run_threads = 0;
 static void* imap_thread_entry_point (void* entry_arg)
 {
 	dc_context_t* context = (dc_context_t*)entry_arg;
@@ -246,6 +246,24 @@ int main(int argc, char ** argv)
 		else if (strcmp(cmd, "disconnect")==0)
 		{
 			stop_threads(context);
+		}
+		else if (strcmp(cmd, "smtp-jobs")==0)
+		{
+			if (run_threads) {
+				printf("smtp-jobs are already running in a thread.\n");
+			}
+			else {
+				dc_perform_smtp_jobs(context);
+			}
+		}
+		else if (strcmp(cmd, "imap-jobs")==0)
+		{
+			if (run_threads) {
+				printf("imap-jobs are already running in a thread.\n");
+			}
+			else {
+				dc_perform_imap_jobs(context);
+			}
 		}
 		else if (strcmp(cmd, "configure")==0)
 		{
