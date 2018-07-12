@@ -628,7 +628,7 @@ pgp_decrypt_buf(pgp_io_t *io,
 	/* tidy up */
 	pgp_writer_close(parse->cbinfo.output);
 	pgp_output_delete(parse->cbinfo.output);
-	if (!parse->cbinfo.gotpass) {
+	if (!parse->cbinfo.gotpass) { // EDIT BY MR
 		pgp_memory_free(outmem);
 		outmem = NULL; /* if we didn't get the passphrase, return NULL */
 	}
