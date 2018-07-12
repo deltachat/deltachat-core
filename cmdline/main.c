@@ -125,23 +125,18 @@ static uintptr_t receive_event(dc_context_t* context, int event, uintptr_t data1
  ******************************************************************************/
 
 
-static pthread_t imap_thread     = 0;
-static int       imap_foreground = 1;
+static pthread_t imap_thread = 0;
+static int       run_threads = 1;
 static void* imap_thread_entry_point (void* entry_arg)
 {
 	dc_context_t* context = (dc_context_t*)entry_arg;
 
-	while (1) {
-		// perform_jobs(), fetch() and idle()
+	while (run_threads) {
+		// jobs(), fetch() and idle()
 		// MUST be called from the same single thread and MUST be called sequentially.
 		dc_perform_imap_jobs(context);
 		dc_perform_imap_fetch(context);
-		if (imap_foreground) {
-			dc_perform_imap_idle(context); // this may take hours ...
-		}
-		else {
-			break;
-		}
+		dc_perform_imap_idle(context); // this may take hours ...
 	}
 
 	imap_thread = 0;
@@ -154,14 +149,9 @@ static void* smtp_thread_entry_point (void* entry_arg)
 {
 	dc_context_t* context = (dc_context_t*)entry_arg;
 
-	while (1) {
+	while (run_threads) {
 		dc_perform_smtp_jobs(context);
-		if (imap_foreground) {
-			dc_perform_smtp_idle(context); // this may take hours ...
-		}
-		else {
-			break;
-		}
+		dc_perform_smtp_idle(context); // this may take hours ...
 	}
 
 	smtp_thread = 0;
@@ -171,6 +161,7 @@ static void* smtp_thread_entry_point (void* entry_arg)
 
 static void start_threads(dc_context_t* context)
 {
+	run_threads = 1;
 	if (!imap_thread) {
 		pthread_create(&imap_thread, NULL, imap_thread_entry_point, context);
 	}
@@ -183,7 +174,7 @@ static void start_threads(dc_context_t* context)
 
 static void stop_threads(dc_context_t* context)
 {
-	imap_foreground = 0;
+	run_threads = 0;
 	dc_interrupt_imap_idle(context);
 	dc_interrupt_smtp_idle(context);
 
@@ -250,20 +241,14 @@ int main(int argc, char ** argv)
 
 		if (strcmp(cmd, "connect")==0)
 		{
-			imap_foreground = 1;
 			start_threads(context);
 		}
 		else if (strcmp(cmd, "disconnect")==0)
 		{
 			stop_threads(context);
 		}
-		else if (strcmp(cmd, "poll")==0)
-		{
-			imap_foreground = 1;
-		}
 		else if (strcmp(cmd, "configure")==0)
 		{
-			imap_foreground = 1;
 			start_threads(context);
 			dc_configure(context);
 		}
@@ -274,7 +259,6 @@ int main(int argc, char ** argv)
 		}
 		else if (strcmp(cmd, "getqr")==0 || strcmp(cmd, "getbadqr")==0)
 		{
-			imap_foreground = 1;
 			start_threads(context);
 			char* qrstr  = dc_get_securejoin_qr(context, arg1? atoi(arg1) : 0);
 			if (qrstr && qrstr[0]) {
@@ -290,7 +274,6 @@ int main(int argc, char ** argv)
 		}
 		else if (strcmp(cmd, "joinqr")==0)
 		{
-			imap_foreground = 1;
 			start_threads(context);
 			if (arg1) {
 				dc_join_securejoin(context, arg1);
