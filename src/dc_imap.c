@@ -1460,10 +1460,10 @@ cleanup:
 
 static int add_flag(dc_imap_t* imap, uint32_t server_uid, struct mailimap_flag* flag)
 {
-	int                              r               = 0;
-	struct mailimap_flag_list*       flag_list       = NULL;
+	int                              r = 0;
+	struct mailimap_flag_list*       flag_list = NULL;
 	struct mailimap_store_att_flags* store_att_flags = NULL;
-	struct mailimap_set*             set             = mailimap_set_new_single(server_uid);
+	struct mailimap_set*             set = mailimap_set_new_single(server_uid);
 
 	if (imap==NULL || imap->etpan==NULL) {
 		goto cleanup;
@@ -1495,7 +1495,7 @@ int dc_imap_markseen_msg(dc_imap_t* imap, const char* folder, uint32_t server_ui
 {
 	// when marking as seen, there is no real need to check against the rfc724_mid - in the worst case, when the UID validity or the mailbox has changed, we mark the wrong message as "seen" - as the very most messages are seen, this is no big thing.
 	// command would be "STORE 123,456,678 +FLAGS (\Seen)"
-	int                  r   = 0;
+	int                  r = 0;
 	struct mailimap_set* set = NULL;
 
 	if (imap==NULL || folder==NULL || server_uid==0 || ret_server_folder==NULL || ret_server_uid==NULL || ret_ms_flags==NULL
@@ -1643,11 +1643,11 @@ cleanup:
 
 int dc_imap_delete_msg(dc_imap_t* imap, const char* rfc724_mid, const char* folder, uint32_t server_uid)
 {
-	int    success       = 0;
-	int    r             = 0;
-	clist* fetch_result  = NULL;
+	int    success = 0;
+	int    r = 0;
+	clist* fetch_result = NULL;
 	char*  is_rfc724_mid = NULL;
-	char*  new_folder    = NULL;
+	char*  new_folder = NULL;
 
 	if (imap==NULL || rfc724_mid==NULL || folder==NULL || folder[0]==0) {
 		success = 1; /* job done, do not try over */
