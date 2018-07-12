@@ -1158,6 +1158,13 @@ void dc_update_msg_state(dc_context_t* context, uint32_t msg_id, int state)
 }
 
 
+/**
+ * Changes the state of PENDING or DELIVERED messages to DC_STATE_OUT_FAILED.
+ * Moreover, the message error text can be updated.
+ * Finally, the given error text is also logged using dc_log_error().
+ *
+ * @private @memberof dc_context_t
+ */
 void dc_set_msg_failed(dc_context_t* context, uint32_t msg_id, const char* error)
 {
 	dc_msg_t*     msg = dc_msg_new();
@@ -1167,7 +1174,10 @@ void dc_set_msg_failed(dc_context_t* context, uint32_t msg_id, const char* error
 		goto cleanup;
 	}
 
-	msg->state = DC_STATE_OUT_FAILED;
+	if (DC_STATE_OUT_PENDING==msg->state || DC_STATE_OUT_DELIVERED==msg->state) {
+		msg->state = DC_STATE_OUT_FAILED;
+	}
+
 	if (error) {
 		dc_param_set(msg->param, DC_PARAM_ERROR, error);
 		dc_log_error(context, 0, "%s", error);
