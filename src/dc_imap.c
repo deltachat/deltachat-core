@@ -1349,16 +1349,8 @@ dc_imap_t* dc_imap_new(dc_get_config_t get_config, dc_set_config_t set_config, d
 	imap->fetch_type_uid = mailimap_fetch_type_new_fetch_att_list_empty(); /* object to fetch the ID */
 	mailimap_fetch_type_new_fetch_att_list_add(imap->fetch_type_uid, mailimap_fetch_att_new_uid());
 
-
 	imap->fetch_type_message_id = mailimap_fetch_type_new_fetch_att_list_empty();
 	mailimap_fetch_type_new_fetch_att_list_add(imap->fetch_type_message_id, mailimap_fetch_att_new_envelope());
-	/*clist* hdrlist = clist_new();
-	clist_append(hdrlist, strdup("Message-ID"));
-	struct mailimap_header_list* imap_hdrlist = mailimap_header_list_new(hdrlist);
-	struct mailimap_section* section = mailimap_section_new_header_fields(imap_hdrlist);
-	struct mailimap_fetch_att* fetch_att = mailimap_fetch_att_new_body_peek_section(section);
-	mailimap_fetch_type_new_fetch_att_list_add(imap->fetch_type_message_id, fetch_att);*/
-
 
 	imap->fetch_type_body = mailimap_fetch_type_new_fetch_att_list_empty(); /* object to fetch flags+body */
 	mailimap_fetch_type_new_fetch_att_list_add(imap->fetch_type_body, mailimap_fetch_att_new_flags());
@@ -1381,13 +1373,11 @@ void dc_imap_unref(dc_imap_t* imap)
 
 	pthread_cond_destroy(&imap->watch_cond);
 	pthread_mutex_destroy(&imap->watch_condmutex);
-
 	free(imap->selected_folder);
-
-	if (imap->fetch_type_uid)  { mailimap_fetch_type_free(imap->fetch_type_uid);  }
-	if (imap->fetch_type_body) { mailimap_fetch_type_free(imap->fetch_type_body); }
-	if (imap->fetch_type_flags){ mailimap_fetch_type_free(imap->fetch_type_flags);}
-
+	if (imap->fetch_type_uid)        { mailimap_fetch_type_free(imap->fetch_type_uid); }
+	if (imap->fetch_type_message_id) { mailimap_fetch_type_free(imap->fetch_type_message_id); }
+	if (imap->fetch_type_body)       { mailimap_fetch_type_free(imap->fetch_type_body); }
+	if (imap->fetch_type_flags)      { mailimap_fetch_type_free(imap->fetch_type_flags); }
 	free(imap);
 }
 

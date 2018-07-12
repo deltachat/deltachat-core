@@ -695,10 +695,12 @@ void stress_functions(dc_context_t* context)
 		char* norm = dc_normalize_setup_code(context, "123422343234423452346234723482349234");
 		assert( norm );
 		assert( strcmp(norm, "1234-2234-3234-4234-5234-6234-7234-8234-9234") == 0 );
+		free(norm);
 
 		norm = dc_normalize_setup_code(context, "\t1 2 3422343234- foo bar-- 423-45 2 34 6234723482349234      ");
 		assert( norm );
 		assert( strcmp(norm, "1234-2234-3234-4234-5234-6234-7234-8234-9234") == 0 );
+		free(norm);
 	}
 
 	{
@@ -900,6 +902,7 @@ void stress_functions(dc_context_t* context)
 		char* fingerprint = dc_normalize_fingerprint(" 1234  567890 \n AbcD abcdef ABCDEF ");
 		assert( fingerprint );
 		assert( strcmp(fingerprint, "1234567890ABCDABCDEFABCDEF") == 0 );
+		free(fingerprint);
 	}
 
 	if (dc_is_configured(context))
