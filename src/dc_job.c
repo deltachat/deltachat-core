@@ -343,8 +343,14 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 		}
 
 		if (!dc_smtp_send_msg(context->smtp, mimefactory.recipients_addr, mimefactory.out->str, mimefactory.out->len)) {
-			dc_smtp_disconnect(context->smtp);
-			dc_job_try_again_later(job, DC_AT_ONCE, context->smtp->error);
+			if (MAILSMTP_ERROR_EXCEED_STORAGE_ALLOCATION==context->smtp->error_etpan
+			 || MAILSMTP_ERROR_INSUFFICIENT_SYSTEM_STORAGE==context->smtp->error_etpan) {
+				dc_set_msg_failed(context, job->foreign_id, context->smtp->error);
+			}
+			else {
+				dc_smtp_disconnect(context->smtp);
+				dc_job_try_again_later(job, DC_AT_ONCE, context->smtp->error);
+			}
 			goto cleanup;
 		}
 	}

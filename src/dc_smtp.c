@@ -64,6 +64,7 @@ static void log_error(dc_smtp_t* smtp, const char* what_failed, int r)
 	dc_log_warning(smtp->context, 0, "%s", error_msg);
 	free(smtp->error);
 	smtp->error = error_msg;
+	smtp->error_etpan = r;
 }
 
 
@@ -280,13 +281,10 @@ int dc_smtp_send_msg(dc_smtp_t* smtp, const clist* recipients, const char* data_
 			 mailsmtp_mail(smtp->etpan, smtp->from))) != MAILSMTP_NO_ERROR)
 	{
 		// this error is very usual - we've simply lost the server connection and reconnect as soon as possible.
-		// so, we do not log the first time this happens
-		dc_log_error_if(&smtp->log_usual_error, smtp->context, 0, "mailsmtp_mail: %s, %s (%i)", smtp->from, mailsmtp_strerror(r), (int)r);
-		smtp->log_usual_error = 1;
+		// log_error() does log the error as a warning in the first place, the caller will log the error later if it is not recovered.
+		log_error(smtp, "SMTP failed to start message", r);
 		goto cleanup;
 	}
-
-	smtp->log_usual_error = 0;
 
 	// set recipients
 	// if the recipient is on the same server, this may fail at once.
@@ -317,4 +315,3 @@ int dc_smtp_send_msg(dc_smtp_t* smtp, const clist* recipients, const char* data_
 cleanup:
 	return success;
 }
-
