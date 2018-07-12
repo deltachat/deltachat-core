@@ -904,6 +904,7 @@ char* dc_create_outgoing_rfc724_mid(const char* grpid, const char* from_addr)
 		               /* ^^^ `Mr.` is currently not used, however, this may change in future */
 	}
 
+	free(rand1);
 	free(rand2);
 	return ret;
 }
