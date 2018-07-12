@@ -509,8 +509,14 @@ void            dc_msg_latefiling_mediasize  (dc_msg_t*, int width, int height, 
  * @class dc_contact_t
  *
  * An object representing a single contact in memory.
- * The contact object is not updated.  If you want an update, you have to recreate
- * the object.
+ * The contact object is not updated. If you want an update, you have to recreate the object.
+ *
+ * The library makes sure only to use names _authorized_ by the contact in `To:` or `Cc:`.
+ * Given-names as "Daddy" or "Honey" are not used there.
+ * For this purpose, internally, two names are tracked - autorized-name and given-name.
+ * By default, these names are equal, but functions working with contact names
+ * (eg. dc_contact_get_name(), dc_contact_get_display_name(), dc_contact_get_name_n_addr(),
+ * dc_contact_get_first_name(), dc_create_contact() or dc_add_address_book()) only affect the given-name.
  */
 typedef struct _dc_contact dc_contact_t;
 

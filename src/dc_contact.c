@@ -137,11 +137,10 @@ char* dc_contact_get_addr(const dc_contact_t* contact)
 
 
 /**
- * Get name. This is the name as defined the the contact himself or
+ * Get name. This is the name as defined by the contact himself or
  * modified by the user.  May be an empty string.
  *
  * This name is typically used in a form where the user can edit the name of a contact.
- * This name must not be spreaded via mail (To:, CC: ...) as it as it may be sth. like "Daddy".
  * To get a fine name to display in lists etc., use dc_contact_get_display_name() or dc_contact_get_name_n_addr().
  *
  * @memberof dc_contact_t
@@ -159,10 +158,10 @@ char* dc_contact_get_name(const dc_contact_t* contact)
 
 
 /**
- * Get display name. This is the name as defined the the contact himself,
+ * Get display name. This is the name as defined by the contact himself,
  * modified by the user or, if both are unset, the email address.
  *
- * This name is typically used in lists and must not be speaded via mail (To:, CC: ...).
+ * This name is typically used in lists.
  * To get the name editable in a formular, use dc_contact_get_name().
  *
  * @memberof dc_contact_t
@@ -191,8 +190,6 @@ char* dc_contact_get_display_name(const dc_contact_t* contact)
  *
  * The summary is typically used when asking the user something about the contact.
  * The attached email address makes the question unique, eg. "Chat with Alan Miller (am@uniquedomain.com)?"
- *
- * The summary must not be spreaded via mail (To:, CC: ...) as it as it may contain sth. like "Daddy".
  *
  * @memberof dc_contact_t
  * @param contact The contact object.
