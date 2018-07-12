@@ -519,8 +519,8 @@ int dc_pgp_split_key(dc_context_t* context, const dc_key_t* private_in, dc_key_t
 	success = 1;
 
 cleanup:
-	if (pubout) { pgp_output_delete(pubout); }
-	if (pubmem) { pgp_memory_free(pubmem); }
+	if (pubout)       { pgp_output_delete(pubout); }
+	if (pubmem)       { pgp_memory_free(pubmem); }
 	if (keysmem)      { pgp_memory_free(keysmem); }
 	if (public_keys)  { pgp_keyring_purge(public_keys); free(public_keys); } /*pgp_keyring_free() frees the content, not the pointer itself*/
 	if (private_keys) { pgp_keyring_purge(private_keys); free(private_keys); }
@@ -533,14 +533,14 @@ cleanup:
  ******************************************************************************/
 
 
-int dc_pgp_pk_encrypt(  dc_context_t*       context,
-                       const void*        plain_text,
-                       size_t             plain_bytes,
+int dc_pgp_pk_encrypt( dc_context_t*       context,
+                       const void*         plain_text,
+                       size_t              plain_bytes,
                        const dc_keyring_t* raw_public_keys_for_encryption,
                        const dc_key_t*     raw_private_key_for_signing,
-                       int                use_armor,
-                       void**             ret_ctext,
-                       size_t*            ret_ctext_bytes)
+                       int                 use_armor,
+                       void**              ret_ctext,
+                       size_t*             ret_ctext_bytes)
 {
 	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t));
 	pgp_keyring_t*  private_keys = calloc(1, sizeof(pgp_keyring_t));
@@ -625,14 +625,14 @@ cleanup:
 }
 
 
-int dc_pgp_pk_decrypt(  dc_context_t*       context,
-                       const void*        ctext,
-                       size_t             ctext_bytes,
+int dc_pgp_pk_decrypt( dc_context_t*       context,
+                       const void*         ctext,
+                       size_t              ctext_bytes,
                        const dc_keyring_t* raw_private_keys_for_decryption,
                        const dc_keyring_t* raw_public_keys_for_validation,
-                       int                use_armor,
-                       void**             ret_plain,
-                       size_t*            ret_plain_bytes,
+                       int                 use_armor,
+                       void**              ret_plain,
+                       size_t*             ret_plain_bytes,
                        dc_hash_t*          ret_signature_fingerprints)
 {
 	pgp_keyring_t*    public_keys = calloc(1, sizeof(pgp_keyring_t)); /*should be 0 after parsing*/
@@ -717,6 +717,6 @@ cleanup:
 	if (private_keys)       { pgp_keyring_purge(private_keys); free(private_keys); }
 	if (dummy_keys)         { pgp_keyring_purge(dummy_keys); free(dummy_keys); }
 	if (vresult)            { pgp_validate_result_free(vresult); }
-	if (recipients_key_ids) { free(recipients_key_ids); }
+	free(recipients_key_ids);
 	return success;
 }
