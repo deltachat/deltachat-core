@@ -764,7 +764,7 @@ void dc_configure(dc_context_t* context)
  * @return 1=context is configuredc can be used;
  *     0=context is not configured and a configuration by dc_configure() is required.
  */
-int dc_is_configured(dc_context_t* context)
+int dc_is_configured(const dc_context_t* context)
 {
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
 		return 0;

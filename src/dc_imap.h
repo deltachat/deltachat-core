@@ -98,7 +98,7 @@ void       dc_imap_unref             (dc_imap_t*);
 
 int        dc_imap_connect           (dc_imap_t*, const dc_loginparam_t*);
 void       dc_imap_disconnect        (dc_imap_t*);
-int        dc_imap_is_connected      (dc_imap_t*);
+int        dc_imap_is_connected      (const dc_imap_t*);
 int        dc_imap_fetch             (dc_imap_t*);
 
 void       dc_imap_idle              (dc_imap_t*);

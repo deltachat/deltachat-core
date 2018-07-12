@@ -331,7 +331,7 @@ int dc_is_open(const dc_context_t* context)
  * @return Blob directory associated with the context object, empty string if unset or on errors. NULL is never returned.
  *     The returned string must be free()'d.
  */
-char* dc_get_blobdir(dc_context_t* context)
+char* dc_get_blobdir(const dc_context_t* context)
 {
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
 		return dc_strdup(NULL);

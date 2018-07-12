@@ -218,7 +218,7 @@ void*           dc_get_userdata              (dc_context_t*);
 int             dc_open                      (dc_context_t*, const char* dbfile, const char* blobdir);
 void            dc_close                     (dc_context_t*);
 int             dc_is_open                   (const dc_context_t*);
-char*           dc_get_blobdir               (dc_context_t*);
+char*           dc_get_blobdir               (const dc_context_t*);
 
 int             dc_set_config                (dc_context_t*, const char* key, const char* value);
 char*           dc_get_config                (dc_context_t*, const char* key, const char* def);
@@ -231,7 +231,7 @@ void            dc_openssl_init_not_required (void);
 
 // connect
 void            dc_configure                 (dc_context_t*);
-int             dc_is_configured             (dc_context_t*);
+int             dc_is_configured             (const dc_context_t*);
 
 void            dc_perform_imap_jobs         (dc_context_t*);
 void            dc_perform_imap_fetch        (dc_context_t*);
