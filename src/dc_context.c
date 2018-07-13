@@ -350,9 +350,6 @@ static int32_t get_sys_config_int(const char* key, int32_t def, int* def_returne
 	if (strcmp(key, "sys.msgsize_max_recommended")==0) {
 		return DC_MSGSIZE_MAX_RECOMMENDED;
 	}
-	else if (strcmp(key, "sys.msgsize_upper_limit")==0) {
-		return DC_MSGSIZE_UPPER_LIMIT;
-	}
 	else {
 		*def_returned = 1;
 		return def;
@@ -425,7 +422,6 @@ int dc_set_config(dc_context_t* context, const char* key, const char* value)
  *                    All possible overheads are already substracted and this value can be used eg. for direct comparison
  *                    with the size of a file the user wants to attach. If an attachment is larger than this value,
  *                    an error (no warning as it should be shown to the user) is logged but the attachment is sent anyway.
- * - `sys.msgsize_upper_limit` = the library won't try to send attachments larger than this value.
  *
  * @memberof dc_context_t
  * @param context The context object as created by dc_context_new(). For querying system values, this can be NULL.
