@@ -254,6 +254,7 @@ uint32_t        dc_create_chat_by_msg_id     (dc_context_t*, uint32_t contact_id
 uint32_t        dc_create_chat_by_contact_id (dc_context_t*, uint32_t contact_id);
 uint32_t        dc_get_chat_id_by_contact_id (dc_context_t*, uint32_t contact_id);
 
+uint32_t        dc_send_msg                  (dc_context_t*, uint32_t chat_id, dc_msg_t*);
 uint32_t        dc_send_text_msg             (dc_context_t*, uint32_t chat_id, const char* text_to_send);
 uint32_t        dc_send_image_msg            (dc_context_t*, uint32_t chat_id, const char* file, const char* filemime, int width, int height);
 uint32_t        dc_send_video_msg            (dc_context_t*, uint32_t chat_id, const char* file, const char* filemime, int width, int height, int duration);

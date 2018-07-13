@@ -247,7 +247,7 @@ static void send_handshake_msg(dc_context_t* context, uint32_t contact_chat_id, 
 		dc_param_set_int(msg->param, DC_PARAM_GUARANTEE_E2EE, 1); /* all but the first message MUST be encrypted */
 	}
 
-	dc_send_msg_object(context, contact_chat_id, msg);
+	dc_send_msg(context, contact_chat_id, msg);
 
 	dc_msg_unref(msg);
 }

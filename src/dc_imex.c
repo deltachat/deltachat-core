@@ -501,7 +501,7 @@ char* dc_initiate_key_transfer(dc_context_t* context)
 
 	CHECK_EXIT
 
-	if ((msg_id = dc_send_msg_object(context, chat_id, msg))==0) {
+	if ((msg_id = dc_send_msg(context, chat_id, msg))==0) {
 		goto cleanup;
 	}
 

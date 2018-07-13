@@ -422,7 +422,7 @@ int dc_chat_update_param(dc_chat_t* chat)
 }
 
 
-static int dc_chat_set_from_stmt(dc_chat_t* chat, sqlite3_stmt* row)
+static int set_from_stmt(dc_chat_t* chat, sqlite3_stmt* row)
 {
 	int         row_offset = 0;
 	const char* draft_text = NULL;
@@ -510,7 +510,7 @@ int dc_chat_load_from_db(dc_chat_t* chat, uint32_t chat_id)
 		goto cleanup;
 	}
 
-	if (!dc_chat_set_from_stmt(chat, stmt)) {
+	if (!set_from_stmt(chat, stmt)) {
 		goto cleanup;
 	}
 
@@ -1466,7 +1466,7 @@ void dc_set_group_explicitly_left(dc_context_t* context, const char* grpid)
 }
 
 
-static int dc_real_group_exists(dc_context_t* context, uint32_t chat_id)
+static int real_group_exists(dc_context_t* context, uint32_t chat_id)
 {
 	// check if a group or a verified group exists under the given ID
 	sqlite3_stmt* stmt = NULL;
@@ -1586,7 +1586,7 @@ int dc_set_chat_name(dc_context_t* context, uint32_t chat_id, const char* new_na
 		goto cleanup;
 	}
 
-	if (0==dc_real_group_exists(context, chat_id)
+	if (0==real_group_exists(context, chat_id)
 	 || 0==dc_chat_load_from_db(chat, chat_id)) {
 		goto cleanup;
 	}
@@ -1612,7 +1612,7 @@ int dc_set_chat_name(dc_context_t* context, uint32_t chat_id, const char* new_na
 		msg->type = DC_MSG_TEXT;
 		msg->text = dc_stock_str_repl_string2(context, DC_STR_MSGGRPNAME, chat->name, new_name);
 		dc_param_set_int(msg->param, DC_PARAM_CMD, DC_CMD_GROUPNAME_CHANGED);
-		msg->id = dc_send_msg_object(context, chat_id, msg);
+		msg->id = dc_send_msg(context, chat_id, msg);
 		context->cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg->id);
 	}
 	context->cb(context, DC_EVENT_CHAT_MODIFIED, chat_id, 0);
@@ -1654,7 +1654,7 @@ int dc_set_chat_profile_image(dc_context_t* context, uint32_t chat_id, const cha
 		goto cleanup;
 	}
 
-	if (0==dc_real_group_exists(context, chat_id)
+	if (0==real_group_exists(context, chat_id)
 	 || 0==dc_chat_load_from_db(chat, chat_id)) {
 		goto cleanup;
 	}
@@ -1672,11 +1672,11 @@ int dc_set_chat_profile_image(dc_context_t* context, uint32_t chat_id, const cha
 	/* send a status mail to all group members, also needed for outself to allow multi-client */
 	if (DO_SEND_STATUS_MAILS)
 	{
-		dc_param_set_int(msg->param, DC_PARAM_CMD,       DC_CMD_GROUPIMAGE_CHANGED);
+		dc_param_set_int(msg->param, DC_PARAM_CMD,     DC_CMD_GROUPIMAGE_CHANGED);
 		dc_param_set    (msg->param, DC_PARAM_CMD_ARG, new_image);
 		msg->type = DC_MSG_TEXT;
 		msg->text = dc_stock_str(context, new_image? DC_STR_MSGGRPIMGCHANGED : DC_STR_MSGGRPIMGDELETED);
-		msg->id = dc_send_msg_object(context, chat_id, msg);
+		msg->id = dc_send_msg(context, chat_id, msg);
 		context->cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg->id);
 	}
 	context->cb(context, DC_EVENT_CHAT_MODIFIED, chat_id, 0);
@@ -1749,7 +1749,7 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 		goto cleanup;
 	}
 
-	if (0==dc_real_group_exists(context, chat_id) /*this also makes sure, not contacts are added to special or normal chats*/
+	if (0==real_group_exists(context, chat_id) /*this also makes sure, not contacts are added to special or normal chats*/
 	 || (0==dc_real_contact_exists(context, contact_id) && contact_id!=DC_CONTACT_ID_SELF)
 	 || 0==dc_chat_load_from_db(chat, chat_id)) {
 		goto cleanup;
@@ -1802,7 +1802,7 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 		dc_param_set_int(msg->param, DC_PARAM_CMD,      DC_CMD_MEMBER_ADDED_TO_GROUP);
 		dc_param_set    (msg->param, DC_PARAM_CMD_ARG,  contact->addr);
 		dc_param_set_int(msg->param, DC_PARAM_CMD_ARG2, flags); // combine the Secure-Join protocol headers with the Chat-Group-Member-Added header
-		msg->id = dc_send_msg_object(context, chat_id, msg);
+		msg->id = dc_send_msg(context, chat_id, msg);
 		context->cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg->id);
 	}
 	context->cb(context, DC_EVENT_CHAT_MODIFIED, chat_id, 0);
@@ -1866,7 +1866,7 @@ int dc_remove_contact_from_chat(dc_context_t* context, uint32_t chat_id, uint32_
 		goto cleanup; /* we do not check if "contact_id" exists but just delete all records with the id from chats_contacts */
 	}                 /* this allows to delete pending references to deleted contacts.  Of course, this should _not_ happen. */
 
-	if (0==dc_real_group_exists(context, chat_id)
+	if (0==real_group_exists(context, chat_id)
 	 || 0==dc_chat_load_from_db(chat, chat_id)) {
 		goto cleanup;
 	}
@@ -1892,7 +1892,7 @@ int dc_remove_contact_from_chat(dc_context_t* context, uint32_t chat_id, uint32_
 			}
 			dc_param_set_int(msg->param, DC_PARAM_CMD,       DC_CMD_MEMBER_REMOVED_FROM_GROUP);
 			dc_param_set    (msg->param, DC_PARAM_CMD_ARG, contact->addr);
-			msg->id = dc_send_msg_object(context, chat_id, msg);
+			msg->id = dc_send_msg(context, chat_id, msg);
 			context->cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg->id);
 		}
 	}
@@ -1942,7 +1942,7 @@ static int last_msg_in_chat_encrypted(dc_sqlite3_t* sql, uint32_t chat_id)
 }
 
 
-static uint32_t dc_send_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc_msg_t* msg, time_t timestamp)
+static uint32_t send_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc_msg_t* msg, time_t timestamp)
 {
 	char*         rfc724_mid = NULL;
 	sqlite3_stmt* stmt = NULL;
@@ -2087,7 +2087,7 @@ cleanup:
  *     free it using dc_msg_unref() as usual.
  * @return The ID of the message that is about being sent.
  */
-uint32_t dc_send_msg_object(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
+uint32_t dc_send_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 {
 	char*      pathNfilename = NULL;
 	dc_chat_t* chat = NULL;
@@ -2179,7 +2179,7 @@ uint32_t dc_send_msg_object(dc_context_t* context, uint32_t chat_id, dc_msg_t* m
 
 	chat = dc_chat_new(context);
 	if (dc_chat_load_from_db(chat, chat_id)) {
-		msg->id = dc_send_msg_raw(context, chat, msg, dc_create_smeared_timestamp(context));
+		msg->id = send_msg_raw(context, chat, msg, dc_create_smeared_timestamp(context));
 		if (msg ->id==0) {
 			goto cleanup; /* error already logged */
 		}
@@ -2222,7 +2222,7 @@ uint32_t dc_send_text_msg(dc_context_t* context, uint32_t chat_id, const char* t
 	msg->type = DC_MSG_TEXT;
 	msg->text = dc_strdup(text_to_send);
 
-	ret = dc_send_msg_object(context, chat_id, msg);
+	ret = dc_send_msg(context, chat_id, msg);
 
 cleanup:
 	dc_msg_unref(msg);
@@ -2263,7 +2263,7 @@ uint32_t dc_send_image_msg(dc_context_t* context, uint32_t chat_id, const char* 
 	dc_param_set_int(msg->param, DC_PARAM_WIDTH,  width);  /* set in sending job, if 0 */
 	dc_param_set_int(msg->param, DC_PARAM_HEIGHT, height); /* set in sending job, if 0 */
 
-	ret = dc_send_msg_object(context, chat_id, msg);
+	ret = dc_send_msg(context, chat_id, msg);
 
 cleanup:
 	dc_msg_unref(msg);
@@ -2308,7 +2308,7 @@ uint32_t dc_send_video_msg(dc_context_t* context, uint32_t chat_id, const char* 
 	dc_param_set_int(msg->param, DC_PARAM_HEIGHT,   height);
 	dc_param_set_int(msg->param, DC_PARAM_DURATION, duration);
 
-	ret = dc_send_msg_object(context, chat_id, msg);
+	ret = dc_send_msg(context, chat_id, msg);
 
 cleanup:
 	dc_msg_unref(msg);
@@ -2348,7 +2348,7 @@ uint32_t dc_send_voice_msg(dc_context_t* context, uint32_t chat_id, const char* 
 	dc_param_set    (msg->param, DC_PARAM_MIMETYPE, filemime);
 	dc_param_set_int(msg->param, DC_PARAM_DURATION, duration);
 
-	ret = dc_send_msg_object(context, chat_id, msg);
+	ret = dc_send_msg(context, chat_id, msg);
 
 cleanup:
 	dc_msg_unref(msg);
@@ -2391,7 +2391,7 @@ uint32_t dc_send_audio_msg(dc_context_t* context, uint32_t chat_id, const char* 
 	dc_param_set    (msg->param, DC_PARAM_AUTHORNAME, author);
 	dc_param_set    (msg->param, DC_PARAM_TRACKNAME,  trackname);
 
-	ret = dc_send_msg_object(context, chat_id, msg);
+	ret = dc_send_msg(context, chat_id, msg);
 
 cleanup:
 	dc_msg_unref(msg);
@@ -2428,7 +2428,7 @@ uint32_t dc_send_file_msg(dc_context_t* context, uint32_t chat_id, const char* f
 	dc_param_set(msg->param, DC_PARAM_FILE,     file);
 	dc_param_set(msg->param, DC_PARAM_MIMETYPE, filemime);
 
-	ret = dc_send_msg_object(context, chat_id, msg);
+	ret = dc_send_msg(context, chat_id, msg);
 
 cleanup:
 	dc_msg_unref(msg);
@@ -2578,7 +2578,7 @@ void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt
 			dc_param_set    (msg->param, DC_PARAM_GUARANTEE_E2EE, NULL);
 			dc_param_set    (msg->param, DC_PARAM_FORCE_PLAINTEXT, NULL);
 
-			uint32_t new_msg_id = dc_send_msg_raw(context, chat, msg, curr_timestamp++);
+			uint32_t new_msg_id = send_msg_raw(context, chat, msg, curr_timestamp++);
 			carray_add(created_db_entries, (void*)(uintptr_t)chat_id, NULL);
 			carray_add(created_db_entries, (void*)(uintptr_t)new_msg_id, NULL);
 		}

@@ -70,7 +70,6 @@ void            dc_lookup_real_nchat_by_contact_id         (dc_context_t*, uint3
 void            dc_unarchive_chat                          (dc_context_t*, uint32_t chat_id);
 void            dc_block_chat                              (dc_context_t*, uint32_t chat_id, int new_blocking);
 void            dc_unblock_chat                            (dc_context_t*, uint32_t chat_id);
-uint32_t        dc_send_msg_object                         (dc_context_t*, uint32_t chat_id, dc_msg_t*);
 void            dc_add_device_msg                          (dc_context_t*, uint32_t chat_id, const char* text);
 int             dc_get_chat_contact_cnt                    (dc_context_t*, uint32_t chat_id);
 int             dc_is_group_explicitly_left                (dc_context_t*, const char* grpid);
