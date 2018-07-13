@@ -116,7 +116,7 @@ cleanup:
 static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(dc_context_t* context, dc_job_t* job)
 {
 	int           delete_from_server = 1;
-	dc_msg_t*     msg = dc_msg_new();
+	dc_msg_t*     msg = dc_msg_new(context);
 	sqlite3_stmt* stmt = NULL;
 
 	if (!dc_msg_load_from_db(msg, context, job->foreign_id)
@@ -212,7 +212,7 @@ cleanup:
 
 static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* context, dc_job_t* job)
 {
-	dc_msg_t* msg = dc_msg_new();
+	dc_msg_t* msg = dc_msg_new(context);
 	char*     new_server_folder = NULL;
 	uint32_t  new_server_uid = 0;
 	int       in_ms_flags = 0;

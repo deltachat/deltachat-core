@@ -135,7 +135,7 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 
 	factory->recipients_names = clist_new();
 	factory->recipients_addr  = clist_new();
-	factory->msg              = dc_msg_new();
+	factory->msg              = dc_msg_new(context);
 	factory->chat             = dc_chat_new(context);
 
 		if (dc_msg_load_from_db(factory->msg, context, msg_id)
@@ -273,7 +273,7 @@ int dc_mimefactory_load_mdn(dc_mimefactory_t* factory, uint32_t msg_id)
 
 	factory->recipients_names = clist_new();
 	factory->recipients_addr  = clist_new();
-	factory->msg              = dc_msg_new();
+	factory->msg              = dc_msg_new(context);
 
 		if (!dc_sqlite3_get_config_int(context->sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED)) {
 			goto cleanup; /* MDNs not enabled - check this is late, in the job. the use may have changed its choice while offline ... */
@@ -669,7 +669,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 
 		if (grpimage)
 		{
-			dc_msg_t* meta = dc_msg_new();
+			dc_msg_t* meta = dc_msg_new(factory->context);
 			meta->type = DC_MSG_IMAGE;
 			dc_param_set(meta->param, DC_PARAM_FILE, grpimage);
 			char* filename_as_sent = NULL;

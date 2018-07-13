@@ -223,7 +223,7 @@ dc_lot_t* dc_chatlist_get_summary(const dc_chatlist_t* chatlist, size_t index, d
 
 	if (lastmsg_id)
 	{
-		lastmsg = dc_msg_new();
+		lastmsg = dc_msg_new(chatlist->context);
 		dc_msg_load_from_db(lastmsg, chatlist->context, lastmsg_id);
 
 		if (lastmsg->from_id!=DC_CONTACT_ID_SELF  &&  DC_CHAT_TYPE_IS_MULTI(chat->type))
