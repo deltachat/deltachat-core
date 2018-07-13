@@ -503,6 +503,12 @@ int             dc_msg_is_info               (const dc_msg_t*);
 int             dc_msg_is_increation         (const dc_msg_t*);
 int             dc_msg_is_setupmessage       (const dc_msg_t*);
 char*           dc_msg_get_setupcodebegin    (const dc_msg_t*);
+void            dc_msg_set_type              (dc_msg_t*, int type);
+void            dc_msg_set_text              (dc_msg_t*, const char* text);
+void            dc_msg_set_file              (dc_msg_t*, const char* file, const char* filemime);
+void            dc_msg_set_dimension         (dc_msg_t*, int width, int height);
+void            dc_msg_set_duration          (dc_msg_t*, int duration);
+void            dc_msg_set_mediainfo         (dc_msg_t*, const char* author, const char* trackname);
 void            dc_msg_latefiling_mediasize  (dc_msg_t*, int width, int height, int duration);
 
 

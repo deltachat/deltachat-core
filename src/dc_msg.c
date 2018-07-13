@@ -1086,7 +1086,131 @@ void dc_msg_save_param_to_disk(dc_msg_t* msg)
 
 
 /**
+ * Set the type of a message object.
+ * The function does not check of the type is valid and the function does not alter any information in the database;
+ * both may be done by dc_send_msg() later.
+ *
+ * @memberof dc_msg_t
+ * @param msg The message object.
+ * @param type The type to set, one of DC_MSG_TEXT (10), DC_MSG_IMAGE (20), DC_MSG_GIF (21),
+ *     DC_MSG_AUDIO (40), DC_MSG_VOICE (41), DC_MSG_VIDEO (50), DC_MSG_FILE (60)
+ * @return None.
+ */
+void dc_msg_set_type(dc_msg_t* msg, int type)
+{
+	if (msg==NULL || msg->magic!=DC_MSG_MAGIC) {
+		return;
+	}
+	msg->type = type;
+}
+
+
+/**
+ * Set the text of a message object.
+ * This does not alter any information in the database; this may be done by dc_send_msg() later.
+ *
+ * @memberof dc_msg_t
+ * @param msg The message object.
+ * @param text Message text.
+ * @return None.
+ */
+void dc_msg_set_text(dc_msg_t* msg, const char* text)
+{
+	if (msg==NULL || msg->magic!=DC_MSG_MAGIC) {
+		return;
+	}
+	free(msg->text);
+	msg->text = dc_strdup(text);
+}
+
+
+/**
+ * Set the file associated with a message object.
+ * This does not alter any information in the database
+ * nor copy or move the file or checks if the file exist.
+ * All this can be done with dc_send_msg() later.
+ *
+ * @memberof dc_msg_t
+ * @param msg The message object.
+ * @param file If the message object is used in dc_send_msg() later,
+ *     this must be the full path of the image file to send.
+ * @param filemime Mime type of the file. NULL if you don't know or don't care.
+ * @return None.
+ */
+void dc_msg_set_file(dc_msg_t* msg, const char* file, const char* filemime)
+{
+	if (msg==NULL || msg->magic!=DC_MSG_MAGIC) {
+		return;
+	}
+	dc_param_set(msg->param, DC_PARAM_FILE, file);
+	dc_param_set(msg->param, DC_PARAM_MIMETYPE, filemime);
+}
+
+
+/**
+ * Set the dimensions associated with message object.
+ * Typically this is the width and the height of an image or video associated using dc_msg_set_file().
+ * This does not alter any information in the database; this may be done by dc_send_msg() later.
+ *
+ * @memberof dc_msg_t
+ * @param msg The message object.
+ * @param width Width in pixels, if known. 0 if you don't know or don't care.
+ * @param height Height in pixels, if known. 0 if you don't know or don't care.
+ * @return None.
+ */
+void dc_msg_set_dimension(dc_msg_t* msg, int width, int height)
+{
+	if (msg==NULL || msg->magic!=DC_MSG_MAGIC) {
+		return;
+	}
+	dc_param_set_int(msg->param, DC_PARAM_WIDTH, width);
+	dc_param_set_int(msg->param, DC_PARAM_HEIGHT, height);
+}
+
+
+/**
+ * Set the duration associated with message object.
+ * Typically this is the duration of an audio or video associated using dc_msg_set_file().
+ * This does not alter any information in the database; this may be done by dc_send_msg() later.
+ *
+ * @memberof dc_msg_t
+ * @param msg The message object.
+ * @param duration Length in milliseconds. 0 if you don't know or don't care.
+ * @return None.
+ */
+void dc_msg_set_duration(dc_msg_t* msg, int duration)
+{
+	if (msg==NULL || msg->magic!=DC_MSG_MAGIC) {
+		return;
+	}
+	dc_param_set_int(msg->param, DC_PARAM_DURATION, duration);
+}
+
+
+/**
+ * Set the media information associated with message object.
+ * Typically this is the author and the trackname of an audio or video associated using dc_msg_set_file().
+ * This does not alter any information in the database; this may be done by dc_send_msg() later.
+ *
+ * @memberof dc_msg_t
+ * @param msg The message object.
+ * @param author Author or artist. NULL if you don't know or don't care.
+ * @param trackname Trackname or title. NULL if you don't know or don't care.
+ * @return None.
+ */
+void dc_msg_set_mediainfo(dc_msg_t* msg, const char* author, const char* trackname)
+{
+	if (msg==NULL || msg->magic!=DC_MSG_MAGIC) {
+		return;
+	}
+	dc_param_set(msg->param, DC_PARAM_AUTHORNAME, author);
+	dc_param_set(msg->param, DC_PARAM_TRACKNAME, trackname);
+}
+
+
+/**
  * Late filing information to a message.
+ * In contrast to the dc_msg_set_*() functions, this function really stores the information in the database.
  *
  * Sometimes, the core cannot find out the width, the height or the duration
  * of an image, an audio or a video.
