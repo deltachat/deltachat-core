@@ -558,18 +558,17 @@ int dc_uudecode(char** ret_binary, size_t uudecoding_buffer_len, const char* uu_
 	char* p;
 	char  ch;
 	int   n;
-	int   backquote_found = 0;
+	int   backquote_found   = 0;
 	int   ret_decoded_bytes = 0;
 
 
-	/* open stream for output*/
-	FILE *fp = open_memstream(ret_binary, &uudecoding_buffer_len);
-
+    char* p_binary_buffer   = *ret_binary;  // initialize write buffer pointer
+    
 
 	/**
 	 *  decoding line by line
 	 */
-	while( (line_len = dc_getline (&line, nextlinestart, &nextlinestart)) ){
+	while( (line_len = dc_getline (&line, nextlinestart, &nextlinestart))){
 		/**
 		 *       Documentation of uuencoded lines
 		 * 
@@ -605,7 +604,7 @@ int dc_uudecode(char** ret_binary, size_t uudecoding_buffer_len, const char* uu_
 			/* end of uuencoded part found */
 
 			//printf("  dc_uudecode -     *** end of uuencoded part found ***\n");
-			//fputs("This is for testing only. No uuencoded data. End of uuendcoded data detected!\n", fp);
+			//sprintf(p_binary_buffer, "This is for testing only. No uuencoded data. End of uuendcoded data detected!\n");
 
 			break;
 		}
@@ -629,11 +628,12 @@ int dc_uudecode(char** ret_binary, size_t uudecoding_buffer_len, const char* uu_
 			sprintf(msg, "  dc_uudecode() -    *** stop decoding, invalid line len, N=%d, line_len=%d ***\n", n, (line_len - 1));
 
 			#ifdef __DEBUG__
-			puts(msg);
+            puts(msg);
 			#endif
 			// write error msg to output file !
-			fputs(msg, fp);
-			ret_decoded_bytes = 0;
+            sprintf(*ret_binary, "%s", msg);
+			ret_decoded_bytes = strlen(*ret_binary);
+
 			break;
 		}
 		
@@ -647,44 +647,43 @@ int dc_uudecode(char** ret_binary, size_t uudecoding_buffer_len, const char* uu_
 			puts(msg);
 			#endif
 			// write error msg to output file !
-			fputs(msg, fp);
+            sprintf(*ret_binary, "%s", msg);
+			ret_decoded_bytes = strlen(*ret_binary);
 			
-			ret_decoded_bytes = 0;
 			break;
 		}
 
 		//printf("  dc_uudecode -    n=%d\n", (int)n);
 		
-		if( ret_decoded_bytes < uudecoding_buffer_len - 3){
+		if (ret_decoded_bytes < uudecoding_buffer_len - 3){
 			// check for remaining buffer before decoding
 			for (++p; n > 0; p += 4, n -= 3){
 				if (n >= 3){
 					ch = DEC (p[0]) << 2 | DEC (p[1]) >> 4;
-					fputc((int)ch, fp);
-					ret_decoded_bytes++;
+                    *p_binary_buffer++ = ch;
+                    ret_decoded_bytes++;
 					
 					ch = DEC (p[1]) << 4 | DEC (p[2]) >> 2;
-					fputc((int)ch, fp);
+                    *p_binary_buffer++ = ch;
 					ret_decoded_bytes++;
 					
 					ch = DEC (p[2]) << 6 | DEC (p[3]);
-					fputc((int)ch, fp);
+                    *p_binary_buffer++ = ch;
 					ret_decoded_bytes++;
 					
 					//printf("  dc_uudecode -    full block decoded\n");
 				}
-				else{
+                else{
 					if (n >= 1){
 						ch = DEC (p[0]) << 2 | DEC (p[1]) >> 4;
-						fputc((int)ch, fp);
+                        *p_binary_buffer++ = ch;
 						ret_decoded_bytes++;
 						//printf("  dc_uudecode -    n >= 1, n=%d decoded\n", n);
 					}
 					if (n >= 2){
 						ch = DEC (p[1]) << 4 | DEC (p[2]) >> 2;
-						fputc((int)ch, fp);
-						ret_decoded_bytes++;
-
+						*p_binary_buffer++ = ch;
+                        ret_decoded_bytes++;
 						//printf("  dc_uudecode -    n >= 2, n=%d decoded\n", n);
 					}
 				}
@@ -693,7 +692,6 @@ int dc_uudecode(char** ret_binary, size_t uudecoding_buffer_len, const char* uu_
 		free(line);
 
 	}
-	fclose(fp);
 	
 	return ret_decoded_bytes;
 } // dc_uudecode()
