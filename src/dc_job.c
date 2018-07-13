@@ -333,8 +333,8 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 	if (clist_count(mimefactory.recipients_addr) > 0)
 	{
 		if (!dc_mimefactory_render(&mimefactory)) {
-			dc_set_msg_failed(context, job->foreign_id, "Empty message.");
-			goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */
+			dc_set_msg_failed(context, job->foreign_id, mimefactory.error);
+			goto cleanup; // no redo, no IMAP - this will also fail next time
 		}
 
 		/* have we guaranteed encryption but cannot fulfill it for any reason? Do not send the message then.*/

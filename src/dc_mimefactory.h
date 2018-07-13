@@ -69,9 +69,10 @@ typedef struct dc_mimefactory_t {
 	char*         references;
 	int           req_mdn;
 
-	/* out: after a successfull dc_mimefactory_render(), here's the data */
+	// out: after a call to dc_mimefactory_render(), here's the data or the error
 	MMAPString*   out;
 	int           out_encrypted;
+	char*         error;
 
 	/* private */
 	dc_context_t* context;

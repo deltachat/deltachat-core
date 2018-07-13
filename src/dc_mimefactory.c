@@ -94,7 +94,17 @@ void dc_mimefactory_empty(dc_mimefactory_t* factory)
 	factory->out_encrypted = 0;
 	factory->loaded = DC_MF_NOTHING_LOADED;
 
+	free(factory->error);
+	factory->error = NULL;
+
 	factory->timestamp = 0;
+}
+
+
+static void set_error(dc_mimefactory_t* factory, const char* text)
+{
+	free(factory->error);
+	factory->error = dc_strdup_keep_null(text);
 }
 
 
@@ -487,6 +497,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 	memset(&e2ee_helper, 0, sizeof(dc_e2ee_helper_t));
 
 	if (factory==NULL || factory->loaded==DC_MF_NOTHING_LOADED || factory->out/*call empty() before*/) {
+		set_error(factory, "Invalid use of mimefactory-object.");
 		goto cleanup;
 	}
 
@@ -707,6 +718,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 		}
 
 		if (parts==0) {
+			set_error(factory, "Empty message.");
 			goto cleanup;
 		}
 
@@ -773,6 +785,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 	}
 	else
 	{
+		set_error(factory, "No message loaded.");
 		goto cleanup;
 	}
 
