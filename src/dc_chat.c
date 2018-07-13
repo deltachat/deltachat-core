@@ -2079,7 +2079,7 @@ cleanup:
  * To send a simple text message, you can also use dc_send_text_msg()
  * which is easier to use.
  *
- * @private @memberof dc_context_t
+ * @memberof dc_context_t
  * @param context The context object as returned from dc_context_new().
  * @param chat_id Chat ID to send the message to.
  * @param msg Message object to send to the chat defined by the chat ID.
