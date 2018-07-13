@@ -345,27 +345,43 @@ char* dc_get_blobdir(const dc_context_t* context)
  ******************************************************************************/
 
 
+static int32_t get_sys_config_int(const char* key, int32_t def, int* def_returned)
+{
+	if (strcmp(key, "sys.msgsize_max_recommended")==0) {
+		return DC_MSGSIZE_MAX_RECOMMENDED;
+	}
+	else if (strcmp(key, "sys.msgsize_upper_limit")==0) {
+		return DC_MSGSIZE_UPPER_LIMIT;
+	}
+	else {
+		*def_returned = 1;
+		return def;
+	}
+}
+
+
+static char* get_sys_config_str(const char* key, const char* def)
+{
+	if (strcmp(key, "sys.version")==0) {
+		return dc_strdup(DC_VERSION_STR);
+	}
+	else {
+		int def_returned = 0;
+		int32_t int_val = get_sys_config_int(key, 0, &def_returned);
+		return def_returned? dc_strdup_keep_null(def) : dc_mprintf("%i", int_val);
+	}
+}
+
+
 /**
- * Configure the context.  The configuration is handled by key=value pairs. Typical configuration options are:
- *
- * - addr         = address to display (needed)
- * - mail_server  = IMAP-server, guessed if left out
- * - mail_user    = IMAP-username, guessed if left out
- * - mail_pw      = IMAP-password (needed)
- * - mail_port    = IMAP-port, guessed if left out
- * - send_server  = SMTP-server, guessed if left out
- * - send_user    = SMTP-user, guessed if left out
- * - send_pw      = SMTP-password, guessed if left out
- * - send_port    = SMTP-port, guessed if left out
- * - server_flags = IMAP-/SMTP-flags, guessed if left out
- * - displayname  = Own name to use when sending messages.  MUAs are allowed to spread this way eg. using CC, defaults to empty
- * - selfstatus   = Own status to display eg. in email footers, defaults to a standard text
- * - e2ee_enabled = 0=no e2ee, 1=prefer encryption (default)
+ * Configure the context.  The configuration is handled by key=value pairs, see
+ * dc_get_config() for a list of possible options.
  *
  * @memberof dc_context_t
- * @param context the context object
- * @param key the option to change, typically one of the strings listed above
- * @param value the value to save for "key"
+ * @param context The context object
+ * @param key The option to change, see dc_get_config() for a list.
+ *     Keys starting with `sys` cannot be modified.
+ * @param value The value to save for "key"
  * @return 0=failure, 1=success
  */
 int dc_set_config(dc_context_t* context, const char* key, const char* value)
@@ -384,17 +400,46 @@ int dc_set_config(dc_context_t* context, const char* key, const char* value)
 
 
 /**
- * Get a configuration option.  The configuration option is typically set by dc_set_config() or by the library itself.
+ * Get a configuration option. The configuration option is typically set by dc_set_config() or by the library itself.
+ * To get an option as an integer, you can use dc_get_config_int() as an alternative.
+ * Typical configuration options are:
+ *
+ * - `addr`         = address to display (needed)
+ * - `mail_server`  = IMAP-server, guessed if left out
+ * - `mail_user`    = IMAP-username, guessed if left out
+ * - `mail_pw`      = IMAP-password (needed)
+ * - `mail_port`    = IMAP-port, guessed if left out
+ * - `send_server`  = SMTP-server, guessed if left out
+ * - `send_user`    = SMTP-user, guessed if left out
+ * - `send_pw`      = SMTP-password, guessed if left out
+ * - `send_port`    = SMTP-port, guessed if left out
+ * - `server_flags` = IMAP-/SMTP-flags, guessed if left out
+ * - `displayname`  = Own name to use when sending messages.  MUAs are allowed to spread this way eg. using CC, defaults to empty
+ * - `selfstatus`   = Own status to display eg. in email footers, defaults to a standard text
+ * - `e2ee_enabled` = 0=no end-to-end-encryption, 1=prefer end-to-end-encryption (default)
+ *
+ * Moreover, this function can be used to query some global system values:
+ *
+ * - `sys.version`  = get the version string eg. as `1.2.3` or as `1.2.3special4`
+ * - `sys.msgsize_max_recommended` = maximal recommended attachment size in bytes.
+ *                    All possible overheads are already substracted and this value can be used eg. for direct comparison
+ *                    with the size of a file the user wants to attach. If an attachment is larger than this value,
+ *                    an error (no warning as it should be shown to the user) is logged but the attachment is sent anyway.
+ * - `sys.msgsize_upper_limit` = the library won't try to send attachments larger than this value.
  *
  * @memberof dc_context_t
- * @param context the context object as created by dc_context_new()
- * @param key the key to query
- * @param def default value to return if "key" is unset
+ * @param context The context object as created by dc_context_new(). For querying system values, this can be NULL.
+ * @param key The key to query
+ * @param def Default value to return if "key" is unset.
  * @return Returns current value of "key", if "key" is unset, "def" is returned (which may be NULL)
  *     If the returned values is not NULL, the return value must be free()'d,
  */
 char* dc_get_config(dc_context_t* context, const char* key, const char* def)
 {
+	if (key && key[0]=='s' && key[1]=='y' && key[2]=='s' && key[3]=='.') {
+		return get_sys_config_str(key, def);
+	}
+
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || key==NULL) { /* "def" may be NULL */
 		return dc_strdup_keep_null(def);
 	}
@@ -431,6 +476,11 @@ int dc_set_config_int(dc_context_t* context, const char* key, int32_t value)
  */
 int32_t dc_get_config_int(dc_context_t* context, const char* key, int32_t def)
 {
+	if (key && key[0]=='s' && key[1]=='y' && key[2]=='s' && key[3]=='.') {
+		int def_returned = 0;
+		return get_sys_config_int(key, def, &def_returned);
+	}
+
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || key==NULL) {
 		return def;
 	}
@@ -441,8 +491,9 @@ int32_t dc_get_config_int(dc_context_t* context, const char* key, int32_t def)
 
 /**
  * Find out the version of the Delta Chat core library.
+ * Deprecated, use dc_get_config() instread
  *
- * @memberof dc_context_t
+ * @private @memberof dc_context_t
  * @return String with version number as `major.minor.revision`. The return value must be free()'d.
  */
 char* dc_get_version_str(void)
