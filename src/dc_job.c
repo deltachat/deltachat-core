@@ -319,7 +319,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 	if (!dc_mimefactory_load_msg(&mimefactory, job->foreign_id)
 	 || mimefactory.from_addr==NULL) {
 		dc_log_warning(context, 0, "Cannot load data to send, maybe the message is deleted in between.");
-		goto cleanup; /* no redo, no IMAP - there won't be more recipients next time (as the data does not exist, there is no need in calling mark_as_error()) */
+		goto cleanup; // no redo, no IMAP. moreover, as the data does not exist, there is no need in calling mark_as_error()
 	}
 
 	/* check if the message is ready (normally, only video files may be delayed this way) */
@@ -330,7 +330,8 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 	}
 
 	/* send message - it's okay if there are no recipients, this is a group with only OURSELF; we only upload to IMAP in this case */
-	if (clist_count(mimefactory.recipients_addr) > 0) {
+	if (clist_count(mimefactory.recipients_addr) > 0)
+	{
 		if (!dc_mimefactory_render(&mimefactory)) {
 			dc_set_msg_failed(context, job->foreign_id, "Empty message.");
 			goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */

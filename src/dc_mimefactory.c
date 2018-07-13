@@ -470,28 +470,25 @@ static char* get_subject(const dc_chat_t* chat, const dc_msg_t* msg, int afwd_em
 
 int dc_mimefactory_render(dc_mimefactory_t* factory)
 {
-	if (factory==NULL
-	 || factory->loaded==DC_MF_NOTHING_LOADED
-	 || factory->out/*call empty() before*/) {
-		return 0;
-	}
-
-	struct mailimf_fields*       imf_fields = NULL;
-	struct mailmime*             message = NULL;
-	char*                        message_text = NULL;
-	char*                        message_text2 = NULL;
-	char*                        subject_str = NULL;
-	int                          afwd_email = 0;
-	int                          col = 0;
-	int                          success = 0;
-	int                          parts = 0;
-	int                          e2ee_guaranteed = 0;
-	int                          min_verified = DC_NOT_VERIFIED;
-	int                          force_plaintext = 0; // 1=add Autocrypt-header (needed eg. for handshaking), 2=no Autocrypte-header (used for MDN)
-	char*                        grpimage = NULL;
-	dc_e2ee_helper_t             e2ee_helper;
+	struct mailimf_fields* imf_fields = NULL;
+	struct mailmime*       message = NULL;
+	char*                  message_text = NULL;
+	char*                  message_text2 = NULL;
+	char*                  subject_str = NULL;
+	int                    afwd_email = 0;
+	int                    col = 0;
+	int                    success = 0;
+	int                    parts = 0;
+	int                    e2ee_guaranteed = 0;
+	int                    min_verified = DC_NOT_VERIFIED;
+	int                    force_plaintext = 0; // 1=add Autocrypt-header (needed eg. for handshaking), 2=no Autocrypte-header (used for MDN)
+	char*                  grpimage = NULL;
+	dc_e2ee_helper_t       e2ee_helper;
 	memset(&e2ee_helper, 0, sizeof(dc_e2ee_helper_t));
 
+	if (factory==NULL || factory->loaded==DC_MF_NOTHING_LOADED || factory->out/*call empty() before*/) {
+		goto cleanup;
+	}
 
 	/* create basic mail
 	 *************************************************************************/
@@ -813,8 +810,9 @@ cleanup:
 	if (message) {
 		mailmime_free(message);
 	}
-	dc_e2ee_thanks(&e2ee_helper); /* frees data referenced by "mailmime" but not freed by mailmime_free() */
-	free(message_text); free(message_text2); /* mailmime_set_body_text() does not take ownership of "text" */
+	dc_e2ee_thanks(&e2ee_helper); // frees data referenced by "mailmime" but not freed by mailmime_free()
+	free(message_text);           // mailmime_set_body_text() does not take ownership of "text"
+	free(message_text2);          //   - " --
 	free(subject_str);
 	free(grpimage);
 	return success;
