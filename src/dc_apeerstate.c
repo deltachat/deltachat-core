@@ -54,22 +54,16 @@ static void dc_apeerstate_empty(dc_apeerstate_t* peerstate)
 	free(peerstate->verified_key_fingerprint);
 	peerstate->verified_key_fingerprint = NULL;
 
-	if (peerstate->public_key) {
-		dc_key_unref(peerstate->public_key);
-		peerstate->public_key = NULL;
-	}
+	dc_key_unref(peerstate->public_key);
+	peerstate->public_key = NULL;
 
 	peerstate->gossip_timestamp = 0;
 
-	if (peerstate->gossip_key) {
-		dc_key_unref(peerstate->gossip_key);
-		peerstate->gossip_key = NULL;
-	}
+	dc_key_unref(peerstate->gossip_key);
+	peerstate->gossip_key = NULL;
 
-	if (peerstate->verified_key) {
-		dc_key_unref(peerstate->verified_key);
-		peerstate->verified_key = NULL;
-	}
+	dc_key_unref(peerstate->verified_key);
+	peerstate->verified_key = NULL;
 
 	peerstate->degrade_event = 0;
 }
@@ -254,13 +248,7 @@ dc_apeerstate_t* dc_apeerstate_new(dc_context_t* context)
 
 void dc_apeerstate_unref(dc_apeerstate_t* peerstate)
 {
-	if (peerstate==NULL) {
-		return;
-	}
-
-	free(peerstate->addr);
-	dc_key_unref(peerstate->public_key);
-	dc_key_unref(peerstate->gossip_key);
+	dc_apeerstate_empty(peerstate);
 	free(peerstate);
 }
 

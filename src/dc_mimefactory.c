@@ -60,6 +60,9 @@ void dc_mimefactory_empty(dc_mimefactory_t* factory)
 	free(factory->selfstatus);
 	factory->selfstatus = NULL;
 
+	free(factory->rfc724_mid);
+	factory->rfc724_mid = NULL;
+
 	if (factory->recipients_names) {
 		clist_free_content(factory->recipients_names);
 		clist_free(factory->recipients_names);
@@ -77,6 +80,12 @@ void dc_mimefactory_empty(dc_mimefactory_t* factory)
 
 	dc_chat_unref(factory->chat);
 	factory->chat = NULL;
+
+	free(factory->predecessor);
+	factory->predecessor = NULL;
+
+	free(factory->references);
+	factory->references = NULL;
 
 	if (factory->out) {
 		mmap_string_free(factory->out);
