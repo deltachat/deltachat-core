@@ -314,6 +314,21 @@ cleanup:
  ******************************************************************************/
 
 
+static int is_file_size_okay(const dc_msg_t* msg)
+{
+	int      file_size_okay = 1;
+	char*    pathNfilename = dc_param_get(msg->param, DC_PARAM_FILE, NULL);
+	uint64_t bytes = dc_get_filebytes(pathNfilename);
+
+	if (bytes>DC_MSGSIZE_UPPER_LIMIT) {
+		file_size_okay = 0;
+	}
+
+	free(pathNfilename);
+	return file_size_okay;
+}
+
+
 static struct mailmime* build_body_text(char* text)
 {
 	struct mailmime_fields*  mime_fields = NULL;
@@ -710,6 +725,13 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 
 		/* add attachment part */
 		if (DC_MSG_NEEDS_ATTACHMENT(msg->type)) {
+			if (!is_file_size_okay(msg)) {
+				char* error = dc_mprintf("Message exceeds the recommended %i MB.", DC_MSGSIZE_MAX_RECOMMENDED/1000/1000);
+				set_error(factory, error);
+				free(error);
+				goto cleanup;
+			}
+
 			struct mailmime* file_part = build_body_file(msg, NULL, NULL);
 			if (file_part) {
 				mailmime_smart_add_part(message, file_part);
