@@ -19,17 +19,21 @@
  *
  ******************************************************************************/
 
+
 /**
- * For module testing activate  __DEBUG__ and __TESTING__
+ * 20180714cs - memory problem in case of printing error msg to outfile fixed 
  */
 
+
+/**
+ * For module testing activate  __DEBUG__ and __TESTING__
+ *
+ *  __TESTING__ is used for local development
+ *              --> comment this in for local testing
+ */
 //#define __DEBUG__
 //#define __DEBUG_VERBOSE__
 
-/**
- *  __TESTING__ is used for local development
- *              --> comment this out for testing
- */
 //#define __TESTING__
 
 
@@ -41,7 +45,7 @@
 #ifdef  __TESTING__
 	#include "dc_tools_test.h"
 #else
-    #include "dc_context.h"
+	#include "dc_context.h"
 	#include "dc_tools.h"
 #endif
 
@@ -478,8 +482,12 @@ char* dc_handle_uuencoded_part (const char*   msgtxt,
 	/*  This is a rough but high estimation because 3 binary bytes are
 	 *  encoded in 4 chars (+ length char, + end_of_line_pattern, for each line ! )
 	 *  Enough memory in each case :)
+	 * 
+	 *  If an error occurs and no line is detected a security buffer of a full
+	 *   decoded line is assumed (75 bytes).
 	 */
-	int uudecoding_buffer_len = uu_body_len * 3 / 4;
+	int uudecoding_buffer_len = uu_body_len * 3 / 4 /* + 75 */;
+	
 	
 	/* provide memory for decoding */
 	*ret_binary = (char*) malloc(sizeof(char) * uudecoding_buffer_len );
@@ -505,9 +513,9 @@ char* dc_handle_uuencoded_part (const char*   msgtxt,
 	 * 		 is stripped in each case.
 	 */ 
 
-	int first_part_len = uu_msg_start_pos - msgtxt;
+	int first_part_len 	= uu_msg_start_pos - msgtxt;
 	
-	ret_msgtxt  = (char*) malloc( sizeof(char) * strlen(msgtxt) );
+	ret_msgtxt  		= (char*) malloc( sizeof(char) * strlen(msgtxt) );
 
 	// keep first part
 	strncpy(ret_msgtxt, msgtxt, first_part_len);
@@ -562,8 +570,7 @@ int dc_uudecode(char** ret_binary, size_t uudecoding_buffer_len, const char* uu_
 	int   ret_decoded_bytes = 0;
 
 
-    char* p_binary_buffer   = *ret_binary;  // initialize write buffer pointer
-    
+	char* p_binary_buffer   = *ret_binary;  // initialize write buffer pointer
 
 	/**
 	 *  decoding line by line
@@ -624,16 +631,24 @@ int dc_uudecode(char** ret_binary, size_t uudecoding_buffer_len, const char* uu_
 		if (!dc_uu_check_line(n, line_len - 1)){
 
 			char msg[120];
-
+			
 			sprintf(msg, "  dc_uudecode() -    *** stop decoding, invalid line len, N=%d, line_len=%d ***\n", n, (line_len - 1));
 
 			#ifdef __DEBUG__
-            puts(msg);
+			puts(msg);
 			#endif
-			// write error msg to output file !
-            sprintf(*ret_binary, "%s", msg);
-			ret_decoded_bytes = strlen(*ret_binary);
 
+			int      l = strlen(msg);
+			*ret_binary = (char*) realloc(*ret_binary, l+1);
+			
+			if (*ret_binary){
+				// write error msg to output file if possible!
+				strncpy(*ret_binary, msg, l);
+				ret_decoded_bytes = l;
+			}
+			else{
+				ret_decoded_bytes = 0;
+			}
 			break;
 		}
 		
@@ -646,10 +661,19 @@ int dc_uudecode(char** ret_binary, size_t uudecoding_buffer_len, const char* uu_
 			#ifdef __DEBUG__
 			puts(msg);
 			#endif
-			// write error msg to output file !
-            sprintf(*ret_binary, "%s", msg);
-			ret_decoded_bytes = strlen(*ret_binary);
+
+			int      l = strlen(msg);
+			*ret_binary = (char*) realloc(*ret_binary, l+1);
 			
+			if (*ret_binary){
+				// write error msg to output file if possible!
+				strncpy(*ret_binary, msg, l);
+				ret_decoded_bytes = l;
+			}
+			else{
+				ret_decoded_bytes = 0;
+			}
+
 			break;
 		}
 
@@ -660,37 +684,36 @@ int dc_uudecode(char** ret_binary, size_t uudecoding_buffer_len, const char* uu_
 			for (++p; n > 0; p += 4, n -= 3){
 				if (n >= 3){
 					ch = DEC (p[0]) << 2 | DEC (p[1]) >> 4;
-                    *p_binary_buffer++ = ch;
-                    ret_decoded_bytes++;
+					*p_binary_buffer++ = ch;
+					ret_decoded_bytes++;
 					
 					ch = DEC (p[1]) << 4 | DEC (p[2]) >> 2;
-                    *p_binary_buffer++ = ch;
+					*p_binary_buffer++ = ch;
 					ret_decoded_bytes++;
 					
 					ch = DEC (p[2]) << 6 | DEC (p[3]);
-                    *p_binary_buffer++ = ch;
+					*p_binary_buffer++ = ch;
 					ret_decoded_bytes++;
 					
 					//printf("  dc_uudecode -    full block decoded\n");
 				}
-                else{
+				else{
 					if (n >= 1){
 						ch = DEC (p[0]) << 2 | DEC (p[1]) >> 4;
-                        *p_binary_buffer++ = ch;
+						*p_binary_buffer++ = ch;
 						ret_decoded_bytes++;
 						//printf("  dc_uudecode -    n >= 1, n=%d decoded\n", n);
 					}
 					if (n >= 2){
 						ch = DEC (p[1]) << 4 | DEC (p[2]) >> 2;
 						*p_binary_buffer++ = ch;
-                        ret_decoded_bytes++;
+						ret_decoded_bytes++;
 						//printf("  dc_uudecode -    n >= 2, n=%d decoded\n", n);
 					}
 				}
 			}
 		}
 		free(line);
-
 	}
 	
 	return ret_decoded_bytes;
