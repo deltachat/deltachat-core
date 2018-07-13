@@ -258,9 +258,7 @@ void dc_apeerstate_unref(dc_apeerstate_t* peerstate)
  * public_key or gossip_key if public_key is NULL.
  *
  * @memberof dc_apeerstate_t
- *
  * @param peerstate The peerstate object.
- *
  * @return String that can be be used directly in an `Autocrypt-Gossip:` statement,
  *     `Autocrypt-Gossip:` is _not_ included in the returned string. If there
  *     is not key for the peer that can be gossiped, NULL is returned.
@@ -295,12 +293,10 @@ cleanup:
  * returns a key that can be used.
  *
  * @memberof dc_apeerstate_t
- *
  * @param peerstate The peerstate object.
  * @param min_verified The minimal verification criterion the key should match.
  *     Typically either DC_NOT_VERIFIED (0) if there is no need for the key being verified
  *     or DC_BIDIRECT_VERIFIED (2) for bidirectional verification requirement.
- *
  * @return public_key or gossip_key, NULL if nothing is available.
  *     the returned pointer MUST NOT be unref()'d.
  */
@@ -458,7 +454,7 @@ void dc_apeerstate_apply_gossip(dc_apeerstate_t* peerstate, const dc_aheader_t* 
 }
 
 
-/*
+/**
  * Recalculate the fingerprints for the keys.
  *
  * If the fingerprint has changed, the verified-state is reset.
@@ -466,6 +462,8 @@ void dc_apeerstate_apply_gossip(dc_apeerstate_t* peerstate, const dc_aheader_t* 
  * An explicit call to this function from outside this class is only needed
  * for database updates; the dc_apeerstate_init_*() and dc_apeerstate_apply_*()
  * functions update the fingerprint automatically as needed.
+ *
+ * @memberof dc_apeerstate_t
  */
 int dc_apeerstate_recalc_fingerprint(dc_apeerstate_t* peerstate)
 {
@@ -532,12 +530,10 @@ cleanup:
  * between fingerprint comparison and calling this function.
  *
  * @memberof dc_apeerstate_t
- *
  * @param peerstate The peerstate object.
  * @param which_key Which key should be marked as being verified? DC_PS_GOSSIP_KEY (1) or DC_PS_PUBLIC_KEY (2)
  * @param fingerprint Fingerprint expected in the object
  * @param verified DC_BIDIRECT_VERIFIED (2): contact verfied in both directions
- *
  * @return 1=the given fingerprint is equal to the peer's fingerprint and
  *     the verified-state is set; you should call dc_apeerstate_save_to_db()
  *     to permanently store this state.

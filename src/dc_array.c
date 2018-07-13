@@ -30,10 +30,8 @@
  * Create an array object in memory.
  *
  * @private @memberof dc_array_t
- *
  * @param context The context object that should be stored in the array object. May be NULL.
  * @param initsize Initial maximal size of the array. If you add more items, the internal data pointer is reallocated.
- *
  * @return New array object of the requested size, the data should be set directly.
  */
 dc_array_t* dc_array_new(dc_context_t* context, size_t initsize)
@@ -62,11 +60,8 @@ dc_array_t* dc_array_new(dc_context_t* context, size_t initsize)
  * Free an array object. Does not free any data items.
  *
  * @memberof dc_array_t
- *
  * @param array The array object to free, created eg. by dc_get_chatlist(), dc_get_contacts() and so on.
- *
  * @return None.
- *
  */
 void dc_array_unref(dc_array_t* array)
 {
@@ -85,11 +80,8 @@ void dc_array_unref(dc_array_t* array)
  * The array object itself is not deleted and the size of the array stays the same.
  *
  * @private @memberof dc_array_t
- *
  * @param array The array object.
- *
  * @return None.
- *
  */
 void dc_array_free_ptr(dc_array_t* array)
 {
@@ -109,11 +101,8 @@ void dc_array_free_ptr(dc_array_t* array)
  * If the array only contains integers, you are always save.
  *
  * @private @memberof dc_array_t
- *
  * @param array The array object.
- *
  * @return The duplicated array.
- *
  */
 dc_array_t* dc_array_duplicate(const dc_array_t* array)
 {
@@ -143,11 +132,8 @@ static int cmp_intptr_t(const void* p1, const void* p2)
  * Sort the array, assuming it contains unsigned integers.
  *
  * @private @memberof dc_array_t
- *
  * @param array The array object.
- *
  * @return The duplicated array.
- *
  */
 void dc_array_sort_ids(dc_array_t* array)
 {
@@ -170,11 +156,8 @@ static int cmp_strings_t(const void* p1, const void* p2)
  * Sort the array, assuming it contains pointers to strings.
  *
  * @private @memberof dc_array_t
- *
  * @param array The array object.
- *
  * @return The duplicated array.
- *
  */
 void dc_array_sort_strings(dc_array_t* array)
 {
@@ -189,9 +172,7 @@ void dc_array_sort_strings(dc_array_t* array)
  * Empty an array object. Allocated data is not freed by this function, only the count is set to null.
  *
  * @private @memberof dc_array_t
- *
  * @param array The array object to empty.
- *
  * @return None.
  */
 void dc_array_empty(dc_array_t* array)
@@ -210,9 +191,7 @@ void dc_array_empty(dc_array_t* array)
  * It is okay to add the ID 0, event in this case, the array grows by one.
  *
  * @param array The array to add the item to.
- *
  * @param item The item to add.
- *
  * @return None.
  */
 void dc_array_add_uint(dc_array_t* array, uintptr_t item)
@@ -240,9 +219,7 @@ void dc_array_add_uint(dc_array_t* array, uintptr_t item)
  * It is okay to add the ID 0, event in this case, the array grows by one.
  *
  * @param array The array to add the item to.
- *
  * @param item The item to add.
- *
  * @return None.
  */
 void dc_array_add_id(dc_array_t* array, uint32_t item)
@@ -257,9 +234,7 @@ void dc_array_add_id(dc_array_t* array, uint32_t item)
  * It is okay to add the ID 0, event in this case, the array grows by one.
  *
  * @param array The array to add the item to.
- *
  * @param item The item to add.
- *
  * @return None.
  */
 void dc_array_add_ptr(dc_array_t* array, void* item)
@@ -272,9 +247,7 @@ void dc_array_add_ptr(dc_array_t* array, void* item)
  * Find out the number of items in an array.
  *
  * @memberof dc_array_t
- *
  * @param array The array object.
- *
  * @return Returns the number of items in a dc_array_t object. 0 on errors or if the array is empty.
  */
 size_t dc_array_get_cnt(const dc_array_t* array)
@@ -292,10 +265,8 @@ size_t dc_array_get_cnt(const dc_array_t* array)
  * The size of the integer is always larget enough to hold a pointer.
  *
  * @memberof dc_array_t
- *
  * @param array The array object.
  * @param index Index of the item to get. Must be between 0 and dc_array_get_cnt()-1.
- *
  * @return Returns the item at the given index. Returns 0 on errors or if the array is empty.
  */
 uintptr_t dc_array_get_uint(const dc_array_t* array, size_t index)
@@ -312,10 +283,8 @@ uintptr_t dc_array_get_uint(const dc_array_t* array, size_t index)
  * Get the item at the given index as an ID.
  *
  * @memberof dc_array_t
- *
  * @param array The array object.
  * @param index Index of the item to get. Must be between 0 and dc_array_get_cnt()-1.
- *
  * @return Returns the item at the given index. Returns 0 on errors or if the array is empty.
  */
 uint32_t dc_array_get_id(const dc_array_t* array, size_t index)
@@ -332,10 +301,8 @@ uint32_t dc_array_get_id(const dc_array_t* array, size_t index)
  * Get the item at the given index as an ID.
  *
  * @memberof dc_array_t
- *
  * @param array The array object.
  * @param index Index of the item to get. Must be between 0 and dc_array_get_cnt()-1.
- *
  * @return Returns the item at the given index. Returns 0 on errors or if the array is empty.
  */
 void* dc_array_get_ptr(const dc_array_t* array, size_t index)
@@ -352,11 +319,9 @@ void* dc_array_get_ptr(const dc_array_t* array, size_t index)
  * Check if a given ID is present in an array.
  *
  * @private @memberof dc_array_t
- *
  * @param array The array object to search in.
  * @param needle The ID to search for.
  * @param[out] ret_index If set, this will receive the index. Set to NULL if you're not interested in the index.
- *
  * @return 1=ID is present in array, 0=ID not found.
  */
 int dc_array_search_id(const dc_array_t* array, uint32_t needle, size_t* ret_index)
@@ -385,9 +350,7 @@ int dc_array_search_id(const dc_array_t* array, uint32_t needle, size_t* ret_ind
  * Get raw pointer to the data.
  *
  * @private @memberof dc_array_t
- *
  * @param array The array object.
- *
  * @return Raw pointer to the array. You MUST NOT free the data. You MUST NOT access the data beyond the current item count.
  *     It is not possible to enlarge the array this way.  Calling any other dc_array-function may discard the returned pointer.
  */

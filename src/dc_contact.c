@@ -305,9 +305,7 @@ int dc_contact_is_verified(dc_contact_t* contact)
 
 
 /**
- * Library-internal.
- *
- * Calling this function is not thread-safe, locking is up to the caller.
+ * Load a contact from the database to the contact object.
  *
  * @private @memberof dc_contact_t
  */

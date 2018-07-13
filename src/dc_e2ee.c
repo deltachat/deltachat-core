@@ -154,9 +154,7 @@ static struct mailmime* new_data_part(void* data, size_t data_bytes, char* defau
  * that we could use the normal Autocrypt processing.
  *
  * @private
- *
  * @param mime The mime struture to check
- *
  * @return 1=multipart/report found in MIME, 0=no multipart/report found
  */
 static int contains_report(struct mailmime* mime)

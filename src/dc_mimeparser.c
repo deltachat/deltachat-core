@@ -823,10 +823,8 @@ static void dc_mimepart_unref(dc_mimepart_t* mimepart)
  * Create a new mime parser object.
  *
  * @private @memberof dc_mimeparser_t
- *
  * @param blobdir Directrory to write attachments to.
  * @param context Mailbox object, used for logging only.
- *
  * @return The MIME-parser object.
  */
 dc_mimeparser_t* dc_mimeparser_new(const char* blobdir, dc_context_t* context)
@@ -855,9 +853,7 @@ dc_mimeparser_t* dc_mimeparser_new(const char* blobdir, dc_context_t* context)
  * Esp. all data allocated by dc_mimeparser_parse() will be free()'d.
  *
  * @private @memberof dc_mimeparser_t
- *
  * @param mimeparser The MIME-parser object.
- *
  * @return None.
  */
 void dc_mimeparser_unref(dc_mimeparser_t* mimeparser)
@@ -881,9 +877,7 @@ void dc_mimeparser_unref(dc_mimeparser_t* mimeparser)
  * previously allocated data.
  *
  * @private @memberof dc_mimeparser_t
- *
  * @param mimeparser The MIME-parser object.
- *
  * @return None.
  */
 void dc_mimeparser_empty(dc_mimeparser_t* mimeparser)
@@ -1703,10 +1697,8 @@ struct mailimf_field* dc_mimeparser_lookup_field(dc_mimeparser_t* mimeparser, co
  * for being MAILIMF_FIELD_OPTIONAL_FIELD.
  *
  * @private @memberof dc_mimeparser_t
- *
  * @param mimparser The MIME-parser object.
  * @param field_name The name of the field to look for.
- *
  * @return A pointer to a mailimf_optional_field structure. Must not be freed!
  *     If field_name could not be found or has another type, NULL is returned.
  */
@@ -1738,9 +1730,7 @@ struct mailimf_optional_field* dc_mimeparser_lookup_optional_field2(dc_mimeparse
  * use the macro dc_mimeparser_has_nonmeta().
  *
  * @private @memberof dc_mimeparser_t
- *
  * @param mimeparser The MIME-parser object.
- *
  * @return The last part that is not flagged with is_meta. The returned value
  *     must not be freed.  If there is no such part, NULL is returned.
  */
@@ -1763,9 +1753,7 @@ dc_mimepart_t* dc_mimeparser_get_last_nonmeta(dc_mimeparser_t* mimeparser)
  * Checks, if the header of the mail looks as if it is a message from a mailing list.
  *
  * @private @memberof dc_mimeparser_t
- *
  * @param mimeparser The MIME-parser object.
- *
  * @return 1=the message is probably from a mailing list,
  *     0=the message is a normal messsage
  *
@@ -1840,9 +1828,7 @@ int dc_mimeparser_is_mailinglist_message(dc_mimeparser_t* mimeparser)
  * memoryhole as used on a lower level before memoryhole is calculated)
  *
  * @private @memberof dc_mimeparser_t
- *
  * @param mimeparser The MIME-parser object.
- *
  * @return 1=Sender matches recipient
  *     0=Sender does not match recipient or there are more than one recipients
  */

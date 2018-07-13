@@ -64,7 +64,6 @@ static char* find_param(char* haystack, int key, char** ret_p2)
  * Create new parameter list object.
  *
  * @private @memberof dc_param_t
- *
  * @return The created parameter list object.
  */
 dc_param_t* dc_param_new()

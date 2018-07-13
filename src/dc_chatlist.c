@@ -30,9 +30,7 @@
  * Create a chatlist object in memory.
  *
  * @private @memberof dc_chatlist_t
- *
  * @param context The context that should be stored in the chatlist object.
- *
  * @return New and empty chatlist object, must be freed using dc_chatlist_unref().
  */
 dc_chatlist_t* dc_chatlist_new(dc_context_t* context)
@@ -57,11 +55,8 @@ dc_chatlist_t* dc_chatlist_new(dc_context_t* context)
  * Free a chatlist object.
  *
  * @memberof dc_chatlist_t
- *
  * @param chatlist The chatlist object to free, created eg. by dc_get_chatlist(), dc_search_msgs().
- *
  * @return None.
- *
  */
 void dc_chatlist_unref(dc_chatlist_t* chatlist)
 {
@@ -80,9 +75,7 @@ void dc_chatlist_unref(dc_chatlist_t* chatlist)
  * Empty a chatlist object.
  *
  * @private @memberof dc_chatlist_t
- *
  * @param chatlist The chatlist object to empty.
- *
  * @return None.
  */
 void dc_chatlist_empty(dc_chatlist_t* chatlist)
@@ -100,9 +93,7 @@ void dc_chatlist_empty(dc_chatlist_t* chatlist)
  * Find out the number of chats in a chatlist.
  *
  * @memberof dc_chatlist_t
- *
  * @param chatlist The chatlist object as created eg. by dc_get_chatlist().
- *
  * @return Returns the number of items in a dc_chatlist_t object. 0 on errors or if the list is empty.
  */
 size_t dc_chatlist_get_cnt(const dc_chatlist_t* chatlist)
@@ -121,11 +112,8 @@ size_t dc_chatlist_get_cnt(const dc_chatlist_t* chatlist)
  * To get the message object from the message ID, use dc_get_chat().
  *
  * @memberof dc_chatlist_t
- *
  * @param chatlist The chatlist object as created eg. by dc_get_chatlist().
- *
  * @param index The index to get the chat ID for.
- *
  * @return Returns the chat_id of the item at the given index.  Index must be between
  *     0 and dc_chatlist_get_cnt()-1.
  */
@@ -145,11 +133,8 @@ uint32_t dc_chatlist_get_chat_id(const dc_chatlist_t* chatlist, size_t index)
  * To get the message object from the message ID, use dc_get_msg().
  *
  * @memberof dc_chatlist_t
- *
  * @param chatlist The chatlist object as created eg. by dc_get_chatlist().
- *
  * @param index The index to get the chat ID for.
- *
  * @return Returns the message_id of the item at the given index.  Index must be between
  *     0 and dc_chatlist_get_cnt()-1.  If there is no message at the given index (eg. the chat may be empty), 0 is returned.
  */
@@ -183,12 +168,10 @@ uint32_t dc_chatlist_get_msg_id(const dc_chatlist_t* chatlist, size_t index)
  * - dc_lot_t::state: The state of the message as one of the DC_STATE_* constants (see #dc_msg_get_state()).  0 if not applicable.
  *
  * @memberof dc_chatlist_t
- *
  * @param chatlist The chatlist to query as returned eg. from dc_get_chatlist().
  * @param index The index to query in the chatlist.
  * @param chat To speed up things, pass an already available chat object here.
  *     If the chat object is not yet available, it is faster to pass NULL.
- *
  * @return The summary as an dc_lot_t object. Must be freed using dc_lot_unref().  NULL is never returned.
  */
 dc_lot_t* dc_chatlist_get_summary(const dc_chatlist_t* chatlist, size_t index, dc_chat_t* chat /*may be NULL*/)
@@ -273,9 +256,7 @@ cleanup:
  * Helper function to get the associated context object.
  *
  * @memberof dc_chatlist_t
- *
  * @param chatlist The chatlist object to empty.
- *
  * @return Context object associated with the chatlist. NULL if none or on errors.
  */
 dc_context_t* dc_chatlist_get_context(dc_chatlist_t* chatlist)
@@ -314,9 +295,7 @@ cleanup:
 
 
 /**
- * Library-internal.
- *
- * Calling this function is not thread-safe, locking is up to the caller.
+ * Load a chatlist from the database to the chatlist object.
  *
  * @private @memberof dc_chatlist_t
  */

@@ -36,9 +36,7 @@
  * Create a chat object in memory.
  *
  * @private @memberof dc_chat_t
- *
  * @param context The context that should be stored in the chat object.
- *
  * @return New and empty chat object, must be freed using dc_chat_unref().
  */
 dc_chat_t* dc_chat_new(dc_context_t* context)
@@ -62,9 +60,7 @@ dc_chat_t* dc_chat_new(dc_context_t* context)
  * Free a chat object.
  *
  * @memberof dc_chat_t
- *
  * @param chat Chat object are returned eg. by dc_get_chat().
- *
  * @return None.
  */
 void dc_chat_unref(dc_chat_t* chat)
@@ -84,9 +80,7 @@ void dc_chat_unref(dc_chat_t* chat)
  * Empty a chat object.
  *
  * @private @memberof dc_chat_t
- *
  * @param chat The chat object to empty.
- *
  * @return None.
  */
 void dc_chat_empty(dc_chat_t* chat)
@@ -126,9 +120,7 @@ void dc_chat_empty(dc_chat_t* chat)
  * "Normal" chat IDs are larger than these special IDs (larger than DC_CHAT_ID_LAST_SPECIAL).
  *
  * @memberof dc_chat_t
- *
  * @param chat The chat object.
- *
  * @return Chat ID. 0 on errors.
  */
 uint32_t dc_chat_get_id(const dc_chat_t* chat)
@@ -157,9 +149,7 @@ uint32_t dc_chat_get_id(const dc_chat_t* chat)
  *   all members are verified and encryption is always active and cannot be disabled.
  *
  * @memberof dc_chat_t
- *
  * @param chat The chat object.
- *
  * @return Chat type.
  */
 int dc_chat_get_type(const dc_chat_t* chat)
@@ -181,9 +171,7 @@ int dc_chat_get_type(const dc_chat_t* chat)
  * See also: dc_chat_get_subtitle()
  *
  * @memberof dc_chat_t
- *
  * @param chat The chat object.
- *
  * @return Chat name as a string. Must be free()'d after usage. Never NULL.
  */
 char* dc_chat_get_name(const dc_chat_t* chat)
@@ -203,9 +191,7 @@ char* dc_chat_get_name(const dc_chat_t* chat)
  * See also: dc_chat_get_name()
  *
  * @memberof dc_chat_t
- *
  * @param chat The chat object to calulate the subtitle for.
- *
  * @return Subtitle as a string. Must be free()'d after usage. Never NULL.
  */
 char* dc_chat_get_subtitle(const dc_chat_t* chat)
@@ -261,9 +247,7 @@ char* dc_chat_get_subtitle(const dc_chat_t* chat)
  * For normal chats, the profile image is set using dc_set_contact_profile_image() (not yet implemented).
  *
  * @memberof dc_chat_t
- *
  * @param chat The chat object.
- *
  * @return Path and file if the profile image, if any.  NULL otherwise.
  *     Must be free()'d after usage.
  */
@@ -285,9 +269,7 @@ char* dc_chat_get_profile_image(const dc_chat_t* chat)
  * by dc_chatlist_get_summary().
  *
  * @memberof dc_chat_t
- *
  * @param chat The chat object.
- *
  * @return Draft text, must be free()'d. Returns NULL if there is no draft.
  */
 char* dc_chat_get_draft(const dc_chat_t* chat)
@@ -302,13 +284,10 @@ char* dc_chat_get_draft(const dc_chat_t* chat)
 
 /**
  * Get timestamp of the draft.
- *
  * The draft itself can be get using dc_chat_get_draft().
  *
  * @memberof dc_chat_t
- *
  * @param chat The chat object.
- *
  * @return Timestamp of the draft. 0 if there is no draft.
  */
 time_t dc_chat_get_draft_timestamp(const dc_chat_t* chat)
@@ -332,9 +311,7 @@ time_t dc_chat_get_draft_timestamp(const dc_chat_t* chat)
  * eg. the search will also return archived chats.
  *
  * @memberof dc_chat_t
- *
  * @param chat The chat object.
- *
  * @return Archived state.
  */
 int dc_chat_get_archived(const dc_chat_t* chat)
@@ -355,9 +332,7 @@ int dc_chat_get_archived(const dc_chat_t* chat)
  * until the first call to dc_send_text_msg() or another sending function.
  *
  * @memberof dc_chat_t
- *
  * @param chat The chat object.
- *
  * @return 1=chat is still unpromoted, no message was ever send to the chat,
  *     0=chat is not unpromoted, messages were send and/or received
  */
@@ -376,9 +351,7 @@ int dc_chat_is_unpromoted(const dc_chat_t* chat)
  * dc_create_group_chat() by setting the 'verified' parameter to true.
  *
  * @memberof dc_chat_t
- *
  * @param chat The chat object.
- *
  * @return 1=chat verified, 0=chat is not verified
  */
 int dc_chat_is_verified(const dc_chat_t* chat)
@@ -395,9 +368,7 @@ int dc_chat_is_verified(const dc_chat_t* chat)
  * the only contact DC_CONTACT_ID_SELF.
  *
  * @memberof dc_chat_t
- *
  * @param chat The chat object.
- *
  * @return 1=chat is self talk, 0=chat is no self talk
  */
 int dc_chat_is_self_talk(const dc_chat_t* chat)
@@ -478,17 +449,12 @@ static int set_from_stmt(dc_chat_t* chat, sqlite3_stmt* row)
 
 
 /**
- * Library-internal.
- *
- * Calling this function is not thread-safe, locking is up to the caller.
+ * Load a chat from the database to the chat object.
  *
  * @private @memberof dc_chat_t
- *
  * @param chat The chat object that should be filled with the data from the database.
  *     Existing data are free()'d before using dc_chat_empty().
- *
  * @param chat_id Chat ID that should be loaded from the database.
- *
  * @return 1=success, 0=error.
  */
 int dc_chat_load_from_db(dc_chat_t* chat, uint32_t chat_id)
@@ -1217,7 +1183,6 @@ cleanup:
  * Get the total number of messages in a chat.
  *
  * @memberof dc_context_t
- *
  * @param context The context object as returned from dc_context_new().
  * @param chat_id The ID of the chat to count the messages for.
  * @return Number of total messages in the given chat. 0 for errors or empty chats.

@@ -848,8 +848,7 @@ static int dc_msg_set_from_stmt(dc_msg_t* msg, sqlite3_stmt* row, int row_offset
 
 
 /**
- * Library-internal.
- * Calling this function is not thread-safe, locking is up to the caller.
+ * Load a message from the database to the message object.
  *
  * @private @memberof dc_msg_t
  */
@@ -1399,8 +1398,14 @@ cleanup:
 }
 
 
-/* check, if the given Message-ID exists in the database (if not, the message is normally downloaded from the server and parsed,
-so, we should even keep unuseful messages in the database (we can leave the other fields empty to save space) */
+/**
+ * Check, if the given Message-ID exists in the database.
+ * If not, the caller loads the message typically completely from the server and parses it.
+ * To avoid unnecessary dowonloads and parsing, we should even keep unuseful messages
+ * in the database (we can leave the other fields empty to save space).
+ *
+ * @private @memberof dc_context_t
+ */
 uint32_t dc_rfc724_mid_exists(dc_context_t* context, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid)
 {
 	uint32_t ret = 0;

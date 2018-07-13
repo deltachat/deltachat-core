@@ -731,9 +731,7 @@ cleanup:
  *   a progress bar or stuff like that.
  *
  * @memberof dc_context_t
- *
  * @param context the context object as created by dc_context_new().
- *
  * @return None.
  *
  * There is no need to call this every program start, the result is saved in the
@@ -833,9 +831,7 @@ void dc_free_ongoing(dc_context_t* context)
  * one onging process at the same time, there is no need to define _which_ process to exit.
  *
  * @memberof dc_context_t
- *
  * @param context The context object.
- *
  * @return None
  */
 void dc_stop_ongoing_process(dc_context_t* context)
