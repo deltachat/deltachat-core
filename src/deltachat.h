@@ -262,7 +262,7 @@ uint32_t        dc_send_voice_msg            (dc_context_t*, uint32_t chat_id, c
 uint32_t        dc_send_audio_msg            (dc_context_t*, uint32_t chat_id, const char* file, const char* filemime, int duration, const char* author, const char* trackname);
 uint32_t        dc_send_file_msg             (dc_context_t*, uint32_t chat_id, const char* file, const char* filemime);
 uint32_t        dc_send_vcard_msg            (dc_context_t*, uint32_t chat_id, uint32_t contact_id);
-void            dc_set_draft                 (dc_context_t*, uint32_t chat_id, const char*);
+void            dc_set_text_draft            (dc_context_t*, uint32_t chat_id, const char*);
 
 #define         DC_GCM_ADDDAYMARKER          0x01
 dc_array_t*     dc_get_chat_msgs             (dc_context_t*, uint32_t chat_id, uint32_t flags, uint32_t marker1before);
@@ -428,7 +428,7 @@ int             dc_chat_get_type             (const dc_chat_t*);
 char*           dc_chat_get_name             (const dc_chat_t*);
 char*           dc_chat_get_subtitle         (const dc_chat_t*);
 char*           dc_chat_get_profile_image    (const dc_chat_t*);
-char*           dc_chat_get_draft            (const dc_chat_t*);
+char*           dc_chat_get_text_draft       (const dc_chat_t*);
 time_t          dc_chat_get_draft_timestamp  (const dc_chat_t*);
 int             dc_chat_get_archived         (const dc_chat_t*);
 int             dc_chat_is_unpromoted        (const dc_chat_t*);

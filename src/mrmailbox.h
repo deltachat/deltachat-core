@@ -62,7 +62,7 @@ extern "C" {
 #define mrmailbox_send_audio_msg            dc_send_audio_msg
 #define mrmailbox_send_file_msg             dc_send_file_msg
 #define mrmailbox_send_vcard_msg            dc_send_vcard_msg
-#define mrmailbox_set_draft                 dc_set_draft
+#define mrmailbox_set_draft                 dc_set_text_draft
 #define mrmailbox_get_chat_msgs             dc_get_chat_msgs
 #define mrmailbox_get_total_msg_count       dc_get_msg_cnt
 #define mrmailbox_get_fresh_msg_count       dc_get_fresh_msg_cnt
@@ -153,7 +153,7 @@ extern "C" {
 #define mrchat_get_name                     dc_chat_get_name
 #define mrchat_get_subtitle                 dc_chat_get_subtitle
 #define mrchat_get_profile_image            dc_chat_get_profile_image
-#define mrchat_get_draft                    dc_chat_get_draft
+#define mrchat_get_draft                    dc_chat_get_text_draft
 #define mrchat_get_draft_timestamp          dc_chat_get_draft_timestamp
 #define mrchat_get_archived                 dc_chat_get_archived
 #define mrchat_is_unpromoted                dc_chat_is_unpromoted

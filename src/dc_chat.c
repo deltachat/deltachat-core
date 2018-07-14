@@ -263,7 +263,7 @@ char* dc_chat_get_profile_image(const dc_chat_t* chat)
 
 /**
  * Get draft for the chat, if any. A draft is a message that the user started to
- * compose but that is not sent yet. You can save a draft for a chat using dc_set_draft().
+ * compose but that is not sent yet. You can save a draft for a chat using dc_set_text_draft().
  *
  * Drafts are considered when sorting messages and are also returned eg.
  * by dc_chatlist_get_summary().
@@ -272,7 +272,7 @@ char* dc_chat_get_profile_image(const dc_chat_t* chat)
  * @param chat The chat object.
  * @return Draft text, must be free()'d. Returns NULL if there is no draft.
  */
-char* dc_chat_get_draft(const dc_chat_t* chat)
+char* dc_chat_get_text_draft(const dc_chat_t* chat)
 {
 	if (chat==NULL || chat->magic!=DC_CHAT_MAGIC) {
 		return NULL;
@@ -284,7 +284,7 @@ char* dc_chat_get_draft(const dc_chat_t* chat)
 
 /**
  * Get timestamp of the draft.
- * The draft itself can be get using dc_chat_get_draft().
+ * The draft itself can be get using dc_chat_get_text_draft().
  *
  * @memberof dc_chat_t
  * @param chat The chat object.
@@ -1028,7 +1028,7 @@ cleanup:
  * @param msg The message text to save as a draft.
  * @return None.
  */
-void dc_set_draft(dc_context_t* context, uint32_t chat_id, const char* msg)
+void dc_set_text_draft(dc_context_t* context, uint32_t chat_id, const char* msg)
 {
 	sqlite3_stmt* stmt = NULL;
 	dc_chat_t*    chat = NULL;

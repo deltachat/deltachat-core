@@ -757,7 +757,7 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 			}
 			if (dc_chat_get_draft_timestamp(sel_chat)) {
 				char* timestr = dc_timestamp_to_str(dc_chat_get_draft_timestamp(sel_chat));
-				char* drafttext = dc_chat_get_draft(sel_chat);
+				char* drafttext = dc_chat_get_text_draft(sel_chat);
 					dc_log_info(context, 0, "Draft: %s [%s]", drafttext, timestr);
 				free(drafttext);
 				free(timestr);
@@ -973,11 +973,11 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 	{
 		if (sel_chat) {
 			if (arg1 && arg1[0]) {
-				dc_set_draft(context, dc_chat_get_id(sel_chat), arg1);
+				dc_set_text_draft(context, dc_chat_get_id(sel_chat), arg1);
 				ret = dc_strdup("Draft saved.");
 			}
 			else {
-				dc_set_draft(context, dc_chat_get_id(sel_chat), NULL);
+				dc_set_text_draft(context, dc_chat_get_id(sel_chat), NULL);
 				ret = dc_strdup("Draft deleted.");
 			}
 		}
