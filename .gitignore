@@ -45,6 +45,8 @@ po/*.insert-header
 
 # ignore other files
 .DS_Store
+capi.abi3.so
 
 # ignore build directory
 builddir/
+python/build

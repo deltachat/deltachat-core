@@ -27,8 +27,10 @@ extern "C" {
 #endif
 
 
+#ifndef PY_CFFI
 #include <stdint.h>
 #include <time.h>
+#endif
 
 
 #define DC_VERSION_STR "0.19.0"
