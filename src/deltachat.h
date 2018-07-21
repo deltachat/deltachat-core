@@ -591,7 +591,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * This event should not be reported to the end-user using a popup or something like that.
  *
  * @param data1 0
- * @param data2 Info string in english language.
+ * @param data2 (const char*) Info string in english language.
  * @return 0
  */
 #define DC_EVENT_INFO                     100
@@ -604,7 +604,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * This event should not be reported to the end-user using a popup or something like that.
  *
  * @param data1 0
- * @param data2 Warning string in english language.
+ * @param data2 (const char*) Warning string in english language.
  * @return 0
  */
 #define DC_EVENT_WARNING                  300
@@ -623,8 +623,8 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * failed (returned false). It should be sufficient to report only the _last_ error
  * in a messasge box then.
  *
- * @param data1 Error code, see @ref DC_ERROR for a list of constants.
- * @param data2 Error string, always set, never NULL. Frequent error strings are
+ * @param data1 (int) Error code, see @ref DC_ERROR for a list of constants.
+ * @param data2 (const char*) Error string, always set, never NULL. Frequent error strings are
  *     localized using #DC_EVENT_GET_STRING, however, most error strings will be
  *     in english language.
  * @return 0
@@ -639,8 +639,8 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * - Chats created, deleted or archived
  * - A draft has been set
  *
- * @param data1 chat_id for single added messages
- * @param data2 msg_id for single added messages
+ * @param data1 (int) chat_id for single added messages
+ * @param data2 (int) msg_id for single added messages
  * @return 0
  */
 #define DC_EVENT_MSGS_CHANGED             2000
@@ -652,8 +652,8 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  *
  * There is no extra #DC_EVENT_MSGS_CHANGED event send together with this event.
  *
- * @param data1 chat_id
- * @param data2 msg_id
+ * @param data1 (int) chat_id
+ * @param data2 (int) msg_id
  * @return 0
  */
 #define DC_EVENT_INCOMING_MSG             2005
@@ -663,8 +663,8 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * A single message is sent successfully. State changed from  DC_STATE_OUT_PENDING to
  * DC_STATE_OUT_DELIVERED, see dc_msg_get_state().
  *
- * @param data1 chat_id
- * @param data2 msg_id
+ * @param data1 (int) chat_id
+ * @param data2 (int) msg_id
  * @return 0
  */
 #define DC_EVENT_MSG_DELIVERED            2010
@@ -674,8 +674,8 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * A single message could not be sent. State changed from DC_STATE_OUT_PENDING or DC_STATE_OUT_DELIVERED to
  * DC_STATE_OUT_FAILED, see dc_msg_get_state().
  *
- * @param data1 chat_id
- * @param data2 msg_id
+ * @param data1 (int) chat_id
+ * @param data2 (int) msg_id
  * @return 0
  */
 #define DC_EVENT_MSG_FAILED               2012
@@ -685,8 +685,8 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * A single message is read by the receiver. State changed from DC_STATE_OUT_DELIVERED to
  * DC_STATE_OUT_MDN_RCVD, see dc_msg_get_state().
  *
- * @param data1 chat_id
- * @param data2 msg_id
+ * @param data1 (int) chat_id
+ * @param data2 (int) msg_id
  * @return 0
  */
 #define DC_EVENT_MSG_READ                 2015
@@ -698,7 +698,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * See dc_set_chat_name(), dc_set_chat_profile_image(), dc_add_contact_to_chat()
  * and dc_remove_contact_from_chat().
  *
- * @param data1 chat_id
+ * @param data1 (int) chat_id
  * @param data2 0
  * @return 0
  */
@@ -708,7 +708,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 /**
  * Contact(s) created, renamed, blocked or deleted.
  *
- * @param data1 If not 0, this is the contact_id of an added contact that should be selected.
+ * @param data1 (int) If not 0, this is the contact_id of an added contact that should be selected.
  * @param data2 0
  * @return 0
  */
@@ -718,7 +718,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 /**
  * Inform about the configuration progress started by dc_configure().
  *
- * @param data1 0=error, 1-999=progress in permille, 1000=success and done
+ * @param data1 (int) 0=error, 1-999=progress in permille, 1000=success and done
  * @param data2 0
  * @return 0
  */
@@ -728,7 +728,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 /**
  * Inform about the import/export progress started by dc_imex().
  *
- * @param data1 0=error, 1-999=progress in permille, 1000=success and done
+ * @param data1 (int) 0=error, 1-999=progress in permille, 1000=success and done
  * @param data2 0
  * @return 0
  */
@@ -742,7 +742,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * A typical purpose for a handler of this event may be to make the file public to some system
  * services.
  *
- * @param data1 File name
+ * @param data1 (const char*) File name
  * @param data2 0
  * @return 0
  */
@@ -756,8 +756,8 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * These events are typically sent after a joiner has scanned the QR code
  * generated by dc_get_securejoin_qr().
  *
- * @param data1 ID of the contact that wants to join.
- * @param data2 Progress as:
+ * @param data1 (int) ID of the contact that wants to join.
+ * @param data2 (int) Progress as:
  *     300=vg-/vc-request received, typically shown as "bob@addr joins".
  *     600=vg-/vc-request-with-auth received, vg-member-added/vc-contact-confirm sent, typically shown as "bob@addr verified".
  *     800=vg-member-added-received received, shown as "bob@addr securely joined GROUP", only sent for the verified-group-protocol.
@@ -774,8 +774,8 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * The events are typically sent while dc_join_securejoin(), which
  * may take some time, is executed.
  *
- * @param data1 ID of the inviting contact.
- * @param data2 Progress as:
+ * @param data1 (int) ID of the inviting contact.
+ * @param data2 (int) Progress as:
  *     400=vg-/vc-request-with-auth sent, typically shown as "alice@addr verified, introducing myself."
  *     (Bob has verified alice and waits until Alice does the same for him)
  * @return 0
@@ -800,9 +800,9 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 /**
  * Requeste a localized string from the frontend.
  *
- * @param data1 ID of the string to request, one of the DC_STR_* constants as defined in stock.h
+ * @param data1 (int) ID of the string to request, one of the DC_STR_* constants as defined in stock.h
  * @param data2 0
- * @return Null-terminated UTF-8 string.  CAVE: The string will be free()'d by the core, so make
+ * @return (const char*) Null-terminated UTF-8 string.  CAVE: The string will be free()'d by the core, so make
  *     sure it is allocated using malloc() or a compatible function.
  *     If you cannot provide the requested string, just return 0; the core will use a default string then.
  */
@@ -814,10 +814,10 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * Quantitiy strings may have eg. different plural forms and usually also include the count itself to the string.
  * Typical strings in this form are "1 Message" vs. "2 Messages".
  *
- * @param data1 ID of the string to request, one of the DC_STR_* constants as defined in stock.h
- * @param data2 The count. The frontend may return different strings on this value and normally also includes
+ * @param data1 (int) ID of the string to request, one of the DC_STR_* constants as defined in stock.h
+ * @param data2 (int) The count. The frontend may return different strings on this value and normally also includes
  *     the value itself to the string.
- * @return Null-terminated UTF-8 string.  CAVE: The string will be free()'d by the core, so make
+ * @return (const char*) Null-terminated UTF-8 string.  CAVE: The string will be free()'d by the core, so make
  *     sure it is allocated using malloc() or a compatible function.
  *     If you cannot provide the requested string, just return 0; the core will use a default string then.
  */
@@ -827,9 +827,9 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 /**
  * Request a HTTP-file or HTTPS-file from the frontend.
  *
- * @param data1 Null-terminated UTF-8 string containing the URL. The string starts with https:// or http://. Must not be free()'d or modified by the frontend.
+ * @param data1 (const char*) Null-terminated UTF-8 string containing the URL. The string starts with https:// or http://. Must not be free()'d or modified by the frontend.
  * @param data2 0
- * @return The content of the requested file as a null-terminated UTF-8 string;
+ * @return (const char*) The content of the requested file as a null-terminated UTF-8 string;
  *     Response headers, encodings etc. must be stripped, only the raw file, which may be binary, should be returned.
  *     CAVE: The string will be free()'d by the core,
  *     so make sure it is allocated using malloc() or a compatible function.
@@ -840,6 +840,11 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 /**
  * @}
  */
+
+
+#define DC_EVENT_DATA2_IS_STRING(e)  ((e)==DC_EVENT_INFO) || (e)==DC_EVENT_WARNING || (e)==DC_EVENT_ERROR))
+#define DC_EVENT_RETURNS_INT         ((e)==DC_EVENT_IS_OFFLINE)
+#define DC_EVENT_RETURNS_STRING(e)   ((e)==DC_EVENT_INFO) || (e)==DC_EVENT_GET_QUANTITY_STRING || (e)==DC_EVENT_GET_STRING))
 
 
 /**
