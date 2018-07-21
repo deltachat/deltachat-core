@@ -91,10 +91,17 @@ extern "C" {
  * NB: The deltachat-core library itself does not create any threads on its own, however, functions,
  * unless stated otherwise, are thread-safe.
  *
+ * After that you can  **define and open a database.** The database is a normal
+ * sqlite-file and is created as needed:
+ *
+ * ```
+ * dc_open(context, "example.db");
+ * ```
+ *
  * Now you can **configure the context:**
  *
  * ```
- * dc_set_config(context, "addr", "alice@delta.chat"); // use some real test credentials here
+ * dc_set_config(context, "addr", "alice@example.org"); // use some real test credentials here
  * dc_set_config(context, "mail_pw", "***");
  * dc_configure(context);
  * ```
@@ -108,7 +115,7 @@ extern "C" {
  * Now you can **send the first message:**
  *
  * ```
- * uint32_t contact_id = dc_create_contact(context, NULL, "bob@delta.chat"); // use a real testing address here
+ * uint32_t contact_id = dc_create_contact(context, NULL, "bob@example.org"); // use a real testing address here
  * uint32_t chat_id    = dc_create_chat_by_contact_id(context, contact_id);
  *
  * dc_send_text_msg(context, chat_id, "Hi, here is my first message!");
