@@ -225,13 +225,13 @@ static void update_config_cache(dc_context_t* context, const char* key)
  * created and can be set up using dc_set_config() afterwards.
  *
  * @memberof dc_context_t
- * @param context: the context object as created by dc_context_new()
- * @param dbfile the file to use to store the database, sth. like "~/file" won't
+ * @param context The context object as created by dc_context_new().
+ * @param dbfile The file to use to store the database, sth. like `~/file` won't
  *     work on all systems, if in doubt, use absolute paths.
- * @param blobdir a directory to store the blobs in, the trailing slash is added
- *     by us, so if you want to avoid double slashes, do not add one. If you
- *     give NULL as blobdir, `dbfile-blobs` is used in the same directory as
- *     _dbfile_ will be created in.
+ * @param blobdir A directory to store the blobs in. The trailing slash is added
+ *     by deltachat-core, so if you want to avoid double slashes, do not add one.
+ *     If you pass NULL or the empty string, deltachat-core creates a directory
+ *     beside _dbfile_ with the same name and the suffix `-blobs`.
  * @return 1 on success, 0 on failure
  */
 int dc_open(dc_context_t* context, const char* dbfile, const char* blobdir)
