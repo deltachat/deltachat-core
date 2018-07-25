@@ -1483,7 +1483,7 @@ cleanup:
  * The max. text returned is typically longer (about 100000 characters) than the
  * max. text returned by dc_msg_get_text() (about 30000 characters).
  *
- * If the library is compiled for andoid, some basic html-formatting for he
+ * If the library is compiled for android, some basic html-formatting for the
  * subject and the footer is added. However we should change this function so
  * that it returns eg. an array of pairwise key-value strings and the caller
  * can show the whole stuff eg. in a table.
