@@ -95,7 +95,7 @@ extern "C" {
  * sqlite-file and is created as needed:
  *
  * ```
- * dc_open(context, "example.db");
+ * dc_open(context, "example.db", NULL);
  * ```
  *
  * Now you can **configure the context:**
