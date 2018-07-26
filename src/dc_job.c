@@ -761,6 +761,10 @@ void dc_perform_imap_idle(dc_context_t* context)
  * If dc_perform_imap_jobs(), dc_perform_imap_fetch() and dc_perform_imap_idle() are called in a loop,
  * calling this function causes imap-jobs to be executed and messages to be fetched.
  *
+ * dc_interrupt_imap_idle() does _not_ interrupt dc_perform_imap_jobs() or dc_perform_imap_fetch().
+ * If the imap-thread is inside one of these functions when dc_interrupt_imap_idle() is called, however,
+ * the next call of the imap-thread to dc_perform_imap_idle() is interrupted immediately.
+ *
  * Internally, this function is called whenever a imap-jobs should be processed (delete message, markseen etc.),
  * for the UI view it may make sense to call the function eg. on network changes to fetch messages immediately.
  *
@@ -894,6 +898,10 @@ void dc_perform_smtp_idle(dc_context_t* context)
  * Interrupt waiting for smtp-jobs.
  * If dc_perform_smtp_jobs() and dc_perform_smtp_idle() are called in a loop,
  * calling this function causes jobs to be executed.
+ *
+ * dc_interrupt_smtp_idle() does _not_ interrupt dc_perform_smtp_jobs().
+ * If the smtp-thread is inside this function when dc_interrupt_smtp_idle() is called, however,
+ * the next call of the smtp-thread to dc_perform_smtp_idle() is interrupted immediately.
  *
  * Internally, this function is called whenever a message is to be send,
  * for the UI view it may make sense to call the function eg. on network changes.
