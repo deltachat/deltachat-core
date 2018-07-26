@@ -148,6 +148,9 @@ dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_na
 /**
  * Free a context object.
  * If app runs can only be terminated by a forced kill, this may be superfluous.
+ * Before the context object is freed, connections to SMTP, IMAP and database
+ * are closed. You can also do this explicitly by calling dc_close() on your own
+ * before calling dc_context_unref().
  *
  * @memberof dc_context_t
  * @param context the context object as created by dc_context_new().
@@ -278,11 +281,16 @@ cleanup:
 
 
 /**
- * Close context database.
+ * Close context database opened by dc_open().
+ * Before this, connections to SMTP and IMAP are closed; these connections
+ * are started automatically as needed eg. by sending for fetching messages.
+ * This function is also implicitly called by dc_context_unref().
+ * Multiple calls to this functions are okay, the function takes care not
+ * to free objects twice.
  *
  * @memberof dc_context_t
- * @param context the context object as created by dc_context_new()
- * @return none
+ * @param context The context object as created by dc_context_new().
+ * @return None.
  */
 void dc_close(dc_context_t* context)
 {
