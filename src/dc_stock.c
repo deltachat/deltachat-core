@@ -28,11 +28,6 @@ errors from here. */
 #include "dc_context.h"
 
 
-/*******************************************************************************
- * Main interface
- ******************************************************************************/
-
-
 static char* default_string(int id, int qty)
 {
 	switch (id) {

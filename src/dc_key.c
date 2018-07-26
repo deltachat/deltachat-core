@@ -28,11 +28,6 @@
 #include "dc_tools.h"
 
 
-/*******************************************************************************
- * Main interface
- ******************************************************************************/
-
-
 void dc_wipe_secret_mem(void* buf, size_t buf_bytes)
 {
 	/* wipe private keys or othere secrets with zeros so that secrets are no longer in RAM */

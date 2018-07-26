@@ -29,7 +29,6 @@
 #include "dc_strbuilder.h"
 
 
-
 typedef struct dehtml_t
 {
     dc_strbuilder_t strbuilder;

@@ -34,11 +34,6 @@ are usually logged by dc_log_warning(). */
 #include "dc_context.h"
 
 
-/*******************************************************************************
- * Main interface
- ******************************************************************************/
-
-
 static void log_vprintf(dc_context_t* context, int event, int code, const char* msg_format, va_list va)
 {
 	char* msg = NULL;
@@ -91,7 +86,6 @@ void dc_log_info(dc_context_t* context, int code, const char* msg, ...)
 		log_vprintf(context, DC_EVENT_INFO, code, msg, va);
 	va_end(va);
 }
-
 
 
 void dc_log_warning(dc_context_t* context, int code, const char* msg, ...)

@@ -32,7 +32,7 @@ we do not know from which threads the UI calls the dc_*() functions.
 As the open the Database in serialized mode explicitly, in general, this is
 safe. However, there are some points to keep in mind:
 
-1. Reading can be done at the same time from several threads, howver, only
+1. Reading can be done at the same time from several threads, however, only
    one thread can write.  If a seconds thread tries to write, this thread
    is halted until the first has finished writing, at most the timespan set
    by sqlite3_busy_timeout().
@@ -42,14 +42,9 @@ safe. However, there are some points to keep in mind:
    Transaction cannot be nested, we recommend to use them only in the
    top-level functions or not to use them.
 
-3. Using sqlite3_last_insert_rowid() causes race conditions.  If you need
-   this function, you have to wrap *all* INSERTs by a critical section.
-   We recommend not to use this function. */
-
-
-/*******************************************************************************
- * Tools
- ******************************************************************************/
+3. Using sqlite3_last_insert_rowid() causes race conditions (between the query
+   and the call another thread may insert a row.  This function MUST NOT be
+   used; dc_sqlite3_get_rowid() provides an alternative. */
 
 
 void dc_sqlite3_log_error(dc_sqlite3_t* sql, const char* msg_format, ...)
@@ -116,6 +111,7 @@ cleanup:
 
 uint32_t dc_sqlite3_get_rowid(dc_sqlite3_t* sql, const char* table, const char* field, const char* value)
 {
+	// alternative to sqlite3_last_insert_rowid() which MUST NOT be used due to race conditions, see comment above.
 	uint32_t id = 0;
 	char* q3 = sqlite3_mprintf("SELECT id FROM %s WHERE %s=%Q;", table, field, value);
 	sqlite3_stmt* stmt = dc_sqlite3_prepare(sql, q3);
@@ -126,11 +122,6 @@ uint32_t dc_sqlite3_get_rowid(dc_sqlite3_t* sql, const char* table, const char* 
 	sqlite3_free(q3);
 	return id;
 }
-
-
-/*******************************************************************************
- * Main interface
- ******************************************************************************/
 
 
 dc_sqlite3_t* dc_sqlite3_new(dc_context_t* context)

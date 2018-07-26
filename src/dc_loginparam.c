@@ -24,11 +24,6 @@
 #include "dc_loginparam.h"
 
 
-/*******************************************************************************
- * Main interface
- ******************************************************************************/
-
-
 dc_loginparam_t* dc_loginparam_new()
 {
 	dc_loginparam_t* loginparam = NULL;
