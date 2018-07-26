@@ -82,7 +82,7 @@ extern "C" {
  *     }
  * }
  *
- * pthread_t imap_thread, smtp_thread;
+ * static pthread_t imap_thread, smtp_thread;
  * pthread_create(&imap_thread, NULL, imap_thread_func, context);
  * pthread_create(&smtp_thread, NULL, smtp_thread_func, context);
  * ```
