@@ -1484,9 +1484,7 @@ cleanup:
  * max. text returned by dc_msg_get_text() (about 30000 characters).
  *
  * If the library is compiled for android, some basic html-formatting for the
- * subject and the footer is added. However we should change this function so
- * that it returns eg. an array of pairwise key-value strings and the caller
- * can show the whole stuff eg. in a table.
+ * subject and the footer is added.
  *
  * @memberof dc_context_t
  * @param context the context object as created by dc_context_new().
@@ -1521,7 +1519,7 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 	sqlite3_finalize(stmt);
 	stmt = NULL;
 
-	#ifdef __ANDROID__
+	#ifdef __ANDROID__ // TODO: this (and the following `#ifdef __ANDROID__`) is a little hack to make the android message appearing a little smarter
 		p = strchr(rawtxt, '\n');
 		if (p) {
 			char* subject = rawtxt;

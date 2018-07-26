@@ -80,7 +80,6 @@ static void cb_receive_imf(dc_imap_t* imap, const char* imf_raw_not_terminated, 
 /**
  * Create a new context object.  After creation it is usually
  * opened, connected and mails are fetched.
- * After usage, the object should be deleted using dc_context_unref().
  *
  * @memberof dc_context_t
  * @param cb a callback function that is called for events (update,
