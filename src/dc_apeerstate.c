@@ -533,7 +533,7 @@ cleanup:
  * @param peerstate The peerstate object.
  * @param which_key Which key should be marked as being verified? DC_PS_GOSSIP_KEY (1) or DC_PS_PUBLIC_KEY (2)
  * @param fingerprint Fingerprint expected in the object
- * @param verified DC_BIDIRECT_VERIFIED (2): contact verfied in both directions
+ * @param verified DC_BIDIRECT_VERIFIED (2): contact verified in both directions
  * @return 1=the given fingerprint is equal to the peer's fingerprint and
  *     the verified-state is set; you should call dc_apeerstate_save_to_db()
  *     to permanently store this state.
