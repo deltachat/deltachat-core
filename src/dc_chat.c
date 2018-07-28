@@ -1472,8 +1472,8 @@ static int real_group_exists(dc_context_t* context, uint32_t chat_id)
  *
  * @memberof dc_context_t
  * @param context The context as created by dc_context_new().
- * @param verified If set to 1 the function creates a secure verfied group.
- *     Only secure-verified members are allowd in these groups and end-to-end-encryption is always enabled.
+ * @param verified If set to 1 the function creates a secure verified group.
+ *     Only secure-verified members are allowed in these groups and end-to-end-encryption is always enabled.
  * @param chat_name The name of the group chat to create.
  *     The name may be changed later using dc_set_chat_name().
  *     To find out the name of a group later, see dc_chat_get_name()
@@ -1749,7 +1749,7 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 		if (chat->type==DC_CHAT_TYPE_VERIFIED_GROUP)
 		{
 			if (dc_contact_is_verified(contact)!=DC_BIDIRECT_VERIFIED) {
-				dc_log_error(context, 0, "Only bidirectional verified contacts can be added to verfied groups.");
+				dc_log_error(context, 0, "Only bidirectional verified contacts can be added to verified groups.");
 				goto cleanup;
 			}
 		}
