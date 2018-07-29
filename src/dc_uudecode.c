@@ -33,10 +33,10 @@
  *  __TESTING__ is used for local development
  *              --> comment this in for local testing
  */
-#define __DEBUG__
+//#define __DEBUG__
 //#define __DEBUG_VERBOSE__
 
-#define __TESTING__
+//#define __TESTING__
 
 
 #include <stdio.h>
