@@ -124,6 +124,6 @@ The program then shows a promt and typing `help` gives some help about the avail
 License
 --------------------------------------------------------------------------------
 
-Licensed under the GPLv3, see LICENSE file for details.
+Licensed under the GPLv3, see [LICENSE](./LICENSE) file for details.
 
-Copyright © 2017, 2018 Delta Chat contributors
+Copyright © 2017, 2018 Delta Chat contributors.
