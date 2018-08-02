@@ -37,10 +37,24 @@
  * The function should be called after a QR code is scanned.
  * The function takes the raw text scanned and checks what can be done with it.
  *
+ * The QR code state is returned in dc_lot_t::state as:
+ *
+ * - DC_QR_ASK_VERIFYCONTACT with dc_lot_t::id=Contact ID
+ * - DC_QR_ASK_VERIFYGROUP withdc_lot_t::text1=Group name
+ * - DC_QR_FPR_OK with dc_lot_t::id=Contact ID
+ * - DC_QR_FPR_MISMATCH with dc_lot_t::id=Contact ID
+ * - DC_QR_FPR_WITHOUT_ADDR with dc_lot_t::test1=Formatted fingerprint
+ * - DC_QR_ADDR with dc_lot_t::id=Contact ID
+ * - DC_QR_TEXT with dc_lot_t::text1=Text
+ * - DC_QR_URL with dc_lot_t::text1=URL
+ * - DC_QR_ERROR with dc_lot_t::text1=Error string
+ *
+ *
  * @memberof dc_context_t
  * @param context The context object.
  * @param qr The text of the scanned QR code.
- * @return Parsed QR code as an dc_lot_t object.
+ * @return Parsed QR code as an dc_lot_t object. The returnd object must be
+ *     freed using dc_lot_unref() after usage.
  */
 dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 {

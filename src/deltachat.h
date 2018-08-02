@@ -347,7 +347,7 @@ void            dc_stop_ongoing_process      (dc_context_t*);
 #define         DC_QR_FPR_WITHOUT_ADDR       230 // test1=formatted fingerprint
 #define         DC_QR_ADDR                   320 // id=contact
 #define         DC_QR_TEXT                   330 // text1=text
-#define         DC_QR_URL                    332 // text1=text
+#define         DC_QR_URL                    332 // text1=URL
 #define         DC_QR_ERROR                  400 // text1=error string
 dc_lot_t*       dc_check_qr                  (dc_context_t*, const char* qr);
 char*           dc_get_securejoin_qr         (dc_context_t*, uint32_t chat_id);

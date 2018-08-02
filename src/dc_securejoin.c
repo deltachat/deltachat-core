@@ -316,7 +316,8 @@ static void end_bobs_joining(dc_context_t* context, int status)
  * @param context The context object.
  * @param group_chat_id If set to the ID of a chat, the "Joining a verified group" protocol is offered in the QR code.
  *     If set to 0, the "Setup Verified Contact" protocol is offered in the QR code.
- * @return Text that should go to the qr code.
+ * @return Text that should go to the QR code, on problems, an empty QR code is returned.
+ *     The returned string must be free()'d after usage.
  */
 char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
 {
