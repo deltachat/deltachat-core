@@ -53,7 +53,7 @@
  * @memberof dc_context_t
  * @param context The context object.
  * @param qr The text of the scanned QR code.
- * @return Parsed QR code as an dc_lot_t object. The returnd object must be
+ * @return Parsed QR code as an dc_lot_t object. The returned object must be
  *     freed using dc_lot_unref() after usage.
  */
 dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
