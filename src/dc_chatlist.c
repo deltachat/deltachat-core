@@ -414,8 +414,24 @@ int dc_get_archived_cnt(dc_context_t* context)
 
 
 /**
- * Get a list of chats. The list can be filtered by query parameters.
- * To get the chat messages, use dc_get_chat_msgs().
+ * Get a list of chats.
+ * The list can be filtered by query parameters.
+ * To get information about each entry, use eg. dc_chatlist_get_summary().
+ *
+ * By default, the function adds some special entries to the list.
+ * These special entries can be identified by the ID returned by dc_chatlist_get_chat_id():
+ * - DC_CHAT_ID_DEADDROP (1) - this special chat is present if there are
+ *   messages from addresses that have no relationship to the configured account.
+ *   The last of these messages is represented by DC_CHAT_ID_DEADDROP and you can retrieve details
+ *   about it with dc_chatlist_get_msg_id(). Typically, the UI asks the user "Do you want to chat with NAME?"
+ *   and offers the options "Yes" (call dc_create_chat_by_msg_id()), "Never" (call dc_block_contact())
+ *   or "Not now".
+ *   The UI can also offer a "Close" button that calls dc_marknoticed_contact() then.
+ * - DC_CHAT_ID_ARCHIVED_LINK (6) - this special chat is present if the user has
+ *   archived _any_ chat using dc_archive_chat(). The UI should show a link as
+ *   "Show archived chats", if the user clicks this item, the UI should show a
+ *   list of all archived chats that can be created by this function hen using
+ *   the DC_GCL_ARCHIVED_ONLY flag.
  *
  * @memberof dc_context_t
  * @param context The context object as returned by dc_context_new()
@@ -432,7 +448,9 @@ int dc_get_archived_cnt(dc_context_t* context)
  * @param query_id An optional contact ID for filtering the list.  Only chats including this contact ID
  *     are returned.  Give 0 for no filtering.
  * @return A chatlist as an dc_chatlist_t object. Must be freed using
- *     dc_chatlist_unref() when no longer used
+ *     dc_chatlist_unref() when no longer used.
+ *
+ * See also: dc_get_chat_msgs() to get the messages of a single chat.
  */
 dc_chatlist_t* dc_get_chatlist(dc_context_t* context, int listflags, const char* query_str, uint32_t query_id)
 {
