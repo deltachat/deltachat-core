@@ -299,7 +299,7 @@ cleanup:
  *
  * @private @memberof dc_chatlist_t
  */
-int dc_chatlist_load_from_db(dc_chatlist_t* chatlist, int listflags, const char* query__, uint32_t query_contact_id)
+static int dc_chatlist_load_from_db(dc_chatlist_t* chatlist, int listflags, const char* query__, uint32_t query_contact_id)
 {
 	//clock_t       start = clock();
 

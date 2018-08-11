@@ -38,8 +38,6 @@ struct _dc_chatlist
 	dc_array_t*     chatNlastmsg_ids;
 };
 
-int             dc_chatlist_load_from_db   (dc_chatlist_t*, int listflags, const char* query, uint32_t query_contact_id);
-
 
 // Context functions to work with chatlist
 int             dc_get_archived_cnt        (dc_context_t*);
