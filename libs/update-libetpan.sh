@@ -73,7 +73,7 @@ update_libetpan() {
 	
 	cp    $SRCDIR/libetpan-config.h    libetpan/libetpan-config.h
 	mkdir -p                           libetpan/include/libetpan/
-	cp -a $SRCDIR/include/libetpan/*.h libetpan/include/libetpan/
+	cp    $SRCDIR/include/libetpan/*.h libetpan/include/libetpan/
 	cp    $SRCDIR/config.h             libetpan/include/libetpan/
 	
 }
