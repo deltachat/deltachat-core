@@ -88,7 +88,7 @@ static void logger(mailsmtp* smtp, int log_type, const char* buffer__, size_t si
 	char* buffer = malloc(size+1);
 	memcpy(buffer, buffer__, size);
 	buffer[size] = 0;
-	printf("SMPT: %i: %s", log_type, buffer__);
+	printf("SMTP: %i: %s", log_type, buffer__);
 }
 #endif
 
@@ -144,7 +144,7 @@ int dc_smtp_connect(dc_smtp_t* smtp, const dc_loginparam_t* lp)
 	else
 	{
 		if ((r=mailsmtp_ssl_connect(smtp->etpan, lp->send_server, lp->send_port)) != MAILSMTP_NO_ERROR) {
-			dc_log_error_if(&smtp->log_connect_errors, smtp->context, 0, "SMPT-SSL connection to %s:%i failed (%s)", lp->send_server, (int)lp->send_port, mailsmtp_strerror(r));
+			dc_log_error_if(&smtp->log_connect_errors, smtp->context, 0, "SMTP-SSL connection to %s:%i failed (%s)", lp->send_server, (int)lp->send_port, mailsmtp_strerror(r));
 			goto cleanup;
 		}
 	}
