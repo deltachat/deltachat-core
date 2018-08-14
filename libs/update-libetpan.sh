@@ -20,9 +20,8 @@ update_libetpan() {
 
 	popd
 	
-	# copy docs
+	# copy misc. to libetpan-dir, keep meson.build
 
-	rm                   libetpan/*
 	cp $SRCDIR/COPYRIGHT libetpan/
 
 	# copy source
