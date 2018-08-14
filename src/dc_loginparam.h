@@ -47,24 +47,7 @@ typedef struct dc_loginparam_t
 	char*         send_pw;
 	int           send_port;
 
-	/* Server options*/
-	#define       DC_LP_AUTH_XOAUTH2                 0x2
-	#define       DC_LP_AUTH_NORMAL                  0x4
-	#define       DC_LP_AUTH_FLAGS                  (DC_LP_AUTH_XOAUTH2|DC_LP_AUTH_NORMAL) /* if none of these flags are set, the default is choosen */
-
-	#define       DC_LP_IMAP_SOCKET_STARTTLS       0x100
-	#define       DC_LP_IMAP_SOCKET_SSL            0x200
-	#define       DC_LP_IMAP_SOCKET_PLAIN          0x400
-	#define       DC_LP_IMAP_SOCKET_FLAGS           (DC_LP_IMAP_SOCKET_STARTTLS|DC_LP_IMAP_SOCKET_SSL|DC_LP_IMAP_SOCKET_PLAIN) /* if none of these flags are set, the default is choosen */
-
-	#define       DC_LP_SMTP_SOCKET_STARTTLS     0x10000
-	#define       DC_LP_SMTP_SOCKET_SSL          0x20000
-	#define       DC_LP_SMTP_SOCKET_PLAIN        0x40000
-	#define       DC_LP_SMTP_SOCKET_FLAGS           (DC_LP_SMTP_SOCKET_STARTTLS|DC_LP_SMTP_SOCKET_SSL|DC_LP_SMTP_SOCKET_PLAIN) /* if none of these flags are set, the default is choosen */
-
-	#define       DC_NO_EXTRA_IMAP_UPLOAD      0x2000000
-	#define       DC_NO_MOVE_TO_CHATS          0x4000000
-
+	/* Server options as DC_LP_* flags */
 	int           server_flags;
 } dc_loginparam_t;
 
