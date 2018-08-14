@@ -66,8 +66,9 @@ update_libetpan() {
 	rm libetpan/src/low-level/nntp/*.c
 	rm libetpan/src/low-level/pop3/*.c
 
-	# copy includes 
-	# (in the include directory there are just links to the source directory)
+	# copy header files
+	# CAVE: instead of using symlink to the header files as in the libetpan-upstream,
+	# we create real copies which makes usage of other tools easier; eg. `npm publish` does not allow symlinks
 
 	rm -r libetpan/include/*
 	
