@@ -582,7 +582,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 
 
 /*
- * flags for dc_set_config(context, "server_flags", ...)
+ * flags for dc_set_config_int(context, "server_flags", ...)
  */
 #define         DC_LP_AUTH_XOAUTH2                 0x2
 #define         DC_LP_AUTH_NORMAL                  0x4
