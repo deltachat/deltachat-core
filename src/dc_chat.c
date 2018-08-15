@@ -2173,6 +2173,9 @@ cleanup:
  * @param context The context object as returned from dc_context_new().
  * @param chat_id Chat ID to send the text message to.
  * @param text_to_send Text to send to the chat defined by the chat ID.
+ *     Passing an empty text here causes an empty text to be sent,
+ *     it's up to the caller to handle this if undesired.
+ *     Passing NULL as the text causes the function to return 0.
  * @return The ID of the message that is about being sent.
  */
 uint32_t dc_send_text_msg(dc_context_t* context, uint32_t chat_id, const char* text_to_send)
