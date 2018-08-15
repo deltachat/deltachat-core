@@ -586,7 +586,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  *
  * Flags for configuring IMAP and SMTP servers.
  * These flags are optional and may be set together with the username, password etc. via
- * dc_set_config_int() using the key "server_flags".
+ * dc_set_config() or dc_set_config_int() using the key "server_flags".
  *
  * @addtogroup DC_LP
  * @{
