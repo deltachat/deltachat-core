@@ -724,6 +724,15 @@ cleanup:
  * - Before your call this function, you should set at least `addr` and `mail_pw`
  *   using dc_set_config().
  *
+ * - Use `mail_user` to use a differnt user name than `addr` and `send_pw` to
+ *   use a different password for the SMTP server (otherwise `mail_pw` is used)
+ *
+ *     - If _no_ more options are specified, the function tries to get these
+ *       **using autoconfigure/autodiscover**.
+ *
+ *     - If _more_ options as `mail_server`, `mail_port`, `send_server`, `send_port`, `send_user` or `server_flags`
+ *       are specified, **autoconfigure/autodiscover is skipped**.
+ *
  * - While dc_configure() returns immediately, the started configuration-job may take a while,
  *   you can stop it using dc_stop_ongoing_process().
  *

@@ -378,13 +378,30 @@ static char* get_sys_config_str(const char* key, const char* def)
 
 
 /**
- * Configure the context.  The configuration is handled by key=value pairs, see
- * dc_get_config() for a list of possible options.
+ * Configure the context.  The configuration is handled by key=value pairs as:
+ *
+ * - `addr`         = address to display (always needed)
+ * - `mail_server`  = IMAP-server, guessed if left out
+ * - `mail_user`    = IMAP-username, guessed if left out
+ * - `mail_pw`      = IMAP-password (always needed)
+ * - `mail_port`    = IMAP-port, guessed if left out
+ * - `send_server`  = SMTP-server, guessed if left out
+ * - `send_user`    = SMTP-user, guessed if left out
+ * - `send_pw`      = SMTP-password, guessed if left out
+ * - `send_port`    = SMTP-port, guessed if left out
+ * - `server_flags` = IMAP-/SMTP-flags as a combination of @ref DC_LP flags, guessed if left out
+ * - `displayname`  = Own name to use when sending messages.  MUAs are allowed to spread this way eg. using CC, defaults to empty
+ * - `selfstatus`   = Own status to display eg. in email footers, defaults to a standard text
+ * - `e2ee_enabled` = 0=no end-to-end-encryption, 1=prefer end-to-end-encryption (default)
+ *
+ * If you want to set an integer, it may be easier to use dc_set_config_int(), however, it is also
+ * fine to pass the integer as a string to this function.
+ *
+ * If you want to retrieve a valie, use dc_get_config().
  *
  * @memberof dc_context_t
  * @param context The context object
- * @param key The option to change, see dc_get_config() for a list.
- *     Keys starting with `sys` cannot be modified.
+ * @param key The option to change, see above.
  * @param value The value to save for "key"
  * @return 0=failure, 1=success
  */
@@ -406,21 +423,6 @@ int dc_set_config(dc_context_t* context, const char* key, const char* value)
 /**
  * Get a configuration option. The configuration option is typically set by dc_set_config() or by the library itself.
  * To get an option as an integer, you can use dc_get_config_int() as an alternative.
- * Typical configuration options are:
- *
- * - `addr`         = address to display (needed)
- * - `mail_server`  = IMAP-server, guessed if left out
- * - `mail_user`    = IMAP-username, guessed if left out
- * - `mail_pw`      = IMAP-password (needed)
- * - `mail_port`    = IMAP-port, guessed if left out
- * - `send_server`  = SMTP-server, guessed if left out
- * - `send_user`    = SMTP-user, guessed if left out
- * - `send_pw`      = SMTP-password, guessed if left out
- * - `send_port`    = SMTP-port, guessed if left out
- * - `server_flags` = IMAP-/SMTP-flags, guessed if left out
- * - `displayname`  = Own name to use when sending messages.  MUAs are allowed to spread this way eg. using CC, defaults to empty
- * - `selfstatus`   = Own status to display eg. in email footers, defaults to a standard text
- * - `e2ee_enabled` = 0=no end-to-end-encryption, 1=prefer end-to-end-encryption (default)
  *
  * Moreover, this function can be used to query some global system values:
  *
