@@ -406,7 +406,6 @@ cleanup:
 void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 {
 	int              success = 0;
-	int              i = 0;
 	int              imap_connected_here = 0;
 	int              smtp_connected_here = 0;
 	int              ongoing_allocated_here = 0;
@@ -496,25 +495,35 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	 && param->server_flags==0)
 	{
 		/* A.  Search configurations from the domain used in the email-address */
-		for (i = 0; i <= 1; i++) {
-			if (param_autoconfig==NULL) {
-				char* url = dc_mprintf("%s://autoconfig.%s/mail/config-v1.1.xml?emailaddress=%s", i==0?"https":"http", param_domain, param_addr_urlencoded); /* Thunderbird may or may not use SSL */
-				param_autoconfig = moz_autoconfigure(context, url, param);
-				free(url);
-				PROGRESS(300+i*20)
-			}
+		if (param_autoconfig==NULL) {
+			char* url = dc_mprintf("https://autoconfig.%s/mail/config-v1.1.xml?emailaddress=%s", param_domain, param_addr_urlencoded);
+			param_autoconfig = moz_autoconfigure(context, url, param);
+			free(url);
+			PROGRESS(300)
 		}
 
-		for (i = 0; i <= 1; i++) {
-			if (param_autoconfig==NULL) {
-				char* url = dc_mprintf("%s://%s/.well-known/autoconfig/mail/config-v1.1.xml?emailaddress=%s", i==0?"https":"http", param_domain, param_addr_urlencoded); // the doc does not mention `emailaddress=`, however, Thunderbird adds it, see https://releases.mozilla.org/pub/thunderbird/ ,  which makes some sense
-				param_autoconfig = moz_autoconfigure(context, url, param);
-				free(url);
-				PROGRESS(340+i*30)
-			}
+		if (param_autoconfig==NULL) {
+			char* url = dc_mprintf("http://autoconfig.%s/mail/config-v1.1.xml", param_domain); // do not transfer the email-address unencrypted
+			param_autoconfig = moz_autoconfigure(context, url, param);
+			free(url);
+			PROGRESS(320)
 		}
 
-		for (i = 0; i <= 1; i++) {
+		if (param_autoconfig==NULL) {
+			char* url = dc_mprintf("https://%s/.well-known/autoconfig/mail/config-v1.1.xml?emailaddress=%s", param_domain, param_addr_urlencoded); // the doc does not mention `emailaddress=`, however, Thunderbird adds it, see https://releases.mozilla.org/pub/thunderbird/ ,  which makes some sense
+			param_autoconfig = moz_autoconfigure(context, url, param);
+			free(url);
+			PROGRESS(340)
+		}
+
+		if (param_autoconfig==NULL) {
+			char* url = dc_mprintf("http://%s/.well-known/autoconfig/mail/config-v1.1.xml", param_domain); // do not transfer the email-address unencrypted
+			param_autoconfig = moz_autoconfigure(context, url, param);
+			free(url);
+			PROGRESS(370)
+		}
+
+		for (int i = 0; i <= 1; i++) {
 			if (param_autoconfig==NULL) {
 				char* url = dc_mprintf("https://%s%s/autodiscover/autodiscover.xml", i==0?"":"autodiscover.", param_domain); /* Outlook uses always SSL but different domains */
 				param_autoconfig = outlk_autodiscover(context, url, param);
