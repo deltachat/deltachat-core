@@ -494,7 +494,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	/*&&param->send_pw     ==NULL -- the password cannot be auto-configured and is no criterion for autoconfig or not */
 	 && param->server_flags==0)
 	{
-		/* A.  Search configurations from the domain used in the email-address */
+		/* A.  Search configurations from the domain used in the email-address (https first)*/
 		if (param_autoconfig==NULL) {
 			char* url = dc_mprintf("https://autoconfig.%s/mail/config-v1.1.xml?emailaddress=%s", param_domain, param_addr_urlencoded);
 			param_autoconfig = moz_autoconfigure(context, url, param);
@@ -503,24 +503,10 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 		}
 
 		if (param_autoconfig==NULL) {
-			char* url = dc_mprintf("http://autoconfig.%s/mail/config-v1.1.xml", param_domain); // do not transfer the email-address unencrypted
-			param_autoconfig = moz_autoconfigure(context, url, param);
-			free(url);
-			PROGRESS(320)
-		}
-
-		if (param_autoconfig==NULL) {
 			char* url = dc_mprintf("https://%s/.well-known/autoconfig/mail/config-v1.1.xml?emailaddress=%s", param_domain, param_addr_urlencoded); // the doc does not mention `emailaddress=`, however, Thunderbird adds it, see https://releases.mozilla.org/pub/thunderbird/ ,  which makes some sense
 			param_autoconfig = moz_autoconfigure(context, url, param);
 			free(url);
 			PROGRESS(340)
-		}
-
-		if (param_autoconfig==NULL) {
-			char* url = dc_mprintf("http://%s/.well-known/autoconfig/mail/config-v1.1.xml", param_domain); // do not transfer the email-address unencrypted
-			param_autoconfig = moz_autoconfigure(context, url, param);
-			free(url);
-			PROGRESS(370)
 		}
 
 		for (int i = 0; i <= 1; i++) {
@@ -532,6 +518,20 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 			}
 		}
 
+		if (param_autoconfig==NULL) {
+			char* url = dc_mprintf("http://autoconfig.%s/mail/config-v1.1.xml", param_domain); // do not transfer the email-address unencrypted
+			param_autoconfig = moz_autoconfigure(context, url, param);
+			free(url);
+			PROGRESS(320)
+		}
+		
+		if (param_autoconfig==NULL) {
+			char* url = dc_mprintf("http://%s/.well-known/autoconfig/mail/config-v1.1.xml", param_domain); // do not transfer the email-address unencrypted
+			param_autoconfig = moz_autoconfigure(context, url, param);
+			free(url);
+			PROGRESS(370)
+		}
+		
 		/* B.  If we have no configuration yet, search configuration in Thunderbird's centeral database */
 		if (param_autoconfig==NULL)
 		{
