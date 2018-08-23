@@ -161,7 +161,7 @@ void dc_strbuilder_catf(dc_strbuilder_t* strbuilder, const char* format, ...)
  *
  * @param strbuilder The object to initialze. Must be initialized with
  *      dc_strbuilder_init().
- * @return None
+ * @return None.
  */
 void dc_strbuilder_empty(dc_strbuilder_t* strbuilder)
 {

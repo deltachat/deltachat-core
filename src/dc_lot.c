@@ -49,7 +49,7 @@ dc_lot_t* dc_lot_new()
  *
  * @memberof dc_lot_t
  * @param set The object to free.
- * @return None
+ * @return None.
  */
 void dc_lot_unref(dc_lot_t* set)
 {

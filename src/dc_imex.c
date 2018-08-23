@@ -1139,7 +1139,7 @@ cleanup:
 /**
  * Import/export things.
  * For this purpose, the function creates a job that is executed in the IMAP-thread then;
- * this requires to call dc_perform_imap_jobs() regulary.
+ * this requires to call dc_perform_imap_jobs() regularly.
  *
  * What to do is defined by the _what_ parameter which may be one of the following:
  *
@@ -1389,7 +1389,7 @@ cleanup:
 
 /**
  * Check if the user is authorized by the given password in some way.
- * This is to promt for the password eg. before exporting keys/backup.
+ * This is to prompt for the password eg. before exporting keys/backup.
  *
  * @memberof dc_context_t
  * @param context The context as created by dc_context_new().

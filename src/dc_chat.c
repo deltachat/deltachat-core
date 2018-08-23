@@ -650,8 +650,7 @@ cleanup:
  * Create a normal chat with a single user.  To create group chats,
  * see dc_create_group_chat().
  *
- * If there is already an exitant chat, this ID is returned and no new chat is
- * crated.  If there is no existant chat with the user, a new chat is created;
+ * If a chat already exists, this ID is returned, otherwise a new chat is created;
  * this new chat may already contain messages, eg. from the deaddrop, to get the
  * chat messages, use dc_get_chat_msgs().
  *
@@ -713,7 +712,7 @@ cleanup:
  *
  * If the user is asked before creation, he should be
  * asked whether he wants to chat with the _contact_ belonging to the message;
- * the group names may be really weired when take from the subject of implicit
+ * the group names may be really weird when taken from the subject of implicit
  * groups and this may look confusing.
  *
  * Moreover, this function also scales up the origin of the contact belonging
@@ -874,7 +873,7 @@ cleanup:
  * @memberof dc_context_t
  * @param context The context object as returned from dc_context_new().
  * @param chat_id Chat ID to get the belonging contact IDs for.
- * @return an array of contact IDs belonging to the chat; must be freed using dc_array_unref() when done.
+ * @return An array of contact IDs belonging to the chat; must be freed using dc_array_unref() when done.
  */
 dc_array_t* dc_get_chat_contacts(dc_context_t* context, uint32_t chat_id)
 {
@@ -1274,7 +1273,7 @@ cleanup:
  * @param context The context object as returned from dc_context_new().
  * @param chat_id The ID of the chat to archive or unarchive.
  * @param archive 1=archive chat, 0=unarchive chat, all other values are reserved for future use
- * @return None
+ * @return None.
  */
 void dc_archive_chat(dc_context_t* context, uint32_t chat_id, int archive)
 {
@@ -1330,7 +1329,7 @@ void dc_unblock_chat(dc_context_t* context, uint32_t chat_id)
  * - **Groups are not left** - this would
  *   be unexpected as (1) deleting a normal chat also does not prevent new mails
  *   from arriving, (2) leaving a group requires sending a message to
- *   all group members - esp. for groups not used for a longer time, this is
+ *   all group members - especially for groups not used for a longer time, this is
  *   really unexpected when deletion results in contacting all members again,
  *   (3) only leaving groups is also a valid usecase.
  *
@@ -1340,7 +1339,7 @@ void dc_unblock_chat(dc_context_t* context, uint32_t chat_id)
  * @memberof dc_context_t
  * @param context The context object as returned from dc_context_new().
  * @param chat_id The ID of the chat to delete.
- * @return None
+ * @return None.
  */
 void dc_delete_chat(dc_context_t* context, uint32_t chat_id)
 {
@@ -2286,7 +2285,7 @@ cleanup:
 
 
 /**
- * Send a voice message to a chat.  Voice messages are messages just recorded though the device microphone.
+ * Send a voice message to a chat.  Voice messages are messages just recorded through the device microphone.
  * For sending music or other audio data, use dc_send_audio_msg().
  *
  * Sends the event #DC_EVENT_MSGS_CHANGED on succcess.
@@ -2408,7 +2407,7 @@ cleanup:
  * Send foreign contact data to a chat.
  *
  * Sends the name and the email address of another contact to a chat.
- * The contact this may or may not be a member of the chat.
+ * The contact may or may not be a member of the chat.
  *
  * Typically used to share a contact to another member or to a group of members.
  *
@@ -2497,11 +2496,11 @@ cleanup:
  * Forward messages to another chat.
  *
  * @memberof dc_context_t
- * @param context the context object as created by dc_context_new()
- * @param msg_ids an array of uint32_t containing all message IDs that should be forwarded
- * @param msg_cnt the number of messages IDs in the msg_ids array
+ * @param context The context object as created by dc_context_new()
+ * @param msg_ids An array of uint32_t containing all message IDs that should be forwarded
+ * @param msg_cnt The number of messages IDs in the msg_ids array
  * @param chat_id The destination chat ID.
- * @return none
+ * @return None.
  */
 void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt, uint32_t chat_id)
 {

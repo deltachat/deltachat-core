@@ -673,7 +673,7 @@ cleanup:
  *
  * @memberof dc_context_t
  * @param context The context as created by dc_context_new().
- * @return None
+ * @return None.
  */
 void dc_perform_imap_jobs(dc_context_t* context)
 {
@@ -792,7 +792,7 @@ void dc_perform_imap_idle(dc_context_t* context)
  *
  * @memberof dc_context_t
  * @param context The context as created by dc_context_new().
- * @return None
+ * @return None.
  */
 void dc_interrupt_imap_idle(dc_context_t* context)
 {
@@ -828,7 +828,7 @@ void dc_interrupt_imap_idle(dc_context_t* context)
  *
  * @memberof dc_context_t
  * @param context The context as created by dc_context_new().
- * @return None
+ * @return None.
  */
 void dc_perform_smtp_jobs(dc_context_t* context)
 {
@@ -853,7 +853,7 @@ void dc_perform_smtp_jobs(dc_context_t* context)
  *
  * @memberof dc_context_t
  * @param context The context as created by dc_context_new().
- * @return None
+ * @return None.
  */
 void dc_perform_smtp_idle(dc_context_t* context)
 {
@@ -928,7 +928,7 @@ void dc_perform_smtp_idle(dc_context_t* context)
  *
  * @memberof dc_context_t
  * @param context The context as created by dc_context_new().
- * @return None
+ * @return None.
  */
 void dc_interrupt_smtp_idle(dc_context_t* context)
 {
