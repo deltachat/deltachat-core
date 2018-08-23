@@ -31,10 +31,8 @@
  * Empty an Autocrypt-header object and free all data associated with it.
  *
  * @private @memberof dc_aheader_t
- *
  * @param aheader The Autocrypt-header object. If you pass NULL here, the function does nothing.
- *
- * @return None
+ * @return None.
  */
 void dc_aheader_empty(dc_aheader_t* aheader)
 {

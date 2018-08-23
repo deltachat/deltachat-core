@@ -728,12 +728,12 @@ cleanup:
 /**
  * Configure and connect a context.
  * For this, the function creates a job that is executed in the IMAP-thread then;
- * this requires to call dc_perform_imap_jobs() regulary.
+ * this requires to call dc_perform_imap_jobs() regularly.
  *
- * - Before your call this function, you should set at least `addr` and `mail_pw`
+ * - Before you call this function, you should set at least `addr` and `mail_pw`
  *   using dc_set_config().
  *
- * - Use `mail_user` to use a differnt user name than `addr` and `send_pw` to
+ * - Use `mail_user` to use a different user name than `addr` and `send_pw` to
  *   use a different password for the SMTP server (otherwise `mail_pw` is used)
  *
  *     - If _no_ more options are specified, the function tries to get these
@@ -749,11 +749,11 @@ cleanup:
  *   a progress bar or stuff like that.
  *
  * @memberof dc_context_t
- * @param context the context object as created by dc_context_new().
+ * @param context The context object as created by dc_context_new().
  * @return None.
  *
  * There is no need to call this every program start, the result is saved in the
- * database and you can call use the connection directly:
+ * database and you can use the connection directly:
  *
  * ```
  * if (!dc_is_configured(context)) {
@@ -772,12 +772,12 @@ void dc_configure(dc_context_t* context)
 /**
  * Check if the context is already configured.
  *
- * Typically, for unconfigured accounts, the user is prompeted for
+ * Typically, for unconfigured accounts, the user is prompted
  * to enter some settings and dc_configure() is called in a thread then.
  *
  * @memberof dc_context_t
  * @param context The context object as created by dc_context_new().
- * @return 1=context is configuredc can be used;
+ * @return 1=context is configured and can be used;
  *     0=context is not configured and a configuration by dc_configure() is required.
  */
 int dc_is_configured(const dc_context_t* context)
@@ -850,7 +850,7 @@ void dc_free_ongoing(dc_context_t* context)
  *
  * @memberof dc_context_t
  * @param context The context object.
- * @return None
+ * @return None.
  */
 void dc_stop_ongoing_process(dc_context_t* context)
 {

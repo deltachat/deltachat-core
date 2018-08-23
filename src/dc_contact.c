@@ -108,7 +108,7 @@ void dc_contact_empty(dc_contact_t* contact)
  *
  * @memberof dc_contact_t
  * @param contact The contact object.
- * @return the ID of the contact, 0 on errors.
+ * @return The ID of the contact, 0 on errors.
  */
 uint32_t dc_contact_get_id(const dc_contact_t* contact)
 {
@@ -137,7 +137,7 @@ char* dc_contact_get_addr(const dc_contact_t* contact)
 
 
 /**
- * Get name. This is the name as defined by the contact himself or
+ * Get the contact name. This is the name as defined by the contact himself or
  * modified by the user.  May be an empty string.
  *
  * This name is typically used in a form where the user can edit the name of a contact.
@@ -288,10 +288,10 @@ cleanup:
 
 
 /**
- * Check if a contact was verified eg. by a secure-join QR code scan
+ * Check if a contact was verified. E.g. by a secure-join QR code scan
  * and if the key has not changed since this verification.
  *
- * The UI may draw a checkbox or sth. like that beside verified contacts.
+ * The UI may draw a checkbox or something like that beside verified contacts.
  *
  * @memberof dc_contact_t
  * @param contact The contact object.
@@ -1028,7 +1028,7 @@ dc_contact_t* dc_get_contact(dc_context_t* context, uint32_t contact_id)
  * @memberof dc_context_t
  * @param context The context object as created by dc_context_new()
  * @param contact_id The contact ID of which all messages should be marked as noticed.
- * @return none
+ * @return None.
  */
 void dc_marknoticed_contact(dc_context_t* context, uint32_t contact_id)
 {
@@ -1165,7 +1165,7 @@ static void cat_fingerprint(dc_strbuilder_t* ret, const char* addr, const char* 
  * @memberof dc_context_t
  * @param context The context object as created by dc_context_new().
  * @param contact_id ID of the contact to get the encryption info for.
- * @return multi-line text, must be free()'d after usage.
+ * @return Multi-line text, must be free()'d after usage.
  */
 char* dc_get_contact_encrinfo(dc_context_t* context, uint32_t contact_id)
 {

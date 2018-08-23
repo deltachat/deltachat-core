@@ -351,7 +351,7 @@ static void get_word(const char* begin, const char** pend, int* pto_be_quoted)
  * We do not fold at position 72; this would result in empty words as `=?utf-8?Q??=` which are correct,
  * but cannot be displayed by some mail programs (eg. Android Stock Mail).
  * however, this is not needed, as long as _one_ word is not longer than 72 characters.
- * _if_ it is, the display may get weired.  This affects the subject only.
+ * _if_ it is, the display may get weird.  This affects the subject only.
  * the best solution wor all this would be if libetpan encodes the line as only libetpan knowns when a header line is full.
  *
  * @param to_encode Null-terminated UTF-8-string to encode.

@@ -1625,7 +1625,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_termi
 	/* check, if the message asks for a MDN */
 	if (!mimeparser->decrypting_failed)
 	{
-		const struct mailimf_optional_field* dn_field = dc_mimeparser_lookup_optional_field(mimeparser, "Chat-Disposition-Notification-To"); /* we use "Chat-Disposition-Notification-To" as replies to "Disposition-Notification-To" are weired in many cases, are just freetext and/or do not follow any standard. */
+		const struct mailimf_optional_field* dn_field = dc_mimeparser_lookup_optional_field(mimeparser, "Chat-Disposition-Notification-To"); /* we use "Chat-Disposition-Notification-To" as replies to "Disposition-Notification-To" are weird in many cases, are just freetext and/or do not follow any standard. */
 		if (dn_field && dc_mimeparser_get_last_nonmeta(mimeparser)/*just check if the mail is not empty*/)
 		{
 			struct mailimf_mailbox_list* mb_list = NULL;

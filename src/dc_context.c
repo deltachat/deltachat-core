@@ -83,7 +83,7 @@ static void cb_receive_imf(dc_imap_t* imap, const char* imf_raw_not_terminated, 
  *
  * @memberof dc_context_t
  * @param cb a callback function that is called for events (update,
- *     state changes etc.) and to get some information form the client (eg. translation
+ *     state changes etc.) and to get some information from the client (eg. translation
  *     for a given string).
  *     See @ref DC_EVENT for a list of possible events that may be passed to the callback.
  *     - The callback MAY be called from _any_ thread, not only the main/GUI thread!
@@ -98,8 +98,8 @@ static void cb_receive_imf(dc_imap_t* imap, const char* imf_raw_not_terminated, 
  *     in the form "Delta Chat <version> for <os_name>".
  *     You can give the name of the operating system and/or the used environment here.
  *     It is okay to give NULL, in this case `X-Mailer:` header is set to "Delta Chat <version>".
- * @return a context object with some public members the object must be passed to the other context functions
- *     and the object must be freed using dc_context_unref() after usage.
+ * @return A context object with some public members. The object must be passed to the other context functions
+ *     and must be freed using dc_context_unref() after usage.
  */
 dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_name)
 {
@@ -153,8 +153,8 @@ dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_na
  * before calling dc_context_unref().
  *
  * @memberof dc_context_t
- * @param context the context object as created by dc_context_new().
- * @return none
+ * @param context The context object as created by dc_context_new().
+ * @return None.
  */
 void dc_context_unref(dc_context_t* context)
 {
@@ -195,7 +195,7 @@ void dc_context_unref(dc_context_t* context)
  * Get user data associated with a context object.
  *
  * @memberof dc_context_t
- * @param context the context object as created by dc_context_new().
+ * @param context The context object as created by dc_context_new().
  * @return User data, this is the second parameter given to dc_context_new().
  */
 void* dc_get_userdata(dc_context_t* context)
@@ -228,7 +228,7 @@ static void update_config_cache(dc_context_t* context, const char* key)
  *
  * @memberof dc_context_t
  * @param context The context object as created by dc_context_new().
- * @param dbfile The file to use to store the database, sth. like `~/file` won't
+ * @param dbfile The file to use to store the database, something like `~/file` won't
  *     work on all systems, if in doubt, use absolute paths.
  * @param blobdir A directory to store the blobs in. The trailing slash is added
  *     by deltachat-core, so if you want to avoid double slashes, do not add one.
@@ -317,7 +317,7 @@ void dc_close(dc_context_t* context)
  * Check if the context database is open.
  *
  * @memberof dc_context_t
- * @param context the context object as created by dc_context_new().
+ * @param context The context object as created by dc_context_new().
  * @return 0=context is not open, 1=context is open.
  */
 int dc_is_open(const dc_context_t* context)
@@ -334,7 +334,7 @@ int dc_is_open(const dc_context_t* context)
  * Get the blob directory.
  *
  * @memberof dc_context_t
- * @param context the context object as created by dc_context_new().
+ * @param context The context object as created by dc_context_new().
  * @return Blob directory associated with the context object, empty string if unset or on errors. NULL is never returned.
  *     The returned string must be free()'d.
  */
@@ -428,7 +428,7 @@ int dc_set_config(dc_context_t* context, const char* key, const char* value)
  *
  * - `sys.version`  = get the version string eg. as `1.2.3` or as `1.2.3special4`
  * - `sys.msgsize_max_recommended` = maximal recommended attachment size in bytes.
- *                    All possible overheads are already substracted and this value can be used eg. for direct comparison
+ *                    All possible overheads are already subtracted and this value can be used eg. for direct comparison
  *                    with the size of a file the user wants to attach. If an attachment is larger than this value,
  *                    an error (no warning as it should be shown to the user) is logged but the attachment is sent anyway.
  *

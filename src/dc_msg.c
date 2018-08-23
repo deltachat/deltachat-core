@@ -111,7 +111,7 @@ void dc_msg_empty(dc_msg_t* msg)
  *
  * @memberof dc_msg_t
  * @param msg The message object.
- * @return the ID of the message, 0 on errors.
+ * @return The ID of the message, 0 on errors.
  */
 uint32_t dc_msg_get_id(const dc_msg_t* msg)
 {
@@ -133,7 +133,7 @@ uint32_t dc_msg_get_id(const dc_msg_t* msg)
  *
  * @memberof dc_msg_t
  * @param msg The message object.
- * @return the ID of the contact who wrote the message, DC_CONTACT_ID_SELF (1)
+ * @return The ID of the contact who wrote the message, DC_CONTACT_ID_SELF (1)
  *     if this is an outgoing message, 0 on errors.
  */
 uint32_t dc_msg_get_from_id(const dc_msg_t* msg)
@@ -153,7 +153,7 @@ uint32_t dc_msg_get_from_id(const dc_msg_t* msg)
  *
  * @memberof dc_msg_t
  * @param msg The message object.
- * @return the ID of the chat the message belongs to, 0 on errors.
+ * @return The ID of the chat the message belongs to, 0 on errors.
  */
 uint32_t dc_msg_get_chat_id(const dc_msg_t* msg)
 {
@@ -240,7 +240,7 @@ time_t dc_msg_get_timestamp(const dc_msg_t* msg)
 
 /**
  * Get the text of the message.
- * If there is no text associalted with the message, an empty string is returned.
+ * If there is no text associated with the message, an empty string is returned.
  * NULL is never returned.
  *
  * The returned text is plain text, HTML is stripped.
@@ -467,7 +467,7 @@ cleanup:
  * If the width is unknown or if the associated file is no image or video file,
  * 0 is returned.
  *
- * Often the ascpect ratio is the more interesting thing. You can calculate
+ * Often the aspect ratio is the more interesting thing. You can calculate
  * this using dc_msg_get_width() / dc_msg_get_height().
  *
  * See also dc_msg_get_duration().
@@ -509,7 +509,7 @@ int dc_msg_get_height(const dc_msg_t* msg)
 
 
 /**
- * Get duration of audio or video.  The duration is returned in milliseconds (ms).
+ * Get the duration of audio or video.  The duration is returned in milliseconds (ms).
  * If the duration is unknown or if the associated file is no audio or video file,
  * 0 is returned.
  *
@@ -709,7 +709,7 @@ int dc_msg_is_forwarded(const dc_msg_t* msg)
  * These messages are typically shown in the center of the chat view,
  * dc_msg_get_text() returns a descriptive text about what is going on.
  *
- * There is no need to perfrom any action when seeing such a message - this is already done by the core.
+ * There is no need to perform any action when seeing such a message - this is already done by the core.
  * Typically, these messages are displayed in the center of the chat.
  *
  * @memberof dc_msg_t
@@ -1039,7 +1039,7 @@ char* dc_msg_get_summarytext_by_raw(int type, const char* text, dc_param_t* para
  * they can be sent.
  *
  * @memberof dc_msg_t
- * @param msg the message object
+ * @param msg The message object
  * @return 1=message is still in creation (`<filename>.increation` exists),
  *     0=message no longer in creation
  */
@@ -1477,7 +1477,7 @@ cleanup:
 
 
 /**
- * Get an informational text for a single message. the text is multiline and may
+ * Get an informational text for a single message. The text is multiline and may
  * contain eg. the raw text of the message.
  *
  * The max. text returned is typically longer (about 100000 characters) than the
@@ -1487,9 +1487,9 @@ cleanup:
  * subject and the footer is added.
  *
  * @memberof dc_context_t
- * @param context the context object as created by dc_context_new().
- * @param msg_id the message id for which information should be generated
- * @return text string, must be free()'d after usage
+ * @param context The context object as created by dc_context_new().
+ * @param msg_id The message id for which information should be generated
+ * @return Text string, must be free()'d after usage
  */
 char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 {
@@ -1686,7 +1686,7 @@ cleanup:
  * @param msg_ids An array of uint32_t message IDs defining the messages to star or unstar
  * @param msg_cnt The number of IDs in msg_ids
  * @param star 0=unstar the messages in msg_ids, 1=star them
- * @return none
+ * @return None.
  */
 void dc_star_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt, int star)
 {
@@ -1721,10 +1721,10 @@ void dc_star_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt, i
  * on the IMAP server.
  *
  * @memberof dc_context_t
- * @param context the context object as created by dc_context_new()
+ * @param context The context object as created by dc_context_new()
  * @param msg_ids an array of uint32_t containing all message IDs that should be deleted
- * @param msg_cnt the number of messages IDs in the msg_ids array
- * @return none
+ * @param msg_cnt The number of messages IDs in the msg_ids array
+ * @return None.
  */
 void dc_delete_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt)
 {
@@ -1757,9 +1757,9 @@ void dc_delete_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt)
  *
  * @memberof dc_context_t
  * @param context The context object.
- * @param msg_ids an array of uint32_t containing all the messages IDs that should be marked as seen.
+ * @param msg_ids An array of uint32_t containing all the messages IDs that should be marked as seen.
  * @param msg_cnt The number of message IDs in msg_ids.
- * @return none
+ * @return None.
  */
 void dc_markseen_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt)
 {

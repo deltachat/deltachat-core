@@ -563,7 +563,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 		}
 
 		if (factory->req_mdn) {
-			/* we use "Chat-Disposition-Notification-To" as replies to "Disposition-Notification-To" are weired in many cases, are just freetext and/or do not follow any standard. */
+			/* we use "Chat-Disposition-Notification-To" as replies to "Disposition-Notification-To" are weird in many cases, are just freetext and/or do not follow any standard. */
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Disposition-Notification-To"), strdup(factory->from_addr)));
 		}
 
