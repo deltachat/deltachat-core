@@ -898,7 +898,9 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  */
 
 /**
- * Details about the error can be found in data2. Reported by #DC_EVENT_ERROR.
+ * Unclassified error.
+ * Reported by #DC_EVENT_ERROR eg. for forwarding errors from other instances.
+ * Details about the error can be found as a string in data2 that should be shown to the user by the UI.
  */
 #define DC_ERROR_SEE_STRING                 0
 
@@ -912,7 +914,14 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 
 
 /**
- * Details about the error can be found in data2. Reported by #DC_EVENT_ERROR.
+ * An action cannot be performed because there is no network available.
+ * Reported by #DC_EVENT_ERROR eg. after a network function fails and #DC_EVENT_IS_OFFLINE reports being offline.
+ *
+ * The library will typically try over when dc_perform_smtp_jobs() or dc_perform_imap_jobs() is called again by the UI -
+ * eg. in a loop or if the network situation changes.
+ *
+ * The library tries to issue this error only once the network becomes unavailable so that the UI can
+ * show this error to the user unconditionally.
  */
 #define DC_ERROR_NO_NETWORK                 2
 
