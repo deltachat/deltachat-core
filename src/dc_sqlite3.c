@@ -184,6 +184,9 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		goto cleanup;
 	}
 
+	// let SQLite overwrite deleted content with zeros
+	dc_sqlite3_execute(sql, "PRAGMA secure_delete=on;");
+
 	// Only one process can make changes to the database at one time.
 	// busy_timeout defines, that if a seconds process wants write access, this second process will wait some milliseconds
 	// and try over until it gets write access or the given timeout is elapsed.
