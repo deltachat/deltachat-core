@@ -4,16 +4,20 @@ Delta Chat Core Library
 You can use the _Delta Chat Core Library_ to build **your own messenger** or
 plugin that is completely **compatible** with the existing email infrastructure.
 
+The library is written in C and **language bindings** are available for
+Node.js, Java, Python and Swift. They are used currently to create frontends eg. for
+[Android](https://github.com/deltachat/deltachat-android),
+[Desktop](https://github.com/deltachat/deltachat-desktion),
+[iOS](https://github.com/deltachat/deltachat-ios) and
+[Pidgin](https://gitlab.com/lupine/purple-plugin-delta)
+but can also be used for completely different messenger projects.
+
 ![Logo](https://delta.chat/assets/features/start-img4.png)
 
 Using this library in your app, you get the **ease** of well-known messengers
 with the **reach** of email. Moreover, you're **independent** from other companies or
 services as your data is not relayed through Delta Chat, only your email
 provider. That means that there are no Delta Chat servers, only clients made compatible via Delta Chat Core.
-
-The library is used eg. in the [Delta Chat Android Frontend](https://github.com/deltachat/deltachat-android)
-and in the [Delta Chat iOS Frontend](https://github.com/deltachat/deltachat-ios), but can also be used for
-completely different messenger projects.
 
 Some features at a glance:
 
