@@ -1,5 +1,6 @@
-Delta Chat Core Library
-================================================================================
+# Delta Chat Core Library
+
+[![Build Status](https://travis-ci.org/deltachat/deltachat-core.svg?branch=master)](https://travis-ci.org/deltachat/deltachat-core)
 
 You can use the _Delta Chat Core Library_ to build **your own messenger** or
 plugin that is completely **compatible** with the existing email infrastructure.
