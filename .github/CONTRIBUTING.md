@@ -6,7 +6,7 @@ please use the community forum:
 * <https://support.delta.chat>
 
 If you intend to send a **bug report** for Delta Chat, 
-search for exiting bugs first:
+search for existing bugs first:
 
 * [Core](https://github.com/deltachat/deltachat-core/issues?&q=is%3Aissue)
 * [Android](https://github.com/deltachat/deltachat-android/issues?&q=is%3Aissue)
