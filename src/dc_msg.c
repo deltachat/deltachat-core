@@ -1536,6 +1536,7 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 	/* add time */
 	dc_strbuilder_cat(&ret, "Sent: ");
 	p = dc_timestamp_to_str(dc_msg_get_timestamp(msg)); dc_strbuilder_cat(&ret, p); free(p);
+	p = dc_contact_get_name_n_addr(contact_from); dc_strbuilder_catf(&ret, " by %s", p); free(p);
 	dc_strbuilder_cat(&ret, "\n");
 
 	if (msg->from_id!=DC_CONTACT_ID_SELF) {
@@ -1559,7 +1560,7 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 
 		dc_contact_t* contact = dc_contact_new(context);
 			dc_contact_load_from_db(contact, context->sql, sqlite3_column_int64(stmt, 0));
-			p = dc_contact_get_display_name(contact); dc_strbuilder_cat(&ret, p); free(p);
+			p = dc_contact_get_name_n_addr(contact); dc_strbuilder_cat(&ret, p); free(p);
 		dc_contact_unref(contact);
 		dc_strbuilder_cat(&ret, "\n");
 	}
@@ -1602,13 +1603,6 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 	if ((p=dc_param_get(msg->param, DC_PARAM_ERROR, NULL))!=NULL) {
 		dc_strbuilder_catf(&ret, "Error: %s\n", p);
 		free(p);
-	}
-
-	/* add sender (only for info messages as the avatar may not be shown for them) */
-	if (dc_msg_is_info(msg)) {
-		dc_strbuilder_cat(&ret, "Sender: ");
-		p = dc_contact_get_name_n_addr(contact_from); dc_strbuilder_cat(&ret, p); free(p);
-		dc_strbuilder_cat(&ret, "\n");
 	}
 
 	/* add file info */
