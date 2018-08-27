@@ -21,22 +21,8 @@
 
 
 /**
- * 20180714cs - memory problem in case of printing error msg to outfile fixed 
- * 20180729cs - memory problem in case of writing text to original message fixed
- *				and some refactoring. 
+ * 20180827cs - all debug code and unnecessary comments deleted 
  */
-
-
-/**
- * For module testing activate  __DEBUG__ and __TESTING__
- *
- *  __TESTING__ is used for local development
- *              --> comment this in for local testing
- */
-//#define __DEBUG__
-//#define __DEBUG_VERBOSE__
-
-//#define __TESTING__
 
 
 #include <stdio.h>
@@ -44,12 +30,8 @@
 #include <string.h>
 
 
-#ifdef  __TESTING__
-	#include "dc_tools_test.h"
-#else
-	#include "dc_context.h"
-	#include "dc_tools.h"
-#endif
+#include "dc_context.h"
+#include "dc_tools.h"
 
 #include "dc_uudecode.h"
 
@@ -60,7 +42,7 @@
  */
 
 /* return hex representation of a string*/
-char* _print_hex(char* s);
+char* dc_print_hex(char* s);
 
 /* delivers one line from a string */
 int   dc_getline (char** line, char* source, char** nextchar);
@@ -89,12 +71,6 @@ int   dc_uudecode(char** ret_binary, size_t uudecoding_buffer_len, const char* u
  */
 
 #define LF   "\n"   //10
-
-
-
-#ifdef __DEBUG__
-	char in[100]; // for gets()
-#endif
 
 
 /**
@@ -143,27 +119,14 @@ char* dc_uudecode_do(const char* text, char** ret_binary, size_t* ret_binary_byt
 	// first make a quick check if a part exists
 	uustartpos = dc_find_uuencoded_part(text);
 	if (!uustartpos){
-		#ifdef __DEBUG__
-		puts("no or no further uu_part found\n");
-		puts("printing now message after all dc_handle_uuencoded_part(s)\n\n");
-		gets(in);
-		puts(text);
-		#endif
-
 		// no or no further uuencoded parts found
 		goto cleanup;
 	}
 
-	#ifdef __DEBUG__
-	printf("uu_part found at pos: %.50s [......]\n\n", uustartpos);
-	#endif
-
 	/**
-	 * todo: identify first call of this function to unify buffer only once
-	 *
-	 * prepare buffer
-	 * first unify buffer
+	 * optimization possible: identify first call of this function to unify buffer only once
 	 */
+	// prepare buffer and unify buffer
 	char* txt = strdup(text);
 	dc_unify_lineends(txt);
 
@@ -175,12 +138,6 @@ char* dc_uudecode_do(const char* text, char** ret_binary, size_t* ret_binary_byt
 	}
 	free(txt);
 	
-	#ifdef __DEBUG__
-	  puts("printing now remaining message after dc_handle_uuencoded_part() call\n\n");
-	  gets(in);
-	  puts("go ...\n\n");
-	#endif
-
 	return ret_msg_text;
 	
 
@@ -191,22 +148,9 @@ cleanup:
 
 
 
-
-/***********************************************************************
- *  From here on new code follows
- *
- *  This is version 6 of the dc_uudecode.c
- * 	It uses the api which is used in  dc_mimeparser.c  of the original
- *  project and works now with unified line ends only (LF).
- * 
- */ 
-
-
-
 /***********************************************************************
  *  Helper functions
  */
-
 
 int dc_make_error_txt(char** ret_binary, const char* format, int nargs, int n1, int n2, int n3){
 	/**
@@ -226,15 +170,8 @@ int dc_make_error_txt(char** ret_binary, const char* format, int nargs, int n1, 
 		case 2: sprintf(msg, format, n1, n2); break;
 		case 3: sprintf(msg, format, n1, n2, n3); break;
 		default:
-			#ifdef __DEBUG__
-			puts("dc_make_error_txt() - wrong parameter nargs");
-			#endif
 			return ret_bytes;
 	}
-
-	#ifdef __DEBUG__
-	puts(msg);
-	#endif
 
 	int      l = strlen(msg);
 	*ret_binary = (char*) realloc(*ret_binary, l+1);
@@ -274,8 +211,6 @@ char* dc_print_hex (char* s){
 
 
 
-// todo: replace by strtok_r ??? ==> no, strtok_r modifies source string!
-
 int dc_getline (char** ret_lineptr, char* source, char** ret_nextcharptr){
 	/**
 	 * 	Extracts first line from a given string (source)
@@ -300,27 +235,15 @@ int dc_getline (char** ret_lineptr, char* source, char** ret_nextcharptr){
 
 	*ret_lineptr = NULL;
 	
-	//printf( "dc_getline - %d %d\n", (int)source, (int)start);
-	
 	if((lineend = strstr(start, LF))){
-		//printf("  dc_getline - Line End found\n");
 		
 		lineend++; // this belongs to the line
 		
 		linelen = lineend - start; // len of line
 
-		//printf("  dc_getline - linelen=%d\n", linelen);
-		//printf("  dc_getline - first 7 chars=%.7s [...]\n", start);
+		*ret_nextcharptr	= lineend;
 		
-		*ret_nextcharptr = lineend;
-		
-		*ret_lineptr = strndup(start, linelen);
-		
-		#ifdef __DEBUG_VERBOSE__
-		if( *ret_lineptr != NULL ){
-			printf("  ** dc_getline - complete line found= (see below!)\n%s\n", *ret_lineptr);
-		}
-		#endif
+		*ret_lineptr		= strndup(start, linelen);
 	}
 	
 	return linelen;
@@ -379,18 +302,14 @@ char* dc_find_uuencoded_part (const char* msgtxt){
 
 	if ((uu_part_pos = strstr(msgtxt, tofind))){
 		if (strncmp((uu_part_pos+9), " ", 1) == 0){ 
-			// check here the second space too "begin 666 filename"
-			//uu_part_pos++; //go after the LF (if searching for LF before 'begin ')
-			#ifdef __DEBUG__
-			printf("uu encoded part roughly found at %d\n", (int)(uu_part_pos - msgtxt));
-			gets(in);
-			#endif
+			// second space after file rights checked, ("begin 666 filename")
+			// uuencoded part found
 			
 			return uu_part_pos;
 		}
 	}
 	
-	// no uuencoded text part identified
+	// here: no uuencoded text part identified
 	return NULL;
 	
 } //dc_find_uuencoded_part()
@@ -461,35 +380,20 @@ char* dc_handle_uuencoded_part (const char*	msgtxt,
 	nread = dc_getline(&line, uu_msg_start_pos, &uu_body_start);
 	if(line && (nread > 0)){
 		sscanf (line, SSCANF_FORMAT, &mode, filename);
-		#ifdef __DEBUG__
-		printf ("dc_handle_uuencoded_part - mode=%o, filename=%s\n", mode, filename);
-		#endif
+
 		free(line); line = NULL;
 
 		int len_filename = strlen(filename);
 		
 		if((0 < mode && mode < 778) && len_filename){
-			#ifdef __DEBUG__
-			printf ("dc_handle_uuencoded_part - uu_part verified\n");
-			#endif
 			
 			// only basic check, go on
 		}
 		else{
-			#ifdef __DEBUG__
-			printf(	"dc_handle_uuencoded_part - this is not an uu_part, stopping here!\n"
-					"Error: file mode or filename not Ok\n");
-			#endif
-			
 			goto cleanup; // file mode or filename nok
 		}
 	}
 	else{
-		#ifdef __DEBUG__
-		printf(	"dc_handle_uuencoded_part - this is not an uu_part, stopping here!\n"
-				"Error: Wrong header line (length) for uuencoding\n");
-		#endif
-
 		goto cleanup; // no line read
 	}
 	
@@ -506,22 +410,10 @@ char* dc_handle_uuencoded_part (const char*	msgtxt,
 	
 	int uu_end_len = strlen(uu_end_pattern);
 
-	#ifdef __DEBUG__
-	printf("dc_handle_uuencoded_part - uu_end_pattern=%s", uu_end_pattern);
-	#endif
-	
 	if((uu_body_end = strstr(uu_body_start, uu_end_pattern))){
 		uu_body_end += uu_end_len;
-		#ifdef __DEBUG__
-		printf("dc_handle_uuencoded_part - Line End found, len=%d\n", (int)(uu_body_end - uu_body_start));
-		#endif
 	}
 	else{
-		#ifdef __DEBUG__
-		printf(	"dc_handle_uuencoded_part - this is not an uu_part, stopping here!\n"
-				"Error: uu_end_pattern not found\n");
-		#endif
-
 		goto cleanup; // End pattern not found
 	}
 	
@@ -543,7 +435,7 @@ char* dc_handle_uuencoded_part (const char*	msgtxt,
 	
 
 	/* provide memory for decoding */
-	*ret_binary = (char*) malloc(sizeof(char) * uudecoding_buffer_len );
+	*ret_binary = (char*) malloc(sizeof(char) * uudecoding_buffer_len);
 	
 	if (*ret_binary){
 		ret_binary_int = dc_uudecode(ret_binary, uudecoding_buffer_len, uu_body_start); 
@@ -553,22 +445,13 @@ char* dc_handle_uuencoded_part (const char*	msgtxt,
 		 * 
 		 *   it is returned here by ret_binary and ret_binary_int func parameter !
 		 */
-		#ifdef __DEBUG__
-		printf("ret_binary_int=%d\n", ret_binary_int);
-		#endif
-		
 		*ret_binary_bytes = (size_t)abs(ret_binary_int);
 	}
 	else{
-		#ifdef __DEBUG__
-		printf(	"dc_handle_uuencoded_part - stopping here!\n"
-				"Error: not enough memory for storing uudecoded data!\n");
-		#endif
-		
 		goto cleanup; // memory error
 		
-		// todo?: do stripping of uuencoded part in every case: so GO ON,
-		//        no return by cleanup?
+		// For future todo (maybe):
+		// do stripping of uuencoded part in every case: so GO ON,
 	}
 	
 	/**
@@ -620,7 +503,7 @@ cleanup:
 	*ret_binary_bytes 	= (size_t)abs(ret_binary_int);
 	*ret_filename 		= NULL;
 
-	return NULL; // ?????
+	return NULL;
 } //dc_handle_uuencoded_part()
 
 
@@ -653,9 +536,9 @@ int dc_uudecode(char** ret_binary, size_t uudecoding_buffer_len, const char* uu_
 	char*	p;
 	char	ch;
 	int		n_enc_bytes;
-	int		backquote_found   	= 0;
-	int		ret_decoded_bytes 	= 0;
-    int		n_cur_line 			= 0;	// count lines decoded	     
+	int		backquote_found		= 0;
+	int		ret_decoded_bytes	= 0;
+	int		n_cur_line			= 0;	// count lines decoded	     
 
 	char* p_binary_buffer   = *ret_binary;  // initialize write buffer pointer
 
@@ -680,29 +563,18 @@ int dc_uudecode(char** ret_binary, size_t uudecoding_buffer_len, const char* uu_
 		 *  - Special handling for last line which may not encode full 3 bytes bunch 
 		 */
 
-		#ifdef __DEBUG__
-		//printf("  dc_uudecode - line = %s\n", line);
-		//gets(in);
-		#endif
-
 		// count lines decoded
 		n_cur_line++;
 
 		/* 1st: test for end of uuencoded data */
 		if( 0 == strncmp(line, "`", 1) && (line_len - 1) == 1){
 			/* first line of end of uuencoded part found */
-
-			//printf("  dc_uudecode -     *** single backquote found ***\n");
 			backquote_found = 1;
 
 			continue;
 		}
 		if( backquote_found && 0 == strncmp(line, "end", 3)){
 			/* end of uuencoded part found */
-
-			//printf("  dc_uudecode -     *** end of uuencoded part found ***\n");
-			//sprintf(p_binary_buffer, "This is for testing only. No uuencoded data. End of uuendcoded data detected!\n");
-
 			break;
 		}
 		
@@ -717,7 +589,6 @@ int dc_uudecode(char** ret_binary, size_t uudecoding_buffer_len, const char* uu_
 		n_enc_bytes	= DEC (*p);  // n_enc_bytes = number of encoded bytes
 
 		if (n_enc_bytes <= 0){
-
 			ret_decoded_bytes = dc_make_error_txt(
 								ret_binary,
 								"  dc_uudecode() -  *** stop decoding in line %d ***\n"
@@ -731,8 +602,6 @@ int dc_uudecode(char** ret_binary, size_t uudecoding_buffer_len, const char* uu_
 		// check line - compare given len with current line len
 		// line[0] shows len info
 		if (!dc_uu_check_line(n_enc_bytes, line_len - 1)){
-
-			//puts("1"); todo
 			ret_decoded_bytes = dc_make_error_txt(
 								ret_binary,
 								"  dc_uudecode() -  *** stop decoding in line %d ***\n"
@@ -741,9 +610,6 @@ int dc_uudecode(char** ret_binary, size_t uudecoding_buffer_len, const char* uu_
 								n_cur_line, n_enc_bytes, (line_len - 1));
 			break;
 		}
-		
-
-		//printf("  dc_uudecode -    n_enc_bytes=%d\n", (int)n_enc_bytes);
 		
 		if (ret_decoded_bytes < uudecoding_buffer_len - 3){
 			// check for remaining buffer before decoding
@@ -760,21 +626,17 @@ int dc_uudecode(char** ret_binary, size_t uudecoding_buffer_len, const char* uu_
 					ch = DEC (p[2]) << 6 | DEC (p[3]);
 					*p_binary_buffer++ = ch;
 					ret_decoded_bytes++;
-					
-					//printf("  dc_uudecode -    full block decoded\n");
 				}
 				else{
 					if (n_enc_bytes >= 1){
 						ch = DEC (p[0]) << 2 | DEC (p[1]) >> 4;
 						*p_binary_buffer++ = ch;
 						ret_decoded_bytes++;
-						//printf("  dc_uudecode -    n_enc_bytes >= 1, n_enc_bytes=%d decoded\n", n_enc_bytes);
 					}
 					if (n_enc_bytes >= 2){
 						ch = DEC (p[1]) << 4 | DEC (p[2]) >> 2;
 						*p_binary_buffer++ = ch;
 						ret_decoded_bytes++;
-						//printf("  dc_uudecode -    n_enc_bytes >= 2, n_enc_bytes=%d decoded\n", n_enc_bytes);
 					}
 				}
 			}
