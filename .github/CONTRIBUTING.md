@@ -1,7 +1,7 @@
 # Thank you for contributing to Delta Chat.
 
-If you would like to discuss a **new feature** or submit suggestions, 
-please use the forum:
+If you like to discuss a **new feature** or submit suggestions,
+please use the community forum:
 
 * <https://support.delta.chat>
 
@@ -26,6 +26,6 @@ Please try to create your issue in the respective issue tracker.
 
 Did you know there is a [Help](https://delta.chat/en/help) page for Delta Chat?
 
-To ask questions, you are also invited to join our IRC channel **#deltachat** 
+To ask questions, you are also invited to join our IRC channel #deltachat
 on [Freenode](https://kiwiirc.com/nextclient/#irc://irc.freenode.net/deltachat).
 

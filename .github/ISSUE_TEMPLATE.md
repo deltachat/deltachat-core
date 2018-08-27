@@ -1,8 +1,7 @@
 <!--
 Please read the guidelines linked above, especially when you are a first time contributor. Remove this text and provide some basic informations below, if applicable. Remove template content which is not applicable.
 
-This is a bug report forum, if you would like to discuss a new feature or submit suggestions, please use the forum:
-https://support.delta.chat 
+This is a bug report forum, if you like to discuss a new feature or submit suggestions, please use the community forum at https://support.delta.chat
 -->
 
 **Delta Chat version**
