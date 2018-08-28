@@ -450,9 +450,6 @@ dc_lot_t* dc_msg_get_mediainfo(const dc_msg_t* msg)
 			goto cleanup;
 		}
 		dc_msg_get_authorNtitle_from_filename(pathNfilename, &ret->text1, &ret->text2);
-		if (ret->text1==NULL && ret->text2!=NULL) {
-			ret->text1 = dc_stock_str(msg->context, DC_STR_AUDIO);
-		}
 	}
 
 cleanup:
@@ -943,10 +940,21 @@ cleanup:
 }
 
 
+/**
+ * Extracts AUTHOR and TITLE from a path.
+ * Ideally, the path is something like `/path/AUTHOR - TITLE.mp3`.
+ * If the separator ` - ` is not preset, the whole name (without suffix) is used as TITLE and AUTHOR is NULL.
+ *
+ * @private @memberof dc_msg_t
+ * @param pathNfilename Path to extract AUTHOR and TITLE from.
+ * @param[out] ret_author If present, AUTHOR is copied here, must be free()'d then.
+ *     NULL if you're not interested in this value.
+ * @param[out] ret_title If present, TITLE is copied here, must be free()'d then.
+ *     NULL if you're not interested in this value.
+ * @return None.
+ */
 void dc_msg_get_authorNtitle_from_filename(const char* pathNfilename, char** ret_author, char** ret_title)
 {
-	/* function extracts AUTHOR and TITLE from a path given as `/path/other folder/AUTHOR - TITLE.mp3`
-	if the mark ` - ` is not preset, the whole name (without suffix) is used as the title and the author is NULL. */
 	char* author = NULL;
 	char* title = NULL;
 	char* p = NULL;
