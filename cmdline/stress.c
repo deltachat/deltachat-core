@@ -497,6 +497,7 @@ void stress_functions(dc_context_t* context)
 		free(buf2);
 
 		assert(  DC_EVENT_DATA1_IS_STRING(2100) );
+		assert(  DC_EVENT_DATA1_IS_STRING(2052) );
 		assert( !DC_EVENT_DATA1_IS_STRING(100) );
 		assert( !DC_EVENT_DATA1_IS_STRING(300) );
 		assert( !DC_EVENT_DATA1_IS_STRING(400) );

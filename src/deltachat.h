@@ -880,7 +880,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  */
 
 
-#define DC_EVENT_DATA1_IS_STRING(e)  ((e)==DC_EVENT_HTTP_GET)
+#define DC_EVENT_DATA1_IS_STRING(e)  ((e)==DC_EVENT_HTTP_GET || (e)==DC_EVENT_IMEX_FILE_WRITTEN)
 #define DC_EVENT_DATA2_IS_STRING(e)  ((e)==DC_EVENT_INFO || (e)==DC_EVENT_WARNING || (e)==DC_EVENT_ERROR)
 #define DC_EVENT_RETURNS_INT         ((e)==DC_EVENT_IS_OFFLINE)
 #define DC_EVENT_RETURNS_STRING(e)   ((e)==DC_EVENT_GET_QUANTITY_STRING || (e)==DC_EVENT_GET_STRING || (e)==DC_EVENT_HTTP_GET)
