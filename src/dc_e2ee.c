@@ -259,7 +259,7 @@ static int load_or_generate_self_public_key(dc_context_t* context, dc_key_t* pub
 				goto cleanup;
 			}
 
-			dc_log_info(context, 0, "Keypair generated in %.0f ms.", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
+			dc_log_info(context, 0, "Keypair generated in %.3f s.", (double)(clock()-start)/CLOCKS_PER_SEC);
 
 			dc_key_unref(private_key);
 		}
