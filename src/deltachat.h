@@ -387,9 +387,21 @@ const uintptr_t* dc_array_get_raw            (const dc_array_t*);
  *
  * An object representing a single chatlist in memory.
  * Chatlist objects contain chat IDs and, if possible, message IDs belonging to them.
- * Chatlist objects are created eg. using dc_get_chatlist().
- * The chatlist object is not updated.  If you want an update, you have to recreate
- * the object.
+ * The chatlist object is not updated; if you want an update, you have to recreate the object.
+ *
+ * For a **typical chat overview**, the idea is to get the list of all chats via dc_get_chatlist() - without any listflags, see below -
+ * and to implement a "virtual list" or so (the count of chats is known by dc_chatlist_get_cnt()).
+ * Only for the items that are in view (the list may have several hundreds chats), the UI should call dc_chatlist_get_summary() then.
+ * dc_chatlist_get_summary() provides all elements needed for painting the item.
+ *
+ * On a click of such an item, the UI should change to the chat view and get all messages from this view via dc_get_chat_msgs().
+ * Again, a "virtual list" is created (the count of messages is known) and for each messages that is scrolled into view, dc_get_msg() is called then.
+ *
+ * Why no listflags? Without listflags, dc_get_chatlist() adds the deaddrop and the archive "link" automatically as needed.
+ * The UI can just render these items differently then.
+ * Although the deaddrop link is currently always the first entry and only present on new messages,
+ * there is the rough idea that it can be optionally always present and sorted into the list by date.
+ * Rendering the deaddrop in the described way would not add extra work in the UI then.
  */
 typedef struct _dc_chatlist dc_chatlist_t;
 
