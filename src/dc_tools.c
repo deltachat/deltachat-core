@@ -179,7 +179,7 @@ int dc_str_replace(char** haystack, const char* needle, const char* replacement)
 }
 
 
-int dc_str_contains(const char* haystack, const const char* needle)
+int dc_str_contains(const char* haystack, const char* needle)
 {
 	/* case-insensitive search of needle in haystack, return 1 if found, 0 if not */
 	if (haystack==NULL || needle==NULL) {
