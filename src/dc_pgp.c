@@ -330,8 +330,8 @@ int dc_pgp_create_keypair(dc_context_t* context, const char* addr, dc_key_t* ret
 
 
 	/* generate two keypairs */
-	if (!pgp_rsa_generate_keypair(&seckey, 3072/*bits*/, 65537UL/*e*/, NULL, NULL, NULL, 0)
-	 || !pgp_rsa_generate_keypair(&subkey, 3072/*bits*/, 65537UL/*e*/, NULL, NULL, NULL, 0)) {
+	if (!pgp_rsa_generate_keypair(&seckey, DC_KEYGEN_BITS, DC_KEYGEN_E, NULL, NULL, NULL, 0)
+	 || !pgp_rsa_generate_keypair(&subkey, DC_KEYGEN_BITS, DC_KEYGEN_E, NULL, NULL, NULL, 0)) {
 		goto cleanup;
 	}
 

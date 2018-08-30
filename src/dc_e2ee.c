@@ -231,7 +231,8 @@ static int load_or_generate_self_public_key(dc_context_t* context, dc_key_t* pub
 		{
 			dc_key_t* private_key = dc_key_new();
 
-			dc_log_info(context, 0, "Generating keypair ...");
+			clock_t start = clock();
+			dc_log_info(context, 0, "Generating keypair with %i bits, e=%i ...", DC_KEYGEN_BITS, DC_KEYGEN_E);
 
 				/* The public key must contain the following:
 				- a signing-capable primary key Kp
@@ -258,7 +259,7 @@ static int load_or_generate_self_public_key(dc_context_t* context, dc_key_t* pub
 				goto cleanup;
 			}
 
-			dc_log_info(context, 0, "Keypair generated.");
+			dc_log_info(context, 0, "Keypair generated in %.0f ms.", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 
 			dc_key_unref(private_key);
 		}
