@@ -867,8 +867,7 @@ cleanup:
  *   explicitly as it may happen that oneself gets removed from a still existing
  *   group
  *
- * - for the deaddrop, all contacts are returned, DC_CONTACT_ID_SELF is not
- *   added
+ * - for the deaddrop, the list is empty
  *
  * @memberof dc_context_t
  * @param context The context object as returned from dc_context_new().
