@@ -167,7 +167,7 @@ static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(dc_context_t* context, dc_job_t*
 
 	char* pathNfilename = dc_param_get(msg->param, DC_PARAM_FILE, NULL);
 	if (pathNfilename) {
-		if (strncmp(context->blobdir, pathNfilename, strlen(context->blobdir))==0)
+		if (strncmp("$BLOBDIR", pathNfilename, 8)==0)
 		{
 			char* strLikeFilename = dc_mprintf("%%f=%s%%", pathNfilename);
 			stmt = dc_sqlite3_prepare(context->sql,

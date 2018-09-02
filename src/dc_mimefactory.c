@@ -455,7 +455,7 @@ static struct mailmime* build_body_file(const dc_msg_t* msg, const char* base_na
 
 	mime_sub = mailmime_new_empty(content, mime_fields);
 
-	mailmime_set_body_file(mime_sub, dc_strdup(pathNfilename));
+	mailmime_set_body_file(mime_sub, dc_get_abs_path(msg->context, pathNfilename));
 
 	if (ret_file_name_as_sent) {
 		*ret_file_name_as_sent = dc_strdup(filename_to_send);
