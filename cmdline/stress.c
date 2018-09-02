@@ -214,6 +214,60 @@ void stress_functions(dc_context_t* context)
 		dc_simplify_unref(simplify);
 	}
 
+	/* test file functions
+	 **************************************************************************/
+
+	{
+		if (dc_file_exist(context, "$BLOBDIR/foobar")
+		 || dc_file_exist(context, "$BLOBDIR/dada")
+		 || dc_file_exist(context, "$BLOBDIR/foobar.dadada")
+		 || dc_file_exist(context, "$BLOBDIR/foobar-folder")) {
+			dc_delete_file(context, "$BLOBDIR/foobar");
+			dc_delete_file(context, "$BLOBDIR/dada");
+			dc_delete_file(context, "$BLOBDIR/foobar.dadada");
+			dc_delete_file(context, "$BLOBDIR/foobar-folder");
+		}
+
+		dc_write_file(context, "$BLOBDIR/foobar", "content", 7);
+		assert( dc_file_exist(context, "$BLOBDIR/foobar") );
+		assert( !dc_file_exist(context, "$BLOBDIR/foobarx") );
+		assert( dc_get_filebytes(context, "$BLOBDIR/foobar")==7 );
+
+		char* absPath = dc_mprintf("%s/%s", context->blobdir, "foobar");
+		assert( dc_file_exist(context, absPath) );
+		free(absPath);
+
+		assert( dc_copy_file(context, "$BLOBDIR/foobar", "$BLOBDIR/dada") );
+		assert( dc_get_filebytes(context, "$BLOBDIR/dada")==7 );
+
+		void* buf;
+		size_t buf_bytes;
+		assert( dc_read_file(context, "$BLOBDIR/dada", &buf, &buf_bytes) );
+		assert( buf_bytes==7 );
+		assert( strcmp(buf, "content")==0 );
+		free(buf);
+
+		assert( dc_delete_file(context, "$BLOBDIR/foobar") );
+		assert( dc_delete_file(context, "$BLOBDIR/dada") );
+
+		assert( dc_create_folder(context, "$BLOBDIR/foobar-folder") );
+		assert( dc_file_exist(context, "$BLOBDIR/foobar-folder") );
+		assert( dc_delete_file(context, "$BLOBDIR/foobar-folder") );
+
+		char* fn0 = dc_get_fine_pathNfilename(context, "$BLOBDIR", "foobar.dadada");
+		assert( fn0 );
+		assert( strcmp(fn0, "$BLOBDIR/foobar.dadada")==0 );
+		dc_write_file(context, fn0, "content", 7);
+
+		char* fn1 = dc_get_fine_pathNfilename(context, "$BLOBDIR", "foobar.dadada");
+		assert( fn1 );
+		assert( strcmp(fn1, "$BLOBDIR/foobar-1.dadada")==0 );
+
+		assert( dc_delete_file(context, fn0) );
+		free(fn0);
+		free(fn1);
+	}
+
 	/* test mailmime
 	**************************************************************************/
 

@@ -1128,48 +1128,92 @@ int dc_get_filemeta(const void* buf_start, size_t buf_bytes, uint32_t* ret_width
 }
 
 
+char* dc_get_abs_path(dc_context_t* context, const char* pathNfilename)
+{
+	char* pathNfilename_abs = NULL;
+
+	if (context==NULL || pathNfilename==NULL) {
+		goto cleanup;
+	}
+
+	pathNfilename_abs = dc_strdup(pathNfilename);
+
+	if (strncmp(pathNfilename_abs, "$BLOBDIR", 8)==0) {
+		dc_str_replace(&pathNfilename_abs, "$BLOBDIR", context->blobdir);
+	}
+
+cleanup:
+	return pathNfilename_abs;
+}
+
+
 int dc_file_exist(dc_context_t* context, const char* pathNfilename)
 {
+	int   exist = 0;
+	char* pathNfilename_abs = NULL;
+
+	if ((pathNfilename_abs=dc_get_abs_path(context, pathNfilename))==NULL) {
+		goto cleanup;
+	}
+
 	struct stat st;
-	if (stat(pathNfilename, &st)==0) {
-		return 1; /* the size, however, may be 0 */
+	if (stat(pathNfilename_abs, &st)==0) {
+		exist = 1; // the size, however, may be 0
 	}
-	else {
-		return 0;
-	}
+
+cleanup:
+	free(pathNfilename_abs);
+	return exist;
 }
 
 
 uint64_t dc_get_filebytes(dc_context_t* context, const char* pathNfilename)
 {
+	uint64_t filebytes = 0;
+	char*    pathNfilename_abs = NULL;
+
+	if ((pathNfilename_abs=dc_get_abs_path(context, pathNfilename))==NULL) {
+		goto cleanup;
+	}
+
 	struct stat st;
-	if (stat(pathNfilename, &st)==0) {
-		return (uint64_t)st.st_size;
+	if (stat(pathNfilename_abs, &st)==0) {
+		filebytes = (uint64_t)st.st_size;
 	}
-	else {
-		return 0;
-	}
+
+cleanup:
+	free(pathNfilename_abs);
+	return filebytes;
 }
 
 
 int dc_delete_file(dc_context_t* context, const char* pathNfilename)
 {
-	if (pathNfilename==NULL) {
-		return 0;
+	int   success = 0;
+	char* pathNfilename_abs = NULL;
+
+	if ((pathNfilename_abs=dc_get_abs_path(context, pathNfilename))==NULL) {
+		goto cleanup;
 	}
 
-	if (remove(pathNfilename)!=0) {
+	if (remove(pathNfilename_abs)!=0) {
 		dc_log_warning(context, 0, "Cannot delete \"%s\".", pathNfilename);
-		return 0;
+		goto cleanup;
 	}
 
-	return 1;
+	success = 1;
+
+cleanup:
+	free(pathNfilename_abs);
+	return success;
 }
 
 
 int dc_copy_file(dc_context_t* context, const char* src, const char* dest)
 {
     int     success = 0;
+    char*   src_abs = NULL;
+    char*   dest_abs = NULL;
     int     fd_src = -1;
     int     fd_dest = -1;
     #define DC_COPY_BUF_SIZE 4096
@@ -1177,18 +1221,19 @@ int dc_copy_file(dc_context_t* context, const char* src, const char* dest)
     size_t  bytes_read = 0;
     int     anything_copied = 0;
 
-	if (src==NULL || dest==NULL) {
-		return 0;
+	if ((src_abs=dc_get_abs_path(context, src))==NULL
+	 || (dest_abs=dc_get_abs_path(context, dest))==NULL) {
+		goto cleanup;
 	}
 
-    if ((fd_src=open(src, O_RDONLY)) < 0) {
+	if ((fd_src=open(src_abs, O_RDONLY)) < 0) {
 		dc_log_error(context, 0, "Cannot open source file \"%s\".", src);
-        goto cleanup;
+		goto cleanup;
 	}
 
-    if ((fd_dest=open(dest, O_WRONLY|O_CREAT|O_EXCL, 0666)) < 0) {
+	if ((fd_dest=open(dest_abs, O_WRONLY|O_CREAT|O_EXCL, 0666)) < 0) {
 		dc_log_error(context, 0, "Cannot open destination file \"%s\".", dest);
-        goto cleanup;
+		goto cleanup;
 	}
 
     while ((bytes_read=read(fd_src, buf, DC_COPY_BUF_SIZE)) > 0) {
@@ -1213,28 +1258,47 @@ int dc_copy_file(dc_context_t* context, const char* src, const char* dest)
 cleanup:
 	if (fd_src >= 0) { close(fd_src); }
 	if (fd_dest >= 0) { close(fd_dest); }
+	free(src_abs);
+	free(dest_abs);
 	return success;
 }
 
 
 int dc_create_folder(dc_context_t* context, const char* pathNfilename)
 {
+	int   success = 0;
+	char* pathNfilename_abs = NULL;
+
+	if ((pathNfilename_abs=dc_get_abs_path(context, pathNfilename))==NULL) {
+		goto cleanup;
+	}
+
 	struct stat st;
-	if (stat(pathNfilename, &st)==-1) {
-		if (mkdir(pathNfilename, 0755)!=0) {
+	if (stat(pathNfilename_abs, &st)==-1) {
+		if (mkdir(pathNfilename_abs, 0755)!=0) {
 			dc_log_warning(context, 0, "Cannot create directory \"%s\".", pathNfilename);
-			return 0;
+			goto cleanup;
 		}
 	}
-	return 1;
+
+	success = 1;
+
+cleanup:
+	free(pathNfilename_abs);
+	return success;
 }
 
 
 int dc_write_file(dc_context_t* context, const char* pathNfilename, const void* buf, size_t buf_bytes)
 {
-	int success = 0;
+	int   success = 0;
+	char* pathNfilename_abs = NULL;
 
-	FILE* f = fopen(pathNfilename, "wb");
+	if ((pathNfilename_abs=dc_get_abs_path(context, pathNfilename))==NULL) {
+		goto cleanup;
+	}
+
+	FILE* f = fopen(pathNfilename_abs, "wb");
 	if (f) {
 		if (fwrite(buf, 1, buf_bytes, f)==buf_bytes) {
 			success = 1;
@@ -1248,13 +1312,16 @@ int dc_write_file(dc_context_t* context, const char* pathNfilename, const void* 
 		dc_log_warning(context, 0, "Cannot open \"%s\" for writing.", pathNfilename);
 	}
 
+cleanup:
+	free(pathNfilename_abs);
 	return success;
 }
 
 
 int dc_read_file(dc_context_t* context, const char* pathNfilename, void** buf, size_t* buf_bytes)
 {
-	int success = 0;
+	int   success = 0;
+	char* pathNfilename_abs = NULL;
 
 	if (pathNfilename==NULL || buf==NULL || buf_bytes==NULL) {
 		return 0; /* do not go to cleanup as this would dereference "buf" and "buf_bytes" */
@@ -1262,7 +1329,12 @@ int dc_read_file(dc_context_t* context, const char* pathNfilename, void** buf, s
 
 	*buf = NULL;
 	*buf_bytes = 0;
-	FILE* f = fopen(pathNfilename, "rb");
+
+	if ((pathNfilename_abs=dc_get_abs_path(context, pathNfilename))==NULL) {
+		goto cleanup;
+	}
+
+	FILE* f = fopen(pathNfilename_abs, "rb");
 	if (f==NULL) { goto cleanup; }
 
 	fseek(f, 0, SEEK_END);
@@ -1289,19 +1361,23 @@ cleanup:
 		*buf_bytes = 0;
 		dc_log_warning(context, 0, "Cannot read \"%s\" or file is empty.", pathNfilename);
 	}
+	free(pathNfilename_abs);
 	return success; /* buf must be free()'d by the caller */
 }
 
 
 char* dc_get_fine_pathNfilename(dc_context_t* context, const char* pathNfolder, const char* desired_filenameNsuffix__)
 {
-	char*       ret = NULL;
-	char*       filenameNsuffix = NULL;
-	char*       basename = NULL;
-	char*       dotNSuffix = NULL;
-	time_t      now = time(NULL);
-	struct stat st;
-	int         i = 0;
+	char*  ret = NULL;
+	char*  pathNfolder_wo_slash = NULL;
+	char*  filenameNsuffix = NULL;
+	char*  basename = NULL;
+	char*  dotNSuffix = NULL;
+	time_t now = time(NULL);
+	int    i = 0;
+
+	pathNfolder_wo_slash = dc_strdup(pathNfolder);
+	dc_ensure_no_slash(pathNfolder_wo_slash);
 
 	filenameNsuffix = dc_strdup(desired_filenameNsuffix__);
 	dc_validate_filename(filenameNsuffix);
@@ -1310,12 +1386,12 @@ char* dc_get_fine_pathNfilename(dc_context_t* context, const char* pathNfolder, 
 	for (i = 0; i < 1000 /*no deadlocks, please*/; i++) {
 		if (i) {
 			time_t idx = i<100? i : now+i;
-			ret = dc_mprintf("%s/%s-%lu%s", pathNfolder, basename, (unsigned long)idx, dotNSuffix);
+			ret = dc_mprintf("%s/%s-%lu%s", pathNfolder_wo_slash, basename, (unsigned long)idx, dotNSuffix);
 		}
 		else {
-			ret = dc_mprintf("%s/%s%s", pathNfolder, basename, dotNSuffix);
+			ret = dc_mprintf("%s/%s%s", pathNfolder_wo_slash, basename, dotNSuffix);
 		}
-		if (stat(ret, &st)==-1) {
+		if (!dc_file_exist(context, ret)) {
 			goto cleanup; /* fine filename found */
 		}
 		free(ret); /* try over with the next index */
@@ -1326,5 +1402,6 @@ cleanup:
 	free(filenameNsuffix);
 	free(basename);
 	free(dotNSuffix);
+	free(pathNfolder_wo_slash);
 	return ret;
 }

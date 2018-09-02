@@ -101,6 +101,7 @@ char*    dc_get_filename            (const char* pathNfilename);
 void     dc_split_filename          (const char* pathNfilename, char** ret_basename, char** ret_all_suffixes_incl_dot); // the case of the suffix is preserved
 char*    dc_get_filesuffix_lc       (const char* pathNfilename); // the returned suffix is lower-case
 int      dc_get_filemeta            (const void* buf, size_t buf_bytes, uint32_t* ret_width, uint32_t *ret_height);
+char*    dc_get_abs_path            (dc_context_t*, const char* pathNfilename);
 int      dc_file_exist              (dc_context_t*, const char* pathNfilename);
 uint64_t dc_get_filebytes           (dc_context_t*, const char* pathNfilename);
 int      dc_delete_file             (dc_context_t*, const char* pathNFilename);
