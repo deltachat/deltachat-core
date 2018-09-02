@@ -181,21 +181,21 @@ static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(dc_context_t* context, dc_job_t*
 
 			if (!file_used_by_other_msgs)
 			{
-				dc_delete_file(pathNfilename, context);
+				dc_delete_file(context, pathNfilename);
 
 				char* increation_file = dc_mprintf("%s.increation", pathNfilename);
-				dc_delete_file(increation_file, context);
+				dc_delete_file(context, increation_file);
 				free(increation_file);
 
 				char* filenameOnly = dc_get_filename(pathNfilename);
 				if (msg->type==DC_MSG_VOICE) {
 					char* waveform_file = dc_mprintf("%s/%s.waveform", context->blobdir, filenameOnly);
-					dc_delete_file(waveform_file, context);
+					dc_delete_file(context, waveform_file);
 					free(waveform_file);
 				}
 				else if (msg->type==DC_MSG_VIDEO) {
 					char* preview_file = dc_mprintf("%s/%s-preview.jpg", context->blobdir, filenameOnly);
-					dc_delete_file(preview_file, context);
+					dc_delete_file(context, preview_file);
 					free(preview_file);
 				}
 				free(filenameOnly);

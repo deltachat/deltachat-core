@@ -96,18 +96,19 @@ char* dc_extract_grpid_from_rfc724_mid_list(const clist* rfc724_mid_list);
 
 /* file tools */
 void     dc_ensure_no_slash         (char* pathNfilename);
-int      dc_file_exist              (const char* pathNfilename);
-uint64_t dc_get_filebytes           (const char* pathNfilename);
-char*    dc_get_filename            (const char* pathNfilename); /* the return value must be free()'d */
-int      dc_delete_file             (const char* pathNFilename, dc_context_t* log);
-int      dc_copy_file               (const char* src_pathNFilename, const char* dest_pathNFilename, dc_context_t* log);
-int      dc_create_folder           (const char* pathNfilename, dc_context_t* log);
-int      dc_write_file              (const char* pathNfilename, const void* buf, size_t buf_bytes, dc_context_t* log);
-int      dc_read_file               (const char* pathNfilename, void** buf, size_t* buf_bytes, dc_context_t* log);
-char*    dc_get_filesuffix_lc       (const char* pathNfilename); /* the returned suffix is lower-case */
-void     dc_split_filename          (const char* pathNfilename, char** ret_basename, char** ret_all_suffixes_incl_dot); /* the case of the suffix is preserved! */
+void     dc_validate_filename       (char* filename);
+char*    dc_get_filename            (const char* pathNfilename);
+void     dc_split_filename          (const char* pathNfilename, char** ret_basename, char** ret_all_suffixes_incl_dot); // the case of the suffix is preserved
+char*    dc_get_filesuffix_lc       (const char* pathNfilename); // the returned suffix is lower-case
 int      dc_get_filemeta            (const void* buf, size_t buf_bytes, uint32_t* ret_width, uint32_t *ret_height);
-char*    dc_get_fine_pathNfilename  (const char* folder, const char* desired_name);
+int      dc_file_exist              (dc_context_t*, const char* pathNfilename);
+uint64_t dc_get_filebytes           (dc_context_t*, const char* pathNfilename);
+int      dc_delete_file             (dc_context_t*, const char* pathNFilename);
+int      dc_copy_file               (dc_context_t*, const char* pathNFilename, const char* dest_pathNFilename);
+int      dc_create_folder           (dc_context_t*, const char* pathNfilename);
+int      dc_write_file              (dc_context_t*, const char* pathNfilename, const void* buf, size_t buf_bytes);
+int      dc_read_file               (dc_context_t*, const char* pathNfilename, void** buf, size_t* buf_bytes);
+char*    dc_get_fine_pathNfilename  (dc_context_t*, const char* pathNfolder, const char* desired_name);
 
 
 /* macros */

@@ -321,7 +321,7 @@ static int is_file_size_okay(const dc_msg_t* msg)
 {
 	int      file_size_okay = 1;
 	char*    pathNfilename = dc_param_get(msg->param, DC_PARAM_FILE, NULL);
-	uint64_t bytes = dc_get_filebytes(pathNfilename);
+	uint64_t bytes = dc_get_filebytes(msg->context, pathNfilename);
 
 	if (bytes>DC_MSGSIZE_UPPER_LIMIT) {
 		file_size_okay = 0;

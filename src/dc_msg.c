@@ -392,7 +392,7 @@ uint64_t dc_msg_get_filebytes(const dc_msg_t* msg)
 		goto cleanup;
 	}
 
-	ret = dc_get_filebytes(file);
+	ret = dc_get_filebytes(msg->context, file);
 
 cleanup:
 	free(file);
@@ -786,7 +786,7 @@ char* dc_msg_get_setupcodebegin(const dc_msg_t* msg)
 		goto cleanup;
 	}
 
-	if (!dc_read_file(filename, (void**)&buf, &buf_bytes, msg->context) || buf==NULL || buf_bytes <= 0) {
+	if (!dc_read_file(msg->context, filename, (void**)&buf, &buf_bytes) || buf==NULL || buf_bytes <= 0) {
 		goto cleanup;
 	}
 
@@ -1065,7 +1065,7 @@ int dc_msg_is_increation(const dc_msg_t* msg)
 		char* pathNfilename = dc_param_get(msg->param, DC_PARAM_FILE, NULL);
 		if (pathNfilename) {
 			char* totest = dc_mprintf("%s.increation", pathNfilename);
-			if (dc_file_exist(totest)) {
+			if (dc_file_exist(msg->context, totest)) {
 				is_increation = 1;
 			}
 			free(totest);
@@ -1615,7 +1615,7 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 
 	/* add file info */
 	if ((p=dc_param_get(msg->param, DC_PARAM_FILE, NULL))!=NULL) {
-		dc_strbuilder_catf(&ret, "\nFile: %s, %i bytes\n", p, (int)dc_get_filebytes(p));
+		dc_strbuilder_catf(&ret, "\nFile: %s, %i bytes\n", p, (int)dc_get_filebytes(context, p));
 		free(p);
 	}
 

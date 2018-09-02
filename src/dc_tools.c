@@ -1010,26 +1010,15 @@ void dc_ensure_no_slash(char* pathNfilename)
 }
 
 
-int dc_file_exist(const char* pathNfilename)
+void dc_validate_filename(char* filename)
 {
-	struct stat st;
-	if (stat(pathNfilename, &st)==0) {
-		return 1; /* the size, however, may be 0 */
-	}
-	else {
-		return 0;
-	}
-}
-
-
-uint64_t dc_get_filebytes(const char* pathNfilename)
-{
-	struct stat st;
-	if (stat(pathNfilename, &st)==0) {
-		return (uint64_t)st.st_size;
-	}
-	else {
-		return 0;
+	/* function modifies the given buffer and replaces all characters not valid in filenames by a "-" */
+	char* p1 = filename;
+	while (*p1) {
+		if (*p1=='/' || *p1=='\\' || *p1==':') {
+			*p1 = '-';
+		}
+		p1++;
 	}
 }
 
@@ -1048,97 +1037,6 @@ char* dc_get_filename(const char* pathNfilename)
 	else {
 		return dc_strdup(pathNfilename);
 	}
-}
-
-
-int dc_delete_file(const char* pathNfilename, dc_context_t* log/*may be NULL*/)
-{
-	if (pathNfilename==NULL) {
-		return 0;
-	}
-
-	if (remove(pathNfilename)!=0) {
-		dc_log_warning(log, 0, "Cannot delete \"%s\".", pathNfilename);
-		return 0;
-	}
-
-	return 1;
-}
-
-
-int dc_copy_file(const char* src, const char* dest, dc_context_t* log/*may be NULL*/)
-{
-    int     success = 0;
-    int     fd_src = -1;
-    int     fd_dest = -1;
-    #define DC_COPY_BUF_SIZE 4096
-    char    buf[DC_COPY_BUF_SIZE];
-    size_t  bytes_read = 0;
-    int     anything_copied = 0;
-
-	if (src==NULL || dest==NULL) {
-		return 0;
-	}
-
-    if ((fd_src=open(src, O_RDONLY)) < 0) {
-		dc_log_error(log, 0, "Cannot open source file \"%s\".", src);
-        goto cleanup;
-	}
-
-    if ((fd_dest=open(dest, O_WRONLY|O_CREAT|O_EXCL, 0666)) < 0) {
-		dc_log_error(log, 0, "Cannot open destination file \"%s\".", dest);
-        goto cleanup;
-	}
-
-    while ((bytes_read=read(fd_src, buf, DC_COPY_BUF_SIZE)) > 0) {
-        if (write(fd_dest, buf, bytes_read)!=bytes_read) {
-            dc_log_error(log, 0, "Cannot write %i bytes to \"%s\".", bytes_read, dest);
-		}
-		anything_copied = 1;
-    }
-
-    if (!anything_copied) {
-		/* not a single byte copied -> check if the source is empty, too */
-		close(fd_src);
-		fd_src = -1;
-		if (dc_get_filebytes(src)!=0) {
-			dc_log_error(log, 0, "Different size information for \"%s\".", bytes_read, dest);
-			goto cleanup;
-		}
-    }
-
-    success = 1;
-
-cleanup:
-	if (fd_src >= 0) { close(fd_src); }
-	if (fd_dest >= 0) { close(fd_dest); }
-	return success;
-}
-
-
-int dc_create_folder(const char* pathNfilename, dc_context_t* log)
-{
-	struct stat st;
-	if (stat(pathNfilename, &st)==-1) {
-		if (mkdir(pathNfilename, 0755)!=0) {
-			dc_log_warning(log, 0, "Cannot create directory \"%s\".", pathNfilename);
-			return 0;
-		}
-	}
-	return 1;
-}
-
-
-char* dc_get_filesuffix_lc(const char* pathNfilename)
-{
-	if (pathNfilename) {
-		const char* p = strrchr(pathNfilename, '.'); /* use the last point, we're interesting the "main" type */
-		if (p) {
-			p++;
-			return dc_strlower(p); /* in contrast to dc_split_filename() we return the lowercase suffix */
-		}
-	}
-	return NULL;
 }
 
 
@@ -1167,117 +1065,16 @@ void dc_split_filename(const char* pathNfilename, char** ret_basename, char** re
 }
 
 
-
-void dc_validate_filename(char* filename)
+char* dc_get_filesuffix_lc(const char* pathNfilename)
 {
-	/* function modifies the given buffer and replaces all characters not valid in filenames by a "-" */
-	char* p1 = filename;
-	while (*p1) {
-		if (*p1=='/' || *p1=='\\' || *p1==':') {
-			*p1 = '-';
+	if (pathNfilename) {
+		const char* p = strrchr(pathNfilename, '.'); /* use the last point, we're interesting the "main" type */
+		if (p) {
+			p++;
+			return dc_strlower(p); /* in contrast to dc_split_filename() we return the lowercase suffix */
 		}
-		p1++;
 	}
-}
-
-
-char* dc_get_fine_pathNfilename(const char* folder, const char* desired_filenameNsuffix__)
-{
-	char*       ret = NULL;
-	char*       filenameNsuffix = NULL;
-	char*       basename = NULL;
-	char*       dotNSuffix = NULL;
-	time_t      now = time(NULL);
-	struct stat st;
-	int         i = 0;
-
-	filenameNsuffix = dc_strdup(desired_filenameNsuffix__);
-	dc_validate_filename(filenameNsuffix);
-	dc_split_filename(filenameNsuffix, &basename, &dotNSuffix);
-
-	for (i = 0; i < 1000 /*no deadlocks, please*/; i++) {
-		if (i) {
-			time_t idx = i<100? i : now+i;
-			ret = dc_mprintf("%s/%s-%lu%s", folder, basename, (unsigned long)idx, dotNSuffix);
-		}
-		else {
-			ret = dc_mprintf("%s/%s%s", folder, basename, dotNSuffix);
-		}
-		if (stat(ret, &st)==-1) {
-			goto cleanup; /* fine filename found */
-		}
-		free(ret); /* try over with the next index */
-		ret = NULL;
-	}
-
-cleanup:
-	free(filenameNsuffix);
-	free(basename);
-	free(dotNSuffix);
-	return ret;
-}
-
-
-int dc_write_file(const char* pathNfilename, const void* buf, size_t buf_bytes, dc_context_t* log)
-{
-	int success = 0;
-
-	FILE* f = fopen(pathNfilename, "wb");
-	if (f) {
-		if (fwrite(buf, 1, buf_bytes, f)==buf_bytes) {
-			success = 1;
-		}
-		else {
-			dc_log_warning(log, 0, "Cannot write %lu bytes to \"%s\".", (unsigned long)buf_bytes, pathNfilename);
-		}
-		fclose(f);
-	}
-	else {
-		dc_log_warning(log, 0, "Cannot open \"%s\" for writing.", pathNfilename);
-	}
-
-	return success;
-}
-
-
-int dc_read_file(const char* pathNfilename, void** buf, size_t* buf_bytes, dc_context_t* log)
-{
-	int success = 0;
-
-	if (pathNfilename==NULL || buf==NULL || buf_bytes==NULL) {
-		return 0; /* do not go to cleanup as this would dereference "buf" and "buf_bytes" */
-	}
-
-	*buf = NULL;
-	*buf_bytes = 0;
-	FILE* f = fopen(pathNfilename, "rb");
-	if (f==NULL) { goto cleanup; }
-
-	fseek(f, 0, SEEK_END);
-	*buf_bytes = ftell(f);
-	fseek(f, 0, SEEK_SET);
-	if (*buf_bytes<=0) { goto cleanup; }
-
-	*buf = malloc( (*buf_bytes) + 1 /*be pragmatic and terminate all files by a null - fine for texts and does not hurt for the rest */);
-	if (*buf==NULL) { goto cleanup; }
-
-	((char*)*buf)[*buf_bytes /*we allocated one extra byte above*/] = 0;
-
-	if (fread(*buf, 1, *buf_bytes, f)!=*buf_bytes) { goto cleanup; }
-
-	success = 1;
-
-cleanup:
-	if (f) {
-		fclose(f);
-	}
-	if (success==0) {
-		free(*buf);
-		*buf = NULL;
-		*buf_bytes = 0;
-		dc_log_warning(log, 0, "Cannot read \"%s\" or file is empty.", pathNfilename);
-	}
-	return success; /* buf must be free()'d by the caller */
+	return NULL;
 }
 
 
@@ -1328,4 +1125,206 @@ int dc_get_filemeta(const void* buf_start, size_t buf_bytes, uint32_t* ret_width
 	}
 
 	return 0;
+}
+
+
+int dc_file_exist(dc_context_t* context, const char* pathNfilename)
+{
+	struct stat st;
+	if (stat(pathNfilename, &st)==0) {
+		return 1; /* the size, however, may be 0 */
+	}
+	else {
+		return 0;
+	}
+}
+
+
+uint64_t dc_get_filebytes(dc_context_t* context, const char* pathNfilename)
+{
+	struct stat st;
+	if (stat(pathNfilename, &st)==0) {
+		return (uint64_t)st.st_size;
+	}
+	else {
+		return 0;
+	}
+}
+
+
+int dc_delete_file(dc_context_t* context, const char* pathNfilename)
+{
+	if (pathNfilename==NULL) {
+		return 0;
+	}
+
+	if (remove(pathNfilename)!=0) {
+		dc_log_warning(context, 0, "Cannot delete \"%s\".", pathNfilename);
+		return 0;
+	}
+
+	return 1;
+}
+
+
+int dc_copy_file(dc_context_t* context, const char* src, const char* dest)
+{
+    int     success = 0;
+    int     fd_src = -1;
+    int     fd_dest = -1;
+    #define DC_COPY_BUF_SIZE 4096
+    char    buf[DC_COPY_BUF_SIZE];
+    size_t  bytes_read = 0;
+    int     anything_copied = 0;
+
+	if (src==NULL || dest==NULL) {
+		return 0;
+	}
+
+    if ((fd_src=open(src, O_RDONLY)) < 0) {
+		dc_log_error(context, 0, "Cannot open source file \"%s\".", src);
+        goto cleanup;
+	}
+
+    if ((fd_dest=open(dest, O_WRONLY|O_CREAT|O_EXCL, 0666)) < 0) {
+		dc_log_error(context, 0, "Cannot open destination file \"%s\".", dest);
+        goto cleanup;
+	}
+
+    while ((bytes_read=read(fd_src, buf, DC_COPY_BUF_SIZE)) > 0) {
+        if (write(fd_dest, buf, bytes_read)!=bytes_read) {
+            dc_log_error(context, 0, "Cannot write %i bytes to \"%s\".", bytes_read, dest);
+		}
+		anything_copied = 1;
+    }
+
+    if (!anything_copied) {
+		/* not a single byte copied -> check if the source is empty, too */
+		close(fd_src);
+		fd_src = -1;
+		if (dc_get_filebytes(context, src)!=0) {
+			dc_log_error(context, 0, "Different size information for \"%s\".", bytes_read, dest);
+			goto cleanup;
+		}
+    }
+
+    success = 1;
+
+cleanup:
+	if (fd_src >= 0) { close(fd_src); }
+	if (fd_dest >= 0) { close(fd_dest); }
+	return success;
+}
+
+
+int dc_create_folder(dc_context_t* context, const char* pathNfilename)
+{
+	struct stat st;
+	if (stat(pathNfilename, &st)==-1) {
+		if (mkdir(pathNfilename, 0755)!=0) {
+			dc_log_warning(context, 0, "Cannot create directory \"%s\".", pathNfilename);
+			return 0;
+		}
+	}
+	return 1;
+}
+
+
+int dc_write_file(dc_context_t* context, const char* pathNfilename, const void* buf, size_t buf_bytes)
+{
+	int success = 0;
+
+	FILE* f = fopen(pathNfilename, "wb");
+	if (f) {
+		if (fwrite(buf, 1, buf_bytes, f)==buf_bytes) {
+			success = 1;
+		}
+		else {
+			dc_log_warning(context, 0, "Cannot write %lu bytes to \"%s\".", (unsigned long)buf_bytes, pathNfilename);
+		}
+		fclose(f);
+	}
+	else {
+		dc_log_warning(context, 0, "Cannot open \"%s\" for writing.", pathNfilename);
+	}
+
+	return success;
+}
+
+
+int dc_read_file(dc_context_t* context, const char* pathNfilename, void** buf, size_t* buf_bytes)
+{
+	int success = 0;
+
+	if (pathNfilename==NULL || buf==NULL || buf_bytes==NULL) {
+		return 0; /* do not go to cleanup as this would dereference "buf" and "buf_bytes" */
+	}
+
+	*buf = NULL;
+	*buf_bytes = 0;
+	FILE* f = fopen(pathNfilename, "rb");
+	if (f==NULL) { goto cleanup; }
+
+	fseek(f, 0, SEEK_END);
+	*buf_bytes = ftell(f);
+	fseek(f, 0, SEEK_SET);
+	if (*buf_bytes<=0) { goto cleanup; }
+
+	*buf = malloc( (*buf_bytes) + 1 /*be pragmatic and terminate all files by a null - fine for texts and does not hurt for the rest */);
+	if (*buf==NULL) { goto cleanup; }
+
+	((char*)*buf)[*buf_bytes /*we allocated one extra byte above*/] = 0;
+
+	if (fread(*buf, 1, *buf_bytes, f)!=*buf_bytes) { goto cleanup; }
+
+	success = 1;
+
+cleanup:
+	if (f) {
+		fclose(f);
+	}
+	if (success==0) {
+		free(*buf);
+		*buf = NULL;
+		*buf_bytes = 0;
+		dc_log_warning(context, 0, "Cannot read \"%s\" or file is empty.", pathNfilename);
+	}
+	return success; /* buf must be free()'d by the caller */
+}
+
+
+char* dc_get_fine_pathNfilename(dc_context_t* context, const char* pathNfolder, const char* desired_filenameNsuffix__)
+{
+	char*       ret = NULL;
+	char*       filenameNsuffix = NULL;
+	char*       basename = NULL;
+	char*       dotNSuffix = NULL;
+	time_t      now = time(NULL);
+	struct stat st;
+	int         i = 0;
+
+	filenameNsuffix = dc_strdup(desired_filenameNsuffix__);
+	dc_validate_filename(filenameNsuffix);
+	dc_split_filename(filenameNsuffix, &basename, &dotNSuffix);
+
+	for (i = 0; i < 1000 /*no deadlocks, please*/; i++) {
+		if (i) {
+			time_t idx = i<100? i : now+i;
+			ret = dc_mprintf("%s/%s-%lu%s", pathNfolder, basename, (unsigned long)idx, dotNSuffix);
+		}
+		else {
+			ret = dc_mprintf("%s/%s%s", pathNfolder, basename, dotNSuffix);
+		}
+		if (stat(ret, &st)==-1) {
+			goto cleanup; /* fine filename found */
+		}
+		free(ret); /* try over with the next index */
+		ret = NULL;
+	}
+
+cleanup:
+	free(filenameNsuffix);
+	free(basename);
+	free(dotNSuffix);
+	return ret;
 }

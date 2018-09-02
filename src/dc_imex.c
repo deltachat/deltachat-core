@@ -489,8 +489,8 @@ char* dc_initiate_key_transfer(dc_context_t* context)
 
 	CHECK_EXIT
 
-	if ((setup_file_name=dc_get_fine_pathNfilename(context->blobdir, "autocrypt-setup-message.html"))==NULL
-	 || !dc_write_file(setup_file_name, setup_file_content, strlen(setup_file_content), context)) {
+	if ((setup_file_name=dc_get_fine_pathNfilename(context, context->blobdir, "autocrypt-setup-message.html"))==NULL
+	 || !dc_write_file(context, setup_file_name, setup_file_content, strlen(setup_file_content))) {
 		goto cleanup;
 	}
 
@@ -651,7 +651,7 @@ int dc_continue_key_transfer(dc_context_t* context, uint32_t msg_id, const char*
 		goto cleanup;
 	}
 
-	if (!dc_read_file(filename, (void**)&filecontent, &filebytes, msg->context) || filecontent==NULL || filebytes <= 0) {
+	if (!dc_read_file(context, filename, (void**)&filecontent, &filebytes) || filecontent==NULL || filebytes <= 0) {
 		dc_log_error(context, 0, "Cannot read Autocrypt Setup Message file.");
 		goto cleanup;
 	}
@@ -697,7 +697,7 @@ static void export_key_to_asc_file(dc_context_t* context, const char* dir, int i
 		file_name = dc_mprintf("%s/%s-key-%i.asc", dir, key->type==DC_KEY_PUBLIC? "public" : "private", id);
 	}
 	dc_log_info(context, 0, "Exporting key %s", file_name);
-	dc_delete_file(file_name, context);
+	dc_delete_file(context, file_name);
 	if (dc_key_render_asc_to_file(key, file_name, context)) {
 		context->cb(context, DC_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)file_name, 0);
 		dc_log_error(context, 0, "Cannot write key to %s", file_name);
@@ -786,7 +786,7 @@ static int import_self_keys(dc_context_t* context, const char* dir_name)
 
 		free(buf);
 		buf = NULL;
-		if (!dc_read_file(path_plus_name, (void**)&buf, &buf_bytes, context)
+		if (!dc_read_file(context, path_plus_name, (void**)&buf, &buf_bytes)
 		 || buf_bytes < 50) {
 			continue;
 		}
@@ -874,7 +874,7 @@ static int export_backup(dc_context_t* context, const char* dir)
 		char buffer[256];
 		timeinfo = localtime(&now);
 		strftime(buffer, 256, DC_BAK_PREFIX "-%Y-%m-%d." DC_BAK_SUFFIX, timeinfo);
-		if ((dest_pathNfilename=dc_get_fine_pathNfilename(dir, buffer))==NULL) {
+		if ((dest_pathNfilename=dc_get_fine_pathNfilename(context, dir, buffer))==NULL) {
 			dc_log_error(context, 0, "Cannot get backup file name.");
 			goto cleanup;
 		}
@@ -885,7 +885,7 @@ static int export_backup(dc_context_t* context, const char* dir)
 	closed = 1;
 
 		dc_log_info(context, 0, "Backup \"%s\" to \"%s\".", context->dbfile, dest_pathNfilename);
-		if (!dc_copy_file(context->dbfile, dest_pathNfilename, context)) {
+		if (!dc_copy_file(context, context->dbfile, dest_pathNfilename)) {
 			goto cleanup; /* error already logged */
 		}
 
@@ -949,7 +949,7 @@ static int export_backup(dc_context_t* context, const char* dir)
 			free(curr_pathNfilename);
 			curr_pathNfilename = dc_mprintf("%s/%s", context->blobdir, name);
 			free(buf);
-			if (!dc_read_file(curr_pathNfilename, &buf, &buf_bytes, context) || buf==NULL || buf_bytes<=0) {
+			if (!dc_read_file(context, curr_pathNfilename, &buf, &buf_bytes) || buf==NULL || buf_bytes<=0) {
 				continue;
 			}
 
@@ -981,7 +981,7 @@ cleanup:
 	sqlite3_finalize(stmt);
 	dc_sqlite3_close(dest_sql);
 	dc_sqlite3_unref(dest_sql);
-	if (delete_dest_file) { dc_delete_file(dest_pathNfilename, context); }
+	if (delete_dest_file) { dc_delete_file(context, dest_pathNfilename); }
 	free(dest_pathNfilename);
 
 	free(curr_pathNfilename);
@@ -1037,15 +1037,15 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 		dc_sqlite3_close(context->sql);
 	}
 
-	dc_delete_file(context->dbfile, context);
+	dc_delete_file(context, context->dbfile);
 
-	if (dc_file_exist(context->dbfile)) {
+	if (dc_file_exist(context, context->dbfile)) {
 		dc_log_error(context, 0, "Cannot import backups: Cannot delete the old file.");
 		goto cleanup;
 	}
 
 	/* copy the database file */
-	if (!dc_copy_file(backup_to_import, context->dbfile, context)) {
+	if (!dc_copy_file(context, backup_to_import, context->dbfile)) {
 		goto cleanup; /* error already logged */
 	}
 
@@ -1077,7 +1077,7 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
         if (file_bytes > 0 && file_content) {
 			free(pathNfilename);
 			pathNfilename = dc_mprintf("%s/%s", context->blobdir, file_name);
-			if (!dc_write_file(pathNfilename, file_content, file_bytes, context)) {
+			if (!dc_write_file(context, pathNfilename, file_content, file_bytes)) {
 				dc_log_error(context, 0, "Storage full? Cannot write file %s with %i bytes.", pathNfilename, file_bytes);
 				goto cleanup; /* otherwise the user may believe the stuff is imported correctly, but there are files missing ... */
 			}
@@ -1237,7 +1237,7 @@ void dc_job_do_DC_JOB_IMEX_IMAP(dc_context_t* context, dc_job_t* job)
 			goto cleanup;
 		}
 		/* also make sure, the directory for exporting exists */
-		dc_create_folder(param1, context);
+		dc_create_folder(context, param1);
 	}
 
 	switch (what)

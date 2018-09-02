@@ -169,7 +169,7 @@ int dc_key_set_from_file(dc_key_t* key, const char* pathNfilename, dc_context_t*
 		goto cleanup;
 	}
 
-	if (!dc_read_file(pathNfilename, (void**)&buf, &buf_bytes, context)
+	if (!dc_read_file(context, pathNfilename, (void**)&buf, &buf_bytes)
 	 || buf_bytes < 50) {
 		goto cleanup; /* error is already loged */
 	}
@@ -429,7 +429,7 @@ int dc_key_render_asc_to_file(const dc_key_t* key, const char* file, dc_context_
 		goto cleanup;
 	}
 
-	if (!dc_write_file(file, file_content, strlen(file_content), context)) {
+	if (!dc_write_file(context, file, file_content, strlen(file_content))) {
 		dc_log_error(context, 0, "Cannot write key to %s", file);
 		goto cleanup;
 	}

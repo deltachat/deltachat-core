@@ -113,7 +113,7 @@ static int dc_poke_eml_file(dc_context_t* context, const char* filename)
 		return 0;
 	}
 
-	if (dc_read_file(filename, (void**)&data, &data_bytes, context) == 0) {
+	if (dc_read_file(context, filename, (void**)&data, &data_bytes) == 0) {
 		goto cleanup;
 	}
 
@@ -600,7 +600,7 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 		char* file_name = dc_mprintf("%s/autocrypt-setup-message.html", context->blobdir);
 		char* file_content = NULL;
 			if ((file_content=dc_render_setup_file(context, setup_code)) != NULL
-			 && dc_write_file(file_name, file_content, strlen(file_content), context)) {
+			 && dc_write_file(context, file_name, file_content, strlen(file_content))) {
 				ret = dc_mprintf("Setup message written to: %s\nSetup code: %s", file_name, setup_code);
 			}
 			else {
@@ -1222,7 +1222,7 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 	{
 		if (arg1) {
 			unsigned char* buf = NULL; size_t buf_bytes; uint32_t w, h;
-			if (dc_read_file(arg1, (void**)&buf, &buf_bytes, context)) {
+			if (dc_read_file(context, arg1, (void**)&buf, &buf_bytes)) {
 				dc_get_filemeta(buf, buf_bytes, &w, &h);
 				ret = dc_mprintf("width=%i, height=%i", (int)w, (int)h);
 			}

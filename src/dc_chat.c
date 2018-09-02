@@ -2096,7 +2096,7 @@ uint32_t dc_send_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 			 && (dc_param_get_int(msg->param, DC_PARAM_WIDTH, 0)<=0 || dc_param_get_int(msg->param, DC_PARAM_HEIGHT, 0)<=0)) {
 				/* set width/height of images, if not yet done */
 				unsigned char* buf = NULL; size_t buf_bytes; uint32_t w, h;
-				if (dc_read_file(pathNfilename, (void**)&buf, &buf_bytes, msg->context)) {
+				if (dc_read_file(context, pathNfilename, (void**)&buf, &buf_bytes)) {
 					if (dc_get_filemeta(buf, buf_bytes, &w, &h)) {
 						dc_param_set_int(msg->param, DC_PARAM_WIDTH, w);
 						dc_param_set_int(msg->param, DC_PARAM_HEIGHT, h);

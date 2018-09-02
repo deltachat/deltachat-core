@@ -257,7 +257,7 @@ int dc_open(dc_context_t* context, const char* dbfile, const char* blobdir)
 	}
 	else {
 		context->blobdir = dc_mprintf("%s-blobs", dbfile);
-		dc_create_folder(context->blobdir, context);
+		dc_create_folder(context, context->blobdir);
 	}
 
 	/* Create/open sqlite database, this may already use the blobdir */

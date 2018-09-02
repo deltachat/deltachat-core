@@ -951,12 +951,12 @@ static void do_add_single_file_part(dc_mimeparser_t* parser, int msg_type, int m
 	char*          pathNfilename = NULL;
 
 	/* create a free file name to use */
-	if ((pathNfilename=dc_get_fine_pathNfilename(parser->blobdir, desired_filename))==NULL) {
+	if ((pathNfilename=dc_get_fine_pathNfilename(parser->context, parser->blobdir, desired_filename))==NULL) {
 		goto cleanup;
 	}
 
 	/* copy data to file */
-	if (dc_write_file(pathNfilename, decoded_data, decoded_data_bytes, parser->context)==0) {
+	if (dc_write_file(parser->context, pathNfilename, decoded_data, decoded_data_bytes)==0) {
 		goto cleanup;
 	}
 
