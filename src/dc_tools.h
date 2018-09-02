@@ -95,6 +95,7 @@ char* dc_extract_grpid_from_rfc724_mid_list(const clist* rfc724_mid_list);
 
 
 /* file tools */
+void     dc_ensure_no_slash         (char* pathNfilename);
 int      dc_file_exist              (const char* pathNfilename);
 uint64_t dc_get_filebytes           (const char* pathNfilename);
 char*    dc_get_filename            (const char* pathNfilename); /* the return value must be free()'d */

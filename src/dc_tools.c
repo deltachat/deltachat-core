@@ -995,6 +995,21 @@ char* dc_extract_grpid_from_rfc724_mid_list(const clist* list)
  ******************************************************************************/
 
 
+/*
+ * removes trailing slash from given path.
+ */
+void dc_ensure_no_slash(char* pathNfilename)
+{
+	int path_len = strlen(pathNfilename);
+	if (path_len > 0) {
+		if (pathNfilename[path_len-1]=='/'
+		 || pathNfilename[path_len-1]=='\\') {
+			pathNfilename[path_len-1] = 0;
+		}
+	}
+}
+
+
 int dc_file_exist(const char* pathNfilename)
 {
 	struct stat st;
