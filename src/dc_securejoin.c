@@ -226,7 +226,7 @@ static const char* lookup_field(dc_mimeparser_t* mimeparser, const char* key)
 
 static void send_handshake_msg(dc_context_t* context, uint32_t contact_chat_id, const char* step, const char* param2, const char* fingerprint, const char* grpid)
 {
-	dc_msg_t* msg = dc_msg_new();
+	dc_msg_t* msg = dc_msg_new(context);
 
 	msg->type = DC_MSG_TEXT;
 	msg->text = dc_mprintf("Secure-Join: %s", step);
