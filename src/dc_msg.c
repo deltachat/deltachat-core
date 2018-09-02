@@ -1038,12 +1038,12 @@ char* dc_msg_get_summarytext_by_raw(int type, const char* text, dc_param_t* para
 
 
 /**
- * Check if a message is still in creation.  The user can mark files as being
+ * Check if a message is still in creation.  The UI can mark files as being
  * in creation by simply creating a file `<filename>.increation`. If
- * `<filename>` is created then, the user should just delete
+ * `<filename>` is created completely then, the user should just delete
  * `<filename>.increation`.
  *
- * Typically, this is used for videos that should be recoded by the user before
+ * Typically, this is used for videos that are recoded by the UI before
  * they can be sent.
  *
  * @memberof dc_msg_t
@@ -1053,7 +1053,6 @@ char* dc_msg_get_summarytext_by_raw(int type, const char* text, dc_param_t* para
  */
 int dc_msg_is_increation(const dc_msg_t* msg)
 {
-	/* surrounds dc_msg_is_increation() with locking and error checking */
 	int is_increation = 0;
 
 	if (msg==NULL || msg->magic!=DC_MSG_MAGIC || msg->context==NULL) {
