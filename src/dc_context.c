@@ -230,8 +230,7 @@ static void update_config_cache(dc_context_t* context, const char* key)
  * @param context The context object as created by dc_context_new().
  * @param dbfile The file to use to store the database, something like `~/file` won't
  *     work on all systems, if in doubt, use absolute paths.
- * @param blobdir A directory to store the blobs in. The trailing slash is added
- *     by deltachat-core, so if you want to avoid double slashes, do not add one.
+ * @param blobdir A directory to store the blobs in; a trailing slash is not needed.
  *     If you pass NULL or the empty string, deltachat-core creates a directory
  *     beside _dbfile_ with the same name and the suffix `-blobs`.
  * @return 1 on success, 0 on failure
@@ -247,22 +246,23 @@ int dc_open(dc_context_t* context, const char* dbfile, const char* blobdir)
 	/* Open() sets up the object and connects to the given database
 	from which all configuration is read/written to. */
 
-	/* Create/open sqlite database */
-	if (!dc_sqlite3_open(context->sql, dbfile, 0)) {
-		goto cleanup;
-	}
-
 	/* backup dbfile name */
 	context->dbfile = dc_strdup(dbfile);
 
 	/* set blob-directory
-	(to avoid double slashed, the given directory should not end with an slash) */
+	(to avoid double slashes, the given directory should not end with an slash) */
 	if (blobdir && blobdir[0]) {
 		context->blobdir = dc_strdup(blobdir);
+		dc_ensure_no_slash(context->blobdir);
 	}
 	else {
 		context->blobdir = dc_mprintf("%s-blobs", dbfile);
 		dc_create_folder(context->blobdir, context);
+	}
+
+	/* Create/open sqlite database, this may already use the blobdir */
+	if (!dc_sqlite3_open(context->sql, dbfile, 0)) {
+		goto cleanup;
 	}
 
 	update_config_cache(context, NULL);
