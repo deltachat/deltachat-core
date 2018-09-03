@@ -489,7 +489,7 @@ char* dc_initiate_key_transfer(dc_context_t* context)
 
 	CHECK_EXIT
 
-	if ((setup_file_name=dc_get_fine_pathNfilename(context, context->blobdir, "autocrypt-setup-message.html"))==NULL
+	if ((setup_file_name=dc_get_fine_pathNfilename(context, "$BLOBDIR", "autocrypt-setup-message.html"))==NULL
 	 || !dc_write_file(context, setup_file_name, setup_file_content, strlen(setup_file_content))) {
 		goto cleanup;
 	}
@@ -969,7 +969,6 @@ static int export_backup(dc_context_t* context, const char* dir)
 
 	/* done - set some special config values (do this last to avoid importing crashed backups) */
 	dc_sqlite3_set_config_int(dest_sql, "backup_time", now);
-	dc_sqlite3_set_config    (dest_sql, "backup_for", context->blobdir);
 
 	context->cb(context, DC_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)dest_pathNfilename, 0);
 	success = 1;
@@ -995,24 +994,8 @@ cleanup:
  ******************************************************************************/
 
 
-static void ensure_no_slash(char* path)
-{
-	int path_len = strlen(path);
-	if (path_len > 0) {
-		if (path[path_len-1]=='/'
-		 || path[path_len-1]=='\\') {
-			path[path_len-1] = 0;
-		}
-	}
-}
-
-
 static int import_backup(dc_context_t* context, const char* backup_to_import)
 {
-	/* command for testing eg.
-	imex import-backup /home/bpetersen/temp/delta-chat-2017-11-14.bak
-	*/
-
 	int           success = 0;
 	int           processed_files_cnt = 0;
 	int           total_files_cnt = 0;
@@ -1029,9 +1012,6 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 	}
 
 	/* close and delete the original file - FIXME: we should import to a .bak file and rename it on success. however, currently it is not clear it the import exists in the long run (may be replaced by a restore-from-imap) */
-
-//dc_sqlite3_lock(context->sql);  // TODO: check if this works while threads running
-//locked = 1;
 
 	if (dc_sqlite3_is_open(context->sql)) {
 		dc_sqlite3_close(context->sql);
@@ -1091,32 +1071,6 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 	dc_sqlite3_execute(context->sql, "DROP TABLE backup_blobs;");
 	dc_sqlite3_execute(context->sql, "VACUUM;");
 
-	/* rewrite references to the blobs */
-	repl_from = dc_sqlite3_get_config(context->sql, "backup_for", NULL);
-	if (repl_from && strlen(repl_from)>1 && context->blobdir && strlen(context->blobdir)>1)
-	{
-		ensure_no_slash(repl_from);
-		repl_to = dc_strdup(context->blobdir);
-		ensure_no_slash(repl_to);
-
-		dc_log_info(context, 0, "Rewriting paths from '%s' to '%s' ...", repl_from, repl_to);
-
-		assert( 'f'==DC_PARAM_FILE);
-		assert( 'i'==DC_PARAM_PROFILE_IMAGE);
-
-		char* q3 = sqlite3_mprintf("UPDATE msgs SET param=replace(param, 'f=%q/', 'f=%q/');", repl_from, repl_to); /* cannot use dc_mprintf() because of "%q" */
-			dc_sqlite3_execute(context->sql, q3);
-		sqlite3_free(q3);
-
-		q3 = sqlite3_mprintf("UPDATE chats SET param=replace(param, 'i=%q/', 'i=%q/');", repl_from, repl_to);
-			dc_sqlite3_execute(context->sql, q3);
-		sqlite3_free(q3);
-
-		q3 = sqlite3_mprintf("UPDATE contacts SET param=replace(param, 'i=%q/', 'i=%q/');", repl_from, repl_to);
-			dc_sqlite3_execute(context->sql, q3);
-		sqlite3_free(q3);
-	}
-
 	success = 1;
 
 cleanup:
@@ -1124,8 +1078,6 @@ cleanup:
 	free(repl_from);
 	free(repl_to);
 	sqlite3_finalize(stmt);
-
-// if (locked) { dc_sqlite3_unlock(context->sql); }  // TODO: check if this works while threads running
 
 	return success;
 }

@@ -167,7 +167,7 @@ static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(dc_context_t* context, dc_job_t*
 
 	char* pathNfilename = dc_param_get(msg->param, DC_PARAM_FILE, NULL);
 	if (pathNfilename) {
-		if (strncmp(context->blobdir, pathNfilename, strlen(context->blobdir))==0)
+		if (strncmp("$BLOBDIR", pathNfilename, 8)==0)
 		{
 			char* strLikeFilename = dc_mprintf("%%f=%s%%", pathNfilename);
 			stmt = dc_sqlite3_prepare(context->sql,
@@ -300,6 +300,7 @@ cleanup:
 
 static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* job)
 {
+	char*            pathNfilename = NULL;
 	dc_mimefactory_t mimefactory;
 	dc_mimefactory_init(&mimefactory, context);
 
@@ -327,6 +328,34 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 		dc_log_info(context, 0, "File is in creation, retrying later.");
 		dc_job_try_again_later(job, DC_INCREATION_POLL, NULL);
 		goto cleanup;
+	}
+
+	/* copy the file to the internal blob directory (if it is not already there) */
+	if (DC_MSG_NEEDS_ATTACHMENT(mimefactory.msg->type)) {
+		char* pathNfilename = dc_param_get(mimefactory.msg->param, DC_PARAM_FILE, NULL);
+		if (pathNfilename) {
+			if (!dc_make_rel_and_copy(context, &pathNfilename)) {
+				goto cleanup;
+			}
+			dc_param_set(mimefactory.msg->param, DC_PARAM_FILE, pathNfilename);
+
+			/* set width/height of images, if not yet done */
+			if ((mimefactory.msg->type==DC_MSG_IMAGE || mimefactory.msg->type==DC_MSG_GIF)
+			 && !dc_param_exists(mimefactory.msg->param, DC_PARAM_WIDTH)) {
+				unsigned char* buf = NULL; size_t buf_bytes; uint32_t w, h;
+				dc_param_set_int(mimefactory.msg->param, DC_PARAM_WIDTH, 0);
+				dc_param_set_int(mimefactory.msg->param, DC_PARAM_HEIGHT, 0);
+				if (dc_read_file(context, pathNfilename, (void**)&buf, &buf_bytes)) {
+					if (dc_get_filemeta(buf, buf_bytes, &w, &h)) {
+						dc_param_set_int(mimefactory.msg->param, DC_PARAM_WIDTH, w);
+						dc_param_set_int(mimefactory.msg->param, DC_PARAM_HEIGHT, h);
+					}
+				}
+				free(buf);
+			}
+
+			dc_msg_save_param_to_disk(mimefactory.msg);
+		}
 	}
 
 	/* send message - it's okay if there are no recipients, this is a group with only OURSELF; we only upload to IMAP in this case */
@@ -393,6 +422,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 
 cleanup:
 	dc_mimefactory_empty(&mimefactory);
+	free(pathNfilename);
 }
 
 

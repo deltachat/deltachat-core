@@ -108,6 +108,10 @@ static uintptr_t receive_event(dc_context_t* context, int event, uintptr_t data1
 			printf(ANSI_YELLOW "{{Received DC_EVENT_IMEX_FILE_WRITTEN(%s)}}\n" ANSI_NORMAL, (char*)data1);
 			break;
 
+		case DC_EVENT_FILE_COPIED:
+			printf(ANSI_YELLOW "{{Received DC_EVENT_FILE_COPIED(%s)}}\n" ANSI_NORMAL, (char*)data1);
+			break;
+
 		case DC_EVENT_CHAT_MODIFIED:
 			printf(ANSI_YELLOW "{{Received DC_EVENT_CHAT_MODIFIED(%i)}}\n" ANSI_NORMAL, (int)data1);
 			break;

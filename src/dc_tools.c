@@ -1405,3 +1405,61 @@ cleanup:
 	free(pathNfolder_wo_slash);
 	return ret;
 }
+
+
+void dc_make_rel_path(dc_context_t* context, char** path)
+{
+	if (context==NULL || path==NULL || *path==NULL) {
+		return;
+	}
+
+	if (strncmp(*path, context->blobdir, strlen(context->blobdir))==0) {
+		dc_str_replace(path, context->blobdir, "$BLOBDIR");
+	}
+}
+
+
+/**
+ * Copy a file to the blob directory, if needed.
+ *
+ * @param context The context object as returned from dc_context_new().
+ * @param path[in,out] The path, may be modified to a relative path
+ *     starting with `$BLOBDIR`.
+ * @return 1=success file may or may not be copied, 0=error
+ */
+int dc_make_rel_and_copy(dc_context_t* context, char** path)
+{
+	int   success = 0;
+	char* filename = NULL;
+	char* blobdir_path = NULL;
+
+	if (context==NULL || path==NULL || *path==NULL) {
+		goto cleanup;
+	}
+
+	if ((strncmp(*path, context->blobdir, strlen(context->blobdir))==0)
+	 || (strncmp(*path, "$BLOBDIR", 8)==0)) {
+		dc_make_rel_path(context, path);
+		success = 1; // file is already in blobdir
+		goto cleanup;
+	}
+
+	if ((filename=dc_get_filename(*path))==NULL
+	 || (blobdir_path=dc_get_fine_pathNfilename(context, "$BLOBDIR", filename))==NULL
+	 || !dc_copy_file(context, *path, blobdir_path)) {
+		goto cleanup;
+	}
+
+	context->cb(context, DC_EVENT_FILE_COPIED, (uintptr_t)(*path), 0);
+
+	free(*path);
+	*path = blobdir_path;
+	blobdir_path = NULL;
+	dc_make_rel_path(context, path);
+    success = 1;
+
+cleanup:
+	free(blobdir_path);
+	free(filename);
+	return success;
+}

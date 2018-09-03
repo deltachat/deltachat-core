@@ -20,6 +20,7 @@
  ******************************************************************************/
 
 
+#include <assert.h>
 #include "dc_context.h"
 #include "dc_apeerstate.h"
 
@@ -288,9 +289,13 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		}
 
 		// (1) update low-level database structure.
-		// this should be done before updates that use high-level objects that rely themselves on the low-level structure.
+		// this should be done before updates that use high-level objects that
+		// rely themselves on the low-level structure.
+		// --------------------------------------------------------------------
+
 		int dbversion = dbversion_before_update;
 		int recalc_fingerprints = 0;
+		int update_file_paths = 0;
 
 		#define NEW_DB_VERSION 1
 			if (dbversion < NEW_DB_VERSION)
@@ -451,7 +456,20 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 			}
 		#undef NEW_DB_VERSION
 
-		// (2) updates that require high-level objects (the structure is complete now and all objects are usable)
+		#define NEW_DB_VERSION 41
+			if (dbversion < NEW_DB_VERSION)
+			{
+				update_file_paths = 1;
+
+				dbversion = NEW_DB_VERSION;
+				dc_sqlite3_set_config_int(sql, "dbversion", NEW_DB_VERSION);
+			}
+		#undef NEW_DB_VERSION
+
+		// (2) updates that require high-level objects
+		// (the structure is complete now and all objects are usable)
+		// --------------------------------------------------------------------
+
 		if (recalc_fingerprints)
 		{
 			sqlite3_stmt* stmt = dc_sqlite3_prepare(sql, "SELECT addr FROM acpeerstates;");
@@ -464,6 +482,28 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 					dc_apeerstate_unref(peerstate);
 				}
 			sqlite3_finalize(stmt);
+		}
+
+		if (update_file_paths)
+		{
+			// versions before 2018-08 save the absolute paths in the database files at "param.f=";
+			// for newer versions, we copy files always to the blob directory and store relative paths.
+			// this snippet converts older databases and can be removed after some time.
+			char* repl_from = dc_sqlite3_get_config(sql, "backup_for", sql->context->blobdir);
+			dc_ensure_no_slash(repl_from);
+
+			assert('f'==DC_PARAM_FILE);
+			char* q3 = sqlite3_mprintf("UPDATE msgs SET param=replace(param, 'f=%q/', 'f=$BLOBDIR/');", repl_from);
+			dc_sqlite3_execute(sql, q3);
+			sqlite3_free(q3);
+
+			assert('i'==DC_PARAM_PROFILE_IMAGE);
+			q3 = sqlite3_mprintf("UPDATE chats SET param=replace(param, 'i=%q/', 'i=$BLOBDIR/');", repl_from);
+			dc_sqlite3_execute(sql, q3);
+			sqlite3_free(q3);
+
+			free(repl_from);
+			dc_sqlite3_set_config(sql, "backup_for", NULL);
 		}
 	}
 

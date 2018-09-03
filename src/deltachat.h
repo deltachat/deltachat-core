@@ -792,11 +792,28 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * A typical purpose for a handler of this event may be to make the file public to some system
  * services.
  *
- * @param data1 (const char*) File name
+ * @param data1 (const char*) Path and file name
  * @param data2 0
  * @return 0
  */
 #define DC_EVENT_IMEX_FILE_WRITTEN        2052
+
+
+/**
+ * A file has been copied. Files given to dc_set_chat_profile_image(),
+ * dc_send_msg() and related functions are copied to the internal blob directory
+ * unless they are already there.
+ *
+ * After copying, this event is sent; from that moment on,
+ * the given file is no longer needed by the library and it is safe to delete it
+ * (eg. in case it was generated for sending only - if you send images from the
+ * gallery you may not want to delete them afterwards).
+ *
+ * @param data1 (const char*) Path and file name
+ * @param data2 0
+ * @return 0
+ */
+#define DC_EVENT_FILE_COPIED              2055
 
 
 /**
@@ -892,7 +909,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  */
 
 
-#define DC_EVENT_DATA1_IS_STRING(e)  ((e)==DC_EVENT_HTTP_GET || (e)==DC_EVENT_IMEX_FILE_WRITTEN)
+#define DC_EVENT_DATA1_IS_STRING(e)  ((e)==DC_EVENT_HTTP_GET || (e)==DC_EVENT_IMEX_FILE_WRITTEN || (e)==DC_EVENT_FILE_COPIED)
 #define DC_EVENT_DATA2_IS_STRING(e)  ((e)==DC_EVENT_INFO || (e)==DC_EVENT_WARNING || (e)==DC_EVENT_ERROR)
 #define DC_EVENT_RETURNS_INT         ((e)==DC_EVENT_IS_OFFLINE)
 #define DC_EVENT_RETURNS_STRING(e)   ((e)==DC_EVENT_GET_QUANTITY_STRING || (e)==DC_EVENT_GET_STRING || (e)==DC_EVENT_HTTP_GET)

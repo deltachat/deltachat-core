@@ -286,16 +286,20 @@ char* dc_msg_get_text(const dc_msg_t* msg)
  */
 char* dc_msg_get_file(const dc_msg_t* msg)
 {
-	char* ret = NULL;
+	char* file_rel = NULL;
+	char* file_abs = NULL;
 
 	if (msg==NULL || msg->magic!=DC_MSG_MAGIC) {
 		goto cleanup;
 	}
 
-	ret = dc_param_get(msg->param, DC_PARAM_FILE, NULL);
+	if ((file_rel = dc_param_get(msg->param, DC_PARAM_FILE, NULL))!=NULL) {
+		file_abs = dc_get_abs_path(msg->context, file_rel);
+	}
 
 cleanup:
-	return ret? ret : dc_strdup(NULL);
+	free(file_rel);
+	return file_abs? file_abs : dc_strdup(NULL);
 }
 
 
@@ -1231,8 +1235,8 @@ void dc_msg_set_mediainfo(dc_msg_t* msg, const char* author, const char* trackna
  *
  * @memberof dc_msg_t
  * @param msg The message object.
- * @param width The new width to store in the message object. 0 if you do not want to change it.
- * @param height The new height to store in the message object. 0 if you do not want to change it.
+ * @param width The new width to store in the message object. 0 if you do not want to change width and height.
+ * @param height The new height to store in the message object. 0 if you do not want to change width and height.
  * @param duration The new duration to store in the message object. 0 if you do not want to change it.
  * @return None.
  */
@@ -1242,15 +1246,12 @@ void dc_msg_latefiling_mediasize(dc_msg_t* msg, int width, int height, int durat
 		goto cleanup;
 	}
 
-	if (width > 0) {
+	if (width>0 && height>0) {
 		dc_param_set_int(msg->param, DC_PARAM_WIDTH, width);
-	}
-
-	if (height > 0) {
 		dc_param_set_int(msg->param, DC_PARAM_HEIGHT, height);
 	}
 
-	if (duration > 0) {
+	if (duration>0) {
 		dc_param_set_int(msg->param, DC_PARAM_DURATION, duration);
 	}
 
@@ -1613,10 +1614,10 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 	}
 
 	/* add file info */
-	if ((p=dc_param_get(msg->param, DC_PARAM_FILE, NULL))!=NULL) {
+	if ((p=dc_msg_get_file(msg))!=NULL && p[0]) {
 		dc_strbuilder_catf(&ret, "\nFile: %s, %i bytes\n", p, (int)dc_get_filebytes(context, p));
-		free(p);
 	}
+	free(p);
 
 	if (msg->type!=DC_MSG_TEXT) {
 		p = NULL;

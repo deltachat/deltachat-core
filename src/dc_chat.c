@@ -257,7 +257,10 @@ char* dc_chat_get_profile_image(const dc_chat_t* chat)
 		return NULL;
 	}
 
-	return dc_param_get(chat->param, DC_PARAM_PROFILE_IMAGE, NULL);
+	char* profile_image_rel = dc_param_get(chat->param, DC_PARAM_PROFILE_IMAGE, NULL);
+	char* profile_image_abs = dc_get_abs_path(chat->context, profile_image_rel);
+	free(profile_image_rel);
+	return profile_image_abs;
 }
 
 
@@ -1612,6 +1615,7 @@ int dc_set_chat_profile_image(dc_context_t* context, uint32_t chat_id, const cha
 	int        success = 0;
 	dc_chat_t* chat = dc_chat_new(context);
 	dc_msg_t*  msg = dc_msg_new(context);
+	char*      new_image_rel = NULL;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || chat_id<=DC_CHAT_ID_LAST_SPECIAL) {
 		goto cleanup;
@@ -1627,7 +1631,14 @@ int dc_set_chat_profile_image(dc_context_t* context, uint32_t chat_id, const cha
 		goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
 	}
 
-	dc_param_set(chat->param, DC_PARAM_PROFILE_IMAGE, new_image/*may be NULL*/);
+	if (new_image) {
+		new_image_rel = dc_strdup(new_image);
+		if (!dc_make_rel_and_copy(context, &new_image_rel)) {
+			goto cleanup;
+		}
+	}
+
+	dc_param_set(chat->param, DC_PARAM_PROFILE_IMAGE, new_image_rel/*may be NULL*/);
 	if (!dc_chat_update_param(chat)) {
 		goto cleanup;
 	}
@@ -1636,9 +1647,9 @@ int dc_set_chat_profile_image(dc_context_t* context, uint32_t chat_id, const cha
 	if (DO_SEND_STATUS_MAILS)
 	{
 		dc_param_set_int(msg->param, DC_PARAM_CMD,     DC_CMD_GROUPIMAGE_CHANGED);
-		dc_param_set    (msg->param, DC_PARAM_CMD_ARG, new_image);
+		dc_param_set    (msg->param, DC_PARAM_CMD_ARG, new_image_rel);
 		msg->type = DC_MSG_TEXT;
-		msg->text = dc_stock_str(context, new_image? DC_STR_MSGGRPIMGCHANGED : DC_STR_MSGGRPIMGDELETED);
+		msg->text = dc_stock_str(context, new_image_rel? DC_STR_MSGGRPIMGCHANGED : DC_STR_MSGGRPIMGDELETED);
 		msg->id = dc_send_msg(context, chat_id, msg);
 		context->cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg->id);
 	}
@@ -1649,6 +1660,7 @@ int dc_set_chat_profile_image(dc_context_t* context, uint32_t chat_id, const cha
 cleanup:
 	dc_chat_unref(chat);
 	dc_msg_unref(msg);
+	free(new_image_rel);
 	return success;
 }
 
@@ -2092,19 +2104,6 @@ uint32_t dc_send_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 				free(better_mime);
 			}
 
-			if ((msg->type==DC_MSG_IMAGE || msg->type==DC_MSG_GIF)
-			 && (dc_param_get_int(msg->param, DC_PARAM_WIDTH, 0)<=0 || dc_param_get_int(msg->param, DC_PARAM_HEIGHT, 0)<=0)) {
-				/* set width/height of images, if not yet done */
-				unsigned char* buf = NULL; size_t buf_bytes; uint32_t w, h;
-				if (dc_read_file(context, pathNfilename, (void**)&buf, &buf_bytes)) {
-					if (dc_get_filemeta(buf, buf_bytes, &w, &h)) {
-						dc_param_set_int(msg->param, DC_PARAM_WIDTH, w);
-						dc_param_set_int(msg->param, DC_PARAM_HEIGHT, h);
-					}
-				}
-				free(buf);
-			}
-
 			dc_log_info(context, 0, "Attaching \"%s\" for message type #%i.", pathNfilename, (int)msg->type);
 
 			if (msg->text) { free(msg->text); }
@@ -2226,8 +2225,10 @@ uint32_t dc_send_image_msg(dc_context_t* context, uint32_t chat_id, const char* 
 
 	msg->type = DC_MSG_IMAGE;
 	dc_param_set    (msg->param, DC_PARAM_FILE,   file);
-	dc_param_set_int(msg->param, DC_PARAM_WIDTH,  width);  /* set in sending job, if 0 */
-	dc_param_set_int(msg->param, DC_PARAM_HEIGHT, height); /* set in sending job, if 0 */
+	if (width>0 && height>0) {
+		dc_param_set_int(msg->param, DC_PARAM_WIDTH,  width);
+		dc_param_set_int(msg->param, DC_PARAM_HEIGHT, height);
+	}
 
 	ret = dc_send_msg(context, chat_id, msg);
 
@@ -2270,9 +2271,13 @@ uint32_t dc_send_video_msg(dc_context_t* context, uint32_t chat_id, const char* 
 	msg->type = DC_MSG_VIDEO;
 	dc_param_set    (msg->param, DC_PARAM_FILE,     file);
 	dc_param_set    (msg->param, DC_PARAM_MIMETYPE, filemime);
-	dc_param_set_int(msg->param, DC_PARAM_WIDTH,    width);
-	dc_param_set_int(msg->param, DC_PARAM_HEIGHT,   height);
-	dc_param_set_int(msg->param, DC_PARAM_DURATION, duration);
+	if (width>0 && height>0) {
+		dc_param_set_int(msg->param, DC_PARAM_WIDTH,    width);
+		dc_param_set_int(msg->param, DC_PARAM_HEIGHT,   height);
+	}
+	if (duration>0) {
+		dc_param_set_int(msg->param, DC_PARAM_DURATION, duration);
+	}
 
 	ret = dc_send_msg(context, chat_id, msg);
 
@@ -2312,7 +2317,9 @@ uint32_t dc_send_voice_msg(dc_context_t* context, uint32_t chat_id, const char* 
 	msg->type = DC_MSG_VOICE;
 	dc_param_set    (msg->param, DC_PARAM_FILE,     file);
 	dc_param_set    (msg->param, DC_PARAM_MIMETYPE, filemime);
-	dc_param_set_int(msg->param, DC_PARAM_DURATION, duration);
+	if (duration>0) {
+		dc_param_set_int(msg->param, DC_PARAM_DURATION, duration);
+	}
 
 	ret = dc_send_msg(context, chat_id, msg);
 
