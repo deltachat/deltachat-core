@@ -1235,8 +1235,8 @@ void dc_msg_set_mediainfo(dc_msg_t* msg, const char* author, const char* trackna
  *
  * @memberof dc_msg_t
  * @param msg The message object.
- * @param width The new width to store in the message object. 0 if you do not want to change it.
- * @param height The new height to store in the message object. 0 if you do not want to change it.
+ * @param width The new width to store in the message object. 0 if you do not want to change width and height.
+ * @param height The new height to store in the message object. 0 if you do not want to change width and height.
  * @param duration The new duration to store in the message object. 0 if you do not want to change it.
  * @return None.
  */
@@ -1246,15 +1246,12 @@ void dc_msg_latefiling_mediasize(dc_msg_t* msg, int width, int height, int durat
 		goto cleanup;
 	}
 
-	if (width > 0) {
+	if (width>0 && height>0) {
 		dc_param_set_int(msg->param, DC_PARAM_WIDTH, width);
-	}
-
-	if (height > 0) {
 		dc_param_set_int(msg->param, DC_PARAM_HEIGHT, height);
 	}
 
-	if (duration > 0) {
+	if (duration>0) {
 		dc_param_set_int(msg->param, DC_PARAM_DURATION, duration);
 	}
 

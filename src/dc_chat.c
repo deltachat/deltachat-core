@@ -2083,11 +2083,6 @@ uint32_t dc_send_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 		pathNfilename = dc_param_get(msg->param, DC_PARAM_FILE, NULL);
 		if (pathNfilename)
 		{
-			if (!dc_make_rel_and_copy(context, &pathNfilename)) {
-				goto cleanup;
-			}
-			dc_param_set(msg->param, DC_PARAM_FILE, pathNfilename);
-
 			/* Got an attachment. Take care, the file may not be ready in this moment!
 			This is useful eg. if a video should be sent and already shown as "being processed" in the chat.
 			In this case, the user should create an `.increation`; when the file is deleted later on, the message is sent.
@@ -2107,19 +2102,6 @@ uint32_t dc_send_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 					dc_param_set(msg->param, DC_PARAM_MIMETYPE, better_mime);
 				}
 				free(better_mime);
-			}
-
-			if ((msg->type==DC_MSG_IMAGE || msg->type==DC_MSG_GIF)
-			 && (dc_param_get_int(msg->param, DC_PARAM_WIDTH, 0)<=0 || dc_param_get_int(msg->param, DC_PARAM_HEIGHT, 0)<=0)) {
-				/* set width/height of images, if not yet done */
-				unsigned char* buf = NULL; size_t buf_bytes; uint32_t w, h;
-				if (dc_read_file(context, pathNfilename, (void**)&buf, &buf_bytes)) {
-					if (dc_get_filemeta(buf, buf_bytes, &w, &h)) {
-						dc_param_set_int(msg->param, DC_PARAM_WIDTH, w);
-						dc_param_set_int(msg->param, DC_PARAM_HEIGHT, h);
-					}
-				}
-				free(buf);
 			}
 
 			dc_log_info(context, 0, "Attaching \"%s\" for message type #%i.", pathNfilename, (int)msg->type);
@@ -2243,8 +2225,10 @@ uint32_t dc_send_image_msg(dc_context_t* context, uint32_t chat_id, const char* 
 
 	msg->type = DC_MSG_IMAGE;
 	dc_param_set    (msg->param, DC_PARAM_FILE,   file);
-	dc_param_set_int(msg->param, DC_PARAM_WIDTH,  width);  /* set in sending job, if 0 */
-	dc_param_set_int(msg->param, DC_PARAM_HEIGHT, height); /* set in sending job, if 0 */
+	if (width>0 && height>0) {
+		dc_param_set_int(msg->param, DC_PARAM_WIDTH,  width);
+		dc_param_set_int(msg->param, DC_PARAM_HEIGHT, height);
+	}
 
 	ret = dc_send_msg(context, chat_id, msg);
 
@@ -2287,9 +2271,13 @@ uint32_t dc_send_video_msg(dc_context_t* context, uint32_t chat_id, const char* 
 	msg->type = DC_MSG_VIDEO;
 	dc_param_set    (msg->param, DC_PARAM_FILE,     file);
 	dc_param_set    (msg->param, DC_PARAM_MIMETYPE, filemime);
-	dc_param_set_int(msg->param, DC_PARAM_WIDTH,    width);
-	dc_param_set_int(msg->param, DC_PARAM_HEIGHT,   height);
-	dc_param_set_int(msg->param, DC_PARAM_DURATION, duration);
+	if (width>0 && height>0) {
+		dc_param_set_int(msg->param, DC_PARAM_WIDTH,    width);
+		dc_param_set_int(msg->param, DC_PARAM_HEIGHT,   height);
+	}
+	if (duration>0) {
+		dc_param_set_int(msg->param, DC_PARAM_DURATION, duration);
+	}
 
 	ret = dc_send_msg(context, chat_id, msg);
 
@@ -2329,7 +2317,9 @@ uint32_t dc_send_voice_msg(dc_context_t* context, uint32_t chat_id, const char* 
 	msg->type = DC_MSG_VOICE;
 	dc_param_set    (msg->param, DC_PARAM_FILE,     file);
 	dc_param_set    (msg->param, DC_PARAM_MIMETYPE, filemime);
-	dc_param_set_int(msg->param, DC_PARAM_DURATION, duration);
+	if (duration>0) {
+		dc_param_set_int(msg->param, DC_PARAM_DURATION, duration);
+	}
 
 	ret = dc_send_msg(context, chat_id, msg);
 
