@@ -11,4 +11,8 @@ def py_dc_callback(ctx, evt, data1, data2):
     CFFI only allows us to set one global event handler, so this one
     looks up the correct event handler for the given context.
     """
-    return _DC_CALLBACK_MAP.get(ctx, lambda *a: 0)
+    callback = _DC_CALLBACK_MAP.get(ctx, lambda *a: 0)
+    ret = callback(ctx, evt, data1, data2)
+    if ret is None:
+        return 0
+    return ret
