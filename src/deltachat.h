@@ -472,16 +472,6 @@ typedef struct _dc_msg dc_msg_t;
 #define         DC_MSG_ID_LAST_SPECIAL       9
 
 
-#define         DC_MSG_UNDEFINED             0
-#define         DC_MSG_TEXT                  10
-#define         DC_MSG_IMAGE                 20 // param may contain FILE, WIDTH, HEIGHT
-#define         DC_MSG_GIF                   21 //   - " -
-#define         DC_MSG_AUDIO                 40 // param may contain FILE, DURATION
-#define         DC_MSG_VOICE                 41 //   - " -
-#define         DC_MSG_VIDEO                 50 // param may contain FILE, WIDTH, HEIGHT, DURATION
-#define         DC_MSG_FILE                  60 // param may contain FILE
-
-
 #define         DC_STATE_UNDEFINED           0
 #define         DC_STATE_IN_FRESH            10
 #define         DC_STATE_IN_NOTICED          13
@@ -594,6 +584,91 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 
 
 /**
+ * @defgroup DC_MSG DC_MSG
+ *
+ * With the constants the type of a message is defined.
+ * From the view of the library, all types are all primary types of the same level,
+ * so the library does not regard eg. #DC_MSG_GIF as a subtype for #DC_MSG_IMAGE and
+ * it's up to the UI to decide whether a GIF is shown eg. in an IMAGE or in a VIDEO
+ * container.
+ *
+ * If you want to define the type of a dc_msg_t object for sending, use dc_msg_set_type().
+ *
+ * To get the types of dc_msg_t objects received, use dc_msg_get_type().
+ *
+ * @addtogroup DC_MSG
+ * @{
+ */
+
+/**
+ * Type undefined.
+ */
+#define DC_MSG_UNDEFINED  0
+
+
+/**
+ * Text message.
+ * The text of the message is set using dc_msg_set_text()
+ * and retrieved with dc_msg_get_text().
+ */
+#define DC_MSG_TEXT      10
+
+
+/**
+ * Image message.
+ * If the image is an animated GIF, the type DC_MSG_GIF should be used.
+ * File, width and height are set via dc_msg_set_file(), dc_msg_set_dimension
+ * and retrieved via dc_msg_set_file(), dc_msg_set_dimension().
+ */
+#define DC_MSG_IMAGE     20
+
+
+/**
+ * Animated GIF message.
+ * File, width and height are set via dc_msg_set_file(), dc_msg_set_dimension()
+ * and retrieved via dc_msg_get_file(), dc_msg_get_width(), dc_msg_get_height().
+ */
+#define DC_MSG_GIF       21
+
+
+/**
+ * Message containing an Audio file.
+ * File and duration are set via dc_msg_set_file(), dc_msg_set_duration()
+ * and retrieved via dc_msg_get_file(), dc_msg_get_duration().
+ */
+#define DC_MSG_AUDIO     40
+
+
+/**
+ * A voice message that was directly recorded by the user.
+ * For all other audio messages, the type #DC_MSG_AUDIO should be used.
+ * File and duration are set via dc_msg_set_file(), dc_msg_set_duration()
+ * and retieved via dc_msg_get_file(), dc_msg_get_duration()
+ */
+#define DC_MSG_VOICE     41
+
+
+/**
+ * Video messages.
+ * File, width, height and durarion are set via dc_msg_set_file(), dc_msg_set_dimension(), dc_msg_set_duration()
+ * and retrieved via dc_msg_get_file(), dc_msg_get_width(), dc_msg_get_height(), dc_msg_get_duration().
+ */
+#define DC_MSG_VIDEO     50
+
+
+/**
+ * Message containing any other file, eg. a PDF.
+ * The file is set via dc_msg_set_file()
+ * and retrieved via dc_msg_get_file().
+ */
+#define DC_MSG_FILE      60
+
+/**
+ * @}
+ */
+
+
+/**
  * @defgroup DC_LP DC_LP
  *
  * Flags for configuring IMAP and SMTP servers.
@@ -603,13 +678,53 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * @addtogroup DC_LP
  * @{
  */
-#define DC_LP_AUTH_NORMAL                0x4 ///< Force NORMAL authentification, this is the default. If this, or any other flag is set, automatic configuration is skipped.
-#define DC_LP_IMAP_SOCKET_STARTTLS     0x100 ///< Connect to IMAP via STARTTLS. If this, or any other flag is set, automatic configuration is skipped.
-#define DC_LP_IMAP_SOCKET_SSL          0x200 ///< Connect to IMAP via SSL. If this, or any other flag is set, automatic configuration is skipped.
-#define DC_LP_IMAP_SOCKET_PLAIN        0x400 ///< Connect to IMAP unencrypted, this should not be used. If this, or any other flag is set, automatic configuration is skipped.
-#define DC_LP_SMTP_SOCKET_STARTTLS   0x10000 ///< Connect to SMTP via STARTTLS. If this, or any other flag is set, automatic configuration is skipped.
-#define DC_LP_SMTP_SOCKET_SSL        0x20000 ///< Connect to SMTP via SSL. If this, or any other flag is set, automatic configuration is skipped.
-#define DC_LP_SMTP_SOCKET_PLAIN      0x40000 ///< Connect to SMTP unencrypted, this should not be used. If this, or any other flag is set, automatic configuration is skipped.
+
+/**
+ * Force NORMAL authentification, this is the default.
+ * If this, or any other flag is set, automatic configuration is skipped.
+ */
+#define DC_LP_AUTH_NORMAL                0x4
+
+
+/**
+ * Connect to IMAP via STARTTLS.
+ * If this, or any other flag is set, automatic configuration is skipped.
+ */
+#define DC_LP_IMAP_SOCKET_STARTTLS     0x100
+
+
+/**
+ * Connect to IMAP via SSL.
+ * If this, or any other flag is set, automatic configuration is skipped.
+ */
+#define DC_LP_IMAP_SOCKET_SSL          0x200
+
+
+/**
+ * Connect to IMAP unencrypted, this should not be used.
+ * If this, or any other flag is set, automatic configuration is skipped.
+ */
+#define DC_LP_IMAP_SOCKET_PLAIN        0x400
+
+
+/**
+ * Connect to SMTP via STARTTLS.
+ * If this, or any other flag is set, automatic configuration is skipped.
+ */
+#define DC_LP_SMTP_SOCKET_STARTTLS   0x10000
+
+
+/**
+ * Connect to SMTP via SSL.
+ * If this, or any other flag is set, automatic configuration is skipped.
+ */
+#define DC_LP_SMTP_SOCKET_SSL        0x20000
+
+
+/**
+ * Connect to SMTP unencrypted, this should not be used. If this, or any other flag is set, automatic configuration is skipped.
+ */
+#define DC_LP_SMTP_SOCKET_PLAIN      0x40000 ///<
 
 /**
  * @}
@@ -633,6 +748,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * @addtogroup DC_EVENT
  * @{
  */
+
 
 /**
  * The library-user may write an informational string to the log.
@@ -907,7 +1023,6 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 /**
  * @}
  */
-
 
 #define DC_EVENT_DATA1_IS_STRING(e)  ((e)==DC_EVENT_HTTP_GET || (e)==DC_EVENT_IMEX_FILE_WRITTEN || (e)==DC_EVENT_FILE_COPIED)
 #define DC_EVENT_DATA2_IS_STRING(e)  ((e)==DC_EVENT_INFO || (e)==DC_EVENT_WARNING || (e)==DC_EVENT_ERROR)

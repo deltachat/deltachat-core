@@ -169,9 +169,7 @@ uint32_t dc_msg_get_chat_id(const dc_msg_t* msg)
  *
  * @memberof dc_msg_t
  * @param msg The message object.
- * @return One of DC_MSG_TEXT (10), DC_MSG_IMAGE (20), DC_MSG_GIF (21),
- *     DC_MSG_AUDIO (40), DC_MSG_VOICE (41), DC_MSG_VIDEO (50), DC_MSG_FILE (60)
- *     or DC_MSG_UNDEFINED (0) if the type is undefined.
+ * @return One of tje @ref DC_MSG constants.
  */
 int dc_msg_get_type(const dc_msg_t* msg)
 {
@@ -1102,8 +1100,7 @@ void dc_msg_save_param_to_disk(dc_msg_t* msg)
  *
  * @memberof dc_msg_t
  * @param msg The message object.
- * @param type The type to set, one of DC_MSG_TEXT (10), DC_MSG_IMAGE (20), DC_MSG_GIF (21),
- *     DC_MSG_AUDIO (40), DC_MSG_VOICE (41), DC_MSG_VIDEO (50), DC_MSG_FILE (60)
+ * @param type The type to set, one of the @ref DC_MSG constants
  * @return None.
  */
 void dc_msg_set_type(dc_msg_t* msg, int type)
