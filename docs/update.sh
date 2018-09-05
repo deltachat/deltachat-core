@@ -7,7 +7,7 @@ doxygen
 
 
 # HACK: we use the doxygen commands @defgroup and @addtogroup to sort #define's,
-# however,  doxygen files them under the menu entry "Modules".
+# however, doxygen files put them under the menu entry "Modules".
 # with the following lines, we correct the menu entry title.
 # if anyone sees a more elegant solution for this, please change it :)
 replace_in_html() {
