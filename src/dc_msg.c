@@ -169,7 +169,7 @@ uint32_t dc_msg_get_chat_id(const dc_msg_t* msg)
  *
  * @memberof dc_msg_t
  * @param msg The message object.
- * @return One of tje @ref DC_MSG constants.
+ * @return One of the @ref DC_MSG constants.
  */
 int dc_msg_get_type(const dc_msg_t* msg)
 {
