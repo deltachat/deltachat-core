@@ -1,12 +1,17 @@
 from __future__ import print_function
 import deltachat
-from deltachat import capi
+from deltachat import capi, get_dc_event_name
+from deltachat.capi import ffi
 import queue
 
 
 def test_empty_context():
     ctx = capi.lib.dc_context_new(capi.ffi.NULL, capi.ffi.NULL, capi.ffi.NULL)
     capi.lib.dc_close(ctx)
+
+
+def test_event_defines():
+    assert capi.lib.DC_EVENT_INFO == 100
 
 
 def test_cb(register_dc_callback):
@@ -34,7 +39,9 @@ def test_basic_events(dc_context, dc_threads, register_dc_callback, tmpdir, user
 
     while 1:
         evt1, data1, data2 = q.get(timeout=1.0)
-        if evt1 == 100:
-            print ("info event", data2)
+        if evt1 == capi.lib.DC_EVENT_INFO:
+            s = ffi.string(ffi.cast('char*', data2))
+            print ("info event", s)
         elif evt1:
-            print ("other event", evt1, data1, data2)
+            name = get_dc_event_name(evt1)
+            print ("other event", name, data1, data2)

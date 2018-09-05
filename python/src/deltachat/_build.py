@@ -1,8 +1,26 @@
 import distutils.ccompiler
 import distutils.sysconfig
 import tempfile
+from os.path import dirname, abspath
+from os.path import join as joinpath
 
 import cffi
+
+here = dirname(abspath(__file__))
+deltah = joinpath(dirname(dirname(dirname(here))), "src", "deltachat.h")
+
+
+def read_event_defines():
+    for line in open(deltah):
+        if line.startswith("#define"):
+            parts = line.split()
+            if len(parts) >= 3:
+                if parts[1].startswith("DC_EVENT"):
+                    try:
+                        val = int(parts[2])
+                    except ValueError:
+                        continue
+                    yield line
 
 
 def ffibuilder():
@@ -35,6 +53,8 @@ def ffibuilder():
             uintptr_t data1,
             uintptr_t data2);
     """)
+    event_defines = "\n".join(read_event_defines())
+    builder.cdef(event_defines)
     return builder
 
 
