@@ -758,6 +758,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  *
  * @param data1 0
  * @param data2 (const char*) Info string in english language.
+ *     Must not be free()'d or modified and is valid only until the callback returns.
  * @return 0
  */
 #define DC_EVENT_INFO                     100
@@ -771,6 +772,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  *
  * @param data1 0
  * @param data2 (const char*) Warning string in english language.
+ *     Must not be free()'d or modified and is valid only until the callback returns.
  * @return 0
  */
 #define DC_EVENT_WARNING                  300
@@ -791,8 +793,8 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  *
  * @param data1 (int) Error code, see @ref DC_ERROR for a list of constants.
  * @param data2 (const char*) Error string, always set, never NULL. Frequent error strings are
- *     localized using #DC_EVENT_GET_STRING, however, most error strings will be
- *     in english language.
+ *     localized using #DC_EVENT_GET_STRING, however, most error strings will be in english language.
+ *     Must not be free()'d or modified and is valid only until the callback returns.
  * @return 0
  */
 #define DC_EVENT_ERROR                    400
@@ -908,7 +910,8 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * A typical purpose for a handler of this event may be to make the file public to some system
  * services.
  *
- * @param data1 (const char*) Path and file name
+ * @param data1 (const char*) Path and file name.
+ *     Must not be free()'d or modified and is valid only until the callback returns.
  * @param data2 0
  * @return 0
  */
@@ -925,7 +928,8 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * (eg. in case it was generated for sending only - if you send images from the
  * gallery you may not want to delete them afterwards).
  *
- * @param data1 (const char*) Path and file name
+ * @param data1 (const char*) Path and file name.
+ *     Must not be free()'d or modified and is valid only until the callback returns.
  * @param data2 0
  * @return 0
  */
@@ -1010,7 +1014,9 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 /**
  * Request a HTTP-file or HTTPS-file from the frontend.
  *
- * @param data1 (const char*) Null-terminated UTF-8 string containing the URL. The string starts with https:// or http://. Must not be free()'d or modified by the frontend.
+ * @param data1 (const char*) Null-terminated UTF-8 string containing the URL.
+ *     The string starts with https:// or http://.
+ *     Must not be free()'d or modified and is valid only until the callback returns.
  * @param data2 0
  * @return (const char*) The content of the requested file as a null-terminated UTF-8 string;
  *     Response headers, encodings etc. must be stripped, only the raw file, which may be binary, should be returned.
