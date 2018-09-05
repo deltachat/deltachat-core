@@ -39,9 +39,15 @@ def test_basic_events(dc_context, dc_threads, register_dc_callback, tmpdir, user
 
     while 1:
         evt1, data1, data2 = q.get(timeout=1.0)
-        if evt1 == capi.lib.DC_EVENT_INFO:
-            s = ffi.string(ffi.cast('char*', data2))
-            print ("info event", s)
-        elif evt1:
-            name = get_dc_event_name(evt1)
-            print ("other event", name, data1, data2)
+        data1 = try_cast_to_string(data1)
+        data2 = try_cast_to_string(data2)
+        evt_name = get_dc_event_name(evt1)
+        print (evt_name, data1, data2)
+
+
+def try_cast_to_string(obj):
+    if isinstance(obj, long):
+        if obj > 100000:
+            return ffi.string(ffi.cast('char*', obj))
+    # print ("failed to convert", repr(obj))
+    return obj
