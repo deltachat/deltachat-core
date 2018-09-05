@@ -38,7 +38,7 @@ def test_basic_events(dc_context, dc_threads, register_dc_callback, tmpdir, user
             # XXX how to give this string back to delta-core properly?
             # for now we just return nothing
         else:
-            q.put((evt, data1, data2))
+            q.put((evt_name, data1, data2))
         return 0
     register_dc_callback(dc_context, cb)
 
@@ -49,8 +49,10 @@ def test_basic_events(dc_context, dc_threads, register_dc_callback, tmpdir, user
     capi.lib.dc_configure(dc_context)
 
     while 1:
-        evt_name, data1, data2 = q.get(timeout=1.0)
-        pass
+        evt_name, data1, data2 = q.get(timeout=2.0)
+        if evt_name == "DC_EVENT_ERROR":
+            assert 0
+        # XXX look for successful termination once we make things pass
 
 
 def read_url(url):
