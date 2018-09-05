@@ -1,5 +1,6 @@
 from __future__ import print_function
 import deltachat
+import requests
 from deltachat import capi, get_dc_event_name
 from deltachat.capi import ffi
 import queue
@@ -27,7 +28,17 @@ def test_cb(register_dc_callback):
 def test_basic_events(dc_context, dc_threads, register_dc_callback, tmpdir, userpassword):
     q = queue.Queue()
     def cb(dc_context, evt, data1, data2):
-        q.put((evt, data1, data2))
+        # print (evt1, data1, data2)
+        data1 = try_cast_to_string(data1)
+        data2 = try_cast_to_string(data2)
+        evt_name = get_dc_event_name(evt)
+        print (evt_name, data1, data2)
+        if evt_name == "DC_EVENT_HTTP_GET":
+            content =  read_url(data1)
+            # XXX how to give this string back to delta-core properly?
+            # for now we just return nothing
+        else:
+            q.put((evt, data1, data2))
         return 0
     register_dc_callback(dc_context, cb)
 
@@ -38,11 +49,17 @@ def test_basic_events(dc_context, dc_threads, register_dc_callback, tmpdir, user
     capi.lib.dc_configure(dc_context)
 
     while 1:
-        evt1, data1, data2 = q.get(timeout=1.0)
-        data1 = try_cast_to_string(data1)
-        data2 = try_cast_to_string(data2)
-        evt_name = get_dc_event_name(evt1)
-        print (evt_name, data1, data2)
+        evt_name, data1, data2 = q.get(timeout=1.0)
+        pass
+
+
+def read_url(url):
+    try:
+        r = requests.get(url)
+    except requests.ConnectionError:
+        pass
+    else:
+        return r.content
 
 
 def try_cast_to_string(obj):
