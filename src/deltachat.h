@@ -259,7 +259,7 @@ dc_chatlist_t*  dc_get_chatlist              (dc_context_t*, int flags, const ch
 
 
 // handle chats
-uint32_t        dc_create_chat_by_msg_id     (dc_context_t*, uint32_t contact_id);
+uint32_t        dc_create_chat_by_msg_id     (dc_context_t*, uint32_t msg_id);
 uint32_t        dc_create_chat_by_contact_id (dc_context_t*, uint32_t contact_id);
 uint32_t        dc_get_chat_id_by_contact_id (dc_context_t*, uint32_t contact_id);
 
