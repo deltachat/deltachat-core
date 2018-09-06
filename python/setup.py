@@ -7,7 +7,7 @@ setuptools.setup(
     description='Python bindings for deltachat-core using CFFI',
     author='Delta Chat contributors',
     setup_requires=['cffi>=1.0.0'],
-    install_requires=['cffi>=1.0.0'],
+    install_requires=['cffi>=1.0.0', 'requests'],
     packages=setuptools.find_packages('src'),
     package_dir={'': 'src'},
     cffi_modules=['src/deltachat/_build.py:ffibuilder'],

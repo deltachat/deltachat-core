@@ -3,7 +3,7 @@ import deltachat
 import re
 from deltachat import capi
 from deltachat.capi import ffi
-import queue
+from queue import Queue
 
 
 def test_empty_context():
@@ -17,7 +17,7 @@ def test_event_defines():
 
 class TestLive:
     def test_basic_configure_login_ok(self, request, tmp_db_path, userpassword):
-        q = queue.Queue()
+        q = Queue()
         dc = deltachat.Account(tmp_db_path, logcallback=q.put)
         dc.set_config(addr=userpassword[0], mail_pw=userpassword[1])
         dc.start()
