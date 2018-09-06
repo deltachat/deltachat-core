@@ -320,7 +320,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 	if (!dc_mimefactory_load_msg(&mimefactory, job->foreign_id)
 	 || mimefactory.from_addr==NULL) {
 		dc_log_warning(context, 0, "Cannot load data to send, maybe the message is deleted in between.");
-		goto cleanup; // no redo, no IMAP. moreover, as the data does not exist, there is no need in calling mark_as_error()
+		goto cleanup; // no redo, no IMAP. moreover, as the data does not exist, there is no need in calling dc_set_msg_failed()
 	}
 
 	/* check if the message is ready (normally, only video files may be delayed this way) */
@@ -335,6 +335,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 		char* pathNfilename = dc_param_get(mimefactory.msg->param, DC_PARAM_FILE, NULL);
 		if (pathNfilename) {
 			if (!dc_make_rel_and_copy(context, &pathNfilename)) {
+				dc_set_msg_failed(context, job->foreign_id, "Cannot copy file to internal directory.");
 				goto cleanup;
 			}
 			dc_param_set(mimefactory.msg->param, DC_PARAM_FILE, pathNfilename);
