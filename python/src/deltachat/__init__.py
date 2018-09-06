@@ -13,9 +13,10 @@ def py_dc_callback(ctx, evt, data1, data2):
     looks up the correct event handler for the given context.
     """
     callback = _DC_CALLBACK_MAP.get(ctx, lambda *a: 0)
-    ret = callback(ctx, evt, data1, data2)
-    if ret is None:
-        return 0
+    try:
+        ret = callback(ctx, evt, data1, data2)
+    except:
+        ret = 0
     return ret
 
 
