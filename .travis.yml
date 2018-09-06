@@ -27,4 +27,8 @@ install:
   - sudo apt install -y libssl-dev libsqlite3-dev libbz2-dev zlib1g-dev
 
 script:
-  - mkdir -p builddir && cd builddir && meson && ninja -v
+  - mkdir -p builddir && cd builddir && meson && ninja -v && sudo ninja install 
+  - cd ../python
+#  - sudo pip install . 
+#  - sudo pip install pytest
+#  - pytest tests
