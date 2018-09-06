@@ -1128,30 +1128,30 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 		dc_log_info(imap->context, 0, "IMAP-server %s:%i SSL-connected.", imap->imap_server, (int)imap->imap_port);
 	}
 
-		/* TODO: There are more authorisation types, see mailcore2/MCIMAPSession.cpp, however, I'm not sure of they are really all needed */
-		/*if (imap->server_flags&DC_LP_AUTH_XOAUTH2)
-		{
-			//TODO: Support XOAUTH2, we "just" need to get the token someway. If we do so, there is no more need for the user to enable
-			//https://www.google.com/settings/security/lesssecureapps - however, maybe this is also not needed if the user had enabled 2-factor-authorisation.
-			if (mOAuth2Token==NULL) {
-				r = MAILIMAP_ERROR_STREAM;
-			}
-			else {
-				r = mailimap_oauth2_authenticate(imap->etpan, imap->imap_use, mOAuth2Token);
-			}
+	/* TODO: There are more authorisation types, see mailcore2/MCIMAPSession.cpp, however, I'm not sure of they are really all needed */
+	/*if (imap->server_flags&DC_LP_AUTH_XOAUTH2)
+	{
+		//TODO: Support XOAUTH2, we "just" need to get the token someway. If we do so, there is no more need for the user to enable
+		//https://www.google.com/settings/security/lesssecureapps - however, maybe this is also not needed if the user had enabled 2-factor-authorisation.
+		if (mOAuth2Token==NULL) {
+			r = MAILIMAP_ERROR_STREAM;
 		}
-		else*/
-		{
-			/* DC_LP_AUTH_NORMAL or no auth flag set */
-			r = mailimap_login(imap->etpan, imap->imap_user, imap->imap_pw);
+		else {
+			r = mailimap_oauth2_authenticate(imap->etpan, imap->imap_use, mOAuth2Token);
 		}
+	}
+	else*/
+	{
+		/* DC_LP_AUTH_NORMAL or no auth flag set */
+		r = mailimap_login(imap->etpan, imap->imap_user, imap->imap_pw);
+	}
 
-		if (is_error(imap, r)) {
-			char* msg = get_error_msg(imap, "Cannot login", r);
-			dc_log_error_if(&imap->log_connect_errors, imap->context, 0, "%s", msg);
-			free(msg);
-			goto cleanup;
-		}
+	if (is_error(imap, r)) {
+		char* msg = get_error_msg(imap, "Cannot login", r);
+		dc_log_error_if(&imap->log_connect_errors, imap->context, 0, "%s", msg);
+		free(msg);
+		goto cleanup;
+	}
 
 	dc_log_info(imap->context, 0, "IMAP-login as %s ok.", imap->imap_user);
 
@@ -1582,23 +1582,22 @@ int dc_imap_markseen_msg(dc_imap_t* imap, const char* folder, uint32_t server_ui
 			struct mailimap_set* res_setdest = NULL;
 			r = mailimap_uidplus_uid_move(imap->etpan, set, imap->moveto_folder, &res_uid, &res_setsrc, &res_setdest); /* the correct folder is already selected in add_flag() above */
 			if (is_error(imap, r)) {
-								dc_log_info(imap->context, 0, "Cannot move message, fallback to COPY/DELETE %s/%i to %s...", folder, (int)server_uid, imap->moveto_folder);
-								r = mailimap_uidplus_uid_copy(imap->etpan, set, imap->moveto_folder, &res_uid, &res_setsrc, &res_setdest);
-								if (is_error(imap, r)) {
-									dc_log_info(imap->context, 0, "Cannot copy message. Leaving in INBOX");
-									goto cleanup;
-								}
-								else {
-									dc_log_info(imap->context, 0, "Deleting msg ...");
-									if (add_flag(imap, server_uid, mailimap_flag_new_deleted())==0) {
-											dc_log_warning(imap->context, 0, "Cannot mark message as \"Deleted\".");/* maybe the message is already deleted */
-									}
+				dc_log_info(imap->context, 0, "Cannot move message, fallback to COPY/DELETE %s/%i to %s...", folder, (int)server_uid, imap->moveto_folder);
+				r = mailimap_uidplus_uid_copy(imap->etpan, set, imap->moveto_folder, &res_uid, &res_setsrc, &res_setdest);
+				if (is_error(imap, r)) {
+					dc_log_info(imap->context, 0, "Cannot copy message. Leaving in INBOX");
+					goto cleanup;
+				}
+				else {
+					dc_log_info(imap->context, 0, "Deleting msg ...");
+					if (add_flag(imap, server_uid, mailimap_flag_new_deleted())==0) {
+							dc_log_warning(imap->context, 0, "Cannot mark message as \"Deleted\".");/* maybe the message is already deleted */
+					}
 
-									/* force an EXPUNGE resp. CLOSE for the selected folder */
-									imap->selected_folder_needs_expunge = 1;
-								}
-
-							}
+					/* force an EXPUNGE resp. CLOSE for the selected folder */
+					imap->selected_folder_needs_expunge = 1;
+				}
+			}
 
 			if (res_setsrc) {
 				mailimap_set_free(res_setsrc);
