@@ -654,11 +654,33 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 
 	PROGRESS(600)
 
-	/* try to connect to IMAP */
+	/* try to connect to IMAP - if we did not got an autoconfig,
+	we do a second try with the localpart of the email-address as the loginname
+	(the part before the '@') */
 	{ char* r = dc_loginparam_get_readable(param); dc_log_info(context, 0, "Trying: %s", r); free(r); }
 
 	if (!dc_imap_connect(context->imap, param)) {
-		goto cleanup;
+		if (param_autoconfig) {
+			goto cleanup;
+		}
+
+		PROGRESS(650)
+
+		char* at = strchr(param->mail_user, '@');
+		if (at) {
+			*at = 0;
+		}
+
+		at = strchr(param->send_user, '@');
+		if (at) {
+			*at = 0;
+		}
+
+		{ char* r = dc_loginparam_get_readable(param); dc_log_info(context, 0, "Trying: %s", r); free(r); }
+
+		if (!dc_imap_connect(context->imap, param)) {
+			goto cleanup;
+		}
 	}
 
 	imap_connected_here = 1;
