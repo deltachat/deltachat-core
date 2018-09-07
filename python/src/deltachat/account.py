@@ -27,6 +27,8 @@ class EventHandler:
     def dc_event_http_get(self, data1, data2):
         url = data1
         content = self.read_url(url)
+        if not isinstance(content, bytes):
+            content = content.encode("utf8")
         # we need to return a fresh pointer that the core owns
         return capi.lib.dupstring_helper(content)
 
@@ -52,6 +54,11 @@ class Account:
             name = name.encode("utf8")
             value = value.encode("utf8")
             capi.lib.dc_set_config(self.dc_context, name, value)
+
+    def get_config(self, name):
+        name = name.encode("utf8")
+        res = capi.lib.dc_get_config(self.dc_context, name, b'')
+        return capi.ffi.string(res).decode("utf8")
 
     def start(self):
         deltachat.set_context_callback(self.dc_context, self.process_event)

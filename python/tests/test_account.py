@@ -10,7 +10,7 @@ except ImportError:
 class TestLive:
     def test_basic_configure_login_ok(self, acfactory):
         q = Queue()
-        acfactory.get_live_account(logcallback=q.put)
+        ac1 = acfactory.get_live_account(logcallback=q.put)
         imap_ok = smtp_ok = False
         while not imap_ok or not smtp_ok:
             evt_name, data1, data2 = q.get(timeout=5.0)
@@ -22,6 +22,4 @@ class TestLive:
                     imap_ok = True
                 if re.match("smtp-login.*ok.", data2.lower()):
                     smtp_ok = True
-
-    def test_message_send_receive(self, acfactory):
-        pass
+        assert ac1.get_config("mail_pw")
