@@ -1,0 +1,27 @@
+from __future__ import print_function
+import re
+
+try:
+    from queue import Queue
+except ImportError:
+    from Queue import Queue
+
+
+class TestLive:
+    def test_basic_configure_login_ok(self, acfactory):
+        q = Queue()
+        acfactory.get_live_account(logcallback=q.put)
+        imap_ok = smtp_ok = False
+        while not imap_ok or not smtp_ok:
+            evt_name, data1, data2 = q.get(timeout=5.0)
+            print(evt_name, data1, data2)
+            if evt_name == "DC_EVENT_ERROR":
+                assert 0
+            if evt_name == "DC_EVENT_INFO":
+                if re.match("imap-login.*ok.", data2.lower()):
+                    imap_ok = True
+                if re.match("smtp-login.*ok.", data2.lower()):
+                    smtp_ok = True
+
+    def test_message_send_receive(self, acfactory):
+        pass

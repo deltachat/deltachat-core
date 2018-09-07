@@ -35,14 +35,14 @@ class EventHandler:
 
 
 class Account:
-    def __init__(self, db_path, logcallback=eventprinter, eventhandler=None):
+    def __init__(self, db_path, logcallback=None, eventhandler=None):
         self.dc_context = ctx = capi.lib.dc_context_new(
                                   capi.lib.py_dc_callback,
                                   capi.ffi.NULL, capi.ffi.NULL)
         if hasattr(db_path, "encode"):
             db_path = db_path.encode("utf8")
         capi.lib.dc_open(ctx, db_path, capi.ffi.NULL)
-        self._logcallback = logcallback or (lambda *args: None)
+        self._logcallback = logcallback or eventprinter
         if eventhandler is None:
             eventhandler = EventHandler(self.dc_context)
         self._eventhandler = eventhandler
