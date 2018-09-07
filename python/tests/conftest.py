@@ -3,13 +3,21 @@ import pytest
 import deltachat
 
 
-@pytest.fixture
-def register_dc_callback(monkeypatch):
-    """Register a callback for a given context.
+def pytest_addoption(parser):
+    parser.addoption("--user", action="store", default=None,
+        help="user and domain of test account: example user@example.org")
+    parser.addoption("--password", action="store", default=None)
 
-    This is a function-scoped fixture and the function will be
-    unregisterd automatically on fixture teardown.
-    """
-    def register_dc_callback(ctx, func):
-        monkeypatch.setitem(deltachat._DC_CALLBACK_MAP, ctx, func)
-    return register_dc_callback
+
+@pytest.fixture
+def userpassword(pytestconfig):
+    user = pytestconfig.getoption("--user")
+    passwd = pytestconfig.getoption("--password")
+    if user and passwd:
+        return user, passwd
+    pytest.skip("specify a test account with --user and --password options")
+
+
+@pytest.fixture
+def tmp_db_path(tmpdir):
+    return tmpdir.join("test.db").strpath

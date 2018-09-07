@@ -27,4 +27,15 @@ install:
   - sudo apt install -y libssl-dev libsqlite3-dev libbz2-dev zlib1g-dev
 
 script:
-  - mkdir -p builddir && cd builddir && meson && ninja -v
+  - mkdir -p builddir && cd builddir && meson && ninja -v && sudo ninja install 
+  - export LD_LIBRARY_PATH=/usr/local/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH 
+  - sudo ldconfig -v 
+  - cd ../python
+  - virtualenv venv
+  - source venv/bin/activate
+  - hash -r
+  - pip install -e . 
+  - pip install pytest
+  # - python -c 'import queue; print (queue)'
+  # import error with "queue", how can this happen? 
+  # - pytest tests
