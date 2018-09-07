@@ -17,7 +17,7 @@ def read_event_defines():
             if len(parts) >= 3:
                 if parts[1].startswith("DC_EVENT"):
                     try:
-                        val = int(parts[2])
+                        int(parts[2])
                     except ValueError:
                         continue
                     yield line

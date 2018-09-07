@@ -1,11 +1,9 @@
 import pytest
 
-import deltachat
-
 
 def pytest_addoption(parser):
     parser.addoption("--user", action="store", default=None,
-        help="user and domain of test account: example user@example.org")
+                     help="user and domain of test account: example user@example.org")
     parser.addoption("--password", action="store", default=None)
 
 

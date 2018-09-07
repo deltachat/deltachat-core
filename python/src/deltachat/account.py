@@ -3,10 +3,10 @@ import threading
 import requests
 from . import capi
 import deltachat
-from .capi import ffi
 
 
-def eventprinter((evt_name, data1, data2)):
+def eventprinter(evt):
+    evt_name, data1, data2 = evt
     t = threading.currentThread()
     tname = getattr(t, "name", t)
     print("[" + tname + "]", evt_name, data1, data2)
@@ -25,11 +25,10 @@ class EventHandler:
             return r.content
 
     def dc_event_http_get(self, data1, data2):
-        url = data1.decode("utf-8")
-        content =  self.read_url(url)
-        s = content.encode("utf-8")
+        url = data1
+        content = self.read_url(url)
         # we need to return a fresh pointer that the core owns
-        return capi.lib.dupstring_helper(s)
+        return capi.lib.dupstring_helper(content)
 
     def dc_event_is_offline(self, data1, data2):
         return 0  # always online
@@ -40,6 +39,8 @@ class Account:
         self.dc_context = ctx = capi.lib.dc_context_new(
                                   capi.lib.py_dc_callback,
                                   capi.ffi.NULL, capi.ffi.NULL)
+        if hasattr(db_path, "encode"):
+            db_path = db_path.encode("utf8")
         capi.lib.dc_open(ctx, db_path, capi.ffi.NULL)
         self._logcallback = logcallback or (lambda *args: None)
         if eventhandler is None:
@@ -48,6 +49,8 @@ class Account:
 
     def set_config(self, **kwargs):
         for name, value in kwargs.items():
+            name = name.encode("utf8")
+            value = value.encode("utf8")
             capi.lib.dc_set_config(self.dc_context, name, value)
 
     def start(self):
@@ -73,7 +76,6 @@ class Account:
         if method is not None:
             return method(data1, data2) or 0
         return 0
-
 
 
 class IOThreads:

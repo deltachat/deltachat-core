@@ -1,6 +1,6 @@
 from deltachat import capi
 from deltachat.capi import ffi
-from deltachat.account import Account
+from deltachat.account import Account  # noqa
 
 
 _DC_CALLBACK_MAP = {}
@@ -18,9 +18,9 @@ def py_dc_callback(ctx, evt, data1, data2):
     # function which provides us signature info of an event call
     event_sig_types = capi.lib.dc_get_event_signature_types(evt)
     if data1 and event_sig_types & 1:
-        data1 = ffi.string(ffi.cast('char*', data1))
+        data1 = ffi.string(ffi.cast('char*', data1)).decode("utf8")
     if data2 and event_sig_types & 2:
-        data2 = ffi.string(ffi.cast('char*', data2))
+        data2 = ffi.string(ffi.cast('char*', data2)).decode("utf8")
     evt_name = get_dc_event_name(evt)
     try:
         ret = callback(ctx, evt_name, data1, data2)
@@ -28,7 +28,7 @@ def py_dc_callback(ctx, evt, data1, data2):
             return ffi.cast('uintptr_t', ret)
         elif event_sig_types & 8:
             return ffi.cast('int', ret)
-    except:
+    except:  # noqa
         raise
         ret = 0
     return ret

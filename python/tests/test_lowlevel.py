@@ -2,8 +2,11 @@ from __future__ import print_function
 import deltachat
 import re
 from deltachat import capi
-from deltachat.capi import ffi
-from queue import Queue
+try:
+    from queue import Queue
+except ImportError:
+    from Queue import Queue
+
 
 
 def test_empty_context():
