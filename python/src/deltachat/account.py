@@ -2,6 +2,7 @@ from __future__ import print_function
 import threading
 import requests
 from . import capi
+from .capi import ffi
 import deltachat
 
 
@@ -36,6 +37,30 @@ class EventHandler:
         return 0  # always online
 
 
+class Contact:
+    def __init__(self, dc_context, contact_id):
+        self.dc_context = dc_context
+        self.id = contact_id
+        # XXX do we need to free dc_contact_t? (we own it according to API)
+        self.dc_contact_t = capi.lib.dc_get_contact(self.dc_context, contact_id)
+
+    @property
+    def addr(self):
+        return ffi.string(capi.lib.dc_contact_get_addr(self.dc_contact_t))
+
+    @property
+    def display_name(self):
+        return ffi.string(capi.lib.dc_contact_get_display_name(self.dc_contact_t))
+
+    @property
+    def is_blocked(self):
+        return capi.lib.dc_contact_is_blocked(self.dc_contact_t)
+
+    @property
+    def is_verified(self):
+        return capi.lib.dc_contact_is_verified(self.dc_contact_t)
+
+
 class Account:
     def __init__(self, db_path, logcallback=None, eventhandler=None):
         self.dc_context = ctx = capi.lib.dc_context_new(
@@ -48,6 +73,7 @@ class Account:
         if eventhandler is None:
             eventhandler = EventHandler(self.dc_context)
         self._eventhandler = eventhandler
+        self._threads = IOThreads(self.dc_context)
 
     def set_config(self, **kwargs):
         for name, value in kwargs.items():
@@ -60,10 +86,13 @@ class Account:
         res = capi.lib.dc_get_config(self.dc_context, name, b'')
         return capi.ffi.string(res).decode("utf8")
 
+    def create_contact(self, emailadr, name=ffi.NULL):
+        contact_id = capi.lib.dc_create_contact(self.dc_context, name, emailadr)
+        return Contact(self.dc_context, contact_id)
+
     def start(self):
-        deltachat.set_context_callback(self.dc_context, self.process_event)
+        deltachat.set_context_callback(self.dc_context, self._process_event)
         capi.lib.dc_configure(self.dc_context)
-        self._threads = IOThreads(self.dc_context)
         self._threads.start()
 
     def shutdown(self):
@@ -76,7 +105,7 @@ class Account:
         # threads might still need it.
         # capi.lib.dc_close(self.dc_context)
 
-    def process_event(self, ctx, evt_name, data1, data2):
+    def _process_event(self, ctx, evt_name, data1, data2):
         assert ctx == self.dc_context
         self._logcallback((evt_name, data1, data2))
         method = getattr(self._eventhandler, evt_name.lower(), None)

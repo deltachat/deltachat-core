@@ -30,12 +30,13 @@ def acfactory(pytestconfig, tmpdir, request):
                     self.configlist.append(d)
             self.count = 0
 
-        def get_live_account(self, logcallback=None):
+        def get_live_account(self, logcallback=None, started=True):
             configdict = self.configlist.pop(0)
             tmpdb = tmpdir.join("testdb%d" % self.count)
             ac = Account(tmpdb.strpath, logcallback=logcallback)
             ac.set_config(**configdict)
-            ac.start()
+            if started:
+                ac.start()
             request.addfinalizer(ac.shutdown)
             return ac
 
