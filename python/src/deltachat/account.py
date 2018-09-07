@@ -6,13 +6,45 @@ import deltachat
 from .capi import ffi
 
 
+def eventprinter((evt_name, data1, data2)):
+    t = threading.currentThread()
+    tname = getattr(t, "name", t)
+    print("[" + tname + "]", evt_name, data1, data2)
+
+
+class EventHandler:
+    def __init__(self, dc_context):
+        self.dc_context = dc_context
+
+    def read_url(self, url):
+        try:
+            r = requests.get(url)
+        except requests.ConnectionError:
+            return ''
+        else:
+            return r.content
+
+    def dc_event_http_get(self, data1, data2):
+        url = data1.decode("utf-8")
+        content =  self.read_url(url)
+        s = content.encode("utf-8")
+        # we need to return a fresh pointer that the core owns
+        return capi.lib.dupstring_helper(s)
+
+    def dc_event_is_offline(self, data1, data2):
+        return 0  # always online
+
+
 class Account:
-    def __init__(self, db_path, logcallback=None):
+    def __init__(self, db_path, logcallback=eventprinter, eventhandler=None):
         self.dc_context = ctx = capi.lib.dc_context_new(
                                   capi.lib.py_dc_callback,
                                   capi.ffi.NULL, capi.ffi.NULL)
         capi.lib.dc_open(ctx, db_path, capi.ffi.NULL)
-        self._logcallback = logcallback
+        self._logcallback = logcallback or (lambda *args: None)
+        if eventhandler is None:
+            eventhandler = EventHandler(self.dc_context)
+        self._eventhandler = eventhandler
 
     def set_config(self, **kwargs):
         for name, value in kwargs.items():
@@ -31,37 +63,17 @@ class Account:
         # interrupt idle calls do not seem to release the
         # blocking call to smtp|imap idle. This means we
         # also can't now close the database because the
-        # threads might still need it
+        # threads might still need it.
         # capi.lib.dc_close(self.dc_context)
 
     def process_event(self, ctx, evt_name, data1, data2):
         assert ctx == self.dc_context
-        if self._logcallback is not None:
-            self._logcallback((evt_name, data1, data2))
-        callname = evt_name[3:].lower()
-        method = getattr(self, callname, None)
+        self._logcallback((evt_name, data1, data2))
+        method = getattr(self._eventhandler, evt_name.lower(), None)
         if method is not None:
             return method(data1, data2) or 0
-        # print ("dropping event: no handler for", evt_name)
         return 0
 
-    def read_url(self, url):
-        try:
-            r = requests.get(url)
-        except requests.ConnectionError:
-            return ''
-        else:
-            return r.content
-
-    def event_http_get(self, data1, data2):
-        url = data1.decode("utf-8")
-        content =  self.read_url(url)
-        s = content.encode("utf-8")
-        # we need to return a fresh pointer that the core owns
-        return capi.lib.dupstring_helper(s)
-
-    def event_is_offline(self, data1, data2):
-        return 0  # always online
 
 
 class IOThreads:
