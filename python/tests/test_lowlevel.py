@@ -9,3 +9,4 @@ def test_empty_context():
 
 def test_event_defines():
     assert capi.lib.DC_EVENT_INFO == 100
+    assert capi.lib.DC_CONTACT_ID_SELF

@@ -1,6 +1,7 @@
 import distutils.ccompiler
 import distutils.sysconfig
 import tempfile
+import re
 from os.path import dirname, abspath
 from os.path import join as joinpath
 
@@ -11,16 +12,8 @@ deltah = joinpath(dirname(dirname(dirname(here))), "src", "deltachat.h")
 
 
 def read_event_defines():
-    for line in open(deltah):
-        if line.startswith("#define"):
-            parts = line.split()
-            if len(parts) >= 3:
-                if parts[1].startswith("DC_EVENT"):
-                    try:
-                        int(parts[2])
-                    except ValueError:
-                        continue
-                    yield line
+    rex = re.compile(r'#define\s+(?:DC_EVENT_|DC_CONTACT_ID_)\S+\s+(\d+).*')
+    return filter(rex.match, open(deltah))
 
 
 def ffibuilder():

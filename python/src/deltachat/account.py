@@ -6,11 +6,16 @@ from .capi import ffi
 import deltachat
 
 
-def eventprinter(evt):
-    evt_name, data1, data2 = evt
-    t = threading.currentThread()
-    tname = getattr(t, "name", t)
-    print("[" + tname + "]", evt_name, data1, data2)
+class EventPrinter:
+    def __init__(self, dc_context):
+        self.dc_context = dc_context
+        self.info = str(self.dc_context).strip(">").split()[-1]
+
+    def __call__(self, evt):
+        evt_name, data1, data2 = evt
+        t = threading.currentThread()
+        tname = getattr(t, "name", t)
+        print("[%s-%s]" % (tname, self.info), evt_name, data1, data2)
 
 
 class EventHandler:
@@ -46,11 +51,11 @@ class Contact:
 
     @property
     def addr(self):
-        return ffi.string(capi.lib.dc_contact_get_addr(self.dc_contact_t))
+        return ffi_unicode(capi.lib.dc_contact_get_addr(self.dc_contact_t))
 
     @property
     def display_name(self):
-        return ffi.string(capi.lib.dc_contact_get_display_name(self.dc_contact_t))
+        return ffi_unicode(capi.lib.dc_contact_get_display_name(self.dc_contact_t))
 
     @property
     def is_blocked(self):
@@ -61,6 +66,16 @@ class Contact:
         return capi.lib.dc_contact_is_verified(self.dc_contact_t)
 
 
+class Chat:
+    def __init__(self, dc_context, chat_id):
+        self.dc_context = dc_context
+        self.id = chat_id
+
+    def send_text_message(self, msg):
+        msg = convert_bytes(msg)
+        return capi.lib.dc_send_text_msg(self.dc_context, self.id, msg)
+
+
 class Account:
     def __init__(self, db_path, logcallback=None, eventhandler=None):
         self.dc_context = ctx = capi.lib.dc_context_new(
@@ -69,7 +84,9 @@ class Account:
         if hasattr(db_path, "encode"):
             db_path = db_path.encode("utf8")
         capi.lib.dc_open(ctx, db_path, capi.ffi.NULL)
-        self._logcallback = logcallback or eventprinter
+        if logcallback is None:
+            logcallback = EventPrinter(self.dc_context)
+        self._logcallback = logcallback
         if eventhandler is None:
             eventhandler = EventHandler(self.dc_context)
         self._eventhandler = eventhandler
@@ -84,11 +101,20 @@ class Account:
     def get_config(self, name):
         name = name.encode("utf8")
         res = capi.lib.dc_get_config(self.dc_context, name, b'')
-        return capi.ffi.string(res).decode("utf8")
+        return ffi_unicode(res)
+
+    def get_self_contact(self):
+        return Contact(self.dc_context, capi.lib.DC_CONTACT_ID_SELF)
 
     def create_contact(self, emailadr, name=ffi.NULL):
+        name = convert_bytes(name)
+        emailadr = convert_bytes(emailadr)
         contact_id = capi.lib.dc_create_contact(self.dc_context, name, emailadr)
         return Contact(self.dc_context, contact_id)
+
+    def create_chat_by_contact(self, contact):
+        chat_id = capi.lib.dc_create_chat_by_contact_id(self.dc_context, contact.id)
+        return Chat(self.dc_context, chat_id)
 
     def start(self):
         deltachat.set_context_callback(self.dc_context, self._process_event)
@@ -154,3 +180,15 @@ class IOThreads:
         while not self._thread_quitflag:
             capi.lib.dc_perform_smtp_jobs(self.dc_context)
             capi.lib.dc_perform_smtp_idle(self.dc_context)
+
+
+def convert_bytes(obj):
+    if obj == ffi.NULL:
+        return obj
+    if not isinstance(obj, bytes):
+        return obj.encode("utf8")
+    return obj
+
+
+def ffi_unicode(obj):
+    return ffi.string(obj).decode("utf8")
