@@ -232,6 +232,7 @@ cleanup:
 		}
 	}
 
+	smtp->context->cb(smtp->context, DC_EVENT_SMTP_STATE_UPDATE, success, 0);
 	return success;
 }
 

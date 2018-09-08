@@ -1073,6 +1073,7 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 {
 	int r = 0;
 	int success = 0;
+	int send_connection_state_update = 1;
 
 	if (imap==NULL || imap->imap_server==NULL) {
 		goto cleanup;
@@ -1084,6 +1085,7 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 
     if (imap->etpan) {
 		success = 1;
+		send_connection_state_update = 0;
 		goto cleanup;
     }
 
@@ -1163,6 +1165,10 @@ cleanup:
 	}
 
 	imap->should_reconnect = 0;
+
+	if (send_connection_state_update) {
+		imap->context->cb(imap->context, DC_EVENT_IMAP_STATE_UPDATE, success, 0);
+	}
 	return success;
 }
 
