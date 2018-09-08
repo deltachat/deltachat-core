@@ -765,6 +765,28 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 
 
 /**
+ * Emitted when SMTP connection is established and login was successful. 
+ *
+ * @param data1 0
+ * @param data2 (const char*) Info string in english language.
+ *     Must not be free()'d or modified and is valid only until the callback returns.
+ * @return 0
+ */
+#define DC_EVENT_SMTP_CONNECTED           101
+
+
+/**
+ * Emitted when IMAP connection is established and login was successful. 
+ *
+ * @param data1 0
+ * @param data2 (const char*) Info string in english language.
+ *     Must not be free()'d or modified and is valid only until the callback returns.
+ * @return 0
+ */
+#define DC_EVENT_IMAP_CONNECTED           102
+
+
+/**
  * The library-user should write a warning string to the log.
  * Passed to the callback given to dc_context_new().
  *
@@ -1031,7 +1053,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  */
 
 #define DC_EVENT_DATA1_IS_STRING(e)  ((e)==DC_EVENT_HTTP_GET || (e)==DC_EVENT_IMEX_FILE_WRITTEN || (e)==DC_EVENT_FILE_COPIED)
-#define DC_EVENT_DATA2_IS_STRING(e)  ((e)==DC_EVENT_INFO || (e)==DC_EVENT_WARNING || (e)==DC_EVENT_ERROR)
+#define DC_EVENT_DATA2_IS_STRING(e)  ((e)==DC_EVENT_INFO || (e) == DC_EVENT_WARNING || (e) == DC_EVENT_ERROR || (e) == DC_EVENT_SMTP_CONNECTED || (e) == DC_EVENT_IMAP_CONNECTED)
 #define DC_EVENT_RETURNS_INT(e)      ((e)==DC_EVENT_IS_OFFLINE)
 #define DC_EVENT_RETURNS_STRING(e)   ((e)==DC_EVENT_GET_QUANTITY_STRING || (e)==DC_EVENT_GET_STRING || (e)==DC_EVENT_HTTP_GET)
 

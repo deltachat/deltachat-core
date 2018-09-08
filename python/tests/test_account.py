@@ -30,10 +30,10 @@ class TestLive:
         imap_ok = smtp_ok = False
         while not imap_ok or not smtp_ok:
             evt_name, data1, data2 = \
-                ac1._evlogger.get_matching("DC_EVENT_INFO", timeout=5)
-            if re.match("imap-login.*ok.", data2.lower()):
+                ac1._evlogger.get_matching("DC_EVENT_(IMAP|SMTP)_CONNECTED")
+            if evt_name == "DC_EVENT_IMAP_CONNECTED":
                 imap_ok = True
-            if re.match("smtp-login.*ok.", data2.lower()):
+            if evt_name == "DC_EVENT_SMTP_CONNECTED":
                 smtp_ok = True
         assert ac1.get_config("mail_pw")
 

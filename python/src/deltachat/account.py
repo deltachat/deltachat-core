@@ -42,21 +42,26 @@ class EventLogger:
         self._event_queue = Queue()
         self._debug = debug
         self._ctxinfo = str(self.dc_context).strip(">").split()[-1]
+        self._timeout = None
 
     def __call__(self, evt_name, data1, data2):
         self._log_event(evt_name, data1, data2)
         self._event_queue.put((evt_name, data1, data2))
 
+    def set_timeout(self, timeout):
+        self._timeout = timeout
+
     def get(self, timeout=None, check_error=True):
+        timeout = timeout or self._timeout
         ev = self._event_queue.get(timeout=timeout)
         if check_error:
             assert ev[0] != "DC_EVENT_ERROR"
         return ev
 
-    def get_matching(self, event_name_regex, timeout=None):
-        rex = re.compile(event_name_regex + ".*")
+    def get_matching(self, event_name_regex):
+        rex = re.compile("(?:{}).*".format(event_name_regex))
         while 1:
-            ev = self.get(timeout=timeout)
+            ev = self.get()
             if rex.match(ev[0]):
                 return ev
 
