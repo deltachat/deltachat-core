@@ -1,21 +1,15 @@
 from __future__ import print_function
 import threading
+import re
 import requests
+try:
+    from queue import Queue
+except ImportError:
+    from Queue import Queue
+
 from . import capi
 from .capi import ffi
 import deltachat
-
-
-class EventPrinter:
-    def __init__(self, dc_context):
-        self.dc_context = dc_context
-        self.info = str(self.dc_context).strip(">").split()[-1]
-
-    def __call__(self, evt):
-        evt_name, data1, data2 = evt
-        t = threading.currentThread()
-        tname = getattr(t, "name", t)
-        print("[%s-%s]" % (tname, self.info), evt_name, data1, data2)
 
 
 class EventHandler:
@@ -40,6 +34,38 @@ class EventHandler:
 
     def dc_event_is_offline(self, data1, data2):
         return 0  # always online
+
+
+class EventLogger:
+    def __init__(self, dc_context, debug=True):
+        self.dc_context = dc_context
+        self._event_queue = Queue()
+        self._debug = debug
+        self._ctxinfo = str(self.dc_context).strip(">").split()[-1]
+
+    def __call__(self, evt_name, data1, data2):
+        self._log_event(evt_name, data1, data2)
+        self._event_queue.put((evt_name, data1, data2))
+
+    def get(self, timeout=None, check_error=True):
+        ev = self._event_queue.get(timeout=timeout)
+        if check_error:
+            assert ev[0] != "DC_EVENT_ERROR"
+        return ev
+
+    def get_matching(self, event_name_regex, timeout=None):
+        rex = re.compile(event_name_regex + ".*")
+        while 1:
+            ev = self.get(timeout=timeout)
+            if rex.match(ev[0]):
+                return ev
+
+    def _log_event(self, evt_name, data1, data2):
+        if self._debug:
+            t = threading.currentThread()
+            tname = getattr(t, "name", t)
+            print("[{}-{}] {}({!r},{!r})".format(
+                 tname, self._ctxinfo, evt_name, data1, data2))
 
 
 class Contact:
@@ -77,19 +103,15 @@ class Chat:
 
 
 class Account:
-    def __init__(self, db_path, logcallback=None, eventhandler=None):
+    def __init__(self, db_path):
         self.dc_context = ctx = capi.lib.dc_context_new(
                                   capi.lib.py_dc_callback,
                                   capi.ffi.NULL, capi.ffi.NULL)
         if hasattr(db_path, "encode"):
             db_path = db_path.encode("utf8")
         capi.lib.dc_open(ctx, db_path, capi.ffi.NULL)
-        if logcallback is None:
-            logcallback = EventPrinter(self.dc_context)
-        self._logcallback = logcallback
-        if eventhandler is None:
-            eventhandler = EventHandler(self.dc_context)
-        self._eventhandler = eventhandler
+        self._evhandler = EventHandler(self.dc_context)
+        self._evlogger = EventLogger(self.dc_context)
         self._threads = IOThreads(self.dc_context)
 
     def set_config(self, **kwargs):
@@ -133,8 +155,8 @@ class Account:
 
     def _process_event(self, ctx, evt_name, data1, data2):
         assert ctx == self.dc_context
-        self._logcallback((evt_name, data1, data2))
-        method = getattr(self._eventhandler, evt_name.lower(), None)
+        self._evlogger(evt_name, data1, data2)
+        method = getattr(self._evhandler, evt_name.lower(), None)
         if method is not None:
             return method(data1, data2) or 0
         return 0

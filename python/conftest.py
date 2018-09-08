@@ -1,15 +1,15 @@
 import pytest
+import re
+import threading
 from deltachat import Account
 
 
 def pytest_addoption(parser):
     parser.addoption(
         "--liveconfig", action="store", default=None,
-        help="a file with >=2 lines where each line contains NAME=VALUE config settings for one account"
+        help="a file with >=2 lines where each line "
+             "contains NAME=VALUE config settings for one account"
     )
-
-
-_dummy = object()
 
 
 @pytest.fixture
@@ -30,10 +30,10 @@ def acfactory(pytestconfig, tmpdir, request):
                     self.configlist.append(d)
             self.count = 0
 
-        def get_live_account(self, logcallback=None, started=True):
+        def get_live_account(self, started=True):
             configdict = self.configlist.pop(0)
             tmpdb = tmpdir.join("testdb%d" % self.count)
-            ac = Account(tmpdb.strpath, logcallback=logcallback)
+            ac = Account(tmpdb.strpath)
             ac.set_config(**configdict)
             if started:
                 ac.start()
