@@ -1155,6 +1155,7 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 
 	dc_log_info(imap->context, 0, "IMAP-login as %s ok.", imap->imap_user);
 
+	imap->context->cb(imap->context, DC_EVENT_IMAP_CONNECTED, 0, 0);
 	success = 1;
 
 cleanup:

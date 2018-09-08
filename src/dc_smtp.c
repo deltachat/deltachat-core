@@ -222,6 +222,7 @@ int dc_smtp_connect(dc_smtp_t* smtp, const dc_loginparam_t* lp)
 		dc_log_info(smtp->context, 0, "SMTP-login as %s ok.", lp->send_user);
 	}
 
+	smtp->context->cb(smtp->context, DC_EVENT_SMTP_CONNECTED, 0, 0);
 	success = 1;
 
 cleanup:
