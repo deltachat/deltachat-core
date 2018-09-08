@@ -37,11 +37,13 @@ class EventHandler:
 
 
 class EventLogger:
-    def __init__(self, dc_context, debug=True):
+    def __init__(self, dc_context, _logid=None, debug=True):
         self.dc_context = dc_context
         self._event_queue = Queue()
         self._debug = debug
-        self._ctxinfo = str(self.dc_context).strip(">").split()[-1]
+        if _logid is None:
+            _logid = str(self.dc_context).strip(">").split()[-1]
+        self._logid = _logid
         self._timeout = None
 
     def __call__(self, evt_name, data1, data2):
@@ -54,8 +56,8 @@ class EventLogger:
     def get(self, timeout=None, check_error=True):
         timeout = timeout or self._timeout
         ev = self._event_queue.get(timeout=timeout)
-        if check_error:
-            assert ev[0] != "DC_EVENT_ERROR"
+        if check_error and ev[0] == "DC_EVENT_ERROR":
+            raise ValueError("{}({!r},{!r})".format(*ev))
         return ev
 
     def get_matching(self, event_name_regex):
@@ -70,7 +72,7 @@ class EventLogger:
             t = threading.currentThread()
             tname = getattr(t, "name", t)
             print("[{}-{}] {}({!r},{!r})".format(
-                 tname, self._ctxinfo, evt_name, data1, data2))
+                 tname, self._logid, evt_name, data1, data2))
 
 
 class Contact:
@@ -103,12 +105,15 @@ class Chat:
         self.id = chat_id
 
     def send_text_message(self, msg):
+        """ return ID of the message in this chat.
+        'msg' should be unicode"""
         msg = convert_bytes(msg)
+        print ("chat id", self.id)
         return capi.lib.dc_send_text_msg(self.dc_context, self.id, msg)
 
 
 class Account:
-    def __init__(self, db_path):
+    def __init__(self, db_path, _logid=None):
         self.dc_context = ctx = capi.lib.dc_context_new(
                                   capi.lib.py_dc_callback,
                                   capi.ffi.NULL, capi.ffi.NULL)
@@ -116,7 +121,7 @@ class Account:
             db_path = db_path.encode("utf8")
         capi.lib.dc_open(ctx, db_path, capi.ffi.NULL)
         self._evhandler = EventHandler(self.dc_context)
-        self._evlogger = EventLogger(self.dc_context)
+        self._evlogger = EventLogger(self.dc_context, _logid)
         self._threads = IOThreads(self.dc_context)
 
     def set_config(self, **kwargs):
@@ -133,14 +138,15 @@ class Account:
     def get_self_contact(self):
         return Contact(self.dc_context, capi.lib.DC_CONTACT_ID_SELF)
 
-    def create_contact(self, emailadr, name=ffi.NULL):
+    def create_contact(self, email, name=ffi.NULL):
         name = convert_bytes(name)
-        emailadr = convert_bytes(emailadr)
-        contact_id = capi.lib.dc_create_contact(self.dc_context, name, emailadr)
+        email = convert_bytes(email)
+        contact_id = capi.lib.dc_create_contact(self.dc_context, name, email)
         return Contact(self.dc_context, contact_id)
 
     def create_chat_by_contact(self, contact):
         chat_id = capi.lib.dc_create_chat_by_contact_id(self.dc_context, contact.id)
+        assert chat_id >= capi.lib.DC_CHAT_ID_LAST_SPECIAL, chat_id
         return Chat(self.dc_context, chat_id)
 
     def start(self):

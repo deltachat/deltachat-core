@@ -33,7 +33,8 @@ def acfactory(pytestconfig, tmpdir, request):
         def get_live_account(self, started=True):
             configdict = self.configlist.pop(0)
             tmpdb = tmpdir.join("testdb%d" % self.count)
-            ac = Account(tmpdb.strpath)
+            ac = Account(tmpdb.strpath, _logid="ac{}".format(self.count+1))
+            self.count += 1
             ac._evlogger.set_timeout(10)
             ac.set_config(**configdict)
             if started:

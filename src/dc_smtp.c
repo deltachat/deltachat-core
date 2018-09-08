@@ -311,6 +311,8 @@ int dc_smtp_send_msg(dc_smtp_t* smtp, const clist* recipients, const char* data_
 		goto cleanup;
 	}
 
+    dc_log_event(smtp->context, DC_EVENT_SMTP_MESSAGE_SENT, 0,
+                 "Message was sent to SMTP server");
 	success = 1;
 
 cleanup:

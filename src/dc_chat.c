@@ -2181,6 +2181,7 @@ uint32_t dc_send_text_msg(dc_context_t* context, uint32_t chat_id, const char* t
 	uint32_t  ret = 0;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || chat_id<=DC_CHAT_ID_LAST_SPECIAL || text_to_send==NULL) {
+        dc_log_info(context, 0, "some error");
 		goto cleanup;
 	}
 
