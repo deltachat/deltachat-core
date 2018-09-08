@@ -1030,6 +1030,11 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * @}
  */
 
+
+#define DC_EVENT_IMAP_STATE_UPDATE        2500 // for testing/debugging purposes, data1=connected (1), not connected (0)
+#define DC_EVENT_SMTP_STATE_UPDATE        2510 //           - " -
+
+
 #define DC_EVENT_DATA1_IS_STRING(e)  ((e)==DC_EVENT_HTTP_GET || (e)==DC_EVENT_IMEX_FILE_WRITTEN || (e)==DC_EVENT_FILE_COPIED)
 #define DC_EVENT_DATA2_IS_STRING(e)  ((e)==DC_EVENT_INFO || (e)==DC_EVENT_WARNING || (e)==DC_EVENT_ERROR)
 #define DC_EVENT_RETURNS_INT(e)      ((e)==DC_EVENT_IS_OFFLINE)
