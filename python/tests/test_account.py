@@ -1,5 +1,4 @@
 from __future__ import print_function
-import time
 from deltachat.capi import lib
 
 
@@ -68,9 +67,6 @@ class TestOnlineAccount:
         evt_name, data1, data2 = ev
         assert data1 == chat.id
         assert data2 == msgnum
-        starttime = time.time()
-        while time.time() < starttime + 20:
-            evt_name, data1, data2 = ac2._evlogger.get_matching("DC_EVENT_INFO")
-            if "1 mails read" in data2:
-                break
-            print("ignoring event", evt_name, data1, data2)
+        ev = ac2._evlogger.get_matching("DC_EVENT_MSGS_CHANGED")
+        assert ev[1] == chat.id
+        assert ev[2] == msgnum
