@@ -22,7 +22,10 @@ class TestOfflineAccount:
         ac1 = acfactory.get_offline_account()
         contact1 = ac1.create_contact("some1@hello.com", name="some1")
         chat = ac1.create_chat_by_contact(contact1)
-        assert chat.id
+        assert chat.id >= lib.DC_CHAT_ID_LAST_SPECIAL, chat.id
+
+        chat2 = ac1.create_chat_by_contact(contact1.id)
+        assert chat2.id == chat.id
 
 
 class TestOnlineAccount:
@@ -62,11 +65,13 @@ class TestOnlineAccount:
         self.wait_successful_IMAP_SMTP_connection(ac2)
         self.wait_configuration_progress(ac1, 1000)
         self.wait_configuration_progress(ac2, 1000)
-        msgnum = chat.send_text_message("msg1")
+        msg_id = chat.send_text_message("msg1")
         ev = ac1._evlogger.get_matching("DC_EVENT_MSG_DELIVERED")
         evt_name, data1, data2 = ev
         assert data1 == chat.id
-        assert data2 == msgnum
+        assert data2 == msg_id
         ev = ac2._evlogger.get_matching("DC_EVENT_MSGS_CHANGED")
         assert ev[1] == chat.id
-        assert ev[2] == msgnum
+        assert ev[2] == msg_id
+        msg = ac2.get_message(msg_id)
+        assert msg.text == "msg1"

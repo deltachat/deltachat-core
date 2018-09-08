@@ -112,6 +112,17 @@ class Chat:
         return capi.lib.dc_send_text_msg(self.dc_context, self.id, msg)
 
 
+class Message:
+    def __init__(self, dc_context, msg_id):
+        self.dc_context = dc_context
+        self.id = msg_id
+        self.dc_msg = capi.lib.dc_get_msg(self.dc_context, msg_id)
+
+    @property
+    def text(self):
+        return ffi_unicode(capi.lib.dc_msg_get_text(self.dc_msg))
+
+
 class Account:
     def __init__(self, db_path, _logid=None):
         self.dc_context = ctx = capi.lib.dc_context_new(
@@ -145,9 +156,18 @@ class Account:
         return Contact(self.dc_context, contact_id)
 
     def create_chat_by_contact(self, contact):
-        chat_id = capi.lib.dc_create_chat_by_contact_id(self.dc_context, contact.id)
-        assert chat_id >= capi.lib.DC_CHAT_ID_LAST_SPECIAL, chat_id
+        """ return a Chat object, created from the contact.
+
+        @param contact: chat_id (int) or contact object.
+        """
+        contact_id = getattr(contact, "id", contact)
+        assert isinstance(contact_id, int)
+        chat_id = capi.lib.dc_create_chat_by_contact_id(
+                        self.dc_context, contact_id)
         return Chat(self.dc_context, chat_id)
+
+    def get_message(self, msg_id):
+        return Message(self.dc_context, msg_id)
 
     def start(self):
         deltachat.set_context_callback(self.dc_context, self._process_event)
