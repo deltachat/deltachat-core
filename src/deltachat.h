@@ -241,6 +241,8 @@ void            dc_openssl_init_not_required (void);
 // connect
 void            dc_configure                 (dc_context_t*);
 int             dc_is_configured             (const dc_context_t*);
+int             dc_is_imap_connected         (const dc_context_t*);
+int             dc_is_smtp_connected         (const dc_context_t*);
 
 void            dc_perform_imap_jobs         (dc_context_t*);
 void            dc_perform_imap_fetch        (dc_context_t*);

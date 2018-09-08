@@ -816,6 +816,48 @@ int dc_is_configured(const dc_context_t* context)
 }
 
 
+/**
+ * Check IMAP-connection.
+ * This function is mainly for debugging and testing purposes, it's not needed
+ * for sending messages or other deltachat-core functionality.
+ * As the state may change any time,
+ * do not assume that eg. a message can be sent due to the return value of this function.
+ *
+ * @memberof dc_context_t
+ * @param context The context object as created by dc_context_new().
+ * @return 1=The last time the IMAP-connection was used, it was connected.
+ *     0=IMAP-server not connected.
+ */
+int dc_is_imap_connected(const dc_context_t* context)
+{
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		return 0;
+	}
+	return dc_imap_is_connected(context->imap);
+}
+
+
+/**
+ * Check SMTP-connection.
+ * This function is mainly for debugging and testing purposes, it's not needed
+ * for sending messages or other deltachat-core functionality.
+ * As the state may change any time,
+ * do not assume that eg. a message can be sent due to the return value of this function.
+ *
+ * @memberof dc_context_t
+ * @param context The context object as created by dc_context_new().
+ * @return 1=The last time the SMTP-connection was used, it was connected.
+ *     0=SMTP-server not connected.
+ */
+int dc_is_smtp_connected(const dc_context_t* context)
+{
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		return 0;
+	}
+	return dc_smtp_is_connected(context->smtp);
+}
+
+
 /*
  * Request an ongoing process to start.
  * Returns 0=process started, 1=not started, there is running another process
