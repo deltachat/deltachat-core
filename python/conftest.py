@@ -28,13 +28,21 @@ def acfactory(pytestconfig, tmpdir, request):
                         name, value = part.split("=")
                         d[name] = value
                     self.configlist.append(d)
-            self.count = 0
+            self.live_count = 0
+            self.offline_count = 0
+
+        def get_offline_account(self):
+            self.offline_count += 1
+            tmpdb = tmpdir.join("offlinedb%d" % self.offline_count)
+            ac = Account(tmpdb.strpath, _logid="ac{}".format(self.offline_count))
+            ac._evlogger.set_timeout(2)
+            return ac
 
         def get_live_account(self, started=True):
+            self.live_count += 1
             configdict = self.configlist.pop(0)
-            tmpdb = tmpdir.join("testdb%d" % self.count)
-            ac = Account(tmpdb.strpath, _logid="ac{}".format(self.count+1))
-            self.count += 1
+            tmpdb = tmpdir.join("livedb%d" % self.live_count)
+            ac = Account(tmpdb.strpath, _logid="ac{}".format(self.live_count))
             ac._evlogger.set_timeout(10)
             ac.set_config(**configdict)
             if started:

@@ -3,16 +3,15 @@ import time
 from deltachat.capi import lib
 
 
-class TestLive:
-
+class TestOfflineAccount:
     def test_selfcontact(self, acfactory):
-        ac1 = acfactory.get_live_account(started=False)
+        ac1 = acfactory.get_offline_account()
         me = ac1.get_self_contact()
         assert me.display_name
         # assert me.addr  # xxx why is this empty?
 
     def test_contacts(self, acfactory):
-        ac1 = acfactory.get_live_account(started=False)
+        ac1 = acfactory.get_offline_account()
         contact1 = ac1.create_contact(email="some1@hello.com", name="some1")
         assert contact1.id
         assert contact1.addr == "some1@hello.com"
@@ -21,11 +20,13 @@ class TestLive:
         assert not contact1.is_verified
 
     def test_chat(self, acfactory):
-        ac1 = acfactory.get_live_account(started=False)
+        ac1 = acfactory.get_offline_account()
         contact1 = ac1.create_contact("some1@hello.com", name="some1")
         chat = ac1.create_chat_by_contact(contact1)
         assert chat.id
 
+
+class TestOnlineAccount:
     def wait_successful_IMAP_SMTP_connection(self, account):
         imap_ok = smtp_ok = False
         while not imap_ok or not smtp_ok:
