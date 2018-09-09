@@ -87,11 +87,19 @@ void dc_log_info(dc_context_t* context, int code, const char* msg, ...)
 	va_end(va);
 }
 
+void dc_log_event(dc_context_t* context, int event_code, int code, const char* msg, ...)
+{
+	va_list va;
+	va_start(va, msg); /* va_start() expects the last non-variable argument as the second parameter */
+		log_vprintf(context, event_code, code, msg, va);
+	va_end(va);
+}
+
 
 void dc_log_warning(dc_context_t* context, int code, const char* msg, ...)
 {
 	va_list va;
-	va_start(va, msg);
+	va_start(va, msg); /* va_start() expects the last non-variable argument as the second parameter */
 		log_vprintf(context, DC_EVENT_WARNING, code, msg, va);
 	va_end(va);
 }

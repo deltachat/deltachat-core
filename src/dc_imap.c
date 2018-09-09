@@ -1153,7 +1153,8 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 		goto cleanup;
 	}
 
-	dc_log_info(imap->context, 0, "IMAP-login as %s ok.", imap->imap_user);
+	dc_log_event(imap->context, DC_EVENT_IMAP_CONNECTED, 0, 
+                 "IMAP-login as %s ok.", imap->imap_user);
 
 	success = 1;
 

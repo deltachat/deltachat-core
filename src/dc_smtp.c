@@ -219,7 +219,8 @@ int dc_smtp_connect(dc_smtp_t* smtp, const dc_loginparam_t* lp)
 			}
 		}
 
-		dc_log_info(smtp->context, 0, "SMTP-login as %s ok.", lp->send_user);
+		dc_log_event(smtp->context, DC_EVENT_SMTP_CONNECTED, 0,
+                     "SMTP-login as %s ok.", lp->send_user);
 	}
 
 	success = 1;
@@ -310,6 +311,8 @@ int dc_smtp_send_msg(dc_smtp_t* smtp, const clist* recipients, const char* data_
 		goto cleanup;
 	}
 
+    dc_log_event(smtp->context, DC_EVENT_SMTP_MESSAGE_SENT, 0,
+                 "Message was sent to SMTP server");
 	success = 1;
 
 cleanup:
