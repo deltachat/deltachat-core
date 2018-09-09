@@ -79,8 +79,10 @@ class Contact:
     def __init__(self, dc_context, contact_id):
         self.dc_context = dc_context
         self.id = contact_id
-        # XXX do we need to free dc_contact_t? (we own it according to API)
         self.dc_contact_t = capi.lib.dc_get_contact(self.dc_context, contact_id)
+
+    def __del__(self):
+        capi.lib.free(self.dc_contact_t)
 
     @property
     def addr(self):
@@ -161,6 +163,8 @@ class Account:
         return ffi_unicode(res)
 
     def get_self_contact(self):
+        if not capi.lib.dc_is_configured(self.dc_context):
+            raise ValueError("need to configure first")
         return Contact(self.dc_context, capi.lib.DC_CONTACT_ID_SELF)
 
     def create_contact(self, email, name=ffi.NULL):

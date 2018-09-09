@@ -1,13 +1,13 @@
 from __future__ import print_function
+import pytest
 from deltachat.capi import lib
 
 
 class TestOfflineAccount:
-    def test_selfcontact(self, acfactory):
+    def test_selfcontact_if_unconfigured(self, acfactory):
         ac1 = acfactory.get_offline_account()
-        me = ac1.get_self_contact()
-        assert me.display_name
-        # assert me.addr  # xxx why is this empty?
+        with pytest.raises(ValueError):
+            ac1.get_self_contact()
 
     def test_contacts(self, acfactory):
         ac1 = acfactory.get_offline_account()
@@ -49,6 +49,13 @@ class TestOnlineAccount:
             if data1 >= target:
                 print("** CONFIG PROGRESS {}".format(target), account.dc_context)
                 break
+
+    def test_selfcontact(self, acfactory):
+        ac1 = acfactory.get_live_account()
+        self.wait_configuration_progress(ac1, 1000)
+        me = ac1.get_self_contact()
+        assert me.display_name
+        assert me.addr
 
     def test_basic_configure_login_ok(self, acfactory):
         ac1 = acfactory.get_live_account()
