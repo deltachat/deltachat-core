@@ -37,13 +37,13 @@ class EventHandler:
 
 
 class EventLogger:
-    def __init__(self, dc_context, _logid=None, debug=True):
+    def __init__(self, dc_context, logid=None, debug=True):
         self.dc_context = dc_context
         self._event_queue = Queue()
         self._debug = debug
-        if _logid is None:
-            _logid = str(self.dc_context).strip(">").split()[-1]
-        self._logid = _logid
+        if logid is None:
+            logid = str(self.dc_context).strip(">").split()[-1]
+        self.logid = logid
         self._timeout = None
 
     def __call__(self, evt_name, data1, data2):
@@ -72,7 +72,7 @@ class EventLogger:
             t = threading.currentThread()
             tname = getattr(t, "name", t)
             print("[{}-{}] {}({!r},{!r})".format(
-                 tname, self._logid, evt_name, data1, data2))
+                 tname, self.logid, evt_name, data1, data2))
 
 
 class Contact:
@@ -140,7 +140,7 @@ class Message:
 
 
 class Account:
-    def __init__(self, db_path, _logid=None):
+    def __init__(self, db_path, logid=None):
         self.dc_context = ctx = capi.lib.dc_context_new(
                                   capi.lib.py_dc_callback,
                                   capi.ffi.NULL, capi.ffi.NULL)
@@ -148,7 +148,7 @@ class Account:
             db_path = db_path.encode("utf8")
         capi.lib.dc_open(ctx, db_path, capi.ffi.NULL)
         self._evhandler = EventHandler(self.dc_context)
-        self._evlogger = EventLogger(self.dc_context, _logid)
+        self._evlogger = EventLogger(self.dc_context, logid)
         self._threads = IOThreads(self.dc_context)
 
     def set_config(self, **kwargs):
