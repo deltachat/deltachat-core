@@ -118,7 +118,7 @@ class Chat:
     def send_text_message(self, msg):
         """ return ID of the message in this chat.
         'msg' should be unicode"""
-        msg = convert_bytes(msg)
+        msg = convert_to_bytes_utf8(msg)
         print ("chat id", self.id)
         return capi.lib.dc_send_text_msg(self.dc_context, self.id, msg)
 
@@ -168,8 +168,8 @@ class Account:
         return Contact(self.dc_context, capi.lib.DC_CONTACT_ID_SELF)
 
     def create_contact(self, email, name=ffi.NULL):
-        name = convert_bytes(name)
-        email = convert_bytes(email)
+        name = convert_to_bytes_utf8(name)
+        email = convert_to_bytes_utf8(email)
         contact_id = capi.lib.dc_create_contact(self.dc_context, name, email)
         return Contact(self.dc_context, contact_id)
 
@@ -253,7 +253,7 @@ class IOThreads:
             capi.lib.dc_perform_smtp_idle(self.dc_context)
 
 
-def convert_bytes(obj):
+def convert_to_bytes_utf8(obj):
     if obj == ffi.NULL:
         return obj
     if not isinstance(obj, bytes):
