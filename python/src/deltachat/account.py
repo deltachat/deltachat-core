@@ -104,6 +104,15 @@ class Chat:
         self.dc_context = dc_context
         self.id = chat_id
 
+    def __eq__(self, other_chat):
+        return (
+            self.dc_context == getattr(other_chat, "dc_context", None) and
+            self.id == getattr(other_chat, "id", None)
+        )
+
+    def __ne__(self, other_chat):
+        return not self == other_chat
+
     def send_text_message(self, msg):
         """ return ID of the message in this chat.
         'msg' should be unicode"""
@@ -121,6 +130,11 @@ class Message:
     @property
     def text(self):
         return ffi_unicode(capi.lib.dc_msg_get_text(self.dc_msg))
+
+    @property
+    def chat(self):
+        chat_id = capi.lib.dc_msg_get_chat_id(self.dc_msg)
+        return Chat(self.dc_context, chat_id)
 
 
 class Account:
