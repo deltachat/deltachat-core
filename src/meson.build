@@ -39,32 +39,6 @@ lib_src = [
   'dc_tools.c',
   'dc_uudecode.c',
 ]
-lib_hdr = [
-  'deltachat.h',
-  'dc_apeerstate.h',
-  'dc_dehtml.h',
-  'dc_hash.h',
-  'dc_imap.h',
-  'dc_job.h',
-  'dc_key.h',
-  'dc_keyring.h',
-  'dc_loginparam.h',
-  'dc_lot.h',
-  'dc_context.h',
-  'dc_mimefactory.h',
-  'dc_mimeparser.h',
-  'dc_msg.h',
-  'dc_param.h',
-  'dc_pgp.h',
-  'dc_saxparser.h',
-  'dc_simplify.h',
-  'dc_smtp.h',
-  'dc_sqlite3.h',
-  'dc_stock.h',
-  'dc_strbuilder.h',
-  'dc_strencode.h',
-  'dc_tools.h',
-]
 lib_inc = include_directories('.')
 
 
@@ -74,7 +48,5 @@ lib = library(
   include_directories: lib_inc,
   install: true,
 )
-install_headers(
-  lib_hdr,
-  subdir: 'deltachat',
-)
+install_headers(['deltachat.h'],
+                subdir: 'deltachat')
