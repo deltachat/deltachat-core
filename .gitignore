@@ -9,6 +9,7 @@
 __pycache__
 .pytest_cache
 *.egg-info
+python/dist
 
 # ignore Codeblocks temporary files and build directories.
 # Codeblocks project file (*.cbp) is added although it may contain some user preferences (eg. program's arguments), it may be useful for some people
@@ -50,3 +51,8 @@ capi.abi3.so
 # ignore build directory
 builddir/
 python/build
+
+# ignore python binding stuff
+python/src/deltachat/capi*so
+
+.*.swp
