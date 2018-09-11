@@ -1153,7 +1153,7 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 		goto cleanup;
 	}
 
-	dc_log_event(imap->context, DC_EVENT_IMAP_CONNECTED, 0, 
+	dc_log_event(imap->context, DC_EVENT_IMAP_CONNECTED, 0,
                  "IMAP-login as %s ok.", imap->imap_user);
 
 	success = 1;
@@ -1576,8 +1576,8 @@ int dc_imap_markseen_msg(dc_imap_t* imap, const char* folder, uint32_t server_ui
 		{
 			dc_log_info(imap->context, 0, "Moving message %s/%i to %s...", folder, (int)server_uid, imap->moveto_folder);
 
-			/* TODO/TOCHECK: MOVE may not be supported on servers, if this is often the case, we should fallback to a COPY/DELETE implementation.
-			Same for the UIDPLUS extension (if in doubt, we can find out the resulting UID using "imap_selection_info->sel_uidnext" then). */
+			/* TODO/TOCHECK: UIDPLUS extension may not be supported on servers;
+			if in doubt, we can find out the resulting UID using "imap_selection_info->sel_uidnext" then */
 			uint32_t             res_uid = 0;
 			struct mailimap_set* res_setsrc = NULL;
 			struct mailimap_set* res_setdest = NULL;
