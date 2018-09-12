@@ -379,6 +379,10 @@ static int dc_chatlist_load_from_db(dc_chatlist_t* chatlist, int listflags, cons
 
     if (add_archived_link_item && dc_get_archived_cnt(chatlist->context)>0)
     {
+		if (dc_array_get_cnt(chatlist->chatNlastmsg_ids)==0 && (listflags & DC_GCL_ADD_ALLDONE_HINT)) {
+			dc_array_add_id(chatlist->chatNlastmsg_ids, DC_CHAT_ID_ALLDONE_HINT);
+			dc_array_add_id(chatlist->chatNlastmsg_ids, 0);
+		}
 		dc_array_add_id(chatlist->chatNlastmsg_ids, DC_CHAT_ID_ARCHIVED_LINK);
 		dc_array_add_id(chatlist->chatNlastmsg_ids, 0);
     }
@@ -432,6 +436,9 @@ int dc_get_archived_cnt(dc_context_t* context)
  *   "Show archived chats", if the user clicks this item, the UI should show a
  *   list of all archived chats that can be created by this function hen using
  *   the DC_GCL_ARCHIVED_ONLY flag.
+ * - DC_CHAT_ID_ALLDONE_HINT (7) - this special chat is present
+ *   if DC_GCL_ADD_ALLDONE_HINT is added to listflags
+ *   and if there are only archived chats.
  *
  * @memberof dc_context_t
  * @param context The context object as returned by dc_context_new()
@@ -443,6 +450,8 @@ int dc_get_archived_cnt(dc_context_t* context)
  *     - if the flag DC_GCL_NO_SPECIALS is set, deaddrop and archive link are not added
  *       to the list (may be used eg. for selecting chats on forwarding, the flag is
  *       not needed when DC_GCL_ARCHIVED_ONLY is already set)
+ *     - if the flag DC_GCL_ADD_ALLDONE_HINT is set, DC_CHAT_ID_ALLDONE_HINT
+ *       is added as needed.
  * @param query_str An optional query for filtering the list.  Only chats matching this query
  *     are returned.  Give NULL for no filtering.
  * @param query_id An optional contact ID for filtering the list.  Only chats including this contact ID

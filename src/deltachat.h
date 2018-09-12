@@ -255,6 +255,7 @@ void            dc_interrupt_smtp_idle       (dc_context_t*);
 // handle chatlists
 #define         DC_GCL_ARCHIVED_ONLY         0x01
 #define         DC_GCL_NO_SPECIALS           0x02
+#define         DC_GCL_ADD_ALLDONE_HINT      0x04
 dc_chatlist_t*  dc_get_chatlist              (dc_context_t*, int flags, const char* query_str, uint32_t query_id);
 
 
@@ -431,6 +432,7 @@ typedef struct _dc_chat dc_chat_t;
 #define         DC_CHAT_ID_MSGS_IN_CREATION  4 // a message is just in creation but not yet assigned to a chat (eg. we may need the message ID to set up blobs; this avoids unready message to be sent and shown)
 #define         DC_CHAT_ID_STARRED           5 // virtual chat showing all messages flagged with msgs.starred=2
 #define         DC_CHAT_ID_ARCHIVED_LINK     6 // only an indicator in a chatlist
+#define         DC_CHAT_ID_ALLDONE_HINT      7 // only an indicator in a chatlist
 #define         DC_CHAT_ID_LAST_SPECIAL      9 // larger chat IDs are "real" chats, their messages are "real" messages.
 
 
