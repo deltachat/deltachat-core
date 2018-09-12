@@ -123,7 +123,7 @@ void            dc_log_error_if      (int* condition, dc_context_t*, int code, c
 void            dc_log_warning       (dc_context_t*, int code, const char* msg, ...);
 void            dc_log_info          (dc_context_t*, int code, const char* msg, ...);
 void            dc_log_event         (dc_context_t* context, int event_code, int code, const char* msg, ...);
-void            dc_receive_imf                             (dc_context_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags);
+void            dc_receive_imf       (dc_context_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags);
 
 #define         DC_BAK_PREFIX                "delta-chat"
 #define         DC_BAK_SUFFIX                "bak"
