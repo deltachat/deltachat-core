@@ -1296,6 +1296,7 @@ cleanup:
  *
  * - To get a list of archived chats, use dc_get_chatlist() with the flag DC_GCL_ARCHIVED_ONLY.
  * - To find out the archived state of a given chat, use dc_chat_get_archived()
+ * - Messages in archived chats are marked as being noticed, so they do not count as "fresh"
  * - Calling this function usually results in the event #DC_EVENT_MSGS_CHANGED
  *
  * @memberof dc_context_t
@@ -1308,6 +1309,15 @@ void dc_archive_chat(dc_context_t* context, uint32_t chat_id, int archive)
 {
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || chat_id<=DC_CHAT_ID_LAST_SPECIAL || (archive!=0 && archive!=1)) {
 		return;
+	}
+
+	if (archive) {
+		sqlite3_stmt* stmt = dc_sqlite3_prepare(context->sql,
+			"UPDATE msgs SET state=" DC_STRINGIFY(DC_STATE_IN_NOTICED)
+			" WHERE chat_id=? AND state=" DC_STRINGIFY(DC_STATE_IN_FRESH) ";");
+		sqlite3_bind_int(stmt, 1, chat_id);
+		sqlite3_step(stmt);
+		sqlite3_finalize(stmt);
 	}
 
 	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->sql,
