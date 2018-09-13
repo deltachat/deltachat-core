@@ -15,7 +15,7 @@ class TestOfflineAccount:
         with pytest.raises(ValueError):
             ac1.get_self_contact()
 
-    def test_contacts(self, acfactory):
+    def test_contact_attr(self, acfactory):
         ac1 = acfactory.get_offline_account()
         contact1 = ac1.create_contact(email="some1@hello.com", name="some1")
         assert contact1.id
@@ -23,6 +23,19 @@ class TestOfflineAccount:
         assert contact1.display_name == "some1"
         assert not contact1.is_blocked
         assert not contact1.is_verified
+
+    def test_contact_get_contacts(self, acfactory):
+        ac1 = acfactory.get_offline_account()
+        contact1 = ac1.create_contact(email="some1@hello.com", name="some1")
+        contacts = ac1.get_contacts()
+        assert len(contacts) == 1
+        assert contact1 in contacts
+
+        assert not ac1.get_contacts(query="some2")
+        assert ac1.get_contacts(query="some1")
+        assert not ac1.get_contacts(only_verified=True)
+        contacts = ac1.get_contacts(with_self=True)
+        assert len(contacts) == 2
 
     def test_chat(self, acfactory):
         ac1 = acfactory.get_offline_account()
@@ -100,4 +113,3 @@ class TestOnlineAccount:
         assert msg.text == "msg1"
         messages = msg.chat.get_messages()
         assert msg in messages, (msg, messages)
-

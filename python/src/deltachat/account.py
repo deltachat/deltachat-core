@@ -129,8 +129,7 @@ class Chat(object):
     def get_messages(self):
         """ return list of messages in this chat. """
         dc_array_t = lib.dc_get_chat_msgs(self.dc_context, self.id, 0, 0)
-        return map(lambda x: Message(self.dc_context, x),
-                   iter_array_and_unref(dc_array_t))
+        return list(iter_array_and_unref(dc_array_t, lambda x: Message(self.dc_context, x)))
 
 
 @attr.s
@@ -198,8 +197,24 @@ class Account(object):
         contact_id = capi.lib.dc_create_contact(self.dc_context, name, email)
         return Contact(self.dc_context, contact_id)
 
+    def get_contacts(self, query=ffi.NULL, with_self=False, only_verified=False):
+        """ return list of :pyclass:`Contact` objects.
+
+        :query: if a string is specified, only return contacts whose name or e-mail matches query.
+        :only_verified: if true only return verified contacts.
+        :with_self: if true the self-contact is also returned.
+        """
+        flags = 0
+        query = convert_to_bytes_utf8(query)
+        if only_verified:
+            flags |= lib.DC_GCL_VERIFIED_ONLY
+        if with_self:
+            flags |= lib.DC_GCL_ADD_SELF
+        dc_array_t = lib.dc_get_contacts(self.dc_context, flags, query)
+        return list(iter_array_and_unref(dc_array_t, lambda x: Contact(self.dc_context, x)))
+
     def create_chat_by_contact(self, contact):
-        """ return a Chat object, created from the contact.
+        """ return a Chat object with the specified contact.
 
         @param contact: chat_id (int) or contact object.
         """
@@ -278,10 +293,10 @@ def convert_to_bytes_utf8(obj):
     return obj
 
 
-def iter_array_and_unref(dc_array_t):
+def iter_array_and_unref(dc_array_t, constructor):
     try:
         for i in range(0, lib.dc_array_get_cnt(dc_array_t)):
-            yield lib.dc_array_get_id(dc_array_t, i)
+            yield constructor(lib.dc_array_get_id(dc_array_t, i))
     finally:
         lib.dc_array_unref(dc_array_t)
 
