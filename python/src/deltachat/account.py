@@ -85,8 +85,8 @@ class Contact(object):
     def dc_contact_t(self):
         return capi.lib.dc_get_contact(self.dc_context, self.id)
 
-    def __del__(self):
-        capi.lib.dc_contact_unref(self.dc_contact_t)
+    def __del__(self, dc_contact_unref=capi.lib.dc_contact_unref):
+        dc_contact_unref(self.dc_contact_t)
 
     @property
     def addr(self):
@@ -134,8 +134,8 @@ class Message(object):
     def dc_msg_t(self):
         return capi.lib.dc_get_msg(self.dc_context, self.id)
 
-    def __del__(self):
-        capi.lib.dc_msg_unref(self.dc_msg_t)
+    def __del__(self, dc_msg_unref=capi.lib.dc_msg_unref):
+        dc_msg_unref(self.dc_msg_t)
 
     @property
     def text(self):
