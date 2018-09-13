@@ -7,14 +7,15 @@ try:
 except ImportError:
     from Queue import Queue
 
+import deltachat
 from . import capi
 from .capi import ffi
-import deltachat
+from .myattr import attrib_CData, attrs, attrib_int, cached_property
 
 
-class EventHandler:
-    def __init__(self, dc_context):
-        self.dc_context = dc_context
+@attrs
+class EventHandler(object):
+    dc_context = attrib_CData()
 
     def read_url(self, url):
         try:
@@ -75,14 +76,17 @@ class EventLogger:
                  tname, self.logid, evt_name, data1, data2))
 
 
-class Contact:
-    def __init__(self, dc_context, contact_id):
-        self.dc_context = dc_context
-        self.id = contact_id
-        self.dc_contact_t = capi.lib.dc_get_contact(self.dc_context, contact_id)
+@attrs
+class Contact(object):
+    dc_context = attrib_CData()
+    id = attrib_int()
+
+    @cached_property  # only get it once because we only free it once
+    def dc_contact_t(self):
+        return capi.lib.dc_get_contact(self.dc_context, self.id)
 
     def __del__(self):
-        capi.lib.free(self.dc_contact_t)
+        capi.lib.dc_contact_unref(self.dc_contact_t)
 
     @property
     def addr(self):
@@ -101,33 +105,37 @@ class Contact:
         return capi.lib.dc_contact_is_verified(self.dc_contact_t)
 
 
-class Chat:
-    def __init__(self, dc_context, chat_id):
-        self.dc_context = dc_context
-        self.id = chat_id
+@attrs
+class Chat(object):
+    dc_context = attrib_CData()
+    id = attrib_int()
 
-    def __eq__(self, other_chat):
-        return (
-            self.dc_context == getattr(other_chat, "dc_context", None) and
-            self.id == getattr(other_chat, "id", None)
-        )
+    @cached_property
+    def dc_chat_t(self):
+        return capi.lib.get_chat(self.id)
 
-    def __ne__(self, other_chat):
-        return not self == other_chat
+    def __del__(self):
+        capi.lib.dc_chat_unref(self.dc_chat_t)
 
     def send_text_message(self, msg):
-        """ return ID of the message in this chat.
-        'msg' should be unicode"""
+        """ send a text message and return Message instance. """
         msg = convert_to_bytes_utf8(msg)
         print ("chat id", self.id)
-        return capi.lib.dc_send_text_msg(self.dc_context, self.id, msg)
+        msg_id = capi.lib.dc_send_text_msg(self.dc_context, self.id, msg)
+        return Message(self.dc_context, msg_id)
 
 
-class Message:
-    def __init__(self, dc_context, msg_id):
-        self.dc_context = dc_context
-        self.id = msg_id
-        self.dc_msg = capi.lib.dc_get_msg(self.dc_context, msg_id)
+@attrs
+class Message(object):
+    dc_context = attrib_CData()
+    id = attrib_int()
+
+    @cached_property
+    def dc_msg(self):
+        return capi.lib.dc_get_msg(self.dc_context, self.id)
+
+    def __del__(self):
+        capi.lib.dc_msg_unref(self.dc_msg_t)
 
     @property
     def text(self):
@@ -139,7 +147,7 @@ class Message:
         return Chat(self.dc_context, chat_id)
 
 
-class Account:
+class Account(object):
     def __init__(self, db_path, logid=None):
         self.dc_context = ctx = capi.lib.dc_context_new(
                                   capi.lib.py_dc_callback,
@@ -150,6 +158,15 @@ class Account:
         self._evhandler = EventHandler(self.dc_context)
         self._evlogger = EventLogger(self.dc_context, logid)
         self._threads = IOThreads(self.dc_context)
+
+    def __del__(self):
+        # XXX this causes currently a segfault because
+        # the threads still have a reference to dc_context
+        #
+        #    capi.lib.dc_context_unref(self.dc_context)
+        #
+        # let's for now leak memory instead of causing segfaults
+        pass
 
     def set_config(self, **kwargs):
         for name, value in kwargs.items():
@@ -184,7 +201,7 @@ class Account:
                         self.dc_context, contact_id)
         return Chat(self.dc_context, chat_id)
 
-    def get_message(self, msg_id):
+    def get_message_by_id(self, msg_id):
         return Message(self.dc_context, msg_id)
 
     def start(self):

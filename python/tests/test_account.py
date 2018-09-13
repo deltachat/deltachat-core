@@ -29,6 +29,13 @@ class TestOfflineAccount:
         assert chat == chat2
         assert not (chat != chat2)
 
+    def test_message(self, acfactory):
+        ac1 = acfactory.get_offline_account()
+        contact1 = ac1.create_contact("some1@hello.com", name="some1")
+        chat = ac1.create_chat_by_contact(contact1)
+        msg = chat.send_text_message("msg1")
+        assert msg
+
 
 class TestOnlineAccount:
     def wait_successful_IMAP_SMTP_connection(self, account):
@@ -74,14 +81,14 @@ class TestOnlineAccount:
         self.wait_successful_IMAP_SMTP_connection(ac2)
         self.wait_configuration_progress(ac1, 1000)
         self.wait_configuration_progress(ac2, 1000)
-        msg_id = chat.send_text_message("msg1")
+        msg = chat.send_text_message("msg1")
         ev = ac1._evlogger.get_matching("DC_EVENT_MSG_DELIVERED")
         evt_name, data1, data2 = ev
         assert data1 == chat.id
-        assert data2 == msg_id
+        assert data2 == msg.id
         ev = ac2._evlogger.get_matching("DC_EVENT_MSGS_CHANGED")
-        assert ev[2] == msg_id
-        msg = ac2.get_message(msg_id)
+        assert ev[2] == msg.id
+        msg = ac2.get_message_by_id(msg.id)
         assert msg.text == "msg1"
         # note that ev[1] aka data1 contains a bogus channel id
         # probably should just not get passed from the core

@@ -11,7 +11,7 @@ def main():
         long_description = long_description,
         author='Delta Chat contributors',
         setup_requires=['cffi>=1.0.0'],
-        install_requires=['cffi>=1.0.0', 'requests'],
+        install_requires=['cffi>=1.0.0', 'requests', 'attr'],
         packages=setuptools.find_packages('src'),
         package_dir={'': 'src'},
         cffi_modules=['src/deltachat/_build.py:ffibuilder'],
