@@ -13,7 +13,13 @@ def py_dc_callback(ctx, evt, data1, data2):
     CFFI only allows us to set one global event handler, so this one
     looks up the correct event handler for the given context.
     """
-    callback = _DC_CALLBACK_MAP.get(ctx, lambda *a: 0)
+    try:
+        callback = _DC_CALLBACK_MAP.get(ctx, lambda *a: 0)
+    except AttributeError:
+        # we are in a deep in GC-free/interpreter shutdown land
+        # nothing much better to do here than:
+        return 0
+
     # the following code relates to the deltachat/_build.py's helper
     # function which provides us signature info of an event call
     evt_name = get_dc_event_name(evt)
