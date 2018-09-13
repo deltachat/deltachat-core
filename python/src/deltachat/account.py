@@ -112,7 +112,7 @@ class Chat(object):
 
     @cached_property
     def dc_chat_t(self):
-        return capi.lib.get_chat(self.id)
+        return capi.lib.dc_get_chat(self.dc_context, self.id)
 
     def __del__(self):
         capi.lib.dc_chat_unref(self.dc_chat_t)
@@ -131,7 +131,7 @@ class Message(object):
     id = attrib_int()
 
     @cached_property
-    def dc_msg(self):
+    def dc_msg_t(self):
         return capi.lib.dc_get_msg(self.dc_context, self.id)
 
     def __del__(self):
@@ -139,11 +139,11 @@ class Message(object):
 
     @property
     def text(self):
-        return ffi_unicode(capi.lib.dc_msg_get_text(self.dc_msg))
+        return ffi_unicode(capi.lib.dc_msg_get_text(self.dc_msg_t))
 
     @property
     def chat(self):
-        chat_id = capi.lib.dc_msg_get_chat_id(self.dc_msg)
+        chat_id = capi.lib.dc_msg_get_chat_id(self.dc_msg_t)
         return Chat(self.dc_context, chat_id)
 
 
@@ -159,14 +159,8 @@ class Account(object):
         self._evlogger = EventLogger(self.dc_context, logid)
         self._threads = IOThreads(self.dc_context)
 
-    def __del__(self):
-        # XXX this causes currently a segfault because
-        # the threads still have a reference to dc_context
-        #
-        #    capi.lib.dc_context_unref(self.dc_context)
-        #
-        # let's for now leak memory instead of causing segfaults
-        pass
+    def __del__(self, dc_context_unref=capi.lib.dc_context_unref):
+        dc_context_unref(self.dc_context)
 
     def set_config(self, **kwargs):
         for name, value in kwargs.items():
@@ -211,13 +205,7 @@ class Account(object):
 
     def shutdown(self):
         deltachat.clear_context_callback(self.dc_context)
-        self._threads.stop(wait=False)
-        # XXX actually we'd like to wait but the smtp/imap
-        # interrupt idle calls do not seem to release the
-        # blocking call to smtp|imap idle. This means we
-        # also can't now close the database because the
-        # threads might still need it.
-        # capi.lib.dc_close(self.dc_context)
+        self._threads.stop(wait=True)
 
     def _process_event(self, ctx, evt_name, data1, data2):
         assert ctx == self.dc_context
@@ -248,8 +236,6 @@ class IOThreads:
 
     def stop(self, wait=False):
         self._thread_quitflag = True
-        # XXX interrupting does not quite work yet, the threads keep idling
-        print("interrupting smtp and idle")
         capi.lib.dc_interrupt_imap_idle(self.dc_context)
         capi.lib.dc_interrupt_smtp_idle(self.dc_context)
         if wait:

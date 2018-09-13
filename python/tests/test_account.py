@@ -28,6 +28,7 @@ class TestOfflineAccount:
         assert chat2.id == chat.id
         assert chat == chat2
         assert not (chat != chat2)
+        assert chat.dc_chat_t
 
     def test_message(self, acfactory):
         ac1 = acfactory.get_offline_account()
