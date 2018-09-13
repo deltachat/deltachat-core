@@ -21,8 +21,8 @@ class TestOfflineAccount:
         assert contact1.id
         assert contact1.addr == "some1@hello.com"
         assert contact1.display_name == "some1"
-        assert not contact1.is_blocked
-        assert not contact1.is_verified
+        assert not contact1.is_blocked()
+        assert not contact1.is_verified()
 
     def test_contact_get_contacts(self, acfactory):
         ac1 = acfactory.get_offline_account()
@@ -91,7 +91,7 @@ class TestOnlineAccount:
         assert ac1.get_config("mail_pw")
         assert ac1.is_configured()
 
-    def test_send_message(self, acfactory):
+    def test_send_and_receive_message(self, acfactory):
         ac1 = acfactory.get_live_account()
         ac2 = acfactory.get_live_account()
         c2 = ac1.create_contact(email=ac2.get_config("addr"))
@@ -107,9 +107,31 @@ class TestOnlineAccount:
         evt_name, data1, data2 = ev
         assert data1 == chat.id
         assert data2 == msg.id
+
+        # wait for other account to receive
         ev = ac2._evlogger.get_matching("DC_EVENT_MSGS_CHANGED")
         assert ev[2] == msg.id
-        msg = ac2.get_message_by_id(msg.id)
-        assert msg.text == "msg1"
-        messages = msg.chat.get_messages()
-        assert msg in messages, (msg, messages)
+        msg2 = ac2.get_message_by_id(msg.id)
+        assert msg2.text == "msg1"
+
+        # check the message arrived in contact-requets/deaddrop
+        chat2 = msg2.chat
+        assert msg2 in chat2.get_messages()
+        assert chat2.is_deaddrop()
+        assert chat2.count_fresh_messages() == 0
+
+        # create new chat with contact and verify it's proper
+        chat2b = ac2.create_chat_by_message(msg2)
+        assert not chat2b.is_deaddrop()
+        assert chat2b.count_fresh_messages() == 1
+
+        # mark chat as noticed
+        chat2b.mark_noticed()
+        assert chat2b.count_fresh_messages() == 0
+
+        # mark messages as seen and check ac1 sees the MDN
+        ac2.mark_seen_messages([msg2])
+        while 1:
+            ev = ac1._evlogger.get_matching("DC_EVENT_INFO")
+            if "Marking message" in ev[2]:
+                break

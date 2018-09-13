@@ -9,7 +9,7 @@ def main():
         version='0.1',
         description='Python bindings for deltachat-core using CFFI',
         long_description = long_description,
-        author='Delta Chat contributors',
+        author='holger krekel and contributors',
         setup_requires=['cffi>=1.0.0'],
         install_requires=['cffi>=1.0.0', 'requests', 'attr'],
         packages=setuptools.find_packages('src'),

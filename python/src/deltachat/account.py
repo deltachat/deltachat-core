@@ -2,6 +2,7 @@ from __future__ import print_function
 import threading
 import re
 import requests
+from array import array
 try:
     from queue import Queue
 except ImportError:
@@ -88,7 +89,8 @@ class Contact(object):
         return capi.lib.dc_get_contact(self.dc_context, self.id)
 
     def __del__(self, dc_contact_unref=capi.lib.dc_contact_unref):
-        dc_contact_unref(self.dc_contact_t)
+        if self._property_cache:
+            dc_contact_unref(self.dc_contact_t)
 
     @property
     def addr(self):
@@ -98,12 +100,12 @@ class Contact(object):
     def display_name(self):
         return ffi_unicode(capi.lib.dc_contact_get_display_name(self.dc_contact_t))
 
-    @property
     def is_blocked(self):
+        """ Return True if the contact is blocked. """
         return capi.lib.dc_contact_is_blocked(self.dc_contact_t)
 
-    @property
     def is_verified(self):
+        """ Return True if the contact is verified. """
         return capi.lib.dc_contact_is_verified(self.dc_contact_t)
 
 
@@ -117,7 +119,12 @@ class Chat(object):
         return capi.lib.dc_get_chat(self.dc_context, self.id)
 
     def __del__(self):
-        capi.lib.dc_chat_unref(self.dc_chat_t)
+        if self._property_cache:
+            capi.lib.dc_chat_unref(self.dc_chat_t)
+
+    def is_deaddrop(self):
+        """ return true if this chat is a deaddrop chat. """
+        return self.id == lib.DC_CHAT_ID_DEADDROP
 
     def send_text_message(self, msg):
         """ send a text message and return the resulting Message instance. """
@@ -131,6 +138,17 @@ class Chat(object):
         dc_array_t = lib.dc_get_chat_msgs(self.dc_context, self.id, 0, 0)
         return list(iter_array_and_unref(dc_array_t, lambda x: Message(self.dc_context, x)))
 
+    def count_fresh_messages(self):
+        """ return number of fresh messages in this chat. """
+        return lib.dc_get_fresh_msg_cnt(self.dc_context, self.id)
+
+    def mark_noticed(self):
+        """ mark all messages in this chat as noticed.
+
+        Noticed messages are no longer fresh.
+        """
+        return lib.dc_marknoticed_chat(self.dc_context, self.id)
+
 
 @attr.s
 class Message(object):
@@ -142,7 +160,8 @@ class Message(object):
         return capi.lib.dc_get_msg(self.dc_context, self.id)
 
     def __del__(self, dc_msg_unref=capi.lib.dc_msg_unref):
-        dc_msg_unref(self.dc_msg_t)
+        if self._property_cache:
+            dc_msg_unref(self.dc_msg_t)
 
     @property
     def text(self):
@@ -224,8 +243,30 @@ class Account(object):
                         self.dc_context, contact_id)
         return Chat(self.dc_context, chat_id)
 
+    def create_chat_by_message(self, message):
+        """ return a Chat object for the given message.
+
+        @param message: messsage id or message instance.
+        """
+        msg_id = getattr(message, "id", message)
+        assert isinstance(msg_id, int)
+        chat_id = capi.lib.dc_create_chat_by_msg_id(self.dc_context, msg_id)
+        return Chat(self.dc_context, chat_id)
+
     def get_message_by_id(self, msg_id):
         return Message(self.dc_context, msg_id)
+
+    def mark_seen_messages(self, messages):
+        """ mark the given set of messages as seen.
+
+        :messages: a list of message ids or Message instances.
+        """
+        arr = array("i")
+        for msg in messages:
+            msg = getattr(msg, "id", msg)
+            arr.append(msg)
+        msg_ids = ffi.cast("uint32_t*", ffi.from_buffer(arr))
+        lib.dc_markseen_msgs(self.dc_context, msg_ids, len(messages))
 
     def start(self):
         deltachat.set_context_callback(self.dc_context, self._process_event)
