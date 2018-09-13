@@ -98,5 +98,6 @@ class TestOnlineAccount:
         assert ev[2] == msg.id
         msg = ac2.get_message_by_id(msg.id)
         assert msg.text == "msg1"
-        # note that ev[1] aka data1 contains a bogus channel id
-        # probably should just not get passed from the core
+        messages = msg.chat.get_messages()
+        assert msg in messages, (msg, messages)
+

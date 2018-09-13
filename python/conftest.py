@@ -2,6 +2,7 @@ import pytest
 import re
 import threading
 from deltachat import Account
+from deltachat.types import cached_property
 
 
 def pytest_addoption(parser):
@@ -15,21 +16,23 @@ def pytest_addoption(parser):
 @pytest.fixture
 def acfactory(pytestconfig, tmpdir, request):
     fn = pytestconfig.getoption("--liveconfig")
-    if not fn:
-        pytest.skip("specify a --liveconfig file to run tests with real accounts")
 
     class AccountMaker:
         def __init__(self):
-            self.configlist = []
+            self.live_count = 0
+            self.offline_count = 0
+
+        @cached_property
+        def configlist (self):
+            configlist = []
             for line in open(fn):
                 if line.strip():
                     d = {}
                     for part in line.split():
                         name, value = part.split("=")
                         d[name] = value
-                    self.configlist.append(d)
-            self.live_count = 0
-            self.offline_count = 0
+                    configlist.append(d)
+            return configlist
 
         def get_offline_account(self):
             self.offline_count += 1
@@ -39,6 +42,8 @@ def acfactory(pytestconfig, tmpdir, request):
             return ac
 
         def get_live_account(self, started=True):
+            if not fn:
+                pytest.skip("specify a --liveconfig file to run tests with real accounts")
             self.live_count += 1
             configdict = self.configlist.pop(0)
             tmpdb = tmpdir.join("livedb%d" % self.live_count)

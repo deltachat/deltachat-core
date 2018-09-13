@@ -9,7 +9,7 @@ except ImportError:
 
 import deltachat
 from . import capi
-from .capi import ffi
+from .capi import ffi, lib
 from .types import cached_property
 import attr
 from attr import validators as v
@@ -120,11 +120,17 @@ class Chat(object):
         capi.lib.dc_chat_unref(self.dc_chat_t)
 
     def send_text_message(self, msg):
-        """ send a text message and return Message instance. """
+        """ send a text message and return the resulting Message instance. """
         msg = convert_to_bytes_utf8(msg)
         print ("chat id", self.id)
         msg_id = capi.lib.dc_send_text_msg(self.dc_context, self.id, msg)
         return Message(self.dc_context, msg_id)
+
+    def get_messages(self):
+        """ return list of messages in this chat. """
+        dc_array_t = lib.dc_get_chat_msgs(self.dc_context, self.id, 0, 0)
+        return map(lambda x: Message(self.dc_context, x),
+                   iter_array_and_unref(dc_array_t))
 
 
 @attr.s
@@ -270,6 +276,14 @@ def convert_to_bytes_utf8(obj):
     if not isinstance(obj, bytes):
         return obj.encode("utf8")
     return obj
+
+
+def iter_array_and_unref(dc_array_t):
+    try:
+        for i in range(0, lib.dc_array_get_cnt(dc_array_t)):
+            yield lib.dc_array_get_id(dc_array_t, i)
+    finally:
+        lib.dc_array_unref(dc_array_t)
 
 
 def ffi_unicode(obj):
