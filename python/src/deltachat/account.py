@@ -175,9 +175,15 @@ class Account(object):
         res = capi.lib.dc_get_config(self.dc_context, name, b'')
         return ffi_unicode(res)
 
-    def get_self_contact(self):
-        if not capi.lib.dc_is_configured(self.dc_context):
+    def is_configured(self):
+        return capi.lib.dc_is_configured(self.dc_context)
+
+    def check_is_configured(self):
+        if not self.is_configured():
             raise ValueError("need to configure first")
+
+    def get_self_contact(self):
+        self.check_is_configured()
         return Contact(self.dc_context, capi.lib.DC_CONTACT_ID_SELF)
 
     def create_contact(self, email, name=ffi.NULL):

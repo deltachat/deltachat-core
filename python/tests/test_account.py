@@ -4,6 +4,12 @@ from deltachat.capi import lib
 
 
 class TestOfflineAccount:
+    def test_is_not_configured(self, acfactory):
+        ac1 = acfactory.get_offline_account()
+        assert not ac1.is_configured()
+        with pytest.raises(ValueError):
+            ac1.check_is_configured()
+
     def test_selfcontact_if_unconfigured(self, acfactory):
         ac1 = acfactory.get_offline_account()
         with pytest.raises(ValueError):
@@ -70,6 +76,7 @@ class TestOnlineAccount:
         self.wait_successful_IMAP_SMTP_connection(ac1)
         self.wait_configuration_progress(ac1, 1000)
         assert ac1.get_config("mail_pw")
+        assert ac1.is_configured()
 
     def test_send_message(self, acfactory):
         ac1 = acfactory.get_live_account()
