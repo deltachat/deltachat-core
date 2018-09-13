@@ -1,19 +1,6 @@
-from attr import attrs, attrib  # noqa
-from attr import validators as v
-
-
-def attrib_int():
-    return attrib(validator=v.instance_of(int))
-
-
-def attrib_CData():
-    from deltachat.capi import ffi
-    return attrib(validator=v.instance_of(ffi.CData))
-
-
 # copied over unmodified from
 # https://github.com/devpi/devpi/blob/master/common/devpi_common/types.py
-# where it's also tested
+
 
 def cached_property(f):
     """returns a cached property that is calculated by function f"""

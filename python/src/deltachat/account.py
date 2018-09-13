@@ -10,12 +10,14 @@ except ImportError:
 import deltachat
 from . import capi
 from .capi import ffi
-from .myattr import attrib_CData, attrs, attrib_int, cached_property
+from .types import cached_property
+import attr
+from attr import validators as v
 
 
-@attrs
+@attr.s
 class EventHandler(object):
-    dc_context = attrib_CData()
+    dc_context = attr.ib(validator=v.instance_of(ffi.CData))
 
     def read_url(self, url):
         try:
@@ -76,10 +78,10 @@ class EventLogger:
                  tname, self.logid, evt_name, data1, data2))
 
 
-@attrs
+@attr.s
 class Contact(object):
-    dc_context = attrib_CData()
-    id = attrib_int()
+    dc_context = attr.ib(validator=v.instance_of(ffi.CData))
+    id = attr.ib(validator=v.instance_of(int))
 
     @cached_property  # only get it once because we only free it once
     def dc_contact_t(self):
@@ -105,10 +107,10 @@ class Contact(object):
         return capi.lib.dc_contact_is_verified(self.dc_contact_t)
 
 
-@attrs
+@attr.s
 class Chat(object):
-    dc_context = attrib_CData()
-    id = attrib_int()
+    dc_context = attr.ib(validator=v.instance_of(ffi.CData))
+    id = attr.ib(validator=v.instance_of(int))
 
     @cached_property
     def dc_chat_t(self):
@@ -125,10 +127,10 @@ class Chat(object):
         return Message(self.dc_context, msg_id)
 
 
-@attrs
+@attr.s
 class Message(object):
-    dc_context = attrib_CData()
-    id = attrib_int()
+    dc_context = attr.ib(validator=v.instance_of(ffi.CData))
+    id = attr.ib(validator=v.instance_of(int))
 
     @cached_property
     def dc_msg_t(self):
