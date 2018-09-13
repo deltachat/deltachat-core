@@ -280,6 +280,7 @@ int             dc_get_msg_cnt               (dc_context_t*, uint32_t chat_id);
 int             dc_get_fresh_msg_cnt         (dc_context_t*, uint32_t chat_id);
 dc_array_t*     dc_get_fresh_msgs            (dc_context_t*);
 void            dc_marknoticed_chat          (dc_context_t*, uint32_t chat_id);
+void            dc_marknoticed_all_chats     (dc_context_t*);
 dc_array_t*     dc_get_chat_media            (dc_context_t*, uint32_t chat_id, int msg_type, int or_msg_type);
 uint32_t        dc_get_next_media            (dc_context_t*, uint32_t curr_msg_id, int dir);
 
@@ -767,7 +768,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 
 
 /**
- * Emitted when SMTP connection is established and login was successful. 
+ * Emitted when SMTP connection is established and login was successful.
  *
  * @param data1 0
  * @param data2 (const char*) Info string in english language.
@@ -778,7 +779,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 
 
 /**
- * Emitted when IMAP connection is established and login was successful. 
+ * Emitted when IMAP connection is established and login was successful.
  *
  * @param data1 0
  * @param data2 (const char*) Info string in english language.

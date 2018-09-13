@@ -569,9 +569,12 @@ cleanup:
 
 /**
  * Mark all messages in a chat as _noticed_.
- * _Noticed_ messages are no longer _fresh_ and do not count as being unseen.
- * IMAP/MDNs is not done for noticed messages.  See also dc_marknoticed_contact()
- * and dc_markseen_msgs()
+ * _Noticed_ messages are no longer _fresh_ and do not count as being unseen
+ * but are still waiting for being marked as "seen" using dc_markseen_msgs()
+ * (IMAP/MDNs is not done for noticed messages).
+ *
+ * Calling this function usually results in the event #DC_EVENT_MSGS_CHANGED.
+ * See also dc_marknoticed_all_chats(), dc_marknoticed_contact() and dc_markseen_msgs().
  *
  * @memberof dc_context_t
  * @param context The context object as returned from dc_context_new().
@@ -580,8 +583,6 @@ cleanup:
  */
 void dc_marknoticed_chat(dc_context_t* context, uint32_t chat_id)
 {
-	/* marking a chat as "seen" is done by marking all fresh chat messages as "noticed" -
-	"noticed" messages are not counted as being unread but are still waiting for being marked as "seen" using dc_markseen_msgs() */
 	sqlite3_stmt* stmt;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
@@ -593,6 +594,32 @@ void dc_marknoticed_chat(dc_context_t* context, uint32_t chat_id)
 	sqlite3_bind_int(stmt, 1, chat_id);
 	sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
+
+	context->cb(context, DC_EVENT_MSGS_CHANGED, 0, 0);
+}
+
+
+/**
+ * Same as dc_marknoticed_chat() but for _all_ chats.
+ *
+ * @memberof dc_context_t
+ * @param context The context object as returned from dc_context_new().
+ * @return None.
+ */
+void dc_marknoticed_all_chats(dc_context_t* context)
+{
+	sqlite3_stmt* stmt;
+
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		return;
+	}
+
+	stmt = dc_sqlite3_prepare(context->sql,
+		"UPDATE msgs SET state=" DC_STRINGIFY(DC_STATE_IN_NOTICED) " WHERE state=" DC_STRINGIFY(DC_STATE_IN_FRESH) ";");
+	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+
+	context->cb(context, DC_EVENT_MSGS_CHANGED, 0, 0);
 }
 
 

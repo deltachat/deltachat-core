@@ -1025,6 +1025,8 @@ dc_contact_t* dc_get_contact(dc_context_t* context, uint32_t contact_id)
  * as _noticed_.  See also dc_marknoticed_chat() and
  * dc_markseen_msgs()
  *
+ * Calling this function usually results in the event #DC_EVENT_MSGS_CHANGED.
+ *
  * @memberof dc_context_t
  * @param context The context object as created by dc_context_new()
  * @param contact_id The contact ID of which all messages should be marked as noticed.
@@ -1041,6 +1043,8 @@ void dc_marknoticed_contact(dc_context_t* context, uint32_t contact_id)
 	sqlite3_bind_int(stmt, 1, contact_id);
 	sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
+
+	context->cb(context, DC_EVENT_MSGS_CHANGED, 0, 0);
 }
 
 
