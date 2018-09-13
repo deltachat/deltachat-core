@@ -7,14 +7,17 @@ try:
 except ImportError:
     from Queue import Queue
 
+import deltachat
 from . import capi
 from .capi import ffi
-import deltachat
+from .types import cached_property
+import attr
+from attr import validators as v
 
 
-class EventHandler:
-    def __init__(self, dc_context):
-        self.dc_context = dc_context
+@attr.s
+class EventHandler(object):
+    dc_context = attr.ib(validator=v.instance_of(ffi.CData))
 
     def read_url(self, url):
         try:
@@ -75,14 +78,17 @@ class EventLogger:
                  tname, self.logid, evt_name, data1, data2))
 
 
-class Contact:
-    def __init__(self, dc_context, contact_id):
-        self.dc_context = dc_context
-        self.id = contact_id
-        self.dc_contact_t = capi.lib.dc_get_contact(self.dc_context, contact_id)
+@attr.s
+class Contact(object):
+    dc_context = attr.ib(validator=v.instance_of(ffi.CData))
+    id = attr.ib(validator=v.instance_of(int))
 
-    def __del__(self):
-        capi.lib.free(self.dc_contact_t)
+    @cached_property  # only get it once because we only free it once
+    def dc_contact_t(self):
+        return capi.lib.dc_get_contact(self.dc_context, self.id)
+
+    def __del__(self, dc_contact_unref=capi.lib.dc_contact_unref):
+        dc_contact_unref(self.dc_contact_t)
 
     @property
     def addr(self):
@@ -101,45 +107,49 @@ class Contact:
         return capi.lib.dc_contact_is_verified(self.dc_contact_t)
 
 
-class Chat:
-    def __init__(self, dc_context, chat_id):
-        self.dc_context = dc_context
-        self.id = chat_id
+@attr.s
+class Chat(object):
+    dc_context = attr.ib(validator=v.instance_of(ffi.CData))
+    id = attr.ib(validator=v.instance_of(int))
 
-    def __eq__(self, other_chat):
-        return (
-            self.dc_context == getattr(other_chat, "dc_context", None) and
-            self.id == getattr(other_chat, "id", None)
-        )
+    @cached_property
+    def dc_chat_t(self):
+        return capi.lib.dc_get_chat(self.dc_context, self.id)
 
-    def __ne__(self, other_chat):
-        return not self == other_chat
+    def __del__(self):
+        capi.lib.dc_chat_unref(self.dc_chat_t)
 
     def send_text_message(self, msg):
-        """ return ID of the message in this chat.
-        'msg' should be unicode"""
+        """ send a text message and return Message instance. """
         msg = convert_to_bytes_utf8(msg)
         print ("chat id", self.id)
-        return capi.lib.dc_send_text_msg(self.dc_context, self.id, msg)
+        msg_id = capi.lib.dc_send_text_msg(self.dc_context, self.id, msg)
+        return Message(self.dc_context, msg_id)
 
 
-class Message:
-    def __init__(self, dc_context, msg_id):
-        self.dc_context = dc_context
-        self.id = msg_id
-        self.dc_msg = capi.lib.dc_get_msg(self.dc_context, msg_id)
+@attr.s
+class Message(object):
+    dc_context = attr.ib(validator=v.instance_of(ffi.CData))
+    id = attr.ib(validator=v.instance_of(int))
+
+    @cached_property
+    def dc_msg_t(self):
+        return capi.lib.dc_get_msg(self.dc_context, self.id)
+
+    def __del__(self, dc_msg_unref=capi.lib.dc_msg_unref):
+        dc_msg_unref(self.dc_msg_t)
 
     @property
     def text(self):
-        return ffi_unicode(capi.lib.dc_msg_get_text(self.dc_msg))
+        return ffi_unicode(capi.lib.dc_msg_get_text(self.dc_msg_t))
 
     @property
     def chat(self):
-        chat_id = capi.lib.dc_msg_get_chat_id(self.dc_msg)
+        chat_id = capi.lib.dc_msg_get_chat_id(self.dc_msg_t)
         return Chat(self.dc_context, chat_id)
 
 
-class Account:
+class Account(object):
     def __init__(self, db_path, logid=None):
         self.dc_context = ctx = capi.lib.dc_context_new(
                                   capi.lib.py_dc_callback,
@@ -150,6 +160,9 @@ class Account:
         self._evhandler = EventHandler(self.dc_context)
         self._evlogger = EventLogger(self.dc_context, logid)
         self._threads = IOThreads(self.dc_context)
+
+    def __del__(self, dc_context_unref=capi.lib.dc_context_unref):
+        dc_context_unref(self.dc_context)
 
     def set_config(self, **kwargs):
         for name, value in kwargs.items():
@@ -184,7 +197,7 @@ class Account:
                         self.dc_context, contact_id)
         return Chat(self.dc_context, chat_id)
 
-    def get_message(self, msg_id):
+    def get_message_by_id(self, msg_id):
         return Message(self.dc_context, msg_id)
 
     def start(self):
@@ -194,13 +207,7 @@ class Account:
 
     def shutdown(self):
         deltachat.clear_context_callback(self.dc_context)
-        self._threads.stop(wait=False)
-        # XXX actually we'd like to wait but the smtp/imap
-        # interrupt idle calls do not seem to release the
-        # blocking call to smtp|imap idle. This means we
-        # also can't now close the database because the
-        # threads might still need it.
-        # capi.lib.dc_close(self.dc_context)
+        self._threads.stop(wait=True)
 
     def _process_event(self, ctx, evt_name, data1, data2):
         assert ctx == self.dc_context
@@ -231,8 +238,6 @@ class IOThreads:
 
     def stop(self, wait=False):
         self._thread_quitflag = True
-        # XXX interrupting does not quite work yet, the threads keep idling
-        print("interrupting smtp and idle")
         capi.lib.dc_interrupt_imap_idle(self.dc_context)
         capi.lib.dc_interrupt_smtp_idle(self.dc_context)
         if wait:
