@@ -3,8 +3,8 @@ from .capi import ffi
 
 
 def convert_to_bytes_utf8(obj):
-    if obj == ffi.NULL:
-        return obj
+    if obj == ffi.NULL or obj is None:
+        return ffi.NULL
     if not isinstance(obj, bytes):
         return obj.encode("utf8")
     return obj

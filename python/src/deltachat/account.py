@@ -20,8 +20,9 @@ from .chatting import Contact, Chat, Message
 
 
 class Account(object):
-    """ An account contains configuration and provides methods
-    for configuration, contact and chat creation and manipulation.
+    """ Each account is tied to a sqlite database file which is fully managed
+    by the underlying deltachat c-library.  All public Account methods are
+    meant to be memory-safe and return memory-safe objects.
     """
 
     def __init__(self, db_path, logid=None):
@@ -86,7 +87,7 @@ class Account(object):
         self.check_is_configured()
         return Contact(self._dc_context, lib.DC_CONTACT_ID_SELF)
 
-    def create_contact(self, email, name=ffi.NULL):
+    def create_contact(self, email, name=None):
         """ create a (new) Contact. If there already is a Contact
         with that e-mail address, it is unblocked and its name is
         updated.
@@ -100,7 +101,7 @@ class Account(object):
         contact_id = lib.dc_create_contact(self._dc_context.p, name, email)
         return Contact(self._dc_context, contact_id)
 
-    def get_contacts(self, query=ffi.NULL, with_self=False, only_verified=False):
+    def get_contacts(self, query=None, with_self=False, only_verified=False):
         """ get a (filtered) list of contacts.
 
         :param query: if a string is specified, only return contacts
