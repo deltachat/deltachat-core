@@ -95,13 +95,8 @@ class Contact(object):
         return capi.lib.dc_get_contact(self.dc_context, self.id)
 
     def __del__(self):
-        try:
-            dc_contact_unref = capi.lib.dc_contact_unref
-            self._property_cache
-        except:  # noqa
-            pass
-        else:
-            dc_contact_unref(self.dc_contact_t)
+        if lib is not None and hasattr(self, "_property_cache"):
+            lib.dc_contact_unref(self.dc_contact_t)
 
     @property_with_doc
     def addr(self):
@@ -156,7 +151,7 @@ class Chat(object):
     def get_messages(self):
         """ return list of messages in this chat.
 
-        :returns: list of Message objects for this chat.
+        :returns: list of :class:`Message` objects for this chat.
         """
         dc_array_t = lib.dc_get_chat_msgs(self.dc_context, self.id, 0, 0)
         return list(iter_array_and_unref(dc_array_t, lambda x: Message(self.dc_context, x)))
@@ -275,7 +270,9 @@ class Account(object):
         return Contact(self.dc_context, capi.lib.DC_CONTACT_ID_SELF)
 
     def create_contact(self, email, name=ffi.NULL):
-        """ Return a :class:`Contact` object.
+        """ create a (new) Contact. If there already is a Contact
+        with that e-mail address, it is unblocked and its name is
+        updated.
 
         :param email: email-address (text type)
         :param name: display name for this contact (optional)
@@ -287,12 +284,13 @@ class Account(object):
         return Contact(self.dc_context, contact_id)
 
     def get_contacts(self, query=ffi.NULL, with_self=False, only_verified=False):
-        """ return list of :class:`Contact` objects.
+        """ get a (filtered) list of contacts.
 
         :param query: if a string is specified, only return contacts
                       whose name or e-mail matches query.
         :param only_verified: if true only return verified contacts.
         :param with_self: if true the self-contact is also returned.
+        :returns: list of :class:`Message` objects.
         """
         flags = 0
         query = convert_to_bytes_utf8(query)
@@ -304,9 +302,10 @@ class Account(object):
         return list(iter_array_and_unref(dc_array_t, lambda x: Contact(self.dc_context, x)))
 
     def create_chat_by_contact(self, contact):
-        """ return a Chat object with the specified contact.
+        """ create or get an existing 1:1 chat object for the specified contact.
 
         :param contact: chat_id (int) or contact object.
+        :returns: a :class:`Chat` object.
         """
         contact_id = getattr(contact, "id", contact)
         assert isinstance(contact_id, int)
@@ -315,9 +314,11 @@ class Account(object):
         return Chat(self.dc_context, chat_id)
 
     def create_chat_by_message(self, message):
-        """ return a Chat object for the given message.
+        """ create or get an existing 1:1 chat object for the specified sender
+        of the specified message.
 
         :param message: messsage id or message instance.
+        :returns: a :class:`Chat` object.
         """
         msg_id = getattr(message, "id", message)
         assert isinstance(msg_id, int)
@@ -325,10 +326,7 @@ class Account(object):
         return Chat(self.dc_context, chat_id)
 
     def get_message_by_id(self, msg_id):
-        """ return a message object.
-
-        :returns: :class:`Message` instance.
-        """
+        """ return Message instance. """
         return Message(self.dc_context, msg_id)
 
     def mark_seen_messages(self, messages):

@@ -16,8 +16,9 @@ Install
 First you need to execute all the build steps to install the delta-core C-library,
 see https://github.com/deltachat/deltachat-core/blob/master/README.md#build
 
-Next, you need to perform::
+Presuming you have the delta-core library installed, you can then from the root of the repo::
 
+    cd python
     pip install -e .
 
 Afterwards you should be able to successfully import the bindings::
