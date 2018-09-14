@@ -15,7 +15,6 @@ from attr import validators as v
 import deltachat
 from .capi import ffi, lib
 from .cutil import as_dc_charpointer, from_dc_charpointer, iter_array_and_unref
-from .types import DC_Context
 from .chatting import Contact, Chat, Message
 
 
@@ -34,12 +33,13 @@ class Account(object):
                       the default internal logging.
         """
 
-        self._dc_context = DC_Context(
-            lib.dc_context_new(lib.py_dc_callback, ffi.NULL, ffi.NULL)
+        self._dc_context = ffi.gc(
+            lib.dc_context_new(lib.py_dc_callback, ffi.NULL, ffi.NULL),
+            lib.dc_context_unref,
         )
         if hasattr(db_path, "encode"):
             db_path = db_path.encode("utf8")
-        if not lib.dc_open(self._dc_context.p, db_path, ffi.NULL):
+        if not lib.dc_open(self._dc_context, db_path, ffi.NULL):
             raise ValueError("Could not dc_open: {}".format(db_path))
         self._evhandler = EventHandler(self._dc_context)
         self._evlogger = EventLogger(self._dc_context, logid)
@@ -55,7 +55,7 @@ class Account(object):
         for name, value in kwargs.items():
             name = name.encode("utf8")
             value = value.encode("utf8")
-            lib.dc_set_config(self._dc_context.p, name, value)
+            lib.dc_set_config(self._dc_context, name, value)
 
     def get_config(self, name):
         """ return unicode string value.
@@ -65,7 +65,7 @@ class Account(object):
         :raises: KeyError if no config value was found.
         """
         name = name.encode("utf8")
-        res = lib.dc_get_config(self._dc_context.p, name, b'')
+        res = lib.dc_get_config(self._dc_context, name, b'')
         return from_dc_charpointer(res)
 
     def is_configured(self):
@@ -73,7 +73,7 @@ class Account(object):
 
         :returns: True if account is configured.
         """
-        return lib.dc_is_configured(self._dc_context.p)
+        return lib.dc_is_configured(self._dc_context)
 
     def check_is_configured(self):
         """ Raise ValueError if this account is not configured. """
@@ -99,7 +99,7 @@ class Account(object):
         """
         name = as_dc_charpointer(name)
         email = as_dc_charpointer(email)
-        contact_id = lib.dc_create_contact(self._dc_context.p, name, email)
+        contact_id = lib.dc_create_contact(self._dc_context, name, email)
         return Contact(self._dc_context, contact_id)
 
     def get_contacts(self, query=None, with_self=False, only_verified=False):
@@ -117,8 +117,8 @@ class Account(object):
             flags |= lib.DC_GCL_VERIFIED_ONLY
         if with_self:
             flags |= lib.DC_GCL_ADD_SELF
-        dc_array_t = lib.dc_get_contacts(self._dc_context.p, flags, query)
-        return list(iter_array_and_unref(dc_array_t, lambda x: Contact(self._dc_context.p, x)))
+        dc_array_t = lib.dc_get_contacts(self._dc_context, flags, query)
+        return list(iter_array_and_unref(dc_array_t, lambda x: Contact(self._dc_context, x)))
 
     def create_chat_by_contact(self, contact):
         """ create or get an existing 1:1 chat object for the specified contact.
@@ -129,7 +129,7 @@ class Account(object):
         contact_id = getattr(contact, "id", contact)
         assert isinstance(contact_id, int)
         chat_id = lib.dc_create_chat_by_contact_id(
-                        self._dc_context.p, contact_id)
+                        self._dc_context, contact_id)
         return Chat(self._dc_context, chat_id)
 
     def create_chat_by_message(self, message):
@@ -141,7 +141,7 @@ class Account(object):
         """
         msg_id = getattr(message, "id", message)
         assert isinstance(msg_id, int)
-        chat_id = lib.dc_create_chat_by_msg_id(self._dc_context.p, msg_id)
+        chat_id = lib.dc_create_chat_by_msg_id(self._dc_context, msg_id)
         return Chat(self._dc_context, chat_id)
 
     def get_message_by_id(self, msg_id):
@@ -158,22 +158,22 @@ class Account(object):
             msg = getattr(msg, "id", msg)
             arr.append(msg)
         msg_ids = ffi.cast("uint32_t*", ffi.from_buffer(arr))
-        lib.dc_markseen_msgs(self._dc_context.p, msg_ids, len(messages))
+        lib.dc_markseen_msgs(self._dc_context, msg_ids, len(messages))
 
     def start(self):
         """ configure this account object, start receiving events,
         start IMAP/SMTP threads. """
-        deltachat.set_context_callback(self._dc_context.p, self._process_event)
-        lib.dc_configure(self._dc_context.p)
+        deltachat.set_context_callback(self._dc_context, self._process_event)
+        lib.dc_configure(self._dc_context)
         self._threads.start()
 
     def shutdown(self):
         """ shutdown IMAP/SMTP threads and stop receiving events"""
-        deltachat.clear_context_callback(self._dc_context.p)
+        deltachat.clear_context_callback(self._dc_context)
         self._threads.stop(wait=True)
 
     def _process_event(self, ctx, evt_name, data1, data2):
-        assert ctx == self._dc_context.p
+        assert ctx == self._dc_context
         self._evlogger(evt_name, data1, data2)
         method = getattr(self._evhandler, evt_name.lower(), None)
         if method is not None:
@@ -201,8 +201,8 @@ class IOThreads:
 
     def stop(self, wait=False):
         self._thread_quitflag = True
-        lib.dc_interrupt_imap_idle(self._dc_context.p)
-        lib.dc_interrupt_smtp_idle(self._dc_context.p)
+        lib.dc_interrupt_imap_idle(self._dc_context)
+        lib.dc_interrupt_smtp_idle(self._dc_context)
         if wait:
             for name, thread in self._name2thread.items():
                 thread.join()
@@ -210,20 +210,20 @@ class IOThreads:
     def imap_thread_run(self):
         print ("starting imap thread")
         while not self._thread_quitflag:
-            lib.dc_perform_imap_jobs(self._dc_context.p)
-            lib.dc_perform_imap_fetch(self._dc_context.p)
-            lib.dc_perform_imap_idle(self._dc_context.p)
+            lib.dc_perform_imap_jobs(self._dc_context)
+            lib.dc_perform_imap_fetch(self._dc_context)
+            lib.dc_perform_imap_idle(self._dc_context)
 
     def smtp_thread_run(self):
         print ("starting smtp thread")
         while not self._thread_quitflag:
-            lib.dc_perform_smtp_jobs(self._dc_context.p)
-            lib.dc_perform_smtp_idle(self._dc_context.p)
+            lib.dc_perform_smtp_jobs(self._dc_context)
+            lib.dc_perform_smtp_idle(self._dc_context)
 
 
 @attr.s
 class EventHandler(object):
-    _dc_context = attr.ib(validator=v.instance_of(DC_Context))
+    _dc_context = attr.ib(validator=v.instance_of(ffi.CData))
 
     def read_url(self, url):
         try:
@@ -251,7 +251,7 @@ class EventLogger:
         self._event_queue = Queue()
         self._debug = debug
         if logid is None:
-            logid = str(self._dc_context.p).strip(">").split()[-1]
+            logid = str(self._dc_context).strip(">").split()[-1]
         self.logid = logid
         self._timeout = None
 

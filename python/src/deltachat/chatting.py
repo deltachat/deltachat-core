@@ -1,9 +1,8 @@
 """ chatting related objects: Contact, Chat, Message. """
 
 from .cutil import as_dc_charpointer, from_dc_charpointer, iter_array_and_unref
-from .capi import lib
+from .capi import lib, ffi
 from .types import cached_property, property_with_doc
-from .types import DC_Context, DC_Contact, DC_Chat, DC_Msg
 import attr
 from attr import validators as v
 
@@ -14,30 +13,33 @@ class Contact(object):
 
     You obtain instances of it through :class:`deltachat.account.Account`.
     """
-    _dc_context = attr.ib(validator=v.instance_of(DC_Context))
+    _dc_context = attr.ib(validator=v.instance_of(ffi.CData))
     id = attr.ib(validator=v.instance_of(int))
 
     @cached_property
     def _dc_contact(self):
-        return DC_Contact(lib.dc_get_contact(self._dc_context.p, self.id))
+        return ffi.gc(
+            lib.dc_get_contact(self._dc_context, self.id),
+            lib.dc_contact_unref
+        )
 
     @property_with_doc
     def addr(self):
         """ normalized e-mail address for this account. """
-        return from_dc_charpointer(lib.dc_contact_get_addr(self._dc_contact.p))
+        return from_dc_charpointer(lib.dc_contact_get_addr(self._dc_contact))
 
     @property_with_doc
     def display_name(self):
         """ display name for this contact. """
-        return from_dc_charpointer(lib.dc_contact_get_display_name(self._dc_contact.p))
+        return from_dc_charpointer(lib.dc_contact_get_display_name(self._dc_contact))
 
     def is_blocked(self):
         """ Return True if the contact is blocked. """
-        return lib.dc_contact_is_blocked(self._dc_contact.p)
+        return lib.dc_contact_is_blocked(self._dc_contact)
 
     def is_verified(self):
         """ Return True if the contact is verified. """
-        return lib.dc_contact_is_verified(self._dc_contact.p)
+        return lib.dc_contact_is_verified(self._dc_contact)
 
 
 @attr.s
@@ -46,12 +48,15 @@ class Chat(object):
 
     You obtain instances of it through :class:`deltachat.account.Account`.
     """
-    _dc_context = attr.ib(validator=v.instance_of(DC_Context))
+    _dc_context = attr.ib(validator=v.instance_of(ffi.CData))
     id = attr.ib(validator=v.instance_of(int))
 
     @cached_property
     def _dc_chat(self):
-        return DC_Chat(lib.dc_get_chat(self._dc_context.p, self.id))
+        return ffi.gc(
+            lib.dc_get_chat(self._dc_context, self.id),
+            lib.dc_chat_unref
+        )
 
     def is_deaddrop(self):
         """ return true if this chat is a deaddrop chat. """
@@ -64,7 +69,7 @@ class Chat(object):
         :returns: the resulting :class:`Message` instance
         """
         msg = as_dc_charpointer(msg)
-        msg_id = lib.dc_send_text_msg(self._dc_context.p, self.id, msg)
+        msg_id = lib.dc_send_text_msg(self._dc_context, self.id, msg)
         return Message(self._dc_context, msg_id)
 
     def get_messages(self):
@@ -72,7 +77,7 @@ class Chat(object):
 
         :returns: list of :class:`Message` objects for this chat.
         """
-        dc_array_t = lib.dc_get_chat_msgs(self._dc_context.p, self.id, 0, 0)
+        dc_array_t = lib.dc_get_chat_msgs(self._dc_context, self.id, 0, 0)
         return list(iter_array_and_unref(dc_array_t, lambda x: Message(self._dc_context, x)))
 
     def count_fresh_messages(self):
@@ -80,14 +85,14 @@ class Chat(object):
 
         :returns: number of fresh messages
         """
-        return lib.dc_get_fresh_msg_cnt(self._dc_context.p, self.id)
+        return lib.dc_get_fresh_msg_cnt(self._dc_context, self.id)
 
     def mark_noticed(self):
         """ mark all messages in this chat as noticed.
 
         Noticed messages are no longer fresh.
         """
-        return lib.dc_marknoticed_chat(self._dc_context.p, self.id)
+        return lib.dc_marknoticed_chat(self._dc_context, self.id)
 
 
 @attr.s
@@ -97,12 +102,15 @@ class Message(object):
     You obtain instances of it through :class:`deltachat.account.Account` or
     :class:`Chat`.
     """
-    _dc_context = attr.ib(validator=v.instance_of(DC_Context))
+    _dc_context = attr.ib(validator=v.instance_of(ffi.CData))
     id = attr.ib(validator=v.instance_of(int))
 
     @cached_property
     def _dc_msg(self):
-        return DC_Msg(lib.dc_get_msg(self._dc_context.p, self.id))
+        return ffi.gc(
+            lib.dc_get_msg(self._dc_context, self.id),
+            lib.dc_msg_unref
+        )
 
     def _refresh(self):
         try:
@@ -120,7 +128,7 @@ class Message(object):
     @property_with_doc
     def text(self):
         """unicode representation. """
-        return from_dc_charpointer(lib.dc_msg_get_text(self._dc_msg.p))
+        return from_dc_charpointer(lib.dc_msg_get_text(self._dc_msg))
 
     @property
     def chat(self):
@@ -128,7 +136,7 @@ class Message(object):
 
         :returns: :class:`Chat` object
         """
-        chat_id = lib.dc_msg_get_chat_id(self._dc_msg.p)
+        chat_id = lib.dc_msg_get_chat_id(self._dc_msg)
         return Chat(self._dc_context, chat_id)
 
 
@@ -141,7 +149,7 @@ class MessageState(object):
     @property
     def _msgstate(self):
         self.message._refresh()
-        return lib.dc_msg_get_state(self.message._dc_msg.p)
+        return lib.dc_msg_get_state(self.message._dc_msg)
 
     def is_in_fresh(self):
         """ return True if Message is incoming fresh message (un-noticed).
