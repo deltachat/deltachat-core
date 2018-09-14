@@ -94,8 +94,13 @@ class Contact(object):
     def dc_contact_t(self):
         return capi.lib.dc_get_contact(self.dc_context, self.id)
 
-    def __del__(self, dc_contact_unref=capi.lib.dc_contact_unref):
-        if self._property_cache:
+    def __del__(self):
+        try:
+            dc_contact_unref = capi.lib.dc_contact_unref
+            self._property_cache
+        except:  # noqa
+            pass
+        else:
             dc_contact_unref(self.dc_contact_t)
 
     @property_with_doc
@@ -130,8 +135,8 @@ class Chat(object):
         return capi.lib.dc_get_chat(self.dc_context, self.id)
 
     def __del__(self):
-        if self._property_cache:
-            capi.lib.dc_chat_unref(self.dc_chat_t)
+        if lib is not None and hasattr(self, "_property_cache"):
+            lib.dc_chat_unref(self.dc_chat_t)
 
     def is_deaddrop(self):
         """ return true if this chat is a deaddrop chat. """
@@ -181,9 +186,9 @@ class Message(object):
     def dc_msg_t(self):
         return capi.lib.dc_get_msg(self.dc_context, self.id)
 
-    def __del__(self, dc_msg_unref=capi.lib.dc_msg_unref):
-        if self._property_cache:
-            dc_msg_unref(self.dc_msg_t)
+    def __del__(self):
+        if lib is not None and hasattr(self, "_property_cache"):
+            lib.dc_msg_unref(self.dc_msg_t)
 
     @property_with_doc
     def text(self):
@@ -223,8 +228,9 @@ class Account(object):
         self._evlogger = EventLogger(self.dc_context, logid)
         self._threads = IOThreads(self.dc_context)
 
-    def __del__(self, dc_context_unref=capi.lib.dc_context_unref):
-        dc_context_unref(self.dc_context)
+    def __del__(self):
+        if lib is not None:
+            lib.dc_context_unref(self.dc_context)
 
     def set_config(self, **kwargs):
         """ set configuration values.
