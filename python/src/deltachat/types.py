@@ -1,6 +1,11 @@
+
+
+def property_with_doc(f):
+    return property(f, None, None, f.__doc__)
+
+
 # copied over unmodified from
 # https://github.com/devpi/devpi/blob/master/common/devpi_common/types.py
-
 
 def cached_property(f):
     """returns a cached property that is calculated by function f"""
