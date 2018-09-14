@@ -1,7 +1,7 @@
-DeltaChat Python Bindings
+deltachat python bindings
 =========================
 
-The deltachat package provides two bindings for the core C-library
+The ``deltachat`` Python package provides two bindings for the core C-library
 of the https://delta.chat messaging ecosystem:
 
 - :doc:`capi` is a lowlevel CFFI-binding to the
@@ -11,22 +11,22 @@ of the https://delta.chat messaging ecosystem:
   to be memory safe and thoroughly tested through continous tox/pytest runs.
 
 
-Getting started
------------------------------------------
+getting started
+---------------
 
 .. toctree::
    :maxdepth: 2
 
    install
-   getting-started
-   api
-   capi
+   examples
 
 .. toctree::
    :hidden:
 
    links
    changelog
+   api
+   capi
 
 ..
     Indices and tables

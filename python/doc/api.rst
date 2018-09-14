@@ -1,6 +1,6 @@
 
-deltachat high level API Reference
-===================================
+high level API reference
+========================
 
 .. note::
 

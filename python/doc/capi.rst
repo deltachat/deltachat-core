@@ -1,5 +1,5 @@
 
-Low Level API Reference
+low level API reference
 ===================================
 
 .. automodule:: deltachat.capi.lib
