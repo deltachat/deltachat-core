@@ -15,6 +15,11 @@ class TestOfflineAccount:
         with pytest.raises(ValueError):
             ac1.get_self_contact()
 
+    # def test_get_config_fails(self, acfactory):
+    #    ac1 = acfactory.get_offline_account()
+    #    with pytest.raises(KeyError):
+    #        ac1.get_config("123123")
+
     def test_contact_attr(self, acfactory):
         ac1 = acfactory.get_offline_account()
         contact1 = ac1.create_contact(email="some1@hello.com", name="some1")

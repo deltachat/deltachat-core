@@ -2,7 +2,7 @@ from .capi import lib
 from .capi import ffi
 
 
-def convert_to_bytes_utf8(obj):
+def as_dc_charpointer(obj):
     if obj == ffi.NULL or obj is None:
         return ffi.NULL
     if not isinstance(obj, bytes):
@@ -18,5 +18,5 @@ def iter_array_and_unref(dc_array_t, constructor):
         lib.dc_array_unref(dc_array_t)
 
 
-def ffi_unicode(obj):
+def from_dc_charpointer(obj):
     return ffi.string(obj).decode("utf8")

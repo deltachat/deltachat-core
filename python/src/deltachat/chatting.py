@@ -1,6 +1,6 @@
 """ chatting related objects: Contact, Chat, Message. """
 
-from .cutil import convert_to_bytes_utf8, ffi_unicode, iter_array_and_unref
+from .cutil import as_dc_charpointer, from_dc_charpointer, iter_array_and_unref
 from .capi import lib
 from .types import cached_property, property_with_doc
 from .types import DC_Context, DC_Contact, DC_Chat, DC_Msg
@@ -24,12 +24,12 @@ class Contact(object):
     @property_with_doc
     def addr(self):
         """ normalized e-mail address for this account. """
-        return ffi_unicode(lib.dc_contact_get_addr(self._dc_contact.p))
+        return from_dc_charpointer(lib.dc_contact_get_addr(self._dc_contact.p))
 
     @property_with_doc
     def display_name(self):
         """ display name for this contact. """
-        return ffi_unicode(lib.dc_contact_get_display_name(self._dc_contact.p))
+        return from_dc_charpointer(lib.dc_contact_get_display_name(self._dc_contact.p))
 
     def is_blocked(self):
         """ Return True if the contact is blocked. """
@@ -63,7 +63,7 @@ class Chat(object):
         :param msg: unicode text
         :returns: the resulting :class:`Message` instance
         """
-        msg = convert_to_bytes_utf8(msg)
+        msg = as_dc_charpointer(msg)
         msg_id = lib.dc_send_text_msg(self._dc_context.p, self.id, msg)
         return Message(self._dc_context, msg_id)
 
@@ -120,7 +120,7 @@ class Message(object):
     @property_with_doc
     def text(self):
         """unicode representation. """
-        return ffi_unicode(lib.dc_msg_get_text(self._dc_msg.p))
+        return from_dc_charpointer(lib.dc_msg_get_text(self._dc_msg.p))
 
     @property
     def chat(self):

@@ -14,7 +14,7 @@ from attr import validators as v
 
 import deltachat
 from .capi import ffi, lib
-from .cutil import convert_to_bytes_utf8, ffi_unicode, iter_array_and_unref
+from .cutil import as_dc_charpointer, from_dc_charpointer, iter_array_and_unref
 from .types import DC_Context
 from .chatting import Contact, Chat, Message
 
@@ -62,10 +62,11 @@ class Account(object):
 
         :param name: configuration key to lookup (eg "addr" or "mail_pw")
         :returns: unicode value
+        :raises: KeyError if no config value was found.
         """
         name = name.encode("utf8")
         res = lib.dc_get_config(self._dc_context.p, name, b'')
-        return ffi_unicode(res)
+        return from_dc_charpointer(res)
 
     def is_configured(self):
         """ determine if the account is configured already.
@@ -96,8 +97,8 @@ class Account(object):
         :param name: display name for this contact (optional)
         :returns: :class:`Contact` instance.
         """
-        name = convert_to_bytes_utf8(name)
-        email = convert_to_bytes_utf8(email)
+        name = as_dc_charpointer(name)
+        email = as_dc_charpointer(email)
         contact_id = lib.dc_create_contact(self._dc_context.p, name, email)
         return Contact(self._dc_context, contact_id)
 
@@ -111,7 +112,7 @@ class Account(object):
         :returns: list of :class:`Message` objects.
         """
         flags = 0
-        query = convert_to_bytes_utf8(query)
+        query = as_dc_charpointer(query)
         if only_verified:
             flags |= lib.DC_GCL_VERIFIED_ONLY
         if with_self:
