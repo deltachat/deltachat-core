@@ -48,7 +48,6 @@ class TestOfflineAccount:
         assert chat2.id == chat.id
         assert chat == chat2
         assert not (chat != chat2)
-        assert chat.dc_chat_t
 
     def test_message(self, acfactory):
         ac1 = acfactory.get_offline_account()
@@ -77,14 +76,14 @@ class TestOnlineAccount:
                 imap_ok = True
             if evt_name == "DC_EVENT_SMTP_CONNECTED":
                 smtp_ok = True
-        print("** IMAP and SMTP logins successful", account.dc_context)
+        print("** IMAP and SMTP logins successful", account)
 
     def wait_configuration_progress(self, account, target):
         while 1:
             evt_name, data1, data2 = \
                 account._evlogger.get_matching("DC_EVENT_CONFIGURE_PROGRESS")
             if data1 >= target:
-                print("** CONFIG PROGRESS {}".format(target), account.dc_context)
+                print("** CONFIG PROGRESS {}".format(target), account)
                 break
 
     def test_selfcontact(self, acfactory):

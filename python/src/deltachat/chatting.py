@@ -1,9 +1,9 @@
 """ chatting related objects: Contact, Chat, Message. """
 
-from . import capi
 from .cutil import convert_to_bytes_utf8, ffi_unicode, iter_array_and_unref
-from .capi import ffi, lib
+from .capi import lib
 from .types import cached_property, property_with_doc
+from .types import DC_Context, DC_Contact, DC_Chat, DC_Msg
 import attr
 from attr import validators as v
 
@@ -14,34 +14,30 @@ class Contact(object):
 
     You obtain instances of it through :class:`deltachat.account.Account`.
     """
-    dc_context = attr.ib(validator=v.instance_of(ffi.CData))
+    _dc_context = attr.ib(validator=v.instance_of(DC_Context))
     id = attr.ib(validator=v.instance_of(int))
 
-    @cached_property  # only get it once because we only free it once
-    def dc_contact_t(self):
-        return capi.lib.dc_get_contact(self.dc_context, self.id)
-
-    def __del__(self):
-        if lib is not None and hasattr(self, "_property_cache"):
-            lib.dc_contact_unref(self.dc_contact_t)
+    @cached_property
+    def _dc_contact(self):
+        return DC_Contact(lib.dc_get_contact(self._dc_context.p, self.id))
 
     @property_with_doc
     def addr(self):
         """ normalized e-mail address for this account. """
-        return ffi_unicode(capi.lib.dc_contact_get_addr(self.dc_contact_t))
+        return ffi_unicode(lib.dc_contact_get_addr(self._dc_contact.p))
 
     @property_with_doc
     def display_name(self):
         """ display name for this contact. """
-        return ffi_unicode(capi.lib.dc_contact_get_display_name(self.dc_contact_t))
+        return ffi_unicode(lib.dc_contact_get_display_name(self._dc_contact.p))
 
     def is_blocked(self):
         """ Return True if the contact is blocked. """
-        return capi.lib.dc_contact_is_blocked(self.dc_contact_t)
+        return lib.dc_contact_is_blocked(self._dc_contact.p)
 
     def is_verified(self):
         """ Return True if the contact is verified. """
-        return capi.lib.dc_contact_is_verified(self.dc_contact_t)
+        return lib.dc_contact_is_verified(self._dc_contact.p)
 
 
 @attr.s
@@ -50,17 +46,12 @@ class Chat(object):
 
     You obtain instances of it through :class:`deltachat.account.Account`.
     """
-
-    dc_context = attr.ib(validator=v.instance_of(ffi.CData))
+    _dc_context = attr.ib(validator=v.instance_of(DC_Context))
     id = attr.ib(validator=v.instance_of(int))
 
     @cached_property
-    def dc_chat_t(self):
-        return capi.lib.dc_get_chat(self.dc_context, self.id)
-
-    def __del__(self):
-        if lib is not None and hasattr(self, "_property_cache"):
-            lib.dc_chat_unref(self.dc_chat_t)
+    def _dc_chat(self):
+        return DC_Chat(lib.dc_get_chat(self._dc_context.p, self.id))
 
     def is_deaddrop(self):
         """ return true if this chat is a deaddrop chat. """
@@ -73,31 +64,30 @@ class Chat(object):
         :returns: the resulting :class:`Message` instance
         """
         msg = convert_to_bytes_utf8(msg)
-        print ("chat id", self.id)
-        msg_id = capi.lib.dc_send_text_msg(self.dc_context, self.id, msg)
-        return Message(self.dc_context, msg_id)
+        msg_id = lib.dc_send_text_msg(self._dc_context.p, self.id, msg)
+        return Message(self._dc_context, msg_id)
 
     def get_messages(self):
         """ return list of messages in this chat.
 
         :returns: list of :class:`Message` objects for this chat.
         """
-        dc_array_t = lib.dc_get_chat_msgs(self.dc_context, self.id, 0, 0)
-        return list(iter_array_and_unref(dc_array_t, lambda x: Message(self.dc_context, x)))
+        dc_array_t = lib.dc_get_chat_msgs(self._dc_context.p, self.id, 0, 0)
+        return list(iter_array_and_unref(dc_array_t, lambda x: Message(self._dc_context, x)))
 
     def count_fresh_messages(self):
         """ return number of fresh messages in this chat.
 
         :returns: number of fresh messages
         """
-        return lib.dc_get_fresh_msg_cnt(self.dc_context, self.id)
+        return lib.dc_get_fresh_msg_cnt(self._dc_context.p, self.id)
 
     def mark_noticed(self):
         """ mark all messages in this chat as noticed.
 
         Noticed messages are no longer fresh.
         """
-        return lib.dc_marknoticed_chat(self.dc_context, self.id)
+        return lib.dc_marknoticed_chat(self._dc_context.p, self.id)
 
 
 @attr.s
@@ -107,21 +97,18 @@ class Message(object):
     You obtain instances of it through :class:`deltachat.account.Account` or
     :class:`Chat`.
     """
-    dc_context = attr.ib(validator=v.instance_of(ffi.CData))
+    _dc_context = attr.ib(validator=v.instance_of(DC_Context))
     id = attr.ib(validator=v.instance_of(int))
 
     @cached_property
-    def dc_msg_t(self):
-        return capi.lib.dc_get_msg(self.dc_context, self.id)
+    def _dc_msg(self):
+        return DC_Msg(lib.dc_get_msg(self._dc_context.p, self.id))
 
     def _refresh(self):
-        if hasattr(self, "_property_cache"):
-            lib.dc_msg_unref(self.dc_msg_t)
-            self._property_cache.clear()
-
-    def __del__(self):
-        if lib is not None and hasattr(self, "_property_cache"):
-            lib.dc_msg_unref(self.dc_msg_t)
+        try:
+            del self._dc_msg
+        except KeyError:
+            pass
 
     def get_state(self):
         """ get the message in/out state.
@@ -133,7 +120,7 @@ class Message(object):
     @property_with_doc
     def text(self):
         """unicode representation. """
-        return ffi_unicode(capi.lib.dc_msg_get_text(self.dc_msg_t))
+        return ffi_unicode(lib.dc_msg_get_text(self._dc_msg.p))
 
     @property
     def chat(self):
@@ -141,8 +128,8 @@ class Message(object):
 
         :returns: :class:`Chat` object
         """
-        chat_id = capi.lib.dc_msg_get_chat_id(self.dc_msg_t)
-        return Chat(self.dc_context, chat_id)
+        chat_id = lib.dc_msg_get_chat_id(self._dc_msg.p)
+        return Chat(self._dc_context, chat_id)
 
 
 @attr.s
@@ -154,7 +141,7 @@ class MessageState(object):
     @property
     def _msgstate(self):
         self.message._refresh()
-        return lib.dc_msg_get_state(self.message.dc_msg_t)
+        return lib.dc_msg_get_state(self.message._dc_msg.p)
 
     def is_in_fresh(self):
         """ return True if Message is incoming fresh message (un-noticed).

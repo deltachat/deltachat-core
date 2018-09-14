@@ -1,4 +1,4 @@
-""" Delta.Chat Account class. """
+""" Account class implementation. """
 
 from __future__ import print_function
 import threading
@@ -9,13 +9,13 @@ try:
     from queue import Queue
 except ImportError:
     from Queue import Queue
-
-import deltachat
-from . import capi
-from .cutil import convert_to_bytes_utf8, ffi_unicode, iter_array_and_unref
-from .capi import ffi, lib
 import attr
 from attr import validators as v
+
+import deltachat
+from .capi import ffi, lib
+from .cutil import convert_to_bytes_utf8, ffi_unicode, iter_array_and_unref
+from .types import DC_Context
 from .chatting import Contact, Chat, Message
 
 
@@ -23,6 +23,7 @@ class Account(object):
     """ An account contains configuration and provides methods
     for configuration, contact and chat creation and manipulation.
     """
+
     def __init__(self, db_path, logid=None):
         """ initialize account object.
 
@@ -32,19 +33,16 @@ class Account(object):
                       the default internal logging.
         """
 
-        self.dc_context = ctx = capi.lib.dc_context_new(
-                                  capi.lib.py_dc_callback,
-                                  capi.ffi.NULL, capi.ffi.NULL)
+        self._dc_context = DC_Context(
+            lib.dc_context_new(lib.py_dc_callback, ffi.NULL, ffi.NULL)
+        )
         if hasattr(db_path, "encode"):
             db_path = db_path.encode("utf8")
-        capi.lib.dc_open(ctx, db_path, capi.ffi.NULL)
-        self._evhandler = EventHandler(self.dc_context)
-        self._evlogger = EventLogger(self.dc_context, logid)
-        self._threads = IOThreads(self.dc_context)
-
-    def __del__(self):
-        if lib is not None:
-            lib.dc_context_unref(self.dc_context)
+        if not lib.dc_open(self._dc_context.p, db_path, ffi.NULL):
+            raise ValueError("Could not dc_open: {}".format(db_path))
+        self._evhandler = EventHandler(self._dc_context)
+        self._evlogger = EventLogger(self._dc_context, logid)
+        self._threads = IOThreads(self._dc_context)
 
     def set_config(self, **kwargs):
         """ set configuration values.
@@ -56,7 +54,7 @@ class Account(object):
         for name, value in kwargs.items():
             name = name.encode("utf8")
             value = value.encode("utf8")
-            capi.lib.dc_set_config(self.dc_context, name, value)
+            lib.dc_set_config(self._dc_context.p, name, value)
 
     def get_config(self, name):
         """ return unicode string value.
@@ -65,7 +63,7 @@ class Account(object):
         :returns: unicode value
         """
         name = name.encode("utf8")
-        res = capi.lib.dc_get_config(self.dc_context, name, b'')
+        res = lib.dc_get_config(self._dc_context.p, name, b'')
         return ffi_unicode(res)
 
     def is_configured(self):
@@ -73,7 +71,7 @@ class Account(object):
 
         :returns: True if account is configured.
         """
-        return capi.lib.dc_is_configured(self.dc_context)
+        return lib.dc_is_configured(self._dc_context.p)
 
     def check_is_configured(self):
         """ Raise ValueError if this account is not configured. """
@@ -86,7 +84,7 @@ class Account(object):
         :returns: :class:`Contact`
         """
         self.check_is_configured()
-        return Contact(self.dc_context, capi.lib.DC_CONTACT_ID_SELF)
+        return Contact(self._dc_context, lib.DC_CONTACT_ID_SELF)
 
     def create_contact(self, email, name=ffi.NULL):
         """ create a (new) Contact. If there already is a Contact
@@ -99,8 +97,8 @@ class Account(object):
         """
         name = convert_to_bytes_utf8(name)
         email = convert_to_bytes_utf8(email)
-        contact_id = capi.lib.dc_create_contact(self.dc_context, name, email)
-        return Contact(self.dc_context, contact_id)
+        contact_id = lib.dc_create_contact(self._dc_context.p, name, email)
+        return Contact(self._dc_context, contact_id)
 
     def get_contacts(self, query=ffi.NULL, with_self=False, only_verified=False):
         """ get a (filtered) list of contacts.
@@ -117,8 +115,8 @@ class Account(object):
             flags |= lib.DC_GCL_VERIFIED_ONLY
         if with_self:
             flags |= lib.DC_GCL_ADD_SELF
-        dc_array_t = lib.dc_get_contacts(self.dc_context, flags, query)
-        return list(iter_array_and_unref(dc_array_t, lambda x: Contact(self.dc_context, x)))
+        dc_array_t = lib.dc_get_contacts(self._dc_context.p, flags, query)
+        return list(iter_array_and_unref(dc_array_t, lambda x: Contact(self._dc_context.p, x)))
 
     def create_chat_by_contact(self, contact):
         """ create or get an existing 1:1 chat object for the specified contact.
@@ -128,9 +126,9 @@ class Account(object):
         """
         contact_id = getattr(contact, "id", contact)
         assert isinstance(contact_id, int)
-        chat_id = capi.lib.dc_create_chat_by_contact_id(
-                        self.dc_context, contact_id)
-        return Chat(self.dc_context, chat_id)
+        chat_id = lib.dc_create_chat_by_contact_id(
+                        self._dc_context.p, contact_id)
+        return Chat(self._dc_context, chat_id)
 
     def create_chat_by_message(self, message):
         """ create or get an existing 1:1 chat object for the specified sender
@@ -141,12 +139,12 @@ class Account(object):
         """
         msg_id = getattr(message, "id", message)
         assert isinstance(msg_id, int)
-        chat_id = capi.lib.dc_create_chat_by_msg_id(self.dc_context, msg_id)
-        return Chat(self.dc_context, chat_id)
+        chat_id = lib.dc_create_chat_by_msg_id(self._dc_context.p, msg_id)
+        return Chat(self._dc_context, chat_id)
 
     def get_message_by_id(self, msg_id):
         """ return Message instance. """
-        return Message(self.dc_context, msg_id)
+        return Message(self._dc_context, msg_id)
 
     def mark_seen_messages(self, messages):
         """ mark the given set of messages as seen.
@@ -158,22 +156,22 @@ class Account(object):
             msg = getattr(msg, "id", msg)
             arr.append(msg)
         msg_ids = ffi.cast("uint32_t*", ffi.from_buffer(arr))
-        lib.dc_markseen_msgs(self.dc_context, msg_ids, len(messages))
+        lib.dc_markseen_msgs(self._dc_context.p, msg_ids, len(messages))
 
     def start(self):
         """ configure this account object, start receiving events,
         start IMAP/SMTP threads. """
-        deltachat.set_context_callback(self.dc_context, self._process_event)
-        capi.lib.dc_configure(self.dc_context)
+        deltachat.set_context_callback(self._dc_context.p, self._process_event)
+        lib.dc_configure(self._dc_context.p)
         self._threads.start()
 
     def shutdown(self):
         """ shutdown IMAP/SMTP threads and stop receiving events"""
-        deltachat.clear_context_callback(self.dc_context)
+        deltachat.clear_context_callback(self._dc_context.p)
         self._threads.stop(wait=True)
 
     def _process_event(self, ctx, evt_name, data1, data2):
-        assert ctx == self.dc_context
+        assert ctx == self._dc_context.p
         self._evlogger(evt_name, data1, data2)
         method = getattr(self._evhandler, evt_name.lower(), None)
         if method is not None:
@@ -183,7 +181,7 @@ class Account(object):
 
 class IOThreads:
     def __init__(self, dc_context):
-        self.dc_context = dc_context
+        self._dc_context = dc_context
         self._thread_quitflag = False
         self._name2thread = {}
 
@@ -201,8 +199,8 @@ class IOThreads:
 
     def stop(self, wait=False):
         self._thread_quitflag = True
-        capi.lib.dc_interrupt_imap_idle(self.dc_context)
-        capi.lib.dc_interrupt_smtp_idle(self.dc_context)
+        lib.dc_interrupt_imap_idle(self._dc_context.p)
+        lib.dc_interrupt_smtp_idle(self._dc_context.p)
         if wait:
             for name, thread in self._name2thread.items():
                 thread.join()
@@ -210,20 +208,20 @@ class IOThreads:
     def imap_thread_run(self):
         print ("starting imap thread")
         while not self._thread_quitflag:
-            capi.lib.dc_perform_imap_jobs(self.dc_context)
-            capi.lib.dc_perform_imap_fetch(self.dc_context)
-            capi.lib.dc_perform_imap_idle(self.dc_context)
+            lib.dc_perform_imap_jobs(self._dc_context.p)
+            lib.dc_perform_imap_fetch(self._dc_context.p)
+            lib.dc_perform_imap_idle(self._dc_context.p)
 
     def smtp_thread_run(self):
         print ("starting smtp thread")
         while not self._thread_quitflag:
-            capi.lib.dc_perform_smtp_jobs(self.dc_context)
-            capi.lib.dc_perform_smtp_idle(self.dc_context)
+            lib.dc_perform_smtp_jobs(self._dc_context.p)
+            lib.dc_perform_smtp_idle(self._dc_context.p)
 
 
 @attr.s
 class EventHandler(object):
-    dc_context = attr.ib(validator=v.instance_of(ffi.CData))
+    _dc_context = attr.ib(validator=v.instance_of(DC_Context))
 
     def read_url(self, url):
         try:
@@ -239,7 +237,7 @@ class EventHandler(object):
         if not isinstance(content, bytes):
             content = content.encode("utf8")
         # we need to return a fresh pointer that the core owns
-        return capi.lib.dupstring_helper(content)
+        return lib.dupstring_helper(content)
 
     def dc_event_is_offline(self, data1, data2):
         return 0  # always online
@@ -247,11 +245,11 @@ class EventHandler(object):
 
 class EventLogger:
     def __init__(self, dc_context, logid=None, debug=True):
-        self.dc_context = dc_context
+        self._dc_context = dc_context
         self._event_queue = Queue()
         self._debug = debug
         if logid is None:
-            logid = str(self.dc_context).strip(">").split()[-1]
+            logid = str(self._dc_context.p).strip(">").split()[-1]
         self.logid = logid
         self._timeout = None
 
