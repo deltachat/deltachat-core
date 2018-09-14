@@ -1,17 +1,15 @@
-deltachat: e-mail messaging/chatting API / deltachat-core C lib bindings
-========================================================================
+DeltaChat Python Bindings
+=========================
 
-.. include:: links.rst
+The deltachat package provides two bindings for the core C-library
+of the https://delta.chat messaging ecosystem:
 
-The deltachat library provides interfaces into the core
-C-library for https://delta.chat:
+- :doc:`capi` is a lowlevel CFFI-binding to the
+  `deltachat-core C-API <https://deltachat.github.io/api/index.html>`_.
 
-- **low level bindings to deltachat-core**: ``deltachat.capi.lib`` exposes
-  a CFFI-interface to the `deltachat-core C-API <https://deltachat.github.io/api/index.html>`.
+- :doc:`api` [work-in-progress] is a high level interface to deltachat-core which aims
+  to be memory safe and thoroughly tested through continous tox/pytest runs.
 
-- **higher level bindings**: :class:`deltachat.Account` serves as a high
-  level object through which you can configure, send and receive messages,
-  create and manage groups.
 
 Getting started
 -----------------------------------------
@@ -22,6 +20,7 @@ Getting started
    install
    getting-started
    api
+   capi
 
 .. toctree::
    :hidden:

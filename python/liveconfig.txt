@@ -1,0 +1,4 @@
+addr=test1@hq5.merlinux.eu mail_pw=CzCw6oV4w7WPkTy7BHn8OmC2Vak/
+addr=test2@hq5.merlinux.eu mail_pw=J/fegsglkjJyXFncgn5MAg5t8pAq
+addr=test3@hq5.merlinux.eu mail_pw=supersimplespasswort1
+addr=test4@hq5.merlinux.eu mail_pw=supersimplespasswort2
