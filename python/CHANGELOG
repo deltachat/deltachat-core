@@ -1,0 +1,6 @@
+
+0.5
+---
+
+- initial release with full low level C-API, and a first
+  high level API

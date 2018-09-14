@@ -1,6 +1,6 @@
 
-deltachat python bindings
-=========================
+Building and Installing deltachat
+======================================
 
 This package provides bindings to the delta-core_ C-library
 which provides imap/smtp/crypto handling as well as chat/group/messages

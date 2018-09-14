@@ -4,19 +4,39 @@ from deltachat.capi import lib
 
 
 class TestOfflineAccount:
+    def test_is_not_configured(self, acfactory):
+        ac1 = acfactory.get_offline_account()
+        assert not ac1.is_configured()
+        with pytest.raises(ValueError):
+            ac1.check_is_configured()
+
     def test_selfcontact_if_unconfigured(self, acfactory):
         ac1 = acfactory.get_offline_account()
         with pytest.raises(ValueError):
             ac1.get_self_contact()
 
-    def test_contacts(self, acfactory):
+    def test_contact_attr(self, acfactory):
         ac1 = acfactory.get_offline_account()
         contact1 = ac1.create_contact(email="some1@hello.com", name="some1")
         assert contact1.id
         assert contact1.addr == "some1@hello.com"
         assert contact1.display_name == "some1"
-        assert not contact1.is_blocked
-        assert not contact1.is_verified
+        assert not contact1.is_blocked()
+        assert not contact1.is_verified()
+
+    @pytest.mark.xfail(reason="on travis it fails, needs investigation")
+    def test_get_contacts(self, acfactory):
+        ac1 = acfactory.get_offline_account()
+        contact1 = ac1.create_contact(email="some1@hello.com", name="some1")
+        contacts = ac1.get_contacts()
+        assert len(contacts) == 1
+        assert contact1 in contacts
+
+        assert not ac1.get_contacts(query="some2")
+        assert ac1.get_contacts(query="some1")
+        assert not ac1.get_contacts(only_verified=True)
+        contacts = ac1.get_contacts(with_self=True)
+        assert len(contacts) == 2
 
     def test_chat(self, acfactory):
         ac1 = acfactory.get_offline_account()
@@ -70,8 +90,9 @@ class TestOnlineAccount:
         self.wait_successful_IMAP_SMTP_connection(ac1)
         self.wait_configuration_progress(ac1, 1000)
         assert ac1.get_config("mail_pw")
+        assert ac1.is_configured()
 
-    def test_send_message(self, acfactory):
+    def test_send_and_receive_message(self, acfactory):
         ac1 = acfactory.get_live_account()
         ac2 = acfactory.get_live_account()
         c2 = ac1.create_contact(email=ac2.get_config("addr"))
@@ -87,9 +108,31 @@ class TestOnlineAccount:
         evt_name, data1, data2 = ev
         assert data1 == chat.id
         assert data2 == msg.id
+
+        # wait for other account to receive
         ev = ac2._evlogger.get_matching("DC_EVENT_MSGS_CHANGED")
         assert ev[2] == msg.id
-        msg = ac2.get_message_by_id(msg.id)
-        assert msg.text == "msg1"
-        # note that ev[1] aka data1 contains a bogus channel id
-        # probably should just not get passed from the core
+        msg2 = ac2.get_message_by_id(msg.id)
+        assert msg2.text == "msg1"
+
+        # check the message arrived in contact-requets/deaddrop
+        chat2 = msg2.chat
+        assert msg2 in chat2.get_messages()
+        assert chat2.is_deaddrop()
+        assert chat2.count_fresh_messages() == 0
+
+        # create new chat with contact and verify it's proper
+        chat2b = ac2.create_chat_by_message(msg2)
+        assert not chat2b.is_deaddrop()
+        assert chat2b.count_fresh_messages() == 1
+
+        # mark chat as noticed
+        chat2b.mark_noticed()
+        assert chat2b.count_fresh_messages() == 0
+
+        # mark messages as seen and check ac1 sees the MDN
+        ac2.mark_seen_messages([msg2])
+        while 1:
+            ev = ac1._evlogger.get_matching("DC_EVENT_INFO")
+            if "Marking message" in ev[2]:
+                break
