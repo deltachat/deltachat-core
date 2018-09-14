@@ -12,7 +12,7 @@ deltah = joinpath(dirname(dirname(dirname(here))), "src", "deltachat.h")
 
 
 def read_event_defines():
-    rex = re.compile(r'#define\s+(?:DC_EVENT_|DC_CONTACT_ID_|DC_GCL|DC_CHAT)\S+\s+([x\d]+).*')
+    rex = re.compile(r'#define\s+(?:DC_EVENT_|DC_STATE_|DC_CONTACT_ID_|DC_GCL|DC_CHAT)\S+\s+([x\d]+).*')
     return filter(rex.match, open(deltah))
 
 
