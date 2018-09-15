@@ -313,6 +313,8 @@ dc_msg_t*       dc_get_msg                   (dc_context_t*, uint32_t msg_id);
 
 
 // handle contacts
+int             dc_may_be_valid_addr         (const char* addr);
+uint32_t        dc_lookup_contact_id_by_addr (dc_context_t*, const char* addr);
 uint32_t        dc_create_contact            (dc_context_t*, const char* name, const char* addr);
 int             dc_add_address_book          (dc_context_t*, const char*);
 
