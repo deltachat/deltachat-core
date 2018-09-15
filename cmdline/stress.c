@@ -359,6 +359,20 @@ void stress_functions(dc_context_t* context)
 	 **************************************************************************/
 
 	{
+		assert( !dc_may_be_valid_addr(NULL) );
+		assert( !dc_may_be_valid_addr("") );
+		assert(  dc_may_be_valid_addr("user@domain.tld") );
+		assert( !dc_may_be_valid_addr("uuu") );
+		assert( !dc_may_be_valid_addr("dd.tt") );
+		assert( !dc_may_be_valid_addr("tt.dd@uu") );
+		assert( !dc_may_be_valid_addr("uu") );
+		assert( !dc_may_be_valid_addr("u@d") );
+		assert( !dc_may_be_valid_addr("u@d.") );
+		assert( !dc_may_be_valid_addr("u@d.t") );
+		assert(  dc_may_be_valid_addr("u@d.tt") );
+		assert( !dc_may_be_valid_addr("u@.tt") );
+		assert( !dc_may_be_valid_addr("@d.tt") );
+
 		char* str = strdup("aaa");
 		int replacements = dc_str_replace(&str, "a", "ab"); /* no endless recursion here! */
 		assert( strcmp(str, "ababab")==0 );
