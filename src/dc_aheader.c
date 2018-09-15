@@ -109,7 +109,7 @@ static int add_attribute(dc_aheader_t* aheader, const char* name, const char* va
 	if (strcasecmp(name, "addr")==0)
 	{
 		if (value==NULL
-		 || strlen(value) < 3 || strchr(value, '@')==NULL || strchr(value, '.')==NULL /* rough check if email-address is valid */
+		 || !dc_may_be_valid_addr(value)
 		 || aheader->addr /* email already given */) {
 			return 0;
 		}

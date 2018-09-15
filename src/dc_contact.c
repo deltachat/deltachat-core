@@ -620,7 +620,7 @@ uint32_t dc_add_or_lookup_contact( dc_context_t* context,
 	addr = dc_addr_normalize(addr__);
 
 	/* rough check if email-address is valid */
-	if (strlen(addr) < 3 || strchr(addr, '@')==NULL || strchr(addr, '.')==NULL) {
+	if (!dc_may_be_valid_addr(addr)) {
 		dc_log_warning(context, 0, "Bad address \"%s\" for contact \"%s\".", addr, name?name:"<unset>");
 		goto cleanup;
 	}
@@ -875,6 +875,81 @@ cleanup:
 	dc_free_splitted_lines(lines);
 
 	return modify_cnt;
+}
+
+
+/**
+ * Rough check if a string may be a valid e-mail address.
+ * The function checks if the string contains a minimal amount of characters
+ * before and after the `@` and `.` characters.
+ *
+ * To check if a given address is a contact in the contact database
+ * use dc_lookup_contact_id_by_addr().
+ *
+ * @memberof dc_context_t
+ * @param addr The e-mail-address to check.
+ * @return 1=address may be a valid e-mail address,
+ *     0=address won't be a valid e-mail address
+ */
+int dc_may_be_valid_addr(const char* addr)
+{
+	if (addr==NULL) {
+		return 0;
+	}
+
+	const char* at = strchr(addr, '@');
+	if (at==NULL || (at-addr)<1) {
+		return 0;
+	}
+
+	const char* dot = strchr(at, '.');
+	if (dot==NULL || (dot-at)<2 || dot[1]==0 || dot[2]==0) {
+		return 0;
+	}
+
+	return 1;
+}
+
+
+/**
+ * Check if an e-mail address belongs to a known and unblocked contact.
+ * Known and unblocked contacts will be returned by dc_get_contacts().
+ *
+ * To validate an e-mail address independently of the contact database
+ * use dc_may_be_valid_addr().
+ *
+ * @memberof dc_context_t
+ * @param context The context object as created by dc_context_new().
+ * @param addr The e-mail-address to check.
+ * @return 1=address is a contact in use, 0=address is not a contact in use.
+ */
+uint32_t dc_lookup_contact_id_by_addr(dc_context_t* context, const char* addr)
+{
+	int           contact_id = 0;
+	char*         addr_normalized = NULL;
+	sqlite3_stmt* stmt = NULL;
+
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || addr==NULL || addr[0]==0) {
+		goto cleanup;
+	}
+
+	addr_normalized = dc_addr_normalize(addr);
+
+	stmt = dc_sqlite3_prepare(context->sql,
+		"SELECT id FROM contacts"
+		" WHERE addr=? COLLATE NOCASE"
+		" AND id>" DC_STRINGIFY(DC_CONTACT_ID_LAST_SPECIAL)
+		" AND origin>=" DC_STRINGIFY(DC_ORIGIN_MIN_CONTACT_LIST)
+		" AND blocked=0;");
+	sqlite3_bind_text(stmt, 1, (const char*)addr_normalized, -1, SQLITE_STATIC);
+	if (sqlite3_step(stmt)==SQLITE_ROW) {
+		contact_id = sqlite3_column_int(stmt, 0);
+	}
+
+cleanup:
+	sqlite3_finalize(stmt);
+	free(addr_normalized);
+	return contact_id;
 }
 
 
