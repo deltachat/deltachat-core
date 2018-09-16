@@ -1,7 +1,7 @@
 
 
-Getting started
-================
+examples
+========
 
 ::
 

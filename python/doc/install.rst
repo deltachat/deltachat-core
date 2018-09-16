@@ -1,12 +1,12 @@
 
-Building and Installing deltachat
+building and installing deltachat
 ======================================
 
 This package provides bindings to the delta-core_ C-library
 which provides imap/smtp/crypto handling as well as chat/group/messages
 handling to Android, Desktop and IO user interfaces.
 
-Install
+build
 -------
 
 .. note::
@@ -15,6 +15,9 @@ Install
 
 First you need to execute all the build steps to install the delta-core C-library,
 see https://github.com/deltachat/deltachat-core/blob/master/README.md#build
+
+install
+-------
 
 Presuming you have the delta-core library installed, you can then from the root of the repo::
 
@@ -26,7 +29,7 @@ Afterwards you should be able to successfully import the bindings::
     python -c "import deltachat"
 
 
-Running tests
+running tests
 -------------
 
 Install the delta-core C-library and the deltachat bindings (see _Install)
