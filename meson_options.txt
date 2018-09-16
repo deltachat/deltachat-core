@@ -1,6 +1,6 @@
 option(
-  'system-etpan',
+  'fat',
   type: 'boolean',
   value: false,
-  description: 'Do not use vendored libetpan (uses libetpan-config)',
+  description: 'Build a libdeltachat.so with minimal external dependencies',
 )

@@ -1,14 +1,15 @@
-project('netpgp', 'c')
+project('netpgp', 'c',
+        version: '20140220',
+        license: '2-part BSD')
 
 # pkg-config dependencies
 pthreads = dependency('threads')
-zlib = dependency('zlib')
-openssl = dependency('openssl')
+zlib = dependency('zlib', fallback: ['zlib', 'zlib_dep'])
+openssl = dependency('openssl', fallback: ['openssl', 'dep'])
 
 # Dependencies without pkg-config, just try linking against them
-compiler = meson.get_compiler('c')
-bzip2 = compiler.find_library('bz2')
-
+cc = meson.get_compiler('c')
+bzip2 = cc.find_library('bz2')
 
 src = [
   'src/compress.c',
@@ -27,15 +28,21 @@ src = [
 ]
 inc = include_directories('include')
 
+# We don't own this subproject, silence some warnings
+ccargs = []
+cc = meson.get_compiler('c')
+ccargs += cc.get_supported_arguments(['-Wno-misleading-indentation'])
 
-lib = static_library(
+static_pic_lib = static_library(
   'netpgp', src,
-  dependencies: [zlib, bzip2, openssl, pthreads],
+  c_args: ccargs,
+  dependencies: [pthreads, zlib, openssl, bzip2],
   include_directories: inc,
+  pic: true,
   install: false,
 )
 
-dep = declare_dependency(
+static_pic_dep = declare_dependency(
   include_directories: inc,
-  link_with: lib,
+  link_with: static_pic_lib,
 )
