@@ -107,6 +107,11 @@ html_theme = 'alabaster'
 # documentation.
 html_theme_options = {
     # 'index_logo': '_static/delta-chat.svg',
+    'font_size': "1.0em",
+    'caption_font_size': "0.8em",
+    'code_font_size': "1.0em",
+
+
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -199,7 +204,7 @@ latex_elements = {
 #'papersize': 'letterpaper',
 
 # The font size ('10pt', '11pt' or '12pt').
-#'pointsize': '10pt',
+'pointsize': '12pt',
 
 # Additional stuff for the LaTeX preamble.
 #'preamble': '',
