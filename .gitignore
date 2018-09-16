@@ -43,6 +43,7 @@ po/remove-potcdate.sed
 po/*.gmo
 po/*.insert-header
 /docs/html/
+/docs/xml/
 
 # ignore other files
 .DS_Store

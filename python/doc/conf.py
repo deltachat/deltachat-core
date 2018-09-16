@@ -37,6 +37,7 @@ extensions = [
     #'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
+    'breathe',
     #'sphinx.ext.githubpages',
 ]
 
@@ -91,6 +92,14 @@ pygments_style = 'sphinx'
 # A list of ignored prefixes for module index sorting.
 #modindex_common_prefix = []
 
+
+# -- breathe options ------
+
+breathe_projects = {
+    "deltachat": "../../docs/xml/"
+}
+
+breathe_default_project = "deltachat"
 
 # -- Options for HTML output ---------------------------------------------------
 

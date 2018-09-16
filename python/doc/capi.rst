@@ -1,7 +1,14 @@
 
-low level API reference
-===================================
+C deltachat interface
+=====================
 
-.. automodule:: deltachat.capi.lib
-    :members:
+See :doc:`lapi` for accessing many of the below functions
+through the ``deltachat.capi.lib`` namespace.
+
+.. doxygenindex::
+    :project: deltachat
+
+
+
+
 
