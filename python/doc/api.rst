@@ -6,21 +6,43 @@ high level API reference
 
     This API is work in progress and may change in versions prior to 1.0.
 
-.. autosummary::
+- :class:`deltachat.account.Account` (your main entry point, creates the
+  other classes)
+- :class:`deltachat.chatting.Contact`
+- :class:`deltachat.chatting.Chat`
+- :class:`deltachat.chatting.Message`
+- :class:`deltachat.chatting.MessageState`
 
-   deltachat.account
-   deltachat.chatting
+Account
+-------
 
-account module
---------------
-
-.. automodule:: deltachat.account
+.. autoclass:: deltachat.account.Account
     :members:
 
 
-chatting module
----------------
+Contact
+-------
 
-.. automodule:: deltachat.chatting
+.. autoclass:: deltachat.chatting.Contact
     :members:
+
+Chat
+----
+
+.. autoclass:: deltachat.chatting.Chat
+    :members:
+
+Message
+-------
+
+.. autoclass:: deltachat.chatting.Message
+    :members:
+
+
+MessageState
+------------
+
+.. autoclass:: deltachat.chatting.MessageState
+    :members:
+
 

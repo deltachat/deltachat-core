@@ -27,6 +27,7 @@ getting started
    changelog
    api
    capi
+   lapi
 
 ..
     Indices and tables

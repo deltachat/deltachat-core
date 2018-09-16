@@ -78,6 +78,10 @@ version:
 doczip: html
 	python doczip.py $(DOCZIP) _build/html
 
+install: html
+	rsync -avz _build/html/ delta@py.delta.chat:build/master
+		
+
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
@@ -188,54 +192,5 @@ doctest:
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(BUILDDIR)/doctest
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in $(BUILDDIR)/doctest/output.txt."
-
-
-regen: quickstart-pypimirror quickstart-releaseprocess quickstart-server
-	rm -rf TARGETDIR
-
-quickstart-pypimirror:
-	USER=testuser sh regen.sh --update quickstart-pypimirror.rst
-
-quickstart-releaseprocess:
-	USER=testuser sh regen.sh --update quickstart-releaseprocess.rst
-
-quickstart-server:
-	USER=testuser sh regen.sh --update quickstart-server.rst
-
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# USER MANUAL TARGETS
- 
-
-$(USER_MAN_CHAPTERS):
-	@echo Regenerating $@
-	USER=testuser python regendoc.py --update userman/devpi_$@.rst
-
-regen.sample_undo:
-	-hg revert --all ./userman/pysober
-
-regen.server-fresh: regen.server-clean
-	devpi-server --start --serverdir=$(TESTHOME)/.devpi/server --init
-
-regen.server-restart:
-	-devpi-server --stop --serverdir=$(TESTHOME)/.devpi/server
-	devpi-server --start --serverdir=$(TESTHOME)/.devpi/server
-
-regen.server-clean: regen.sample_undo
-	@echo stopping server
-	-devpi-server --stop --serverdir=$(TESTHOME)/.devpi/server
-	@echo deleting $(TESTHOME)/.devpi state
-	-rm -rf $(TESTHOME)/.devpi
-	@echo deleting pysober/dist
-	-rm -rf userman/pysober/dist
-	hg revert --all userman/pysober
-
-    
-
-regen.uman-all : regen.server-fresh $(USER_MAN_CHAPTERS)
-	hg revert --all userman/pysober
-	rm -rf userman/pysober/dist
-
-regen.uman: regen.server-restart $(chapter)
 
 

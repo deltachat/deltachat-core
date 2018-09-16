@@ -1,5 +1,4 @@
 
-
 def property_with_doc(f):
     return property(f, None, None, f.__doc__)
 
@@ -22,4 +21,9 @@ def cached_property(f):
     def set(self, val):
         propcache = self.__dict__.setdefault("_property_cache", {})
         propcache[f] = val
-    return property(get, set)
+
+    def fdel(self):
+        propcache = self.__dict__.setdefault("_property_cache", {})
+        del propcache[f]
+
+    return property(get, set, fdel)

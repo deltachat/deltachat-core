@@ -15,6 +15,11 @@ class TestOfflineAccount:
         with pytest.raises(ValueError):
             ac1.get_self_contact()
 
+    # def test_get_config_fails(self, acfactory):
+    #    ac1 = acfactory.get_offline_account()
+    #    with pytest.raises(KeyError):
+    #        ac1.get_config("123123")
+
     def test_contact_attr(self, acfactory):
         ac1 = acfactory.get_offline_account()
         contact1 = ac1.create_contact(email="some1@hello.com", name="some1")
@@ -48,7 +53,6 @@ class TestOfflineAccount:
         assert chat2.id == chat.id
         assert chat == chat2
         assert not (chat != chat2)
-        assert chat.dc_chat_t
 
     def test_message(self, acfactory):
         ac1 = acfactory.get_offline_account()
@@ -56,6 +60,15 @@ class TestOfflineAccount:
         chat = ac1.create_chat_by_contact(contact1)
         msg = chat.send_text_message("msg1")
         assert msg
+        msg_state = msg.get_state()
+        assert not msg_state.is_in_fresh()
+        assert not msg_state.is_in_noticed()
+        assert not msg_state.is_in_seen()
+        # XXX the following line should work but doesn't:
+        # assert msg_state.is_out_pending()
+        assert not msg_state.is_out_failed()
+        assert not msg_state.is_out_delivered()
+        assert not msg_state.is_out_mdn_received()
 
 
 class TestOnlineAccount:
@@ -68,14 +81,14 @@ class TestOnlineAccount:
                 imap_ok = True
             if evt_name == "DC_EVENT_SMTP_CONNECTED":
                 smtp_ok = True
-        print("** IMAP and SMTP logins successful", account.dc_context)
+        print("** IMAP and SMTP logins successful", account)
 
     def wait_configuration_progress(self, account, target):
         while 1:
             evt_name, data1, data2 = \
                 account._evlogger.get_matching("DC_EVENT_CONFIGURE_PROGRESS")
             if data1 >= target:
-                print("** CONFIG PROGRESS {}".format(target), account.dc_context)
+                print("** CONFIG PROGRESS {}".format(target), account)
                 break
 
     def test_selfcontact(self, acfactory):
@@ -103,26 +116,27 @@ class TestOnlineAccount:
         self.wait_successful_IMAP_SMTP_connection(ac2)
         self.wait_configuration_progress(ac1, 1000)
         self.wait_configuration_progress(ac2, 1000)
-        msg = chat.send_text_message("msg1")
+        msg_out = chat.send_text_message("message1")
         ev = ac1._evlogger.get_matching("DC_EVENT_MSG_DELIVERED")
         evt_name, data1, data2 = ev
         assert data1 == chat.id
-        assert data2 == msg.id
+        assert data2 == msg_out.id
+        assert msg_out.get_state().is_out_delivered()
 
         # wait for other account to receive
         ev = ac2._evlogger.get_matching("DC_EVENT_MSGS_CHANGED")
-        assert ev[2] == msg.id
-        msg2 = ac2.get_message_by_id(msg.id)
-        assert msg2.text == "msg1"
+        assert ev[2] == msg_out.id
+        msg_in = ac2.get_message_by_id(msg_out.id)
+        assert msg_in.text == "message1"
 
         # check the message arrived in contact-requets/deaddrop
-        chat2 = msg2.chat
-        assert msg2 in chat2.get_messages()
+        chat2 = msg_in.chat
+        assert msg_in in chat2.get_messages()
         assert chat2.is_deaddrop()
         assert chat2.count_fresh_messages() == 0
 
         # create new chat with contact and verify it's proper
-        chat2b = ac2.create_chat_by_message(msg2)
+        chat2b = ac2.create_chat_by_message(msg_in)
         assert not chat2b.is_deaddrop()
         assert chat2b.count_fresh_messages() == 1
 
@@ -131,8 +145,6 @@ class TestOnlineAccount:
         assert chat2b.count_fresh_messages() == 0
 
         # mark messages as seen and check ac1 sees the MDN
-        ac2.mark_seen_messages([msg2])
-        while 1:
-            ev = ac1._evlogger.get_matching("DC_EVENT_INFO")
-            if "Marking message" in ev[2]:
-                break
+        ac2.mark_seen_messages([msg_in])
+        ac1._evlogger.get_matching("DC_EVENT_MSGS_CHANGED")
+        assert msg_out.get_state().is_out_mdn_received()

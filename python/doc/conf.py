@@ -37,6 +37,7 @@ extensions = [
     #'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
+    'breathe',
     #'sphinx.ext.githubpages',
 ]
 
@@ -92,6 +93,14 @@ pygments_style = 'sphinx'
 #modindex_common_prefix = []
 
 
+# -- breathe options ------
+
+breathe_projects = {
+    "deltachat": "../../docs/xml/"
+}
+
+breathe_default_project = "deltachat"
+
 # -- Options for HTML output ---------------------------------------------------
 
 sys.path.append(os.path.abspath('_themes'))
@@ -107,6 +116,11 @@ html_theme = 'alabaster'
 # documentation.
 html_theme_options = {
     # 'index_logo': '_static/delta-chat.svg',
+    'font_size': "1.0em",
+    'caption_font_size': "0.8em",
+    'code_font_size': "1.0em",
+
+
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -199,7 +213,7 @@ latex_elements = {
 #'papersize': 'letterpaper',
 
 # The font size ('10pt', '11pt' or '12pt').
-#'pointsize': '10pt',
+'pointsize': '12pt',
 
 # Additional stuff for the LaTeX preamble.
 #'preamble': '',
