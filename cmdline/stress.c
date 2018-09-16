@@ -217,6 +217,7 @@ void stress_functions(dc_context_t* context)
 	/* test file functions
 	 **************************************************************************/
 
+	if (dc_is_open(context))
 	{
 		if (dc_file_exist(context, "$BLOBDIR/foobar")
 		 || dc_file_exist(context, "$BLOBDIR/dada")

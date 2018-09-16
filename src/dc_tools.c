@@ -1130,6 +1130,7 @@ int dc_get_filemeta(const void* buf_start, size_t buf_bytes, uint32_t* ret_width
 
 char* dc_get_abs_path(dc_context_t* context, const char* pathNfilename)
 {
+	int   success           = 0;
 	char* pathNfilename_abs = NULL;
 
 	if (context==NULL || pathNfilename==NULL) {
@@ -1139,10 +1140,19 @@ char* dc_get_abs_path(dc_context_t* context, const char* pathNfilename)
 	pathNfilename_abs = dc_strdup(pathNfilename);
 
 	if (strncmp(pathNfilename_abs, "$BLOBDIR", 8)==0) {
+		if (context->blobdir==NULL) {
+			goto cleanup;
+		}
 		dc_str_replace(&pathNfilename_abs, "$BLOBDIR", context->blobdir);
 	}
 
+	success = 1;
+
 cleanup:
+	if (!success) {
+		free(pathNfilename_abs);
+		pathNfilename_abs = NULL;
+	}
 	return pathNfilename_abs;
 }
 
