@@ -54,6 +54,12 @@ class TestOfflineAccount:
         assert chat == chat2
         assert not (chat != chat2)
 
+        for ichat in ac1.get_chats():
+            if ichat.id == chat.id:
+                break
+        else:
+            pytest.fail("could not find chat")
+
     def test_message(self, acfactory):
         ac1 = acfactory.get_offline_account()
         contact1 = ac1.create_contact("some1@hello.com", name="some1")

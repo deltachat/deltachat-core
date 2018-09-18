@@ -144,6 +144,22 @@ class Account(object):
         chat_id = lib.dc_create_chat_by_msg_id(self._dc_context, msg_id)
         return Chat(self._dc_context, chat_id)
 
+    def get_chats(self):
+        """ return list of chats.
+
+        :returns: a list of :class:`Chat` objects.
+        """
+        dc_chatlist = ffi.gc(
+            lib.dc_get_chatlist(self._dc_context, 0, ffi.NULL, 0),
+            lib.dc_chatlist_unref
+        )
+
+        chatlist = []
+        for i in range(0, lib.dc_chatlist_get_cnt(dc_chatlist)):
+            chat_id = lib.dc_chatlist_get_chat_id(dc_chatlist, i)
+            chatlist.append(Chat(self._dc_context, chat_id))
+        return chatlist
+
     def get_message_by_id(self, msg_id):
         """ return Message instance. """
         return Message(self._dc_context, msg_id)
