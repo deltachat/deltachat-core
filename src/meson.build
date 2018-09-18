@@ -39,14 +39,19 @@ lib_src = [
   'dc_tools.c',
   'dc_uudecode.c',
 ]
+
+lib_deps = [pthreads, zlib, openssl, sasl, sqlite, etpan, netpgp]
 lib_inc = include_directories('.')
-
-
 lib = library(
   'deltachat', lib_src,
-  dependencies: [pthreads, zlib, openssl, sasl, sqlite, etpan, netpgp],
+  dependencies: lib_deps,
   include_directories: lib_inc,
   install: true,
+)
+dep = declare_dependency(
+  include_directories: lib_inc,
+  dependencies: lib_deps,
+  link_with: [lib],
 )
 install_headers(['deltachat.h'],
                 subdir: 'deltachat')

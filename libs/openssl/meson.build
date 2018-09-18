@@ -555,7 +555,8 @@ src = [
   'ssl/ssl_stat.c',
   'ssl/tls_srp.c',
 ]
-inc = include_directories(
+
+src_inc = include_directories(
   '.',
   'crypto',
   'crypto/asn1',
@@ -564,6 +565,7 @@ inc = include_directories(
   'include',
   'include/openssl',
 )
+
 add_project_arguments('-DNO_WINDOWS_BRAINDEATH',
                       '-DPURIFY',
                       '-DOPENSSL_THREADS',
@@ -599,7 +601,7 @@ if get_option('static-pic-lib')
     c_args: ccargs,
     pic: true,
     dependencies: [zlib],
-    include_directories: inc,
+    include_directories: src_inc,
     install:false,
   )
 else
@@ -610,12 +612,14 @@ else
     'crypto', src,
     c_args: ccargs,
     dependencies: [zlib],
-    include_directories: inc,
+    include_directories: src_inc,
     install: true,
   )
 endif
 
+inc = include_directories('include')
+
 dep = declare_dependency(
-  include_directories: include_directories('include'),
+  include_directories: inc,
   link_with: [lib],
 )

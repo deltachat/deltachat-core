@@ -2,16 +2,26 @@ project(
   'deltachat-core', 'c',
   license: 'GPLv3',
   subproject_dir: 'libs',
+  meson_version: '>=0.47.2',
 )
 
-# These get their information from pkg-config.
+# pthreads is not a real dependency
 pthreads = dependency('threads')
+
+# zlib should move grow static-pic-lib support and be handled like
+# this as well.
 zlib = dependency('zlib', fallback: ['zlib', 'zlib_dep'])
-if not get_option('fat')
+
+if not get_option('monolith')
+  # Normal build, detect dependencies from pkg-config
   openssl = dependency('openssl', fallback: ['openssl', 'dep'])
   sasl = dependency('libsasl2', fallback: ['cyrussasl', 'dep'])
   sqlite = dependency('sqlite3', fallback: ['sqlite', 'dep'])
 else
+  if get_option('default_library') == 'static'
+    error('Can not build a monolith static archive, only shared')
+  endif
+  # Monolith libdeltachat.so build, use the bundled dependencies.
   subproj_opts = ['static-pic-lib=true']
   openssl_proj = subproject('openssl', default_options: subproj_opts)
   openssl = openssl_proj.get_variable('dep')
@@ -25,7 +35,7 @@ endif
 # new enough, if not use a static-pic-lib regardless of
 # default-library and wrap-mode.
 libetpan_config = find_program('libetpan-config', required: false)
-if (not get_option('fat')
+if (not get_option('monolith')
     and libetpan_config.found()
     and run_command(libetpan_config, ['--version']).stdout().strip()
                    .version_compare('>=1.8'))

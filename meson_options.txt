@@ -1,5 +1,5 @@
 option(
-  'fat',
+  'monolith',
   type: 'boolean',
   value: false,
   description: 'Build a libdeltachat.so with minimal external dependencies',
