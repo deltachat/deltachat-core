@@ -927,6 +927,7 @@ uint32_t dc_lookup_contact_id_by_addr(dc_context_t* context, const char* addr)
 {
 	int           contact_id = 0;
 	char*         addr_normalized = NULL;
+	char*         addr_self = NULL;
 	sqlite3_stmt* stmt = NULL;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || addr==NULL || addr[0]==0) {
@@ -934,6 +935,12 @@ uint32_t dc_lookup_contact_id_by_addr(dc_context_t* context, const char* addr)
 	}
 
 	addr_normalized = dc_addr_normalize(addr);
+
+	addr_self = dc_sqlite3_get_config(context->sql, "configured_addr", "");
+	if (strcasecmp(addr_normalized, addr_self)==0) {
+		contact_id = DC_CONTACT_ID_SELF;
+		goto cleanup;
+	}
 
 	stmt = dc_sqlite3_prepare(context->sql,
 		"SELECT id FROM contacts"
@@ -949,6 +956,7 @@ uint32_t dc_lookup_contact_id_by_addr(dc_context_t* context, const char* addr)
 cleanup:
 	sqlite3_finalize(stmt);
 	free(addr_normalized);
+	free(addr_self);
 	return contact_id;
 }
 
