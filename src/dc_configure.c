@@ -727,21 +727,20 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	PROGRESS(940)
 
 cleanup:
-	context->cb(context, DC_EVENT_CONFIGURE_PROGRESS, 950, 0);
+	if (imap_connected_here) {
+		dc_imap_disconnect(context->imap);
+	}
 
-	if (imap_connected_here) { dc_imap_disconnect(context->imap); }
-	context->cb(context, DC_EVENT_CONFIGURE_PROGRESS, 960, 0);
-
-	if (smtp_connected_here) { dc_smtp_disconnect(context->smtp); }
-	context->cb(context, DC_EVENT_CONFIGURE_PROGRESS, 970, 0);
+	if (smtp_connected_here) {
+		dc_smtp_disconnect(context->smtp);
+	}
 
 	dc_loginparam_unref(param);
 	dc_loginparam_unref(param_autoconfig);
 	free(param_addr_urlencoded);
-	if (ongoing_allocated_here) { dc_free_ongoing(context); }
-	context->cb(context, DC_EVENT_CONFIGURE_PROGRESS, 980, 0);
-
-	context->cb(context, DC_EVENT_CONFIGURE_PROGRESS, 990, 0);
+	if (ongoing_allocated_here) {
+		dc_free_ongoing(context);
+	}
 
 	context->cb(context, DC_EVENT_CONFIGURE_PROGRESS, success? 1000 : 0, 0);
 }
