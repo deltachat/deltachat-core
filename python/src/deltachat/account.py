@@ -136,8 +136,8 @@ class Account(object):
         return Chat(self._dc_context, chat_id)
 
     def create_chat_by_message(self, message):
-        """ create or get an existing 1:1 chat object for the specified sender
-        of the specified message.
+        """ create or get an existing chat object for the
+        the specified message.
 
         :param message: messsage id or message instance.
         :returns: a :class:`Chat` object.
@@ -190,6 +190,16 @@ class Account(object):
             arr.append(msg)
         msg_ids = ffi.cast("uint32_t*", ffi.from_buffer(arr))
         lib.dc_markseen_msgs(self._dc_context, msg_ids, len(messages))
+
+    def forward_messages(self, messages, chat):
+        """ Forward list of messages to a chat.
+
+        :param messages: list of :class:`Message` object.
+        :param chat: :class:`Chat` object.
+        :returns: None
+        """
+        msg_ids = [msg.id for msg in messages]
+        lib.dc_forward_msgs(self._dc_context, msg_ids, len(msg_ids), chat.id)
 
     def start(self):
         """ configure this account object, start receiving events,
