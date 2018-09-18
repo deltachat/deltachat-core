@@ -60,6 +60,17 @@ class TestOfflineAccount:
         else:
             pytest.fail("could not find chat")
 
+    def test_group_chat(self, acfactory):
+        ac1 = acfactory.get_offline_account()
+        contact1 = ac1.create_contact("some1@hello.com", name="some1")
+        contact2 = ac1.create_contact("some2@hello.com", name="some2")
+        chat = ac1.create_group_chat(name="chat name")
+        chat.add_contact(contact1)
+        chat.add_contact(contact2)
+        assert contact1 in chat.get_contacts()
+        assert contact2 in chat.get_contacts()
+        assert not chat.is_promoted()
+
     def test_message(self, acfactory):
         ac1 = acfactory.get_offline_account()
         contact1 = ac1.create_contact("some1@hello.com", name="some1")
