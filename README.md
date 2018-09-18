@@ -55,22 +55,21 @@ of external libraries, most of which are detected using
 Usually this just works automatically, provided the depending libraries are
 installed correctly.
 
-By default a few stripped-down versions of these libraries are bundled
-with Delta Chat Core and these will be used.  They are marked as
-optional in the list below.  It is possible to use system-provided
-versions of these libraries using a configure option to meson.
+By default stripped-down versions of the dependencies are bundled with
+Delta Chat Core and these will be used when a dependency is missing.
+You can choose to always use the bundled version of the dependencies
+by invoking meson with the `--wrap-mode=forcefallback` option.
+Likewise you can forbid using the bundled dependencies using
+`--wrap-mode=nofallback`.
 
 Otherwise installing all of these using your system libraries is the
 easiest route.  Please note that you may need "development" packages
 installed for these to work.
 
-- [LibEtPan](https://github.com/dinhviethoa/libetpan); **optional** A
-  stripped-down version of this library is vendored and used by
-  default.  Use the `system-etpan=true` option to use a
-  system-provided version instead.  Note that this does not use
-  pkg-config so the system-provided version will be looked up by using
-  `libetpan-config` which must be in the PATH.  Version 1.8 or newer
-  is required.
+- [LibEtPan](https://github.com/dinhviethoa/libetpan); Note that this
+  library does not use pkg-config so the system-provided version will
+  be looked up by using `libetpan-config` which must be in the PATH.
+  Version 1.8 or newer is required.
 
 - [OpenSSL](https://www.openssl.org/)
 
@@ -78,11 +77,17 @@ installed for these to work.
 
 - [zlib](https://zlib.net)
 
-- libsasl
+- [libsasl](https://cyrusimap.org/sasl/)
 
 - [bzip2](http://bzip.org)
 
-To build you need to have [meson](http://mesonbuild.com) (at least version 0.36.0) and
+There is an experimental feature where you can build a version of the
+shared `libdeltachat.so` library with no further external
+dependencies.  This can be done by passing the `-Dmonolith=true`
+option to meson.  Note that this implies `--wrap-mode=forcefallback`
+since this will always use all the bundled dependencies.
+
+To build you need to have [meson](http://mesonbuild.com) (at least version 0.47.2) and
 [ninja](https://ninja-build.org) installed as well.
 
 On Linux (e.g. Debian Stretch) you can install all these using:
@@ -98,7 +103,7 @@ cd builddir
 meson
 # Optionally configure some other parameters
 # run `meson configure` to see the options, e.g.
-#    meson configure -Dsystem-etpan=true
+#    meson configure --default-library=static
 ninja
 sudo ninja install
 sudo ldconfig

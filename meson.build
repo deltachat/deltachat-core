@@ -2,23 +2,46 @@ project(
   'deltachat-core', 'c',
   license: 'GPLv3',
   subproject_dir: 'libs',
+  meson_version: '>=0.47.2',
 )
 
-
-# These get their information from pkg-config.
+# pthreads is not a real dependency
 pthreads = dependency('threads')
-zlib = dependency('zlib')
-openssl = dependency('openssl')
-sasl = dependency('libsasl2')
-sqlite = dependency('sqlite3')
 
+# zlib should move grow static-pic-lib support and be handled like
+# this as well.
+zlib = dependency('zlib', fallback: ['zlib', 'zlib_dep'])
 
-# Optionally use the system libetpan
-if get_option('system-etpan')
-  # Sadly libetpan doesn't use pkg-config.
-  etpan_prefix = run_command('libetpan-config', ['--prefix']).stdout().strip()
-  etpan_cflags = run_command('libetpan-config', ['--cflags']).stdout().strip().split()
-  etpan_libs = run_command('libetpan-config', ['--libs']).stdout().strip().split()
+if not get_option('monolith')
+  # Normal build, detect dependencies from pkg-config
+  openssl = dependency('openssl', fallback: ['openssl', 'dep'])
+  sasl = dependency('libsasl2', fallback: ['cyrussasl', 'dep'])
+  sqlite = dependency('sqlite3', fallback: ['sqlite', 'dep'])
+else
+  if get_option('default_library') == 'static'
+    error('Can not build a monolith static archive, only shared')
+  endif
+  # Monolith libdeltachat.so build, use the bundled dependencies.
+  subproj_opts = ['static-pic-lib=true']
+  openssl_proj = subproject('openssl', default_options: subproj_opts)
+  openssl = openssl_proj.get_variable('dep')
+  sasl_proj = subproject('cyrussasl', default_options: subproj_opts)
+  sasl = sasl_proj.get_variable('dep')
+  sqlite_proj = subproject('sqlite', default_options: subproj_opts)
+  sqlite = sqlite_proj.get_variable('dep')
+endif
+
+# Sadly libetpan does not use pkg-config.  Use the system one if it's
+# new enough, if not use a static-pic-lib regardless of
+# default-library and wrap-mode.
+libetpan_config = find_program('libetpan-config', required: false)
+if (not get_option('monolith')
+    and libetpan_config.found()
+    and run_command(libetpan_config, ['--version']).stdout().strip()
+                   .version_compare('>=1.8'))
+  etpan_prefix = run_command(libetpan_config, ['--prefix']).stdout().strip()
+  etpan_cflags = run_command(libetpan_config, ['--cflags']).stdout().strip().split()
+  etpan_libs = run_command(libetpan_config, ['--libs']).stdout().strip().split()
   etpan_inc_dir = join_paths(etpan_prefix, 'include')
   etpan_inc = include_directories(etpan_inc_dir)
   etpan = declare_dependency(
@@ -27,17 +50,17 @@ if get_option('system-etpan')
     link_args: etpan_libs,
   )
 else
-  etpan_proj = subproject('libetpan')
+  etpan_proj = subproject('libetpan', default_options: ['static-pic-lib=true'])
   etpan = etpan_proj.get_variable('dep')
 endif
 
 
-# Build bundled dependencies.
+# netpgp is always bundled
 netpgp_proj = subproject('netpgp')
-netpgp = netpgp_proj.get_variable('dep')
+netpgp = netpgp_proj.get_variable('static_pic_dep')
 
 
-# Build the library, stored in lib`.
+# Build the library, stored in `lib`.
 subdir('src')
 
 

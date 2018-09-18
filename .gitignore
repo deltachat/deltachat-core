@@ -49,9 +49,11 @@ po/*.insert-header
 .DS_Store
 capi.abi3.so
 
-# ignore build directory
+# ignore build remnants
 builddir/
 python/build
+libs/packagecache
+libs/zlib-1.2.11
 
 # ignore python binding stuff
 python/src/deltachat/capi*so
