@@ -158,7 +158,8 @@ class TestOnlineAccount:
         ac2.delete_messages(messages)
         assert not chat3.get_messages()
 
-    def test_send_and_receive_message(self, acfactory):
+    def test_send_and_receive_message(self, acfactory, lp):
+        lp.sec("starting accounts, waiting for configuration")
         ac1 = acfactory.get_live_account()
         ac2 = acfactory.get_live_account()
         c2 = ac1.create_contact(email=ac2.get_config("addr"))
@@ -169,6 +170,8 @@ class TestOnlineAccount:
         self.wait_successful_IMAP_SMTP_connection(ac2)
         self.wait_configuration_progress(ac1, 1000)
         self.wait_configuration_progress(ac2, 1000)
+
+        lp.sec("sending text message from ac1 to ac2")
         msg_out = chat.send_text_message("message1")
         ev = ac1._evlogger.get_matching("DC_EVENT_MSG_DELIVERED")
         evt_name, data1, data2 = ev
@@ -176,28 +179,31 @@ class TestOnlineAccount:
         assert data2 == msg_out.id
         assert msg_out.get_state().is_out_delivered()
 
-        # wait for other account to receive
+        lp.sec("wait for ac2 to receive message")
         ev = ac2._evlogger.get_matching("DC_EVENT_MSGS_CHANGED")
         assert ev[2] == msg_out.id
         msg_in = ac2.get_message_by_id(msg_out.id)
         assert msg_in.text == "message1"
 
-        # check the message arrived in contact-requets/deaddrop
+        lp.sec("check the message arrived in contact-requets/deaddrop")
         chat2 = msg_in.chat
         assert msg_in in chat2.get_messages()
         assert chat2.is_deaddrop()
         assert chat2.count_fresh_messages() == 0
 
-        # create new chat with contact and verify it's proper
+        lp.sec("create new chat with contact and verify it's proper")
         chat2b = ac2.create_chat_by_message(msg_in)
         assert not chat2b.is_deaddrop()
         assert chat2b.count_fresh_messages() == 1
 
-        # mark chat as noticed
+        lp.sec("mark chat as noticed")
         chat2b.mark_noticed()
         assert chat2b.count_fresh_messages() == 0
 
-        # mark messages as seen and check ac1 sees the MDN
+        lp.sec("mark message as seen on ac2, wait for changes on ac1")
         ac2.mark_seen_messages([msg_in])
-        ac1._evlogger.get_matching("DC_EVENT_MSGS_CHANGED")
+        lp.step("1")
+        ac1._evlogger.get_matching("DC_EVENT_MSG_READ")
+        lp.step("2")
+        ac1._evlogger.get_info_matching("Message marked as seen")
         assert msg_out.get_state().is_out_mdn_received()

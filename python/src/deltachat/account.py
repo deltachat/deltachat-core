@@ -330,6 +330,13 @@ class EventLogger:
             if rex.match(ev[0]):
                 return ev
 
+    def get_info_matching(self, regex):
+        rex = re.compile("(?:{}).*".format(regex))
+        while 1:
+            ev = self.get_matching("DC_EVENT_INFO")
+            if rex.match(ev[2]):
+                return ev
+
     def _log_event(self, evt_name, data1, data2):
         # don't show events that are anyway empty impls now
         if evt_name in ("DC_EVENT_GET_STRING", "DC_EVENT_IS_OFFLINE"):

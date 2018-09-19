@@ -77,8 +77,8 @@ class Chat(object):
 
     def set_name(self, name):
         """ set name of this chat. """
+        name = as_dc_charpointer(name)
         return lib.dc_set_chat_name(self._dc_context, self.id, name)
-
 
     # ------  chat messaging API ------------------------------
 

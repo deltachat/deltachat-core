@@ -1,3 +1,4 @@
+from __future__ import print_function
 import pytest
 import re
 import threading
@@ -48,7 +49,7 @@ def acfactory(pytestconfig, tmpdir, request):
             configdict = self.configlist.pop(0)
             tmpdb = tmpdir.join("livedb%d" % self.live_count)
             ac = Account(tmpdb.strpath, logid="ac{}".format(self.live_count))
-            ac._evlogger.set_timeout(20)
+            ac._evlogger.set_timeout(30)
             ac.set_config(**configdict)
             if started:
                 ac.start()
@@ -61,3 +62,14 @@ def acfactory(pytestconfig, tmpdir, request):
 @pytest.fixture
 def tmp_db_path(tmpdir):
     return tmpdir.join("test.db").strpath
+
+
+@pytest.fixture
+def lp():
+    class Printer:
+        def sec(self, msg):
+            print()
+            print("=" * 10, msg, "=" * 10)
+        def step(self, msg):
+            print("-" * 5, "step " + msg, "-" * 5)
+    return Printer()
