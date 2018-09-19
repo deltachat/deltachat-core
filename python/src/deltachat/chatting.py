@@ -58,25 +58,37 @@ class Chat(object):
             lib.dc_chat_unref
         )
 
-    # ------  chat status API ------------------------------
+    # ------  chat status/metadata API ------------------------------
 
     def is_deaddrop(self):
-        """ return true if this chat is a deaddrop chat. """
+        """ return true if this chat is a deaddrop chat.
+
+        :returns: True if chat is the deaddrop chat, False otherwise.
+        """
         return self.id == lib.DC_CHAT_ID_DEADDROP
 
     def is_promoted(self):
         """ return True if this chat is promoted, i.e.
         the member contacts are aware of their membership,
         have been sent messages.
+
+        :returns: True if chat is promoted, False otherwise.
         """
         return not lib.dc_chat_is_unpromoted(self._dc_chat)
 
     def get_name(self):
-        """ return name of this chat. """
+        """ return name of this chat.
+
+        :returns: unicode name
+        """
         return from_dc_charpointer(lib.dc_chat_get_name(self._dc_chat))
 
     def set_name(self, name):
-        """ set name of this chat. """
+        """ set name of this chat.
+
+        :param: name as a unicode string.
+        :returns: None
+        """
         name = as_dc_charpointer(name)
         return lib.dc_set_chat_name(self._dc_context, self.id, name)
 
