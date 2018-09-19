@@ -38,12 +38,16 @@
 static char* read_autoconf_file(dc_context_t* context, const char* url)
 {
 	char* filecontent = NULL;
+
 	dc_log_info(context, 0, "Testing %s ...", url);
+
 	filecontent = (char*)context->cb(context, DC_EVENT_HTTP_GET, (uintptr_t)url, 0);
-	if (filecontent==NULL) {
+	if (filecontent==NULL || filecontent[0]==0) {
+		free(filecontent);
 		dc_log_info(context, 0, "Can't read file."); /* this is not a warning or an error, we're just testing */
 		return NULL;
 	}
+
 	return filecontent;
 }
 
