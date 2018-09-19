@@ -1059,7 +1059,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  *     Response headers, encodings etc. must be stripped, only the raw file, which may be binary, should be returned.
  *     CAVE: The string will be free()'d by the core,
  *     so make sure it is allocated using malloc() or a compatible function.
- *     If you cannot provide the content, just return 0.
+ *     If you cannot provide the content, just return 0 or an empty string.
  */
 #define DC_EVENT_HTTP_GET                 2100
 
