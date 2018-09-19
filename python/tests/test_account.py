@@ -51,6 +51,7 @@ class TestOfflineAccount:
 
         chat2 = ac1.create_chat_by_contact(contact1.id)
         assert chat2.id == chat.id
+        assert chat2.get_name() == chat.get_name()
         assert chat == chat2
         assert not (chat != chat2)
 
@@ -60,16 +61,19 @@ class TestOfflineAccount:
         else:
             pytest.fail("could not find chat")
 
-    def test_group_chat(self, acfactory):
+    def test_group_chat_creation(self, acfactory):
         ac1 = acfactory.get_offline_account()
         contact1 = ac1.create_contact("some1@hello.com", name="some1")
         contact2 = ac1.create_contact("some2@hello.com", name="some2")
-        chat = ac1.create_group_chat(name="chat name")
+        chat = ac1.create_group_chat(name="title1")
         chat.add_contact(contact1)
         chat.add_contact(contact2)
+        assert chat.get_name() == "title1"
         assert contact1 in chat.get_contacts()
         assert contact2 in chat.get_contacts()
         assert not chat.is_promoted()
+        chat.set_name("title2")
+        assert chat.get_name() == "title2"
 
     def test_message(self, acfactory):
         ac1 = acfactory.get_offline_account()
@@ -145,11 +149,14 @@ class TestOnlineAccount:
         chat2 = msg_in.chat
         assert msg_in in chat2.get_messages()
         assert chat2.is_deaddrop()
+        assert chat2 == ac2.get_deaddrop_chat()
         chat3 = ac2.create_group_chat("newgroup")
         assert not chat3.is_promoted()
         ac2.forward_messages([msg_in], chat3)
         assert chat3.is_promoted()
-        assert chat3.get_messages()
+        messages = chat3.get_messages()
+        ac2.delete_messages(messages)
+        assert not chat3.get_messages()
 
     def test_send_and_receive_message(self, acfactory):
         ac1 = acfactory.get_live_account()

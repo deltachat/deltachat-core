@@ -169,11 +169,15 @@ class Account(object):
             lib.dc_chatlist_unref
         )
 
+        assert dc_chatlist != ffi.NULL
         chatlist = []
         for i in range(0, lib.dc_chatlist_get_cnt(dc_chatlist)):
             chat_id = lib.dc_chatlist_get_chat_id(dc_chatlist, i)
             chatlist.append(Chat(self._dc_context, chat_id))
         return chatlist
+
+    def get_deaddrop_chat(self):
+        return Chat(self._dc_context, lib.DC_CHAT_ID_DEADDROP)
 
     def get_message_by_id(self, msg_id):
         """ return Message instance. """
@@ -200,6 +204,15 @@ class Account(object):
         """
         msg_ids = [msg.id for msg in messages]
         lib.dc_forward_msgs(self._dc_context, msg_ids, len(msg_ids), chat.id)
+
+    def delete_messages(self, messages):
+        """ delete messages (local and remote).
+
+        :param messages: list of :class:`Message` object.
+        :returns: None
+        """
+        msg_ids = [msg.id for msg in messages]
+        lib.dc_delete_msgs(self._dc_context, msg_ids, len(msg_ids))
 
     def start(self):
         """ configure this account object, start receiving events,
@@ -318,6 +331,9 @@ class EventLogger:
                 return ev
 
     def _log_event(self, evt_name, data1, data2):
+        # don't show events that are anyway empty impls now
+        if evt_name in ("DC_EVENT_GET_STRING", "DC_EVENT_IS_OFFLINE"):
+            return
         if self._debug:
             t = threading.currentThread()
             tname = getattr(t, "name", t)

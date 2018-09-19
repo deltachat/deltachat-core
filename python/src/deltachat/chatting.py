@@ -2,7 +2,7 @@
 
 from .cutil import as_dc_charpointer, from_dc_charpointer, iter_array
 from .capi import lib, ffi
-from .types import cached_property, property_with_doc
+from .types import property_with_doc
 import attr
 from attr import validators as v
 
@@ -16,7 +16,7 @@ class Contact(object):
     _dc_context = attr.ib(validator=v.instance_of(ffi.CData))
     id = attr.ib(validator=v.instance_of(int))
 
-    @cached_property
+    @property
     def _dc_contact(self):
         return ffi.gc(
             lib.dc_get_contact(self._dc_context, self.id),
@@ -51,7 +51,7 @@ class Chat(object):
     _dc_context = attr.ib(validator=v.instance_of(ffi.CData))
     id = attr.ib(validator=v.instance_of(int))
 
-    @cached_property
+    @property
     def _dc_chat(self):
         return ffi.gc(
             lib.dc_get_chat(self._dc_context, self.id),
@@ -70,6 +70,15 @@ class Chat(object):
         have been sent messages.
         """
         return not lib.dc_chat_is_unpromoted(self._dc_chat)
+
+    def get_name(self):
+        """ return name of this chat. """
+        return from_dc_charpointer(lib.dc_chat_get_name(self._dc_chat))
+
+    def set_name(self, name):
+        """ set name of this chat. """
+        return lib.dc_set_chat_name(self._dc_context, self.id, name)
+
 
     # ------  chat messaging API ------------------------------
 
@@ -129,7 +138,7 @@ class Chat(object):
         :returns: None
         """
         dc_array = ffi.gc(
-            lib.dc_get_contacts(self._dc_context, 0, ffi.NULL),
+            lib.dc_get_contacts(self._dc_context, lib.DC_GCL_ADD_SELF, ffi.NULL),
             lib.dc_array_unref
         )
         return list(iter_array(
@@ -147,18 +156,12 @@ class Message(object):
     _dc_context = attr.ib(validator=v.instance_of(ffi.CData))
     id = attr.ib(validator=v.instance_of(int))
 
-    @cached_property
+    @property
     def _dc_msg(self):
         return ffi.gc(
             lib.dc_get_msg(self._dc_context, self.id),
             lib.dc_msg_unref
         )
-
-    def _refresh(self):
-        try:
-            del self._dc_msg
-        except KeyError:
-            pass
 
     def get_state(self):
         """ get the message in/out state.
@@ -190,7 +193,6 @@ class MessageState(object):
 
     @property
     def _msgstate(self):
-        self.message._refresh()
         return lib.dc_msg_get_state(self.message._dc_msg)
 
     def is_in_fresh(self):
