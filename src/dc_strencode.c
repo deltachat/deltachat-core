@@ -444,7 +444,7 @@ cleanup:
  * Decode non-ascii-strings as `=?UTF-8?Q?Bj=c3=b6rn_Petersen?=`.
  * Belongs to RFC 2047: https://tools.ietf.org/html/rfc2047
  *
- * @param to_encode String to decode.
+ * @param in String to decode.
  * @return Returns the null-terminated decoded string as UTF-8. Must be free()'d when no longed needed.
  *     On errors, NULL is returned.
  */
@@ -829,7 +829,7 @@ char* dc_encode_ext_header(const char* to_encode)
 /**
  * Decode an extended-header-format strings to UTF-8.
  *
- * @param to_encode Null-terminated string to decode
+ * @param to_decode Null-terminated string to decode
  * @return Null-terminated decoded UTF-8 string. Must be free()'d after usage.
  *     Halts the program on memory allocation errors,
  *     for all other errors, an empty string is returned or just the given string is returned.

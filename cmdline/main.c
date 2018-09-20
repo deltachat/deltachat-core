@@ -215,6 +215,9 @@ int main(int argc, char ** argv)
 	char*         cmd = NULL;
 	dc_context_t* context = dc_context_new(receive_event, NULL, "CLI");
 
+
+	return;
+
 	dc_cmdline_skip_auth(context); /* disable the need to enter the command `auth <password>` for all mailboxes. */
 
 	/* open database from the commandline (if omitted, it can be opened using the `open`-command) */

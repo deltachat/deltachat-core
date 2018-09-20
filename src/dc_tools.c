@@ -1433,7 +1433,7 @@ void dc_make_rel_path(dc_context_t* context, char** path)
  * Copy a file to the blob directory, if needed.
  *
  * @param context The context object as returned from dc_context_new().
- * @param path[in,out] The path, may be modified to a relative path
+ * @param[in,out] path The path, may be modified to a relative path
  *     starting with `$BLOBDIR`.
  * @return 1=success file may or may not be copied, 0=error
  */
