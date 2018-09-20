@@ -1488,9 +1488,6 @@ cleanup:
  * The max. text returned is typically longer (about 100000 characters) than the
  * max. text returned by dc_msg_get_text() (about 30000 characters).
  *
- * If the library is compiled for android, some basic html-formatting for the
- * subject and the footer is added.
- *
  * @memberof dc_context_t
  * @param context The context object as created by dc_context_new().
  * @param msg_id The message id for which information should be generated
@@ -1523,17 +1520,6 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 	rawtxt = dc_strdup((char*)sqlite3_column_text(stmt, 0));
 	sqlite3_finalize(stmt);
 	stmt = NULL;
-
-	#ifdef __ANDROID__ // TODO: this (and the following `#ifdef __ANDROID__`) is a little hack to make the android message appearing a little smarter
-		p = strchr(rawtxt, '\n');
-		if (p) {
-			char* subject = rawtxt;
-			*p = 0;
-			p++;
-			rawtxt = dc_mprintf("<b>%s</b>\n%s", subject, p);
-			free(subject);
-		}
-	#endif
 
 	dc_trim(rawtxt);
 	dc_truncate_str(rawtxt, DC_MAX_GET_INFO_LEN);
@@ -1650,10 +1636,6 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 	}
 
 	/* add Message-ID, Server-Folder and Server-UID; the database ID is normally only of interest if you have access to sqlite; if so you can easily get it from the "msgs" table. */
-	#ifdef __ANDROID__
-		dc_strbuilder_cat(&ret, "<c#808080>");
-	#endif
-
 	if (msg->rfc724_mid && msg->rfc724_mid[0]) {
 		dc_strbuilder_catf(&ret, "\nMessage-ID: %s", msg->rfc724_mid);
 	}
@@ -1661,10 +1643,6 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 	if (msg->server_folder && msg->server_folder[0]) {
 		dc_strbuilder_catf(&ret, "\nLast seen as: %s/%i", msg->server_folder, (int)msg->server_uid);
 	}
-
-	#ifdef __ANDROID__
-		dc_strbuilder_cat(&ret, "</c>");
-	#endif
 
 cleanup:
 	sqlite3_finalize(stmt);
