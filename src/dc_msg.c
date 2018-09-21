@@ -217,10 +217,16 @@ int dc_msg_get_state(const dc_msg_t* msg)
 
 
 /**
- * Get message sending time. The sending time is returned by a unix timestamp.
- * Note that the message list is not sorted by the _sending_ time but by the _receiving_ time.
- * Cave: the message list is sorted by receiving time (otherwise new messages would non pop up at the expected place),
- * however, if a message is delayed for any reason, the correct sending time will be displayed.
+ * Get message sending time.
+ * The sending time is returned as a unix timestamp in seconds.
+ *
+ * Note that the message lists returned eg. by dc_get_chat_msgs()
+ * are not sorted by the _sending_ time but by the _receiving_ time.
+ * This ensures newly received messages always pop up at the end of the list,
+ * however, for delayed messages, the correct sending time will be displayed.
+ *
+ * To display detailed information about the times to the user,
+ * the UI can use dc_get_msg_info().
  *
  * @memberof dc_msg_t
  * @param msg The message object.

@@ -178,7 +178,9 @@ uint32_t dc_lot_get_id(const dc_lot_t* lot)
 
 
 /**
- * Get the associated timestamp. The meaning of the timestamp is defined by the creator of the object.
+ * Get the associated timestamp.
+ * The timestamp is returned as a unix timestamp in seconds.
+ * The meaning of the timestamp is defined by the creator of the object.
  *
  * @memberof dc_lot_t
  *

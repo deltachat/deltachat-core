@@ -287,6 +287,7 @@ char* dc_chat_get_text_draft(const dc_chat_t* chat)
 
 /**
  * Get timestamp of the draft.
+ * The timestamp is returned as a unix timestamp in seconds.
  * The draft itself can be get using dc_chat_get_text_draft().
  *
  * @memberof dc_chat_t
