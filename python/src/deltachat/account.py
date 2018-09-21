@@ -324,6 +324,7 @@ class EventLogger:
         return ev
 
     def get_matching(self, event_name_regex):
+        print ("-- waiting for event with regex:", event_name_regex, "--")
         rex = re.compile("(?:{}).*".format(event_name_regex))
         while 1:
             ev = self.get()

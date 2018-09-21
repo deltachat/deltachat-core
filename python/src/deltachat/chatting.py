@@ -150,7 +150,7 @@ class Chat(object):
         :returns: None
         """
         dc_array = ffi.gc(
-            lib.dc_get_contacts(self._dc_context, lib.DC_GCL_ADD_SELF, ffi.NULL),
+            lib.dc_get_chat_contacts(self._dc_context, self.id),
             lib.dc_array_unref
         )
         return list(iter_array(
