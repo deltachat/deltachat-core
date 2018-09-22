@@ -2180,7 +2180,7 @@ uint32_t dc_send_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 	chat = dc_chat_new(context);
 	if (dc_chat_load_from_db(chat, chat_id)) {
 		msg->id = send_msg_raw(context, chat, msg, dc_create_smeared_timestamp(context));
-		if (msg ->id==0) {
+		if (msg->id==0) {
 			goto cleanup; /* error already logged */
 		}
 	}
