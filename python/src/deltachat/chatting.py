@@ -1,8 +1,8 @@
 """ chatting related objects: Contact, Chat, Message. """
 
-from .cutil import as_dc_charpointer, from_dc_charpointer, iter_array_and_unref
+from .cutil import as_dc_charpointer, from_dc_charpointer, iter_array
 from .capi import lib, ffi
-from .types import cached_property, property_with_doc
+from .types import property_with_doc
 import attr
 from attr import validators as v
 
@@ -16,7 +16,7 @@ class Contact(object):
     _dc_context = attr.ib(validator=v.instance_of(ffi.CData))
     id = attr.ib(validator=v.instance_of(int))
 
-    @cached_property
+    @property
     def _dc_contact(self):
         return ffi.gc(
             lib.dc_get_contact(self._dc_context, self.id),
@@ -51,16 +51,48 @@ class Chat(object):
     _dc_context = attr.ib(validator=v.instance_of(ffi.CData))
     id = attr.ib(validator=v.instance_of(int))
 
-    @cached_property
+    @property
     def _dc_chat(self):
         return ffi.gc(
             lib.dc_get_chat(self._dc_context, self.id),
             lib.dc_chat_unref
         )
 
+    # ------  chat status/metadata API ------------------------------
+
     def is_deaddrop(self):
-        """ return true if this chat is a deaddrop chat. """
+        """ return true if this chat is a deaddrop chat.
+
+        :returns: True if chat is the deaddrop chat, False otherwise.
+        """
         return self.id == lib.DC_CHAT_ID_DEADDROP
+
+    def is_promoted(self):
+        """ return True if this chat is promoted, i.e.
+        the member contacts are aware of their membership,
+        have been sent messages.
+
+        :returns: True if chat is promoted, False otherwise.
+        """
+        return not lib.dc_chat_is_unpromoted(self._dc_chat)
+
+    def get_name(self):
+        """ return name of this chat.
+
+        :returns: unicode name
+        """
+        return from_dc_charpointer(lib.dc_chat_get_name(self._dc_chat))
+
+    def set_name(self, name):
+        """ set name of this chat.
+
+        :param: name as a unicode string.
+        :returns: None
+        """
+        name = as_dc_charpointer(name)
+        return lib.dc_set_chat_name(self._dc_context, self.id, name)
+
+    # ------  chat messaging API ------------------------------
 
     def send_text_message(self, msg):
         """ send a text message and return the resulting Message instance.
@@ -77,8 +109,11 @@ class Chat(object):
 
         :returns: list of :class:`Message` objects for this chat.
         """
-        dc_array_t = lib.dc_get_chat_msgs(self._dc_context, self.id, 0, 0)
-        return list(iter_array_and_unref(dc_array_t, lambda x: Message(self._dc_context, x)))
+        dc_array = ffi.gc(
+            lib.dc_get_chat_msgs(self._dc_context, self.id, 0, 0),
+            lib.dc_array_unref
+        )
+        return list(iter_array(dc_array, lambda x: Message(self._dc_context, x)))
 
     def count_fresh_messages(self):
         """ return number of fresh messages in this chat.
@@ -94,6 +129,34 @@ class Chat(object):
         """
         return lib.dc_marknoticed_chat(self._dc_context, self.id)
 
+    # ------  group management API ------------------------------
+
+    def add_contact(self, contact):
+        """ add a contact to this chat.
+
+        :params: contact object.
+        :exception: ValueError if contact could not be added
+        :returns: None
+        """
+        ret = lib.dc_add_contact_to_chat(self._dc_context, self.id, contact.id)
+        if ret != 1:
+            raise ValueError("could not add contact {!r} to chat".format(contact))
+
+    def get_contacts(self):
+        """ get all contacts for this chat.
+
+        :params: contact object.
+        :exception: ValueError if contact could not be added
+        :returns: None
+        """
+        dc_array = ffi.gc(
+            lib.dc_get_chat_contacts(self._dc_context, self.id),
+            lib.dc_array_unref
+        )
+        return list(iter_array(
+            dc_array, lambda id: Contact(self._dc_context, id))
+        )
+
 
 @attr.s
 class Message(object):
@@ -105,18 +168,12 @@ class Message(object):
     _dc_context = attr.ib(validator=v.instance_of(ffi.CData))
     id = attr.ib(validator=v.instance_of(int))
 
-    @cached_property
+    @property
     def _dc_msg(self):
         return ffi.gc(
             lib.dc_get_msg(self._dc_context, self.id),
             lib.dc_msg_unref
         )
-
-    def _refresh(self):
-        try:
-            del self._dc_msg
-        except KeyError:
-            pass
 
     def get_state(self):
         """ get the message in/out state.
@@ -148,7 +205,6 @@ class MessageState(object):
 
     @property
     def _msgstate(self):
-        self.message._refresh()
         return lib.dc_msg_get_state(self.message._dc_msg)
 
     def is_in_fresh(self):

@@ -14,7 +14,7 @@ from attr import validators as v
 
 import deltachat
 from .capi import ffi, lib
-from .cutil import as_dc_charpointer, from_dc_charpointer, iter_array_and_unref
+from .cutil import as_dc_charpointer, from_dc_charpointer, iter_array
 from .chatting import Contact, Chat, Message
 
 
@@ -117,8 +117,11 @@ class Account(object):
             flags |= lib.DC_GCL_VERIFIED_ONLY
         if with_self:
             flags |= lib.DC_GCL_ADD_SELF
-        dc_array_t = lib.dc_get_contacts(self._dc_context, flags, query)
-        return list(iter_array_and_unref(dc_array_t, lambda x: Contact(self._dc_context, x)))
+        dc_array = ffi.gc(
+            lib.dc_get_contacts(self._dc_context, flags, query),
+            lib.dc_array_unref
+        )
+        return list(iter_array(dc_array, lambda x: Contact(self._dc_context, x)))
 
     def create_chat_by_contact(self, contact):
         """ create or get an existing 1:1 chat object for the specified contact.
@@ -133,8 +136,8 @@ class Account(object):
         return Chat(self._dc_context, chat_id)
 
     def create_chat_by_message(self, message):
-        """ create or get an existing 1:1 chat object for the specified sender
-        of the specified message.
+        """ create or get an existing chat object for the
+        the specified message.
 
         :param message: messsage id or message instance.
         :returns: a :class:`Chat` object.
@@ -143,6 +146,38 @@ class Account(object):
         assert isinstance(msg_id, int)
         chat_id = lib.dc_create_chat_by_msg_id(self._dc_context, msg_id)
         return Chat(self._dc_context, chat_id)
+
+    def create_group_chat(self, name, verified=False):
+        """ create a new group chat object.
+
+        Chats are unpromoted until the first message is sent.
+
+        :param verified: if true only verified contacts can be added.
+        :returns: a :class:`Chat` object.
+        """
+        bytes_name = name.encode("utf8")
+        chat_id = lib.dc_create_group_chat(self._dc_context, verified, bytes_name)
+        return Chat(self._dc_context, chat_id)
+
+    def get_chats(self):
+        """ return list of chats.
+
+        :returns: a list of :class:`Chat` objects.
+        """
+        dc_chatlist = ffi.gc(
+            lib.dc_get_chatlist(self._dc_context, 0, ffi.NULL, 0),
+            lib.dc_chatlist_unref
+        )
+
+        assert dc_chatlist != ffi.NULL
+        chatlist = []
+        for i in range(0, lib.dc_chatlist_get_cnt(dc_chatlist)):
+            chat_id = lib.dc_chatlist_get_chat_id(dc_chatlist, i)
+            chatlist.append(Chat(self._dc_context, chat_id))
+        return chatlist
+
+    def get_deaddrop_chat(self):
+        return Chat(self._dc_context, lib.DC_CHAT_ID_DEADDROP)
 
     def get_message_by_id(self, msg_id):
         """ return Message instance. """
@@ -159,6 +194,25 @@ class Account(object):
             arr.append(msg)
         msg_ids = ffi.cast("uint32_t*", ffi.from_buffer(arr))
         lib.dc_markseen_msgs(self._dc_context, msg_ids, len(messages))
+
+    def forward_messages(self, messages, chat):
+        """ Forward list of messages to a chat.
+
+        :param messages: list of :class:`Message` object.
+        :param chat: :class:`Chat` object.
+        :returns: None
+        """
+        msg_ids = [msg.id for msg in messages]
+        lib.dc_forward_msgs(self._dc_context, msg_ids, len(msg_ids), chat.id)
+
+    def delete_messages(self, messages):
+        """ delete messages (local and remote).
+
+        :param messages: list of :class:`Message` object.
+        :returns: None
+        """
+        msg_ids = [msg.id for msg in messages]
+        lib.dc_delete_msgs(self._dc_context, msg_ids, len(msg_ids))
 
     def start(self):
         """ configure this account object, start receiving events,
@@ -270,13 +324,24 @@ class EventLogger:
         return ev
 
     def get_matching(self, event_name_regex):
+        print ("-- waiting for event with regex:", event_name_regex, "--")
         rex = re.compile("(?:{}).*".format(event_name_regex))
         while 1:
             ev = self.get()
             if rex.match(ev[0]):
                 return ev
 
+    def get_info_matching(self, regex):
+        rex = re.compile("(?:{}).*".format(regex))
+        while 1:
+            ev = self.get_matching("DC_EVENT_INFO")
+            if rex.match(ev[2]):
+                return ev
+
     def _log_event(self, evt_name, data1, data2):
+        # don't show events that are anyway empty impls now
+        if evt_name in ("DC_EVENT_GET_STRING", "DC_EVENT_IS_OFFLINE"):
+            return
         if self._debug:
             t = threading.currentThread()
             tname = getattr(t, "name", t)

@@ -10,12 +10,9 @@ def as_dc_charpointer(obj):
     return obj
 
 
-def iter_array_and_unref(dc_array_t, constructor):
-    try:
-        for i in range(0, lib.dc_array_get_cnt(dc_array_t)):
-            yield constructor(lib.dc_array_get_id(dc_array_t, i))
-    finally:
-        lib.dc_array_unref(dc_array_t)
+def iter_array(dc_array_t, constructor):
+    for i in range(0, lib.dc_array_get_cnt(dc_array_t)):
+        yield constructor(lib.dc_array_get_id(dc_array_t, i))
 
 
 def from_dc_charpointer(obj):
