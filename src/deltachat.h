@@ -193,7 +193,7 @@ extern "C" {
  *
  * An object representing a single account.
  *
- * Each account is linked to an IMAP/POP3 account and uses a separate
+ * Each account is linked to an IMAP/SMTP account and uses a separate
  * SQLite database for offline functionality and for account-related
  * settings.
  */

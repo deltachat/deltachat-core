@@ -34,7 +34,7 @@ typedef struct dc_loginparam_t
 {
 	/**  @privatesection */
 
-	/* IMAP/POP3 - all pointers may be NULL if unset, public read */
+	/* IMAP - all pointers may be NULL if unset, public read */
 	char*         addr;
 	char*         mail_server;
 	char*         mail_user;
