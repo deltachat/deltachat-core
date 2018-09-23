@@ -43,9 +43,10 @@ safe. However, there are some points to keep in mind:
    Transaction cannot be nested, we recommend to use them only in the
    top-level functions or not to use them.
 
-3. Using sqlite3_last_insert_rowid() causes race conditions (between the query
-   and the call another thread may insert a row.  This function MUST NOT be
-   used; dc_sqlite3_get_rowid() provides an alternative. */
+3. Using sqlite3_last_insert_rowid() and sqlite3_changes() cause race conditions
+   (between the query and the call another thread may insert or update a row.
+   These functions MUST NOT be used;
+   dc_sqlite3_get_rowid() provides an alternative. */
 
 
 void dc_sqlite3_log_error(dc_sqlite3_t* sql, const char* msg_format, ...)
