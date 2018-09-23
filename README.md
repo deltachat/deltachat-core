@@ -3,7 +3,8 @@
 [![Build Status](https://travis-ci.org/deltachat/deltachat-core.svg?branch=master)](https://travis-ci.org/deltachat/deltachat-core)
 
 You can use the _Delta Chat Core Library_ to build **your own messenger** or
-plugin that is completely **compatible** with the existing email infrastructure.
+plugin that is completely **compatible** with Delta.Chat apps and the 
+existing email infrastructure.
 
 The library is written in **C** and language bindings are available for
 **Node.js, Java, Python** and **Swift**. They are used currently to create frontends eg. for
@@ -12,29 +13,6 @@ The library is written in **C** and language bindings are available for
 [iOS](https://github.com/deltachat/deltachat-ios) and
 [Pidgin](https://gitlab.com/lupine/purple-plugin-delta)
 but can also be used for completely different messenger projects.
-
-![Logo](https://delta.chat/assets/features/start-img4.png)
-
-Using this library in your app, you get the **ease** of well-known messengers
-with the **reach** of email. Moreover, you're **independent** from other companies or
-services as your data is not relayed through Delta Chat, only your email
-provider. That means that there are no Delta Chat servers, only clients made compatible via Delta Chat Core.
-
-Some features at a glance:
-
-- **Secure** with automatic end-to-end-encryption, supporting the new
-  [Autocrypt](https://autocrypt.org/) standard
-- **Fast** by the use of Push-IMAP
-- **Read receipts**
-- **Largest userbase** - recipients _not_ using Delta Chat can be reached as well
-- **Compatible** - not only to itself
-- **Elegant** and **simple** user interface
-- **Distributed** system
-- **No Spam** - only messages of known users are shown by default
-- **Reliable** - safe for professional use
-- **Trustworthy** - can even be used for business messages
-- **Libre software** and [standards-based](https://delta.chat/en/standards)
-
 
 API Documentation
 --------------------------------------------------------------------------------
@@ -136,4 +114,4 @@ License
 
 Licensed under the GPLv3, see [LICENSE](./LICENSE) file for details.
 
-Copyright © 2017, 2018 Delta Chat contributors.
+Copyright © 2017, 2018 Bjoern Petersen and Delta Chat contributors.
