@@ -2,47 +2,19 @@
 
 [![Build Status](https://travis-ci.org/deltachat/deltachat-core.svg?branch=master)](https://travis-ci.org/deltachat/deltachat-core)
 
-You can use the _Delta Chat Core Library_ to build **your own messenger** or
-plugin that is completely **compatible** with Delta.Chat apps and the 
-existing email infrastructure.
+The _Delta Chat Core Library_ is written in cross-platform **C**,
+documented at <https://deltachat.github.io/api/>.
 
-The library is written in **C** and language bindings are available for
-**Node.js, Java, Python** and **Swift**. They are used currently to create frontends eg. for
-[Android](https://github.com/deltachat/deltachat-android),
-[Desktop](https://github.com/deltachat/deltachat-desktop),
-[iOS](https://github.com/deltachat/deltachat-ios) and
-[Pidgin](https://gitlab.com/lupine/purple-plugin-delta)
-but can also be used for completely different messenger projects.
+Building the C-library 
+----------------------
 
-API Documentation
---------------------------------------------------------------------------------
-
-The C-API is documented at <https://deltachat.github.io/api/>.
-
-Please keep in mind, that your derived work must be released under a
-GPL-compatible licence.  For details, please have a look at the [LICENSE file](https://github.com/deltachat/deltachat-core/blob/master/LICENSE) accompanying the source code.
-
-
-Build
---------------------------------------------------------------------------------
-
-Delta Chat Core can be built as a library using the
-[meson](http://mesonbuild.com) build system. It depends on a number
-of external libraries, most of which are detected using
+Delta Chat Core is built as a C-library using the 
+[meson build system](http://mesonbuild.com). 
+It depends on a number of external libraries, most of which are detected using
 [pkg-config](https://www.freedesktop.org/wiki/Software/pkg-config/).
 Usually this just works automatically, provided the depending libraries are
-installed correctly.
-
-By default stripped-down versions of the dependencies are bundled with
-Delta Chat Core and these will be used when a dependency is missing.
-You can choose to always use the bundled version of the dependencies
-by invoking meson with the `--wrap-mode=forcefallback` option.
-Likewise you can forbid using the bundled dependencies using
-`--wrap-mode=nofallback`.
-
-Otherwise installing all of these using your system libraries is the
-easiest route.  Please note that you may need "development" packages
-installed for these to work.
+installed correctly.  You may need to install "development" packages of
+these dependencies: 
 
 - [LibEtPan](https://github.com/dinhviethoa/libetpan); Note that this
   library does not use pkg-config so the system-provided version will
@@ -59,14 +31,8 @@ installed for these to work.
 
 - [bzip2](http://bzip.org)
 
-There is an experimental feature where you can build a version of the
-shared `libdeltachat.so` library with no further external
-dependencies.  This can be done by passing the `-Dmonolith=true`
-option to meson.  Note that this implies `--wrap-mode=forcefallback`
-since this will always use all the bundled dependencies.
-
-To build you need to have [meson](http://mesonbuild.com) (at least version 0.47.2) and
-[ninja](https://ninja-build.org) installed as well.
+- [meson build system at least in version 0.47.2](http://mesonbuild.com) 
+  and [ninja](https://ninja-build.org).
 
 On Linux (e.g. Debian Stretch) you can install all these using:
 
@@ -99,6 +65,40 @@ standard.  It is possible your system uses
 `/usr/local/lib/x86_64-linux-gnu` which should be auto-detected and
 just work as well.
 
+Building without system-level dependencies 
+------------------------------------------
+
+By default stripped-down versions of the dependencies are bundled with
+Delta Chat Core and these will be used when a dependency is missing.
+You can choose to always use the bundled version of the dependencies
+by invoking meson with the `--wrap-mode=forcefallback` option.
+Likewise you can forbid using the bundled dependencies using
+`--wrap-mode=nofallback`.
+
+There also is an experimental feature where you can build a version of the
+shared `libdeltachat.so` library with no further external
+dependencies.  This can be done by passing the `-Dmonolith=true`
+option to meson.  Note that this implies `--wrap-mode=forcefallback`
+since this will always use all the bundled dependencies.
+
+
+Language bindings and frontend Projects
+---------------------------------------
+
+Language bindings are available for:
+
+- [Node.js](https://www.npmjs.com/package/deltachat-node)
+- [Python](https://py.delta.chat)
+- **Java** and **Swift** (contained in the Android/iOS repos) 
+
+The following "frontend" project make use of the C-library
+or its language bindings: 
+
+- [Android](https://github.com/deltachat/deltachat-android)
+- [iOS](https://github.com/deltachat/deltachat-ios) 
+- [Desktop](https://github.com/deltachat/deltachat-desktop)
+- [Pidgin](https://gitlab.com/lupine/purple-plugin-delta)
+
 
 Testing program
 --------------------------------------------------------------------------------
@@ -107,6 +107,9 @@ After a successful build there is also a little testing program in `builddir/cmd
 You start the program with `./delta <database-file>`
 (if the database file does not exist, it is created).
 The program then shows a prompt and typing `help` gives some help about the available commands.
+
+New tests are currently developed using Python, see 
+https://github.com/deltachat/deltachat-core/tree/master/python/tests
 
 
 License
