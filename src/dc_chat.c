@@ -584,19 +584,38 @@ cleanup:
  */
 void dc_marknoticed_chat(dc_context_t* context, uint32_t chat_id)
 {
-	sqlite3_stmt* stmt;
+	sqlite3_stmt* check = NULL;
+	sqlite3_stmt* update = NULL;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
-		return;
+		goto cleanup;
 	}
 
-	stmt = dc_sqlite3_prepare(context->sql,
-		"UPDATE msgs SET state=" DC_STRINGIFY(DC_STATE_IN_NOTICED) " WHERE chat_id=? AND state=" DC_STRINGIFY(DC_STATE_IN_FRESH) ";");
-	sqlite3_bind_int(stmt, 1, chat_id);
-	sqlite3_step(stmt);
-	sqlite3_finalize(stmt);
+	// as there is no thread-safe way to find out the affected rows
+	// and as we want to send the event only on changes,
+	// we first check if there is sth. to update.
+	// there is a chance of a race condition,
+	// however, this would result in an additional event only.
+	check = dc_sqlite3_prepare(context->sql,
+		"SELECT id FROM msgs "
+		" WHERE chat_id=? AND state=" DC_STRINGIFY(DC_STATE_IN_FRESH) ";");
+	sqlite3_bind_int(check, 1, chat_id);
+	if (sqlite3_step(check)!=SQLITE_ROW) {
+		goto cleanup;
+	}
+
+	update = dc_sqlite3_prepare(context->sql,
+		"UPDATE msgs "
+		"   SET state=" DC_STRINGIFY(DC_STATE_IN_NOTICED)
+		" WHERE chat_id=? AND state=" DC_STRINGIFY(DC_STATE_IN_FRESH) ";");
+	sqlite3_bind_int(update, 1, chat_id);
+	sqlite3_step(update);
 
 	context->cb(context, DC_EVENT_MSGS_CHANGED, 0, 0);
+
+cleanup:
+	sqlite3_finalize(check);
+	sqlite3_finalize(update);
 }
 
 
@@ -609,20 +628,32 @@ void dc_marknoticed_chat(dc_context_t* context, uint32_t chat_id)
  */
 void dc_marknoticed_all_chats(dc_context_t* context)
 {
-	sqlite3_stmt* stmt;
+	sqlite3_stmt* check = NULL;
+	sqlite3_stmt* update = NULL;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
-		return;
+		goto cleanup;
 	}
 
-	stmt = dc_sqlite3_prepare(context->sql,
-		"UPDATE msgs SET state=" DC_STRINGIFY(DC_STATE_IN_NOTICED) " WHERE state=" DC_STRINGIFY(DC_STATE_IN_FRESH) ";");
-	sqlite3_step(stmt);
-	sqlite3_finalize(stmt);
+	check = dc_sqlite3_prepare(context->sql,
+		"SELECT id FROM msgs "
+		" WHERE state=" DC_STRINGIFY(DC_STATE_IN_FRESH) ";");
+	if (sqlite3_step(check)!=SQLITE_ROW) {
+		goto cleanup;
+	}
+
+	update = dc_sqlite3_prepare(context->sql,
+		"UPDATE msgs "
+		"   SET state=" DC_STRINGIFY(DC_STATE_IN_NOTICED)
+		" WHERE state=" DC_STRINGIFY(DC_STATE_IN_FRESH) ";");
+	sqlite3_step(update);
 
 	context->cb(context, DC_EVENT_MSGS_CHANGED, 0, 0);
-}
 
+cleanup:
+	sqlite3_finalize(check);
+	sqlite3_finalize(update);
+}
 
 /**
  * Check, if there is a normal chat with a given contact.
