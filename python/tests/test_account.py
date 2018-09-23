@@ -125,6 +125,10 @@ class TestOnlineAccount:
         self.wait_configuration_progress(ac1, 1000)
         assert ac1.get_config("mail_pw")
         assert ac1.is_configured()
+        with pytest.raises(ValueError):
+            ac1.set_config("addr", "123@example.org")
+        with pytest.raises(ValueError):
+            ac1.configure(addr="123@example.org")
 
     def test_forward_messages(self, acfactory):
         ac1 = acfactory.get_live_account()
