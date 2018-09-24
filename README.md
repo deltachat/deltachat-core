@@ -79,8 +79,6 @@ installed for these to work.
 
 - [libsasl](https://cyrusimap.org/sasl/)
 
-- [bzip2](http://bzip.org)
-
 There is an experimental feature where you can build a version of the
 shared `libdeltachat.so` library with no further external
 dependencies.  This can be done by passing the `-Dmonolith=true`
