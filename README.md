@@ -29,8 +29,6 @@ these dependencies:
 
 - [libsasl](https://cyrusimap.org/sasl/)
 
-- [bzip2](http://bzip.org)
-
 - [meson build system at least in version 0.47.2](http://mesonbuild.com) 
   and [ninja](https://ninja-build.org).
 
