@@ -23,6 +23,13 @@ def acfactory(pytestconfig, tmpdir, request):
         def __init__(self):
             self.live_count = 0
             self.offline_count = 0
+            self._finalizers = []
+            request.addfinalizer(self.finalize)
+
+        def finalize(self):
+            while self._finalizers:
+                fin = self._finalizers.pop()
+                fin()
 
         @cached_property
         def configlist (self):
@@ -44,19 +51,18 @@ def acfactory(pytestconfig, tmpdir, request):
             return ac
 
         def get_configured_offline_account(self):
-            self.offline_count += 1
-            tmpdb = tmpdir.join("offlinedb%d" % self.offline_count)
-            ac = Account(tmpdb.strpath, logid="ac{}".format(self.offline_count))
+            ac = self.get_unconfigured_account()
 
             # do a pseudo-configured account
             addr = "addr{}@offline.org".format(self.offline_count)
             ac.set_config("addr", addr)
             lib.dc_set_config(ac._dc_context, b"configured_addr", addr.encode("ascii"))
+            ac.set_config("mail_pw", "123")
+            lib.dc_set_config(ac._dc_context, b"configured_mail_pw", b"123")
             lib.dc_set_config_int(ac._dc_context, b"configured", 1);
-            ac._evlogger.set_timeout(2)
             return ac
 
-        def get_live_account(self, started=True):
+        def get_online_configuring_account(self):
             if not fn:
                 pytest.skip("specify a --liveconfig file to run tests with real accounts")
             self.live_count += 1
@@ -65,9 +71,8 @@ def acfactory(pytestconfig, tmpdir, request):
             ac = Account(tmpdb.strpath, logid="ac{}".format(self.live_count))
             ac._evlogger.set_timeout(30)
             ac.configure(**configdict)
-            if started:
-                ac.start()
-            request.addfinalizer(ac.shutdown)
+            ac.start_threads()
+            self._finalizers.append(ac.stop_threads)
             return ac
 
     return AccountMaker()
@@ -87,3 +92,24 @@ def lp():
         def step(self, msg):
             print("-" * 5, "step " + msg, "-" * 5)
     return Printer()
+
+
+def wait_configuration_progress(account, target):
+    while 1:
+        evt_name, data1, data2 = \
+            account._evlogger.get_matching("DC_EVENT_CONFIGURE_PROGRESS")
+        if data1 >= target:
+            print("** CONFIG PROGRESS {}".format(target), account)
+            break
+
+
+def wait_successful_IMAP_SMTP_connection(account):
+    imap_ok = smtp_ok = False
+    while not imap_ok or not smtp_ok:
+        evt_name, data1, data2 = \
+            account._evlogger.get_matching("DC_EVENT_(IMAP|SMTP)_CONNECTED")
+        if evt_name == "DC_EVENT_IMAP_CONNECTED":
+            imap_ok = True
+        if evt_name == "DC_EVENT_SMTP_CONNECTED":
+            smtp_ok = True
+    print("** IMAP and SMTP logins successful", account)

@@ -114,6 +114,7 @@ class Account(object):
         name = as_dc_charpointer(name)
         email = as_dc_charpointer(email)
         contact_id = lib.dc_create_contact(self._dc_context, name, email)
+        assert contact_id > lib.DC_CHAT_ID_LAST_SPECIAL
         return Contact(self._dc_context, contact_id)
 
     def get_contacts(self, query=None, with_self=False, only_verified=False):
@@ -228,15 +229,18 @@ class Account(object):
         msg_ids = [msg.id for msg in messages]
         lib.dc_delete_msgs(self._dc_context, msg_ids, len(msg_ids))
 
-    def start(self):
-        """ configure this account object, start receiving events,
-        start IMAP/SMTP threads. """
+    def start_threads(self):
+        """ start IMAP/SMTP threads (and configure account if it hasn't happened).
+
+        :raises: ValueError if 'addr' or 'mail_pw' are not configured.
+        :returns: None
+        """
         if not self.is_configured():
             self.configure()
         self._threads.start()
 
-    def shutdown(self):
-        """ shutdown IMAP/SMTP threads and stop receiving events"""
+    def stop_threads(self):
+        """ stop IMAP/SMTP threads. """
         self._threads.stop(wait=True)
 
     def _process_event(self, ctx, evt_name, data1, data2):

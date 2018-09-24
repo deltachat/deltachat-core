@@ -1,6 +1,7 @@
 from __future__ import print_function
 import pytest
 from deltachat.capi import lib
+from conftest import wait_configuration_progress, wait_successful_IMAP_SMTP_connection
 
 
 class TestOfflineAccount:
@@ -95,31 +96,8 @@ class TestOfflineAccount:
         assert not msg_state.is_out_delivered()
         assert not msg_state.is_out_mdn_received()
 
-
-class TestOnlineAccount:
-    def wait_successful_IMAP_SMTP_connection(self, account):
-        imap_ok = smtp_ok = False
-        while not imap_ok or not smtp_ok:
-            evt_name, data1, data2 = \
-                account._evlogger.get_matching("DC_EVENT_(IMAP|SMTP)_CONNECTED")
-            if evt_name == "DC_EVENT_IMAP_CONNECTED":
-                imap_ok = True
-            if evt_name == "DC_EVENT_SMTP_CONNECTED":
-                smtp_ok = True
-        print("** IMAP and SMTP logins successful", account)
-
-    def wait_configuration_progress(self, account, target):
-        while 1:
-            evt_name, data1, data2 = \
-                account._evlogger.get_matching("DC_EVENT_CONFIGURE_PROGRESS")
-            if data1 >= target:
-                print("** CONFIG PROGRESS {}".format(target), account)
-                break
-
-    def test_basic_configure_login_ok(self, acfactory):
-        ac1 = acfactory.get_live_account()
-        self.wait_successful_IMAP_SMTP_connection(ac1)
-        self.wait_configuration_progress(ac1, 1000)
+    def test_basic_configure_ok_addr_setting_forbidden(self, acfactory):
+        ac1 = acfactory.get_configured_offline_account()
         assert ac1.get_config("mail_pw")
         assert ac1.is_configured()
         with pytest.raises(ValueError):
@@ -127,17 +105,19 @@ class TestOnlineAccount:
         with pytest.raises(ValueError):
             ac1.configure(addr="123@example.org")
 
+
+class TestOnlineAccount:
     def test_forward_messages(self, acfactory):
-        ac1 = acfactory.get_live_account()
-        ac2 = acfactory.get_live_account()
+        ac1 = acfactory.get_online_configuring_account()
+        ac2 = acfactory.get_online_configuring_account()
         c2 = ac1.create_contact(email=ac2.get_config("addr"))
         chat = ac1.create_chat_by_contact(c2)
         assert chat.id >= lib.DC_CHAT_ID_LAST_SPECIAL
+        wait_successful_IMAP_SMTP_connection(ac1)
+        wait_configuration_progress(ac1, 1000)
+        wait_successful_IMAP_SMTP_connection(ac2)
+        wait_configuration_progress(ac2, 1000)
 
-        self.wait_successful_IMAP_SMTP_connection(ac1)
-        self.wait_successful_IMAP_SMTP_connection(ac2)
-        self.wait_configuration_progress(ac1, 1000)
-        self.wait_configuration_progress(ac2, 1000)
         msg_out = chat.send_text_message("message2")
 
         # wait for other account to receive
@@ -161,16 +141,14 @@ class TestOnlineAccount:
 
     def test_send_and_receive_message(self, acfactory, lp):
         lp.sec("starting accounts, waiting for configuration")
-        ac1 = acfactory.get_live_account()
-        ac2 = acfactory.get_live_account()
+        ac1 = acfactory.get_online_configuring_account()
+        ac2 = acfactory.get_online_configuring_account()
         c2 = ac1.create_contact(email=ac2.get_config("addr"))
         chat = ac1.create_chat_by_contact(c2)
         assert chat.id >= lib.DC_CHAT_ID_LAST_SPECIAL
 
-        self.wait_successful_IMAP_SMTP_connection(ac1)
-        self.wait_successful_IMAP_SMTP_connection(ac2)
-        self.wait_configuration_progress(ac1, 1000)
-        self.wait_configuration_progress(ac2, 1000)
+        wait_configuration_progress(ac1, 1000)
+        wait_configuration_progress(ac2, 1000)
 
         lp.sec("sending text message from ac1 to ac2")
         msg_out = chat.send_text_message("message1")
