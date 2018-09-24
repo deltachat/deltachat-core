@@ -944,11 +944,11 @@ uint32_t dc_lookup_contact_id_by_addr(dc_context_t* context, const char* addr)
 
 	stmt = dc_sqlite3_prepare(context->sql,
 		"SELECT id FROM contacts"
-		" WHERE addr=? COLLATE NOCASE"
-		" AND id>" DC_STRINGIFY(DC_CONTACT_ID_LAST_SPECIAL)
-		" AND origin>=" DC_STRINGIFY(DC_ORIGIN_MIN_CONTACT_LIST)
-		" AND blocked=0;");
+		" WHERE addr=?1 COLLATE NOCASE"
+		" AND id>?2 AND origin>=?3 AND blocked=0;");
 	sqlite3_bind_text(stmt, 1, (const char*)addr_normalized, -1, SQLITE_STATIC);
+	sqlite3_bind_int (stmt, 2, DC_CONTACT_ID_LAST_SPECIAL);
+	sqlite3_bind_int (stmt, 3, DC_ORIGIN_MIN_CONTACT_LIST);
 	if (sqlite3_step(stmt)==SQLITE_ROW) {
 		contact_id = sqlite3_column_int(stmt, 0);
 	}
@@ -998,16 +998,20 @@ dc_array_t* dc_get_contacts(dc_context_t* context, uint32_t listflags, const cha
 		if ((s3strLikeCmd=sqlite3_mprintf("%%%s%%", query? query : ""))==NULL) {
 			goto cleanup;
 		}
+		// see comments in dc_search_msgs() about the LIKE operator
 		stmt = dc_sqlite3_prepare(context->sql,
 			"SELECT c.id FROM contacts c"
 				" LEFT JOIN acpeerstates ps ON c.addr=ps.addr "
-				" WHERE c.addr!=? AND c.id>" DC_STRINGIFY(DC_CONTACT_ID_LAST_SPECIAL) " AND c.origin>=" DC_STRINGIFY(DC_ORIGIN_MIN_CONTACT_LIST) " AND c.blocked=0 AND (c.name LIKE ? OR c.addr LIKE ?)" /* see comments in dc_search_msgs() about the LIKE operator */
-				" AND (1=? OR LENGTH(ps.verified_key_fingerprint)!=0) "
+				" WHERE c.addr!=?1 AND c.id>?2 AND c.origin>=?3"
+				" AND c.blocked=0 AND (c.name LIKE ?4 OR c.addr LIKE ?5)"
+				" AND (1=?6 OR LENGTH(ps.verified_key_fingerprint)!=0) "
 				" ORDER BY LOWER(c.name||c.addr),c.id;");
 		sqlite3_bind_text(stmt, 1, self_addr, -1, SQLITE_STATIC);
-		sqlite3_bind_text(stmt, 2, s3strLikeCmd, -1, SQLITE_STATIC);
-		sqlite3_bind_text(stmt, 3, s3strLikeCmd, -1, SQLITE_STATIC);
-		sqlite3_bind_int (stmt, 4, (listflags&DC_GCL_VERIFIED_ONLY)? 0/*force checking for verified_key*/ : 1/*force statement being always true*/);
+		sqlite3_bind_int (stmt, 2, DC_CONTACT_ID_LAST_SPECIAL);
+		sqlite3_bind_int (stmt, 3, DC_ORIGIN_MIN_CONTACT_LIST);
+		sqlite3_bind_text(stmt, 4, s3strLikeCmd, -1, SQLITE_STATIC);
+		sqlite3_bind_text(stmt, 5, s3strLikeCmd, -1, SQLITE_STATIC);
+		sqlite3_bind_int (stmt, 6, (listflags&DC_GCL_VERIFIED_ONLY)? 0/*force checking for verified_key*/ : 1/*force statement being always true*/);
 
 		self_name  = dc_sqlite3_get_config(context->sql, "displayname", "");
 		self_name2 = dc_stock_str(context, DC_STR_SELF);
@@ -1019,9 +1023,11 @@ dc_array_t* dc_get_contacts(dc_context_t* context, uint32_t listflags, const cha
 	{
 		stmt = dc_sqlite3_prepare(context->sql,
 			"SELECT id FROM contacts"
-				" WHERE addr!=? AND id>" DC_STRINGIFY(DC_CONTACT_ID_LAST_SPECIAL) " AND origin>=" DC_STRINGIFY(DC_ORIGIN_MIN_CONTACT_LIST) " AND blocked=0"
+				" WHERE addr!=?1 AND id>?2 AND origin>=?3 AND blocked=0"
 				" ORDER BY LOWER(name||addr),id;");
 		sqlite3_bind_text(stmt, 1, self_addr, -1, SQLITE_STATIC);
+		sqlite3_bind_int (stmt, 2, DC_CONTACT_ID_LAST_SPECIAL);
+		sqlite3_bind_int (stmt, 3, DC_ORIGIN_MIN_CONTACT_LIST);
 
 		add_self = 1;
 	}
