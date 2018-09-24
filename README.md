@@ -5,8 +5,8 @@
 The _Delta Chat Core Library_ is written in cross-platform **C**,
 documented at <https://deltachat.github.io/api/>.
 
-Building the C-library 
-----------------------
+
+## Building the C-library 
 
 Delta Chat Core is built as a C-library using the 
 [meson build system](http://mesonbuild.com). 
@@ -65,8 +65,8 @@ standard.  It is possible your system uses
 `/usr/local/lib/x86_64-linux-gnu` which should be auto-detected and
 just work as well.
 
-Building without system-level dependencies 
-------------------------------------------
+
+## Building without system-level dependencies 
 
 By default stripped-down versions of the dependencies are bundled with
 Delta Chat Core and these will be used when a dependency is missing.
@@ -82,8 +82,7 @@ option to meson.  Note that this implies `--wrap-mode=forcefallback`
 since this will always use all the bundled dependencies.
 
 
-Language bindings and frontend Projects
----------------------------------------
+## Language bindings and frontend Projects
 
 Language bindings are available for:
 
@@ -100,8 +99,7 @@ or its language bindings:
 - [Pidgin](https://gitlab.com/lupine/purple-plugin-delta)
 
 
-Testing program
---------------------------------------------------------------------------------
+## Testing program
 
 After a successful build there is also a little testing program in `builddir/cmdline`.
 You start the program with `./delta <database-file>`
@@ -112,9 +110,8 @@ New tests are currently developed using Python, see
 https://github.com/deltachat/deltachat-core/tree/master/python/tests
 
 
-License
---------------------------------------------------------------------------------
+## License
 
 Licensed under the GPLv3, see [LICENSE](./LICENSE) file for details.
 
-Copyright © 2017, 2018 Bjoern Petersen and Delta Chat contributors.
+Copyright © 2017, 2018 Björn Petersen and Delta Chat contributors.
