@@ -23,7 +23,6 @@ class Account(object):
     by the underlying deltachat c-library.  All public Account methods are
     meant to be memory-safe and return memory-safe objects.
     """
-
     def __init__(self, db_path, logid=None):
         """ initialize account object.
 
@@ -32,10 +31,9 @@ class Account(object):
         :param logid: an optional logging prefix that should be used with
                       the default internal logging.
         """
-
         self._dc_context = ffi.gc(
             lib.dc_context_new(lib.py_dc_callback, ffi.NULL, ffi.NULL),
-            lib.dc_context_unref,
+            _destroy_dc_context,
         )
         if hasattr(db_path, "encode"):
             db_path = db_path.encode("utf8")
@@ -43,19 +41,21 @@ class Account(object):
             raise ValueError("Could not dc_open: {}".format(db_path))
         self._evhandler = EventHandler(self._dc_context)
         self._evlogger = EventLogger(self._dc_context, logid)
+        deltachat.set_context_callback(self._dc_context, self._process_event)
         self._threads = IOThreads(self._dc_context)
 
-    def set_config(self, **kwargs):
+    def set_config(self, name, value):
         """ set configuration values.
 
-        :param kwargs: name=value settings for this account.
-                       values need to be unicode.
+        :param name: config key name (unicode)
+        :param value: value to set (unicode)
         :returns: None
         """
-        for name, value in kwargs.items():
-            name = name.encode("utf8")
-            value = value.encode("utf8")
-            lib.dc_set_config(self._dc_context, name, value)
+        name = name.encode("utf8")
+        value = value.encode("utf8")
+        if name == b"addr" and self.is_configured():
+            raise ValueError("can not change 'addr' after account is configured.")
+        lib.dc_set_config(self._dc_context, name, value)
 
     def get_config(self, name):
         """ return unicode string value.
@@ -65,11 +65,25 @@ class Account(object):
         :raises: KeyError if no config value was found.
         """
         name = name.encode("utf8")
-        res = lib.dc_get_config(self._dc_context, name, b'')
+        res = lib.dc_get_config(self._dc_context, name, ffi.NULL)
+        if res == ffi.NULL:
+            raise KeyError("config value not found for: {!r}".format(name))
         return from_dc_charpointer(res)
 
+    def configure(self, **kwargs):
+        """ set config values and configure this account.
+
+        :param kwargs: name=value config settings for this account.
+                       values need to be unicode.
+        :returns: None
+        """
+        for name, value in kwargs.items():
+            self.set_config(name, value)
+        lib.dc_configure(self._dc_context)
+
     def is_configured(self):
-        """ determine if the account is configured already.
+        """ determine if the account is configured already; an initial connection
+        to SMTP/IMAP has been verified.
 
         :returns: True if account is configured.
         """
@@ -100,6 +114,7 @@ class Account(object):
         name = as_dc_charpointer(name)
         email = as_dc_charpointer(email)
         contact_id = lib.dc_create_contact(self._dc_context, name, email)
+        assert contact_id > lib.DC_CHAT_ID_LAST_SPECIAL
         return Contact(self._dc_context, contact_id)
 
     def get_contacts(self, query=None, with_self=False, only_verified=False):
@@ -214,16 +229,18 @@ class Account(object):
         msg_ids = [msg.id for msg in messages]
         lib.dc_delete_msgs(self._dc_context, msg_ids, len(msg_ids))
 
-    def start(self):
-        """ configure this account object, start receiving events,
-        start IMAP/SMTP threads. """
-        deltachat.set_context_callback(self._dc_context, self._process_event)
-        lib.dc_configure(self._dc_context)
+    def start_threads(self):
+        """ start IMAP/SMTP threads (and configure account if it hasn't happened).
+
+        :raises: ValueError if 'addr' or 'mail_pw' are not configured.
+        :returns: None
+        """
+        if not self.is_configured():
+            self.configure()
         self._threads.start()
 
-    def shutdown(self):
-        """ shutdown IMAP/SMTP threads and stop receiving events"""
-        deltachat.clear_context_callback(self._dc_context)
+    def stop_threads(self):
+        """ stop IMAP/SMTP threads. """
         self._threads.stop(wait=True)
 
     def _process_event(self, ctx, evt_name, data1, data2):
@@ -347,3 +364,14 @@ class EventLogger:
             tname = getattr(t, "name", t)
             print("[{}-{}] {}({!r},{!r})".format(
                  tname, self.logid, evt_name, data1, data2))
+
+
+def _destroy_dc_context(dc_context, dc_context_unref=lib.dc_context_unref):
+    # destructor for dc_context
+    dc_context_unref(dc_context)
+    try:
+        deltachat.clear_context_callback(dc_context)
+    except (TypeError, AttributeError):
+        # we are deep into Python Interpreter shutdown,
+        # so no need to clear the callback context mapping.
+        pass
