@@ -5,23 +5,29 @@ from deltachat.capi import lib
 
 class TestOfflineAccount:
     def test_is_not_configured(self, acfactory):
-        ac1 = acfactory.get_offline_account()
+        ac1 = acfactory.get_unconfigured_account()
         assert not ac1.is_configured()
         with pytest.raises(ValueError):
             ac1.check_is_configured()
 
     def test_selfcontact_if_unconfigured(self, acfactory):
-        ac1 = acfactory.get_offline_account()
+        ac1 = acfactory.get_unconfigured_account()
         with pytest.raises(ValueError):
             ac1.get_self_contact()
 
-    # def test_get_config_fails(self, acfactory):
-    #    ac1 = acfactory.get_offline_account()
-    #    with pytest.raises(KeyError):
-    #        ac1.get_config("123123")
+    def test_selfcontact_configured(self, acfactory):
+        ac1 = acfactory.get_configured_offline_account()
+        me = ac1.get_self_contact()
+        assert me.display_name
+        assert me.addr
+
+    def test_get_config_fails(self, acfactory):
+        ac1 = acfactory.get_unconfigured_account()
+        with pytest.raises(KeyError):
+            ac1.get_config("123123")
 
     def test_contact_attr(self, acfactory):
-        ac1 = acfactory.get_offline_account()
+        ac1 = acfactory.get_configured_offline_account()
         contact1 = ac1.create_contact(email="some1@hello.com", name="some1")
         assert contact1.id
         assert contact1.addr == "some1@hello.com"
@@ -29,9 +35,8 @@ class TestOfflineAccount:
         assert not contact1.is_blocked()
         assert not contact1.is_verified()
 
-    @pytest.mark.xfail(reason="on travis it fails, needs investigation")
     def test_get_contacts(self, acfactory):
-        ac1 = acfactory.get_offline_account()
+        ac1 = acfactory.get_configured_offline_account()
         contact1 = ac1.create_contact(email="some1@hello.com", name="some1")
         contacts = ac1.get_contacts()
         assert len(contacts) == 1
@@ -44,7 +49,7 @@ class TestOfflineAccount:
         assert len(contacts) == 2
 
     def test_chat(self, acfactory):
-        ac1 = acfactory.get_offline_account()
+        ac1 = acfactory.get_configured_offline_account()
         contact1 = ac1.create_contact("some1@hello.com", name="some1")
         chat = ac1.create_chat_by_contact(contact1)
         assert chat.id >= lib.DC_CHAT_ID_LAST_SPECIAL, chat.id
@@ -62,7 +67,7 @@ class TestOfflineAccount:
             pytest.fail("could not find chat")
 
     def test_group_chat_creation(self, acfactory):
-        ac1 = acfactory.get_offline_account()
+        ac1 = acfactory.get_configured_offline_account()
         contact1 = ac1.create_contact("some1@hello.com", name="some1")
         contact2 = ac1.create_contact("some2@hello.com", name="some2")
         chat = ac1.create_group_chat(name="title1")
@@ -76,7 +81,7 @@ class TestOfflineAccount:
         assert chat.get_name() == "title2"
 
     def test_message(self, acfactory):
-        ac1 = acfactory.get_offline_account()
+        ac1 = acfactory.get_configured_offline_account()
         contact1 = ac1.create_contact("some1@hello.com", name="some1")
         chat = ac1.create_chat_by_contact(contact1)
         msg = chat.send_text_message("msg1")
@@ -85,8 +90,7 @@ class TestOfflineAccount:
         assert not msg_state.is_in_fresh()
         assert not msg_state.is_in_noticed()
         assert not msg_state.is_in_seen()
-        # XXX the following line should work but doesn't:
-        # assert msg_state.is_out_pending()
+        assert msg_state.is_out_pending()
         assert not msg_state.is_out_failed()
         assert not msg_state.is_out_delivered()
         assert not msg_state.is_out_mdn_received()
@@ -111,13 +115,6 @@ class TestOnlineAccount:
             if data1 >= target:
                 print("** CONFIG PROGRESS {}".format(target), account)
                 break
-
-    def test_selfcontact(self, acfactory):
-        ac1 = acfactory.get_live_account()
-        self.wait_configuration_progress(ac1, 1000)
-        me = ac1.get_self_contact()
-        assert me.display_name
-        assert me.addr
 
     def test_basic_configure_login_ok(self, acfactory):
         ac1 = acfactory.get_live_account()

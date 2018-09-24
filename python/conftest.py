@@ -4,6 +4,7 @@ import re
 import threading
 from deltachat import Account
 from deltachat.types import cached_property
+from deltachat.capi import lib
 
 
 def pytest_addoption(parser):
@@ -35,10 +36,23 @@ def acfactory(pytestconfig, tmpdir, request):
                     configlist.append(d)
             return configlist
 
-        def get_offline_account(self):
+        def get_unconfigured_account(self):
             self.offline_count += 1
             tmpdb = tmpdir.join("offlinedb%d" % self.offline_count)
             ac = Account(tmpdb.strpath, logid="ac{}".format(self.offline_count))
+            ac._evlogger.set_timeout(2)
+            return ac
+
+        def get_configured_offline_account(self):
+            self.offline_count += 1
+            tmpdb = tmpdir.join("offlinedb%d" % self.offline_count)
+            ac = Account(tmpdb.strpath, logid="ac{}".format(self.offline_count))
+
+            # do a pseudo-configured account
+            addr = "addr{}@offline.org".format(self.offline_count)
+            ac.set_config("addr", addr)
+            lib.dc_set_config(ac._dc_context, b"configured_addr", addr.encode("ascii"))
+            lib.dc_set_config_int(ac._dc_context, b"configured", 1);
             ac._evlogger.set_timeout(2)
             return ac
 

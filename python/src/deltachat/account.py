@@ -65,7 +65,9 @@ class Account(object):
         :raises: KeyError if no config value was found.
         """
         name = name.encode("utf8")
-        res = lib.dc_get_config(self._dc_context, name, b'')
+        res = lib.dc_get_config(self._dc_context, name, ffi.NULL)
+        if res == ffi.NULL:
+            raise KeyError("config value not found for: {!r}".format(name))
         return from_dc_charpointer(res)
 
     def configure(self, **kwargs):
