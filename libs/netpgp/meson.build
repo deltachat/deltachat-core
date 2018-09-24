@@ -9,7 +9,6 @@ openssl = dependency('openssl', fallback: ['openssl', 'dep'])
 
 # Dependencies without pkg-config, just try linking against them
 cc = meson.get_compiler('c')
-bzip2 = cc.find_library('bz2')
 
 src = [
   'src/compress.c',
@@ -36,7 +35,7 @@ ccargs += cc.get_supported_arguments(['-Wno-misleading-indentation'])
 static_pic_lib = static_library(
   'netpgp', src,
   c_args: ccargs,
-  dependencies: [pthreads, zlib, openssl, bzip2],
+  dependencies: [pthreads, zlib, openssl],
   include_directories: inc,
   pic: true,
   install: false,
