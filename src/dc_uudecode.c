@@ -145,7 +145,7 @@ static char* dc_print_hex(char* s)
 	int i;
 	char* hex = (char*)calloc((2*n+1), sizeof(char));
 	
-	for(i = 0; i<n; i++){
+	for (i = 0; i<n; i++) {
 		sprintf(hex+i*2, "%02X", s[i]);
 	}
 	
