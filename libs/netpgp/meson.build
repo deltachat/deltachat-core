@@ -93,13 +93,22 @@ endif
 
 ## Build the library
 lib_deps = [pthreads, zlib, openssl, bzip2]
-lib = build_target(
-  'netpgp', src,
-  target_type: get_option('static-lib') ? 'static_library' : 'shared_library',
-  c_args: ccargs,
-  dependencies: lib_deps,
-  include_directories: inc,
-)
+if get_option('static-pic-lib')
+  lib = static_library(
+    'netpgp', src,
+    c_args: ccargs,
+    pic: true,
+    dependencies: lib_deps,
+    include_directories: inc,
+  )
+else
+  lib = library(
+    'netpgp', src,
+    c_args: ccargs,
+    dependencies: lib_deps,
+    include_directories: inc,
+  )
+endif
 
 dep = declare_dependency(
   include_directories: inc,

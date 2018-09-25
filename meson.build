@@ -3,7 +3,6 @@ project(
   license: 'GPLv3',
   subproject_dir: 'libs',
   meson_version: '>=0.47.2',
-  default_options: ['b_staticpic=true'],
 )
 
 # pthreads is not a real dependency
@@ -57,15 +56,11 @@ endif
 
 
 # netpgp is always bundled
-if (get_option('default_library') != 'static'
-    and get_option('b_staticpic') != true)
-  error('Must compile the shared library with -Db_staticpic=true')
-endif
 netpgp_proj = subproject('netpgp',
-                         default_options: ['static-lib=true',
+                         default_options: ['static-pic-lib=true',
                                            'bzip2=disabled',
                                            'openssl-idea=false',
-                                           'openssl-camellia=false'])
+                                           'openssl-camellia=true'])
 netpgp = netpgp_proj.get_variable('dep')
 
 
