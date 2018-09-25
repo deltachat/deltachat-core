@@ -156,6 +156,10 @@ void dc_sqlite3_unref(dc_sqlite3_t* sql)
 
 int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 {
+	if (dc_sqlite3_is_open(sql)) {
+		return 0; // a cleanup would close the database
+	}
+
 	if (sql==NULL || dbfile==NULL) {
 		goto cleanup;
 	}
