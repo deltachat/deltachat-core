@@ -50,7 +50,7 @@
 /** \file
  * \brief Parser for OpenPGP packets
  */
-#include "netpgp/config-netpgp.h"
+#include "config-netpgp.h"
 
 #ifdef HAVE_SYS_CDEFS_H
 #include <sys/cdefs.h>

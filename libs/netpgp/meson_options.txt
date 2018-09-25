@@ -1,0 +1,24 @@
+option(
+  'bzip2',
+  type: 'feature',
+  value: 'auto',
+  description: 'Include bzip2 support'
+)
+option(
+  'openssl-camellia',
+  type: 'boolean',
+  value: true,
+  description: 'Whether to compile in support for OpenSSL Camellia'
+)
+option(
+  'openssl-idea',
+  type: 'boolean',
+  value: true,
+  description: 'Whether to compile in support for OpenSSL IDEA'
+)
+option(
+  'static-lib',
+  type: 'boolean',
+  value: false,
+  description: 'Force building a static library, for subproject use'
+)

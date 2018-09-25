@@ -46,7 +46,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "netpgp/config-netpgp.h"
+#include "config-netpgp.h"
 
 #ifdef HAVE_SYS_CDEFS_H
 #include <sys/cdefs.h>
