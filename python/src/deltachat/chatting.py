@@ -3,6 +3,7 @@
 from .cutil import as_dc_charpointer, from_dc_charpointer, iter_array
 from .capi import lib, ffi
 from .types import property_with_doc
+from datetime import datetime
 import attr
 from attr import validators as v
 
@@ -184,8 +185,17 @@ class Message(object):
 
     @property_with_doc
     def text(self):
-        """unicode representation. """
+        """unicode text of this messages. """
         return from_dc_charpointer(lib.dc_msg_get_text(self._dc_msg))
+
+    @property_with_doc
+    def time_sent(self):
+        """time when the message was sent.
+
+        :returns: datetime.datetime() object.
+        """
+        ts = lib.dc_msg_get_timestamp(self._dc_msg)
+        return datetime.fromtimestamp(ts)
 
     @property
     def chat(self):
@@ -195,6 +205,14 @@ class Message(object):
         """
         chat_id = lib.dc_msg_get_chat_id(self._dc_msg)
         return Chat(self._dc_context, chat_id)
+
+    def get_sender_contact(self):
+        """return the contact of who wrote the message.
+
+        :returns: :class:`Contact`` instance
+        """
+        contact_id = lib.dc_msg_get_from_id(self._dc_msg)
+        return Contact(self._dc_context, contact_id)
 
 
 @attr.s

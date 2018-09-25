@@ -1,6 +1,7 @@
 from __future__ import print_function
 import pytest
 from deltachat.capi import lib
+from datetime import datetime, timedelta
 from conftest import wait_configuration_progress, wait_successful_IMAP_SMTP_connection
 
 
@@ -95,6 +96,18 @@ class TestOfflineAccount:
         assert not msg_state.is_out_failed()
         assert not msg_state.is_out_delivered()
         assert not msg_state.is_out_mdn_received()
+
+    def test_chat_message_distinctions(self, acfactory):
+        ac1 = acfactory.get_configured_offline_account()
+        contact1 = ac1.create_contact("some1@hello.com", name="some1")
+        chat = ac1.create_chat_by_contact(contact1)
+        past1s = datetime.now() - timedelta(seconds=1)
+        msg = chat.send_text_message("msg1")
+        ts = msg.time_sent
+        assert ts.strftime("Y")
+        assert past1s < ts
+        contact = msg.get_sender_contact()
+        assert contact == ac1.get_self_contact()
 
     def test_basic_configure_ok_addr_setting_forbidden(self, acfactory):
         ac1 = acfactory.get_configured_offline_account()
