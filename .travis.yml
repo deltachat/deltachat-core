@@ -37,4 +37,5 @@ script:
   - virtualenv -p /usr/bin/python3.5 venv
   - source venv/bin/activate
   - pip install tox 
+  - ldd /usr/local/lib/x86_64-linux-gnu/libdeltachat.so
   - tox

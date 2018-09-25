@@ -234,19 +234,21 @@ static void update_config_cache(dc_context_t* context, const char* key)
  *     If you pass NULL or the empty string, deltachat-core creates a directory
  *     beside _dbfile_ with the same name and the suffix `-blobs`.
  * @return 1 on success, 0 on failure
+ *     eg. if the file is not writable
+ *     or if there is already a database opened for the context.
  */
 int dc_open(dc_context_t* context, const char* dbfile, const char* blobdir)
 {
 	int success = 0;
 
+	if (dc_is_open(context)) {
+		return 0; // a cleanup would close the database
+	}
+
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || dbfile==NULL) {
 		goto cleanup;
 	}
 
-	/* Open() sets up the object and connects to the given database
-	from which all configuration is read/written to. */
-
-	/* backup dbfile name */
 	context->dbfile = dc_strdup(dbfile);
 
 	/* set blob-directory
@@ -271,9 +273,7 @@ int dc_open(dc_context_t* context, const char* dbfile, const char* blobdir)
 
 cleanup:
 	if (!success) {
-		if (dc_sqlite3_is_open(context->sql)) {
-			dc_sqlite3_close(context->sql);
-		}
+		dc_close(context);
 	}
 
 	return success;

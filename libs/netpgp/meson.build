@@ -10,6 +10,7 @@ pthreads = dependency('threads')
 zlib = dependency('zlib', fallback: ['zlib', 'zlib_dep'])
 openssl = dependency('openssl', fallback: ['openssl', 'dep'])
 
+<<<<<<< HEAD
 # BZip2 has no pkg-config, just try linking against it
 bzip2 = cc.find_library('bz2', required: get_option('bzip2'))
 
@@ -40,6 +41,10 @@ sys_headers = [
 foreach hdr: sys_headers
   config_h.set(hdr.get(1), cc.has_header(hdr.get(0)) )
 endforeach
+=======
+# Dependencies without pkg-config, just try linking against them
+cc = meson.get_compiler('c')
+>>>>>>> master
 
 ssl_headers = [
   ['openssl/aes.h', 'HAVE_OPENSSL_AES_H'],
@@ -97,7 +102,11 @@ lib = build_target(
   'netpgp', src,
   target_type: get_option('static-lib') ? 'static_library' : 'shared_library',
   c_args: ccargs,
+<<<<<<< HEAD
   dependencies: lib_deps,
+=======
+  dependencies: [pthreads, zlib, openssl],
+>>>>>>> master
   include_directories: inc,
 )
 

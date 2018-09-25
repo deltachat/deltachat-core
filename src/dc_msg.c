@@ -1724,6 +1724,10 @@ void dc_delete_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt)
 		}
 
 	dc_sqlite3_commit(context->sql);
+
+	if (msg_cnt) {
+		context->cb(context, DC_EVENT_MSGS_CHANGED, 0, 0);
+	}
 }
 
 
