@@ -8,6 +8,7 @@ SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         =
 BUILDDIR      = _build
+RSYNCOPTS     = -e "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
 export HOME=/tmp/home
 export TESTHOME=$(HOME)
@@ -27,8 +28,8 @@ USER_MAN_CHAPTERS = commands\
 #                 userman/index.rst\
 #                 userman/devpi_misc.rst\
 #                 userman/devpi_concepts.rst\
-          
-                                 
+
+
 #export DEVPI_CLIENTDIR=$(CURDIR)/.tmp_devpi_user_man/client
 #export DEVPI_SERVERDIR=$(CURDIR)/.tmp_devpi_user_man/server
 
@@ -62,7 +63,7 @@ help:
 	@echo "  changes    to make an overview of all changed/added/deprecated items"
 	@echo "  linkcheck  to check all external links for integrity"
 	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
-	@echo 
+	@echo
 	@echo "User Manual Regen Targets"
 	@echo "  regen.uman        regenerates page. of the user manual chapeter e.g. regen.uman chapter=..."
 	@echo "  regen.uman-all    regenerates the user manual"
@@ -79,8 +80,8 @@ doczip: html
 	python doczip.py $(DOCZIP) _build/html
 
 install: html
-	rsync -avz _build/html/ delta@py.delta.chat:build/master
-		
+	rsync -avz $(RSYNCOPTS) _build/html/ delta@py.delta.chat:build/master
+
 
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
