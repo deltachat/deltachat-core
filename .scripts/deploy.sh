@@ -1,7 +1,9 @@
 #!/bin/bash
+
 set -e
 set -u
 set -x
+set -v
 
 #Only attempt to deploy if we know the ssh key secrets, username and server
 if test -z ${encrypted_49475b8073e9_key:+decryp_key} ; then exit 0; fi

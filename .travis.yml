@@ -1,4 +1,8 @@
 sudo: required
+language: c
+
+env:
+  - DEPLOY_USER=delta DEPLOY_SERVER="py.delta.chat"
 
 addons:
   apt:
@@ -9,8 +13,6 @@ addons:
     - python3.5
     - g++-7
     - doxygen
-
-language: c
 
 before_install:
   - export CC=gcc-7
@@ -43,6 +45,7 @@ script:
   - pip install sphinx breathe
   - cd doc
   - make html
+  - cd ../..
 
 deploy:
   provider: script
