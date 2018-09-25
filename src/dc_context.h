@@ -77,8 +77,8 @@ struct _dc_context
 	pthread_cond_t   smtpidle_cond;
 	pthread_mutex_t  smtpidle_condmutex;
 	int              smtpidle_condflag;
-	int              smtpidle_suspend;
-	int              smtpidle_in_idleing;
+	int              smtp_suspended;
+	int              smtp_doing_jobs;
 	#define          DC_JOBS_NEEDED_AT_ONCE   1
 	#define          DC_JOBS_NEEDED_AVOID_DOS 2
 	int              perform_smtp_jobs_needed;

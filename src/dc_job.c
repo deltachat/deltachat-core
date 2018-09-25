@@ -470,18 +470,18 @@ cleanup:
 static void dc_suspend_smtp_thread(dc_context_t* context, int suspend)
 {
 	pthread_mutex_lock(&context->smtpidle_condmutex);
-		context->smtpidle_suspend = suspend;
+		context->smtp_suspended = suspend;
 	pthread_mutex_unlock(&context->smtpidle_condmutex);
 
-	// the smtp-thread may be in perform_jobs() when this function is called,
-	// wait until we arrive in idle(). for simplicity, we do this by polling a variable
-	// (in fact, this is only needed when calling configure() is called)
+	// if the smtp-thread is currently in dc_perform_smtp_jobs(),
+	// wait until the jobs are done.
+	// this function is only needed during dc_configure();
+	// for simplicity, we do this by polling a variable.
 	if (suspend)
 	{
 		while (1) {
 			pthread_mutex_lock(&context->smtpidle_condmutex);
-				if (context->smtpidle_in_idleing) {
-					context->perform_smtp_jobs_needed = 0;
+				if (context->smtp_doing_jobs==0) {
 					pthread_mutex_unlock(&context->smtpidle_condmutex);
 					return;
 				}
@@ -863,15 +863,23 @@ void dc_interrupt_imap_idle(dc_context_t* context)
  */
 void dc_perform_smtp_jobs(dc_context_t* context)
 {
-	dc_log_info(context, 0, "SMTP-jobs started...");
-
 	pthread_mutex_lock(&context->smtpidle_condmutex);
 		context->perform_smtp_jobs_needed = 0;
+		if (context->smtp_suspended) {
+			dc_log_info(context, 0, "SMTP-jobs suspended.");
+			pthread_mutex_unlock(&context->smtpidle_condmutex);
+			return;
+		}
+		context->smtp_doing_jobs = 1;
 	pthread_mutex_unlock(&context->smtpidle_condmutex);
 
+	dc_log_info(context, 0, "SMTP-jobs started...");
 	dc_job_perform(context, DC_SMTP_THREAD);
-
 	dc_log_info(context, 0, "SMTP-jobs ended.");
+
+	pthread_mutex_lock(&context->smtpidle_condmutex);
+		context->smtp_doing_jobs = 0;
+	pthread_mutex_unlock(&context->smtpidle_condmutex);
 }
 
 
@@ -903,20 +911,14 @@ void dc_perform_smtp_idle(dc_context_t* context)
 		}
 		else
 		{
-			context->smtpidle_in_idleing = 1; // checked in suspend(), for idle-interruption the pthread-condition below is used
-
-				do {
-					int r = 0;
-					struct timespec wakeup_at;
-					memset(&wakeup_at, 0, sizeof(wakeup_at));
-					wakeup_at.tv_sec  = time(NULL) + ((context->perform_smtp_jobs_needed==DC_JOBS_NEEDED_AVOID_DOS)? 2 : DC_SMTP_IDLE_SEC);
-					while (context->smtpidle_condflag==0 && r==0) {
-						r = pthread_cond_timedwait(&context->smtpidle_cond, &context->smtpidle_condmutex, &wakeup_at); // unlock mutex -> wait -> lock mutex
-					}
-				} while (context->smtpidle_suspend);
-				context->smtpidle_condflag = 0;
-
-			context->smtpidle_in_idleing = 0;
+			int r = 0;
+			struct timespec wakeup_at;
+			memset(&wakeup_at, 0, sizeof(wakeup_at));
+			wakeup_at.tv_sec  = time(NULL) + ((context->perform_smtp_jobs_needed==DC_JOBS_NEEDED_AVOID_DOS)? 2 : DC_SMTP_IDLE_SEC);
+			while (context->smtpidle_condflag==0 && r==0) {
+				r = pthread_cond_timedwait(&context->smtpidle_cond, &context->smtpidle_condmutex, &wakeup_at); // unlock mutex -> wait -> lock mutex
+			}
+			context->smtpidle_condflag = 0;
 		}
 
 	pthread_mutex_unlock(&context->smtpidle_condmutex);
