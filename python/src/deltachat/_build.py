@@ -7,14 +7,6 @@ from os.path import join as joinpath
 
 import cffi
 
-here = dirname(abspath(__file__))
-deltah = joinpath(dirname(dirname(dirname(here))), "src", "deltachat.h")
-
-
-def read_event_defines():
-    rex = re.compile(r'#define\s+(?:DC_EVENT_|DC_STATE_|DC_CONTACT_ID_|DC_GCL|DC_CHAT)\S+\s+([x\d]+).*')
-    return filter(rex.match, open(deltah))
-
 
 def ffibuilder():
     builder = cffi.FFI()
@@ -65,8 +57,6 @@ def ffibuilder():
             uintptr_t data1,
             uintptr_t data2);
     """)
-    event_defines = "\n".join(read_event_defines())
-    builder.cdef(event_defines)
     return builder
 
 

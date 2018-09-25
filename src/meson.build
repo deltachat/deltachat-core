@@ -4,6 +4,7 @@ lib_src = [
   'dc_array.c',
   'dc_chat.c',
   'dc_chatlist.c',
+  'dc_constants.c',
   'dc_contact.c',
   'dc_dehtml.c',
   'dc_hash.c',
