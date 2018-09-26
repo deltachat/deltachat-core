@@ -41,11 +41,6 @@ script:
   - pip install tox
   - ldd /usr/local/lib/x86_64-linux-gnu/libdeltachat.so
   - tox
-  - pip install -e .
-  - pip install sphinx breathe
-  - cd doc
-  - make html
-  - cd ../..
 
 deploy:
   provider: script
