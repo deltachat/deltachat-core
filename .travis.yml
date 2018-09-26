@@ -27,7 +27,7 @@ before_install:
   - pushd cyrus-sasl2-2.1.27~101-g0780600+dfsg.orig && ./autogen.sh && make && sudo make install && popd
 
 install:
-  - sudo apt install -y libssl-dev libsqlite3-dev libbz2-dev zlib1g-dev python3.5-dev sphinx-doc
+  - sudo apt install -y libssl-dev libsqlite3-dev libbz2-dev zlib1g-dev python3.5-dev
 
 script:
   - mkdir -p builddir && cd builddir && meson && ninja -v && sudo ninja install
