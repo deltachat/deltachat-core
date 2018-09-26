@@ -3,6 +3,7 @@
 from .cutil import as_dc_charpointer, from_dc_charpointer, iter_array
 from .capi import lib, ffi
 from .types import property_with_doc
+from . import const
 from datetime import datetime
 import attr
 from attr import validators as v
@@ -66,7 +67,7 @@ class Chat(object):
 
         :returns: True if chat is the deaddrop chat, False otherwise.
         """
-        return self.id == lib.DC_CHAT_ID_DEADDROP
+        return self.id == const.DC_CHAT_ID_DEADDROP
 
     def is_promoted(self):
         """ return True if this chat is promoted, i.e.
@@ -231,7 +232,7 @@ class MessageState(object):
         Fresh messages are not noticed nor seen and are typically
         shown in notifications.
         """
-        return self._msgstate == lib.DC_STATE_IN_FRESH
+        return self._msgstate == const.DC_STATE_IN_FRESH
 
     def is_in_noticed(self):
         """Return True if Message is incoming and noticed.
@@ -239,7 +240,7 @@ class MessageState(object):
         Eg. chat opened but message not yet read - noticed messages
         are not counted as unread but were not marked as read nor resulted in MDNs.
         """
-        return self._msgstate == lib.DC_STATE_IN_NOTICED
+        return self._msgstate == const.DC_STATE_IN_NOTICED
 
     def is_in_seen(self):
         """Return True if Message is incoming, noticed and has been seen.
@@ -247,28 +248,28 @@ class MessageState(object):
         Eg. chat opened but message not yet read - noticed messages
         are not counted as unread but were not marked as read nor resulted in MDNs.
         """
-        return self._msgstate == lib.DC_STATE_IN_SEEN
+        return self._msgstate == const.DC_STATE_IN_SEEN
 
     def is_out_pending(self):
         """Return True if Message is outgoing, but is pending (no single checkmark).
         """
-        return self._msgstate == lib.DC_STATE_OUT_PENDING
+        return self._msgstate == const.DC_STATE_OUT_PENDING
 
     def is_out_failed(self):
         """Return True if Message is unrecoverably failed.
         """
-        return self._msgstate == lib.DC_STATE_OUT_FAILED
+        return self._msgstate == const.DC_STATE_OUT_FAILED
 
     def is_out_delivered(self):
         """Return True if Message was successfully delivered to the server (one checkmark).
 
         Note, that already delivered messages may get into the state  is_out_failed().
         """
-        return self._msgstate == lib.DC_STATE_OUT_DELIVERED
+        return self._msgstate == const.DC_STATE_OUT_DELIVERED
 
     def is_out_mdn_received(self):
         """Return True if message was marked as read by the recipient(s) (two checkmarks;
         this requires goodwill on the receiver's side). If a sent message changes to this
         state, you'll receive the event DC_EVENT_MSG_READ.
         """
-        return self._msgstate == lib.DC_STATE_OUT_MDN_RCVD
+        return self._msgstate == const.DC_STATE_OUT_MDN_RCVD

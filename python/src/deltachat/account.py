@@ -13,6 +13,7 @@ import attr
 from attr import validators as v
 
 import deltachat
+from . import const
 from .capi import ffi, lib
 from .cutil import as_dc_charpointer, from_dc_charpointer, iter_array
 from .chatting import Contact, Chat, Message
@@ -100,7 +101,7 @@ class Account(object):
         :returns: :class:`Contact`
         """
         self.check_is_configured()
-        return Contact(self._dc_context, lib.DC_CONTACT_ID_SELF)
+        return Contact(self._dc_context, const.DC_CONTACT_ID_SELF)
 
     def create_contact(self, email, name=None):
         """ create a (new) Contact. If there already is a Contact
@@ -114,7 +115,7 @@ class Account(object):
         name = as_dc_charpointer(name)
         email = as_dc_charpointer(email)
         contact_id = lib.dc_create_contact(self._dc_context, name, email)
-        assert contact_id > lib.DC_CHAT_ID_LAST_SPECIAL
+        assert contact_id > const.DC_CHAT_ID_LAST_SPECIAL
         return Contact(self._dc_context, contact_id)
 
     def get_contacts(self, query=None, with_self=False, only_verified=False):
@@ -129,9 +130,9 @@ class Account(object):
         flags = 0
         query = as_dc_charpointer(query)
         if only_verified:
-            flags |= lib.DC_GCL_VERIFIED_ONLY
+            flags |= const.DC_GCL_VERIFIED_ONLY
         if with_self:
-            flags |= lib.DC_GCL_ADD_SELF
+            flags |= const.DC_GCL_ADD_SELF
         dc_array = ffi.gc(
             lib.dc_get_contacts(self._dc_context, flags, query),
             lib.dc_array_unref
@@ -192,7 +193,7 @@ class Account(object):
         return chatlist
 
     def get_deaddrop_chat(self):
-        return Chat(self._dc_context, lib.DC_CHAT_ID_DEADDROP)
+        return Chat(self._dc_context, const.DC_CHAT_ID_DEADDROP)
 
     def get_message_by_id(self, msg_id):
         """ return Message instance. """
