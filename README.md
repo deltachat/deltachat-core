@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/deltachat/deltachat-core.svg?branch=master)](https://travis-ci.org/deltachat/deltachat-core)
 
 The _Delta Chat Core Library_ is written in cross-platform **C**,
-documented at <https://deltachat.github.io/api/>.
+documented at <https://c.delta.chat>.
 
 
 ## Building the C-library 
