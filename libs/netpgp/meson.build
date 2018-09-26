@@ -70,7 +70,8 @@ if (get_option('openssl-idea').enabled()
 endif
 config_h.set('OPENSSL_NO_IDEA', get_option('openssl-idea').disabled())
 
-configure_file(output: 'config-netpgp.h', configuration: config_h)
+configure_file(output: 'config-netpgp-meson.h', configuration: config_h)
+add_project_arguments('-DHAVE_CONFIG_MESON', language: 'c')
 
 
 ## The source code
@@ -89,7 +90,12 @@ src = [
   'src/validate.c',
   'src/writer.c',
 ]
-inc = include_directories('include', '.')
+
+# The includes are messy:
+# - include: The normal public header files
+# - include/netpgp: To find config-netpgp.h by include/netpgp-extra.h
+# - .: To find the config-netpgpg-meson.h by include/netpgp/config-netpgp.h
+inc = include_directories('include', 'include/netpgp', '.')
 
 
 ## Silence things if this is used as a subproject
