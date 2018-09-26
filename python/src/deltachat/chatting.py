@@ -100,7 +100,7 @@ class Chat(object):
         """ send a text message and return the resulting Message instance.
 
         :param msg: unicode text
-        :returns: the resulting :class:`Message` instance
+        :returns: the resulting :class:`deltachat.chatting.Message` instance
         """
         msg = as_dc_charpointer(msg)
         msg_id = lib.dc_send_text_msg(self._dc_context, self.id, msg)
@@ -109,7 +109,7 @@ class Chat(object):
     def get_messages(self):
         """ return list of messages in this chat.
 
-        :returns: list of :class:`Message` objects for this chat.
+        :returns: list of :class:`deltachat.chatting.Message` objects for this chat.
         """
         dc_array = ffi.gc(
             lib.dc_get_chat_msgs(self._dc_context, self.id, 0, 0),
@@ -165,7 +165,7 @@ class Message(object):
     """ Message object.
 
     You obtain instances of it through :class:`deltachat.account.Account` or
-    :class:`Chat`.
+    :class:`deltachat.chatting.Chat`.
     """
     _dc_context = attr.ib(validator=v.instance_of(ffi.CData))
     id = attr.ib(validator=v.instance_of(int))
@@ -180,7 +180,7 @@ class Message(object):
     def get_state(self):
         """ get the message in/out state.
 
-        :returns: :class:`MessageState`
+        :returns: :class:`deltachat.chatting.MessageState`
         """
         return MessageState(self)
 
@@ -202,7 +202,7 @@ class Message(object):
     def chat(self):
         """chat this message was posted in.
 
-        :returns: :class:`Chat` object
+        :returns: :class:`deltachat.chatting.Chat` object
         """
         chat_id = lib.dc_msg_get_chat_id(self._dc_msg)
         return Chat(self._dc_context, chat_id)
@@ -210,7 +210,7 @@ class Message(object):
     def get_sender_contact(self):
         """return the contact of who wrote the message.
 
-        :returns: :class:`Contact`` instance
+        :returns: :class:`deltachat.chatting.Contact`` instance
         """
         contact_id = lib.dc_msg_get_from_id(self._dc_msg)
         return Contact(self._dc_context, contact_id)
