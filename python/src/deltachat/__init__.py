@@ -1,4 +1,4 @@
-from deltachat import capi
+from deltachat import capi, const
 from deltachat.capi import ffi
 from deltachat.account import Account  # noqa
 
@@ -58,7 +58,7 @@ def clear_context_callback(dc_context):
 
 def get_dc_event_name(integer, _DC_EVENTNAME_MAP={}):
     if not _DC_EVENTNAME_MAP:
-        for name, val in vars(capi.lib).items():
+        for name, val in vars(const).items():
             if name.startswith("DC_EVENT_"):
                 _DC_EVENTNAME_MAP[val] = name
     return _DC_EVENTNAME_MAP[integer]

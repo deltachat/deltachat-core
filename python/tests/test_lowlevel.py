@@ -1,6 +1,6 @@
 from __future__ import print_function
 import pytest
-from deltachat import capi, Account
+from deltachat import capi, Account, const
 
 
 def test_empty_context():
@@ -15,15 +15,15 @@ def test_wrong_db(tmpdir):
 
 
 def test_event_defines():
-    assert capi.lib.DC_EVENT_INFO == 100
-    assert capi.lib.DC_CONTACT_ID_SELF
+    assert const.DC_EVENT_INFO == 100
+    assert const.DC_CONTACT_ID_SELF
 
 
 def test_sig():
     sig = capi.lib.dc_get_event_signature_types
-    assert sig(capi.lib.DC_EVENT_INFO) == 2
-    assert sig(capi.lib.DC_EVENT_WARNING) == 2
-    assert sig(capi.lib.DC_EVENT_ERROR) == 2
-    assert sig(capi.lib.DC_EVENT_SMTP_CONNECTED) == 2
-    assert sig(capi.lib.DC_EVENT_IMAP_CONNECTED) == 2
-    assert sig(capi.lib.DC_EVENT_SMTP_MESSAGE_SENT) == 2
+    assert sig(const.DC_EVENT_INFO) == 2
+    assert sig(const.DC_EVENT_WARNING) == 2
+    assert sig(const.DC_EVENT_ERROR) == 2
+    assert sig(const.DC_EVENT_SMTP_CONNECTED) == 2
+    assert sig(const.DC_EVENT_IMAP_CONNECTED) == 2
+    assert sig(const.DC_EVENT_SMTP_MESSAGE_SENT) == 2

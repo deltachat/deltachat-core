@@ -1,6 +1,6 @@
 from __future__ import print_function
 import pytest
-from deltachat.capi import lib
+from deltachat import const
 from datetime import datetime, timedelta
 from conftest import wait_configuration_progress, wait_successful_IMAP_SMTP_connection
 
@@ -54,7 +54,7 @@ class TestOfflineAccount:
         ac1 = acfactory.get_configured_offline_account()
         contact1 = ac1.create_contact("some1@hello.com", name="some1")
         chat = ac1.create_chat_by_contact(contact1)
-        assert chat.id >= lib.DC_CHAT_ID_LAST_SPECIAL, chat.id
+        assert chat.id >= const.DC_CHAT_ID_LAST_SPECIAL, chat.id
 
         chat2 = ac1.create_chat_by_contact(contact1.id)
         assert chat2.id == chat.id
@@ -125,7 +125,7 @@ class TestOnlineAccount:
         ac2 = acfactory.get_online_configuring_account()
         c2 = ac1.create_contact(email=ac2.get_config("addr"))
         chat = ac1.create_chat_by_contact(c2)
-        assert chat.id >= lib.DC_CHAT_ID_LAST_SPECIAL
+        assert chat.id >= const.DC_CHAT_ID_LAST_SPECIAL
         wait_successful_IMAP_SMTP_connection(ac1)
         wait_configuration_progress(ac1, 1000)
         wait_successful_IMAP_SMTP_connection(ac2)
@@ -158,7 +158,7 @@ class TestOnlineAccount:
         ac2 = acfactory.get_online_configuring_account()
         c2 = ac1.create_contact(email=ac2.get_config("addr"))
         chat = ac1.create_chat_by_contact(c2)
-        assert chat.id >= lib.DC_CHAT_ID_LAST_SPECIAL
+        assert chat.id >= const.DC_CHAT_ID_LAST_SPECIAL
 
         wait_configuration_progress(ac1, 1000)
         wait_configuration_progress(ac2, 1000)
