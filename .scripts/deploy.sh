@@ -20,7 +20,7 @@ mkdir -p -m 0700 ~/.ssh
 openssl aes-256-cbc \
   -K $encrypted_49475b8073e9_key \
   -iv $encrypted_49475b8073e9_iv \
-  -in .credentials/delta.id_rsa.enc \
+  -in $TRAVIS_BUILD_DIR/.credentials/delta.id_rsa.enc \
   -out ~/.ssh/id_rsa -d
 chmod 600 ~/.ssh/id_rsa
 printf "Host *\n" >> ~/.ssh/config
