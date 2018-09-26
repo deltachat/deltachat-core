@@ -397,7 +397,7 @@ static char* get_sys_config_str(const char* key, const char* def)
  * If you want to set an integer, it may be easier to use dc_set_config_int(), however, it is also
  * fine to pass the integer as a string to this function.
  *
- * If you want to retrieve a valie, use dc_get_config().
+ * If you want to retrieve a value, use dc_get_config().
  *
  * @memberof dc_context_t
  * @param context The context object
