@@ -93,9 +93,8 @@ src = [
 
 # The includes are messy:
 # - include: The normal public header files
-# - include/netpgp: To find config-netpgp.h by include/netpgp-extra.h
 # - .: To find the config-netpgpg-meson.h by include/netpgp/config-netpgp.h
-inc = include_directories('include', 'include/netpgp', '.')
+inc = include_directories('include', '.')
 
 
 ## Silence things if this is used as a subproject

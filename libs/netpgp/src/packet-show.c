@@ -52,7 +52,7 @@
  * Creates printable text strings from packet contents
  *
  */
-#include "config-netpgp.h"
+#include "netpgp/config-netpgp.h"
 
 #ifdef HAVE_SYS_CDEFS_H
 #include <sys/cdefs.h>
