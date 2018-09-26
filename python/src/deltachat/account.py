@@ -96,9 +96,9 @@ class Account(object):
             raise ValueError("need to configure first")
 
     def get_self_contact(self):
-        """ return this account's identity as a :class:`Contact`.
+        """ return this account's identity as a :class:`deltachat.chatting.Contact`.
 
-        :returns: :class:`Contact`
+        :returns: :class:`deltachat.chatting.Contact`
         """
         self.check_is_configured()
         return Contact(self._dc_context, const.DC_CONTACT_ID_SELF)
@@ -110,7 +110,7 @@ class Account(object):
 
         :param email: email-address (text type)
         :param name: display name for this contact (optional)
-        :returns: :class:`Contact` instance.
+        :returns: :class:`deltachat.chatting.Contact` instance.
         """
         name = as_dc_charpointer(name)
         email = as_dc_charpointer(email)
@@ -125,7 +125,7 @@ class Account(object):
                       whose name or e-mail matches query.
         :param only_verified: if true only return verified contacts.
         :param with_self: if true the self-contact is also returned.
-        :returns: list of :class:`Message` objects.
+        :returns: list of :class:`deltachat.chatting.Message` objects.
         """
         flags = 0
         query = as_dc_charpointer(query)
@@ -143,7 +143,7 @@ class Account(object):
         """ create or get an existing 1:1 chat object for the specified contact.
 
         :param contact: chat_id (int) or contact object.
-        :returns: a :class:`Chat` object.
+        :returns: a :class:`deltachat.chatting.Chat` object.
         """
         contact_id = getattr(contact, "id", contact)
         assert isinstance(contact_id, int)
@@ -156,7 +156,7 @@ class Account(object):
         the specified message.
 
         :param message: messsage id or message instance.
-        :returns: a :class:`Chat` object.
+        :returns: a :class:`deltachat.chatting.Chat` object.
         """
         msg_id = getattr(message, "id", message)
         assert isinstance(msg_id, int)
@@ -169,7 +169,7 @@ class Account(object):
         Chats are unpromoted until the first message is sent.
 
         :param verified: if true only verified contacts can be added.
-        :returns: a :class:`Chat` object.
+        :returns: a :class:`deltachat.chatting.Chat` object.
         """
         bytes_name = name.encode("utf8")
         chat_id = lib.dc_create_group_chat(self._dc_context, verified, bytes_name)
@@ -178,7 +178,7 @@ class Account(object):
     def get_chats(self):
         """ return list of chats.
 
-        :returns: a list of :class:`Chat` objects.
+        :returns: a list of :class:`deltachat.chatting.Chat` objects.
         """
         dc_chatlist = ffi.gc(
             lib.dc_get_chatlist(self._dc_context, 0, ffi.NULL, 0),
@@ -214,8 +214,8 @@ class Account(object):
     def forward_messages(self, messages, chat):
         """ Forward list of messages to a chat.
 
-        :param messages: list of :class:`Message` object.
-        :param chat: :class:`Chat` object.
+        :param messages: list of :class:`deltachat.chatting.Message` object.
+        :param chat: :class:`deltachat.chatting.Chat` object.
         :returns: None
         """
         msg_ids = [msg.id for msg in messages]
@@ -224,7 +224,7 @@ class Account(object):
     def delete_messages(self, messages):
         """ delete messages (local and remote).
 
-        :param messages: list of :class:`Message` object.
+        :param messages: list of :class:`deltachat.chatting.Message` object.
         :returns: None
         """
         msg_ids = [msg.id for msg in messages]
