@@ -56,8 +56,12 @@ endif
 
 
 # netpgp is always bundled
-netpgp_proj = subproject('netpgp')
-netpgp = netpgp_proj.get_variable('static_pic_dep')
+netpgp_proj = subproject('netpgp',
+                         default_options: ['static-pic-lib=true',
+                                           'bzip2=disabled',
+                                           'openssl-idea=disabled',
+                                           'openssl-camellia=enabled'])
+netpgp = netpgp_proj.get_variable('dep')
 
 
 # Build the library, stored in `lib`.
