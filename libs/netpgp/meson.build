@@ -59,8 +59,16 @@ foreach hdr: ssl_headers
   config_h.set(hdr.get(1), cc.has_header(hdr.get(0), dependencies: openssl))
 endforeach
 
-config_h.set('OPENSSL_NO_CAMELLIA', not get_option('openssl-camellia'))
-config_h.set('OPENSSL_NO_IDEA', not get_option('openssl-idea'))
+if (get_option('openssl-camellia').enabled()
+    and not config_h.get('HAVE_OPENSSL_CAMELLIA_H'))
+  error('OpenSSL camellia feature is enabled but not found')
+endif
+config_h.set('OPENSSL_NO_CAMELLIA', get_option('openssl-camellia').disabled())
+if (get_option('openssl-idea').enabled()
+    and not config_h.get('HAVE_OPENSSL_IDEA_H'))
+  error('OpenSSL idea feature is enabled but not found')
+endif
+config_h.set('OPENSSL_NO_IDEA', get_option('openssl-idea').disabled())
 
 configure_file(output: 'config-netpgp.h', configuration: config_h)
 

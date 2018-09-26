@@ -59,8 +59,8 @@ endif
 netpgp_proj = subproject('netpgp',
                          default_options: ['static-pic-lib=true',
                                            'bzip2=disabled',
-                                           'openssl-idea=false',
-                                           'openssl-camellia=true'])
+                                           'openssl-idea=disabled',
+                                           'openssl-camellia=enabled'])
 netpgp = netpgp_proj.get_variable('dep')
 
 
