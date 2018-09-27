@@ -5,6 +5,10 @@
 The _Delta Chat Core Library_ is written in cross-platform **C**,
 documented at <https://c.delta.chat>.  
 
+The ``deltachat`` Python bindings can be found in the 
+[python subdirectory](https://github.com/deltachat/deltachat-core/tree/master/python)
+and are documented at <https://py.delta.chat>.
+
 ## binary/distribution packages  (work-in-progress)
 
 There are work-in-progress efforts for creating (binary) packages which
