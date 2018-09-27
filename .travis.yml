@@ -12,8 +12,10 @@ addons:
     - python3-pip
     - python3.5
     - g++-7
+    - python-apt
 
 before_install:
+  - sudo apt-add-repository -y ppa:libreoffice/ppa
   - export CC=gcc-7
   - export CXX=g++-7
   - sudo ln -sf /usr/bin/python3.5 /usr/bin/python3
@@ -27,9 +29,8 @@ before_install:
 
 install:
   - sudo apt install -y libssl-dev libsqlite3-dev libbz2-dev zlib1g-dev python3.5-dev python-software-properties
-  - sudo apt-add-repository -y ppa:libreoffice/ppa
-  - sudo apt update 
-  - sudo apt install -y doxygen 
+  - sudo apt update
+  - sudo apt install -y doxygen
 
 script:
   - mkdir -p builddir && cd builddir && meson && ninja -v && sudo ninja install
