@@ -421,10 +421,10 @@ char* dc_normalize_setup_code(dc_context_t* context, const char* in)
  * Initiate Autocrypt Setup Transfer.
  * Before starting the setup transfer with this function, the user should be asked:
  *
- * ```
+ * ~~~
  * "An 'Autocrypt Setup Message' securely shares your end-to-end setup with other Autocrypt-compliant apps.
  * The setup will be encrypted by a setup code which is displayed here and must be typed on the other device.
- * ```
+ * ~~~
  *
  * After that, this function should be called to send the Autocrypt Setup Message.
  * The function creates the setup message and waits until it is really sent.
@@ -433,13 +433,13 @@ char* dc_normalize_setup_code(dc_context_t* context, const char* in)
  *
  * After everything succeeded, the required setup code is returned in the following format:
  *
- * ```
+ * ~~~
  * 1234-1234-1234-1234-1234-1234-1234-1234-1234
- * ```
+ * ~~~
  *
  * The setup code should be shown to the user then:
  *
- * ```
+ * ~~~
  * "Your key has been sent to yourself. Switch to the other device and
  * open the setup message. You should be prompted for a setup code. Type
  * the following digits into the prompt:
@@ -449,7 +449,7 @@ char* dc_normalize_setup_code(dc_context_t* context, const char* in)
  * 1234 - 1234 - 1234
  *
  * Once you're done, your other device will be ready to use Autocrypt."
- * ```
+ * ~~~
  *
  * On the _other device_ you will call dc_continue_key_transfer() then
  * for setup messages identified by dc_msg_is_setupmessage().
@@ -1242,7 +1242,7 @@ cleanup:
  *
  * Example:
  *
- * ```
+ * ~~~
  * char dir[] = "/dir/to/search/backups/in";
  *
  * void ask_user_for_credentials()
@@ -1276,7 +1276,7 @@ cleanup:
  *     }
  *     free(file);
  * }
- * ```
+ * ~~~
  *
  * @memberof dc_context_t
  * @param context The context as created by dc_context_new().

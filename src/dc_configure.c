@@ -780,12 +780,12 @@ cleanup:
  * There is no need to call this every program start, the result is saved in the
  * database and you can use the connection directly:
  *
- * ```
+ * ~~~
  * if (!dc_is_configured(context)) {
  *     dc_configure(context);
  *     // wait for progress events
  * }
- * ```
+ * ~~~
  */
 void dc_configure(dc_context_t* context)
 {

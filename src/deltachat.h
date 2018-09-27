@@ -48,7 +48,7 @@ extern "C" {
  * specific events (eg. when the configuration is done or when fresh messages arrive).
  * With this function you can create a Delta Chat context then:
  *
- * ```
+ * ~~~
  * #include <deltachat.h>
  *
  * uintptr_t event_handler_func(dc_context_t* context, int event, uintptr_t data1, uintptr_t data2)
@@ -57,12 +57,12 @@ extern "C" {
  * }
  *
  * dc_context_t* context = dc_context_new(event_handler_func, NULL, NULL);
- * ```
+ * ~~~
  *
  * After that, you should make sure, sending and receiving jobs are processed as needed.
  * For this purpose, you have to **create two threads:**
  *
- * ```
+ * ~~~
  * #include <pthread.h>
  *
  * void* imap_thread_func(void* context)
@@ -85,7 +85,7 @@ extern "C" {
  * static pthread_t imap_thread, smtp_thread;
  * pthread_create(&imap_thread, NULL, imap_thread_func, context);
  * pthread_create(&smtp_thread, NULL, smtp_thread_func, context);
- * ```
+ * ~~~
  *
  * The example above uses "pthreads", however, you can also use anything else for thread handling.
  * NB: The deltachat-core library itself does not create any threads on its own, however, functions,
@@ -94,17 +94,17 @@ extern "C" {
  * After that you can  **define and open a database.** The database is a normal
  * sqlite-file and is created as needed:
  *
- * ```
+ * ~~~
  * dc_open(context, "example.db", NULL);
- * ```
+ * ~~~
  *
  * Now you can **configure the context:**
  *
- * ```
+ * ~~~
  * dc_set_config(context, "addr", "alice@example.org"); // use some real test credentials here
  * dc_set_config(context, "mail_pw", "***");
  * dc_configure(context);
- * ```
+ * ~~~
  *
  * dc_configure() returns immediately, the configuration itself may take a while and is done by a job
  * in the imap-thread you've defined above. Once done, the #DC_EVENT_CONFIGURE_PROGRESS reports
@@ -114,12 +114,12 @@ extern "C" {
  *
  * Now you can **send the first message:**
  *
- * ```
+ * ~~~
  * uint32_t contact_id = dc_create_contact(context, NULL, "bob@example.org"); // use a real testing address here
  * uint32_t chat_id    = dc_create_chat_by_contact_id(context, contact_id);
  *
  * dc_send_text_msg(context, chat_id, "Hi, here is my first message!");
- * ```
+ * ~~~
  *
  * dc_send_text_msg() returns immediately and the sending itself is done by a job
  * in the smtp-thread you've defined above. If you check the testing address (bob) and you should have received a normal email.
@@ -127,7 +127,7 @@ extern "C" {
  *
  * You can then **list all messages** of a chat as follow:
  *
- * ```
+ * ~~~
  * dc_array_t* msglist = dc_get_chat_msgs(context, chat_id, 0, 0);
  * for (int i = 0; i < dc_array_get_cnt(msglist); i++)
  * {
@@ -141,14 +141,14 @@ extern "C" {
  *     dc_msg_unref(msg);
  * }
  * dc_array_unref(msglist);
- * ```
+ * ~~~
  *
  * This will output the following two lines:
  *
- * ```
+ * ~~~
  * Message 1: Hi, here is my first message!
  * Message 2: Got it!
- * ```
+ * ~~~
  *
  *
  * ## Class reference
