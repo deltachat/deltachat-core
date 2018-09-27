@@ -3,18 +3,72 @@
 [![Build Status](https://travis-ci.org/deltachat/deltachat-core.svg?branch=master)](https://travis-ci.org/deltachat/deltachat-core)
 
 The _Delta Chat Core Library_ is written in cross-platform **C**,
-documented at <https://c.delta.chat>.
+documented at <https://c.delta.chat>.  
+
+## binary/distribution packages  (work-in-progress)
+
+There are work-in-progress efforts for creating (binary) packages which
+do not require that you build the library manually:
+
+- [libdeltachat-core-git archlinux package](https://aur.archlinux.org/packages/libdeltachat-core-git/>)
+
+- [Debian packaging](https://github.com/deltachat/deltachat-core/issues/299)
+
+- [Windows building](https://github.com/deltachat/deltachat-core/issues/306)
+
+If you can help with advancing or adding to these efforts, be our guest. 
+Otherwise read on for how to get ``libdeltachat.so`` and ``deltachat.h``
+installed into your system. 
+
+## building your own ``libdeltachat.so``
+
+### getting a recent enough ``meson`` for building 
+
+If you have installed ``meson`` in your environment check the version::
+
+    meson --version
+   
+You need to have version ``0.47.2`` at least. If the version
+is older there is a recommended way of getting a better version:
+
+1. uninstall your system-level ``meson`` package (if possible)
+
+2. ensure you have at least ``python3.4`` installed and type:
+   ```
+       python3 -m pip 
+   ```
+
+   to check that you have "pip" installed. If not available, you
+   might get it as a ``python3-pip`` package or you could follow
+   [installing pip](https://pip.pypa.io/en/stable/installing/).
+
+3. then pip-install meson into your home-directory:
+   ```
+       python3 -u -m pip install meson
+   ```
+
+   the ``-u`` causes the pip-install to put a ``meson`` command line tool into
+   ``~/.local/`` or %APPDATA%\Python on Windows.  
+
+4. run ``meson --version`` to verify it's at at least version 0.48.0 now.
+   If the ``meson`` command is not found, add ``~/.local/bin`` to ``PATH``
+   and try again (``export PATH=~/.local/bin:$PATH`` on many unix-y terminals).
 
 
-## Building the C-library 
+### installing "ninja-build" 
 
-Delta Chat Core is built as a C-library using the 
-[meson build system](http://mesonbuild.com). 
-It depends on a number of external libraries, most of which are detected using
+On Linux and Mac you need to install 'ninja-build' (debian package name)
+to be able to actually build/compile things. 
+
+Note that most dependencies below are detected using
 [pkg-config](https://www.freedesktop.org/wiki/Software/pkg-config/).
-Usually this just works automatically, provided the depending libraries are
-installed correctly.  You may need to install "development" packages of
-these dependencies: 
+Usually this just works automatically, provided the depending libraries
+are installed correctly.  
+
+### installing c-level dependencies 
+
+The deltachat core library depends on a number of external libraries,
+which you may need to install (we have some fallbacks if you don't):
 
 - [LibEtPan](https://github.com/dinhviethoa/libetpan); Note that this
   library does not use pkg-config so the system-provided version will
@@ -29,15 +83,16 @@ these dependencies:
 
 - [libsasl](https://cyrusimap.org/sasl/)
 
-- [meson build system at least in version 0.47.2](http://mesonbuild.com) 
-  and [ninja](https://ninja-build.org).
+To install these on debian you can type:
+```
+    sudo apt install libetpan-dev libssl-dev libsqlite3-dev libsasl2-dev libbz2-dev zlib1g-dev
+```
 
-On Linux (e.g. Debian Stretch) you can install all these using:
 
-`sudo apt install libetpan-dev libssl-dev libsqlite3-dev libsasl2-dev libbz2-dev zlib1g-dev meson ninja-build`.
+### performing the actual build 
 
 Once all dependencies are installed, creating a build is as follows,
-starting from the project's root directory:
+starting from a [deltachat-core github checkout](https://github.com/deltachat/deltachat-core):
 
 ```
 mkdir builddir
@@ -56,15 +111,14 @@ is thus also supported:
 ```
 sudo ninja uninstall
 ```
-
-Note that the above assumes `/usr/local/lib` is configured somewhere
+**NOTE** that the above assumes `/usr/local/lib` is configured somewhere
 in `/etc/ld.so.conf` or `/etc/ld.so.conf.d/*`, which is fairly
 standard.  It is possible your system uses
 `/usr/local/lib/x86_64-linux-gnu` which should be auto-detected and
 just work as well.
 
 
-## Building without system-level dependencies 
+### Building without system-level dependencies 
 
 By default stripped-down versions of the dependencies are bundled with
 Delta Chat Core and these will be used when a dependency is missing.
@@ -95,7 +149,6 @@ or its language bindings:
 - [iOS](https://github.com/deltachat/deltachat-ios) 
 - [Desktop](https://github.com/deltachat/deltachat-desktop)
 - [Pidgin](https://gitlab.com/lupine/purple-plugin-delta)
-
 
 ## Testing program
 

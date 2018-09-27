@@ -1,7 +1,5 @@
 from __future__ import print_function
 import pytest
-import re
-import threading
 from deltachat import Account
 from deltachat.types import cached_property
 from deltachat.capi import lib
@@ -32,7 +30,7 @@ def acfactory(pytestconfig, tmpdir, request):
                 fin()
 
         @cached_property
-        def configlist (self):
+        def configlist(self):
             configlist = []
             for line in open(fn):
                 if line.strip():
@@ -59,7 +57,7 @@ def acfactory(pytestconfig, tmpdir, request):
             lib.dc_set_config(ac._dc_context, b"configured_addr", addr.encode("ascii"))
             ac.set_config("mail_pw", "123")
             lib.dc_set_config(ac._dc_context, b"configured_mail_pw", b"123")
-            lib.dc_set_config_int(ac._dc_context, b"configured", 1);
+            lib.dc_set_config_int(ac._dc_context, b"configured", 1)
             return ac
 
         def get_online_configuring_account(self):
@@ -89,6 +87,7 @@ def lp():
         def sec(self, msg):
             print()
             print("=" * 10, msg, "=" * 10)
+
         def step(self, msg):
             print("-" * 5, "step " + msg, "-" * 5)
     return Printer()

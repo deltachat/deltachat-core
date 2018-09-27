@@ -2,36 +2,43 @@
 deltachat python bindings
 =========================
 
-This package provides bindings to the delta-core_ C-library
+This package provides bindings to the deltachat-core_ C-library
 which provides imap/smtp/crypto handling as well as chat/group/messages
 handling to Android, Desktop and IO user interfaces.
 
 Install
 -------
 
-.. note::
+1. First you need to `install the delta-core C-library
+   <https://github.com/deltachat/deltachat-core/blob/master/README.md>`_.
 
-    Currently the install instructions exist only for Debian based systems (Ubuntu etc.).
+2. `Install virtualenv <https://virtualenv.pypa.io/en/stable/installation/>`_
+   if you don't have it, then create and use a fresh clean python environment::
 
-First you need to execute all the build steps to install the delta-core C-library,
-see https://github.com/deltachat/deltachat-core/blob/master/README.md#build
+        virtualenv -p python3 venv
+        source venv/bin/activate
 
-Presuming you have the delta-core library installed, you can then from the root of the repo::
+   Afterwards invoking ``python`` or ``pip install`` will only modify files
+   in your ``venv`` directory.
 
-    cd python
-    pip install -e .
+3. Install the bindings with pip::
 
-Afterwards you should be able to successfully import the bindings::
+        pip install deltachat
 
-    python -c "import deltachat"
+   Afterwards you should be able to successfully import the bindings::
+
+        python -c "import deltachat"
+
+You may now look at `examples <https://py.delta.chat/examples.html>`_.
+
 
 
 Running tests
 -------------
 
-Install the delta-core C-library and the deltachat bindings (see _Install)
-and then type the following to execute tests::
+Get a checkout of the `deltachat-core github repository`_ and type::
 
+    cd python
     pip install tox
     tox
 
@@ -48,4 +55,5 @@ And then run the tests with this live-accounts config file::
     tox -- --liveconfig liveconfig
 
 
-.. _`delta-core`: https://github.com/deltachat/deltachat-core
+.. _`deltachat-core github repository`: https://github.com/deltachat/deltachat-core
+.. _`deltachat-core`: https://github.com/deltachat/deltachat-core
