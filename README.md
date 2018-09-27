@@ -3,22 +3,18 @@
 [![Build Status](https://travis-ci.org/deltachat/deltachat-core.svg?branch=master)](https://travis-ci.org/deltachat/deltachat-core)
 
 The _Delta Chat Core Library_ is written in cross-platform **C**,
-documented at <https://c.delta.chat>.
-
-Delta Chat Core is built as a C-library using the 
-[meson build system](http://mesonbuild.com).  
+documented at <https://c.delta.chat>.  
 
 ## binary/distribution packages  (work-in-progress)
 
 There are work-in-progress efforts for creating (binary) packages which
-do not require the steps outlined further below:
+do not require that you build the library manually:
 
-- [a libdeltachat-core-git archlinux package]
-  (https://aur.archlinux.org/packages/libdeltachat-core-git/>)
+- [libdeltachat-core-git archlinux package](https://aur.archlinux.org/packages/libdeltachat-core-git/>)
 
-- [a Debian package](https://github.com/deltachat/deltachat-core/issues/299)
+- [Debian packaging](https://github.com/deltachat/deltachat-core/issues/299)
 
-- [a Windows build](https://github.com/deltachat/deltachat-core/issues/306)
+- [Windows building](https://github.com/deltachat/deltachat-core/issues/306)
 
 If you can help with advancing or adding to these efforts, be our guest. 
 Otherwise read on for how to get ``libdeltachat.so`` and ``deltachat.h``
@@ -32,8 +28,8 @@ If you have installed ``meson`` in your environment check the version::
 
     meson --version
    
-You need to have version ``0.47.2`` at least. If you version
-is older here is one recommended way of getting a better version:
+You need to have version ``0.47.2`` at least. If the version
+is older there is a recommended way of getting a better version:
 
 1. uninstall your system-level ``meson`` package (if possible)
 
@@ -43,11 +39,10 @@ is older here is one recommended way of getting a better version:
    ```
 
    to check that you have "pip" installed. If not available, you
-   might get it as a ``python3-pip`` package or similar. 
+   might get it as a ``python3-pip`` package or you could follow
+   [installing pip](https://pip.pypa.io/en/stable/installing/).
 
-   See also [installing pip](https://pip.pypa.io/en/stable/installing/)
-
-3. then pip-install meson:
+3. then pip-install meson into your home-directory:
    ```
        python3 -u -m pip install meson
    ```
@@ -55,7 +50,7 @@ is older here is one recommended way of getting a better version:
    the ``-u`` causes the pip-install to put a ``meson`` command line tool into
    ``~/.local/`` or %APPDATA%\Python on Windows.  
 
-4. run ``meson --version`` verify it's at at least version 0.48.0 now.
+4. run ``meson --version`` to verify it's at at least version 0.48.0 now.
    If the ``meson`` command is not found, add ``~/.local/bin`` to ``PATH``
    and try again (``export PATH=~/.local/bin:$PATH`` on many unix-y terminals).
 
