@@ -707,8 +707,12 @@ int dc_sqlite3_set_config_int(dc_sqlite3_t* sql, const char* key, int32_t value)
  ******************************************************************************/
 
 
+#undef USE_TRANSACTIONS
+
+
 void dc_sqlite3_begin_transaction(dc_sqlite3_t* sql)
 {
+#ifdef USE_TRANSACTIONS
 	// `BEGIN IMMEDIATE` ensures, only one thread may write.
 	// all other calls to `BEGIN IMMEDIATE` will try over until sqlite3_busy_timeout() is reached.
 	// CAVE: This also implies that transactions MUST NOT be nested.
@@ -717,24 +721,29 @@ void dc_sqlite3_begin_transaction(dc_sqlite3_t* sql)
 		dc_sqlite3_log_error(sql, "Cannot begin transaction.");
 	}
 	sqlite3_finalize(stmt);
+#endif
 }
 
 
 void dc_sqlite3_rollback(dc_sqlite3_t* sql)
 {
+#ifdef USE_TRANSACTIONS
 	sqlite3_stmt* stmt = dc_sqlite3_prepare(sql, "ROLLBACK;");
 	if (sqlite3_step(stmt) != SQLITE_DONE) {
 		dc_sqlite3_log_error(sql, "Cannot rollback transaction.");
 	}
 	sqlite3_finalize(stmt);
+#endif
 }
 
 
 void dc_sqlite3_commit(dc_sqlite3_t* sql)
 {
+#ifdef USE_TRANSACTIONS
 	sqlite3_stmt* stmt = dc_sqlite3_prepare(sql, "COMMIT;");
 	if (sqlite3_step(stmt) != SQLITE_DONE) {
 		dc_sqlite3_log_error(sql, "Cannot commit transaction.");
 	}
 	sqlite3_finalize(stmt);
+#endif
 }
