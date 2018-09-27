@@ -8,7 +8,7 @@ addons:
   apt:
     sources:
     - ubuntu-toolchain-r-test
-    - sourceline: 'ppa:libreoffice/ppa'
+    # for newer doxygen: - sourceline: 'ppa:libreoffice/ppa'
     packages:
     - python3-pip
     - python3.5
