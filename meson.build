@@ -33,12 +33,14 @@ endif
 
 # Sadly libetpan does not use pkg-config.  Use the system one if it's
 # new enough, if not use a static-pic-lib regardless of
-# default-library and wrap-mode.
+# default-library.
 libetpan_config = find_program('libetpan-config', required: false)
 if (not get_option('monolith')
+    and not get_option('force-etpan-fallback')
     and libetpan_config.found()
     and run_command(libetpan_config, ['--version']).stdout().strip()
                    .version_compare('>=1.8'))
+  etpan_version = run_command(libetpan_config, ['--version']).stdout().strip()
   etpan_prefix = run_command(libetpan_config, ['--prefix']).stdout().strip()
   etpan_cflags = run_command(libetpan_config, ['--cflags']).stdout().strip().split()
   etpan_libs = run_command(libetpan_config, ['--libs']).stdout().strip().split()
@@ -49,6 +51,7 @@ if (not get_option('monolith')
     include_directories: etpan_inc,
     link_args: etpan_libs,
   )
+  message('Dependency libetpan found: @0@'.format(etpan_version))
 else
   etpan_proj = subproject('libetpan', default_options: ['static-pic-lib=true'])
   etpan = etpan_proj.get_variable('dep')
