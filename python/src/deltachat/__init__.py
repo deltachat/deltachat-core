@@ -2,7 +2,7 @@ from deltachat import capi, const
 from deltachat.capi import ffi
 from deltachat.account import Account  # noqa
 
-__version__ = "0.5.dev5"
+__version__ = "0.6.0"
 
 
 _DC_CALLBACK_MAP = {}

@@ -17,7 +17,7 @@ def main():
         package_dir={'': 'src'},
         cffi_modules=['src/deltachat/_build.py:ffibuilder'],
         classifiers=[
-            'Development Status :: 3 - Alpha',
+            'Development Status :: 4 - Beta',
             'Intended Audience :: Developers',
             'License :: OSI Approved :: GNU General Public License (GPL)',
             'Programming Language :: Python :: 3',

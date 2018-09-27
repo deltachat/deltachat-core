@@ -45,7 +45,8 @@ script:
   - source venv/bin/activate
   - pip install tox
   - ldd /usr/local/lib/x86_64-linux-gnu/libdeltachat.so
-  - tox
+  - tox 
+  - tox -e doc 
 
 deploy:
   provider: script
