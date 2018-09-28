@@ -46,12 +46,23 @@ lib = library(
   'deltachat', lib_src,
   dependencies: lib_deps,
   include_directories: lib_inc,
+  version: version,
   install: true,
 )
 dep = declare_dependency(
   include_directories: lib_inc,
   dependencies: lib_deps,
   link_with: [lib],
+  version: version,
 )
 install_headers(['deltachat.h'],
                 subdir: 'deltachat')
+
+
+pkg = import('pkgconfig')
+pkg.generate(libraries : lib,
+             version : version,
+             subdirs : ['deltachat'],
+             name : 'libdeltachat',
+             filebase : 'deltachat',
+             description : ' Create your own, email-compatible messenger.')
