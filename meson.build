@@ -12,6 +12,7 @@ project(
 #  - X.Y.Z for tagged releases.
 #  - X.Y.Z990N for dev releases.
 #    Where N is the number of commits since the last tag.
+version = meson.project_version()
 git = find_program('git', required: false)
 if git.found()
   git_desc = run_command(git, 'describe', '--tags')
@@ -24,14 +25,10 @@ if git.found()
                           version_parts[1],
                           version_parts[2] + '990' + git_desc_parts[1]])
     endif
-  else
-    version = meson.project_version()
   endif
-else
-  version = meson.project_version()
 endif
 if version == meson.project_version()
-  warning('Git version not foud, using (dummy) project version')
+  warning('Git version not found, using (dummy) project version')
 endif
 
 

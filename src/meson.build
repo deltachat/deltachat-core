@@ -65,4 +65,4 @@ pkg.generate(libraries : lib,
              subdirs : ['deltachat'],
              name : 'libdeltachat',
              filebase : 'deltachat',
-             description : ' Create your own, email-compatible messenger.')
+             description : 'Create your own, email-compatible messenger.')
