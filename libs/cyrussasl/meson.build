@@ -74,7 +74,7 @@ else
     error('Only --default-library=static is supported for now')
   endif
   lib = library(
-    'sals2', src,
+    'sasl2', src,
     c_args: ccargs,
     include_directories: inc,
     dependencies: [openssl],
