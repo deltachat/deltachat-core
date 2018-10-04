@@ -89,8 +89,6 @@ struct _dc_context
 
 	uint32_t         cmdline_sel_chat_id;   /**< Internal */
 
-	int              e2ee_enabled;          /**< Internal */
-
 	#define          DC_LOG_RINGBUF_SIZE 200
 	pthread_mutex_t  log_ringbuf_critical;  /**< Internal */
 	char*            log_ringbuf[DC_LOG_RINGBUF_SIZE];

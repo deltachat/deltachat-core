@@ -335,7 +335,7 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 
 		/* init autocrypt header from db */
 		autocryptheader->prefer_encrypt = DC_PE_NOPREFERENCE;
-		if (context->e2ee_enabled) {
+		if (dc_sqlite3_get_config_int(context->sql, "e2ee_enabled", DC_E2EE_DEFAULT_ENABLED)) {
 			autocryptheader->prefer_encrypt = DC_PE_MUTUAL;
 		}
 

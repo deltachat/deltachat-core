@@ -231,8 +231,6 @@ char*           dc_get_blobdir               (const dc_context_t*);
 
 int             dc_set_config                (dc_context_t*, const char* key, const char* value);
 char*           dc_get_config                (dc_context_t*, const char* key, const char* def);
-int             dc_set_config_int            (dc_context_t*, const char* key, int32_t value);
-int32_t         dc_get_config_int            (dc_context_t*, const char* key, int32_t def);
 char*           dc_get_info                  (dc_context_t*);
 char*           dc_get_version_str           (void);
 void            dc_openssl_init_not_required (void);
@@ -678,7 +676,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  *
  * Flags for configuring IMAP and SMTP servers.
  * These flags are optional and may be set together with the username, password etc. via
- * dc_set_config() or dc_set_config_int() using the key "server_flags".
+ * dc_set_config() using the key "server_flags".
  *
  * @addtogroup DC_LP
  * @{

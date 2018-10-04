@@ -542,26 +542,12 @@ int dc_msg_get_duration(const dc_msg_t* msg)
  */
 int dc_msg_get_showpadlock(const dc_msg_t* msg)
 {
-	/* a padlock guarantees that the message is e2ee _and_ answers will be as well */
-	int show_encryption_state = 0;
-
 	if (msg==NULL || msg->magic!=DC_MSG_MAGIC || msg->context==NULL) {
 		return 0;
 	}
 
-	if (msg->context->e2ee_enabled) {
-		show_encryption_state = 1;
-	}
-	else {
-		dc_chat_t* chat = dc_get_chat(msg->context, msg->chat_id);
-		show_encryption_state = dc_chat_is_verified(chat);
-		dc_chat_unref(chat);
-	}
-
-	if (show_encryption_state) {
-		if (dc_param_get_int(msg->param, DC_PARAM_GUARANTEE_E2EE, 0)!=0) {
-			return 1;
-		}
+	if (dc_param_get_int(msg->param, DC_PARAM_GUARANTEE_E2EE, 0)!=0) {
+		return 1;
 	}
 
 	return 0;

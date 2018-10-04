@@ -57,7 +57,7 @@ def acfactory(pytestconfig, tmpdir, request):
             lib.dc_set_config(ac._dc_context, b"configured_addr", addr.encode("ascii"))
             ac.set_config("mail_pw", "123")
             lib.dc_set_config(ac._dc_context, b"configured_mail_pw", b"123")
-            lib.dc_set_config_int(ac._dc_context, b"configured", 1)
+            lib.dc_set_config(ac._dc_context, b"configured", b"1")
             return ac
 
         def get_online_configuring_account(self):

@@ -143,7 +143,8 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 			self_addr = dc_sqlite3_get_config(context->sql, "configured_addr", NULL);
 			dc_key_load_self_private(curr_private_key, self_addr, context->sql);
 
-			char* payload_key_asc = dc_key_render_asc(curr_private_key, context->e2ee_enabled? "Autocrypt-Prefer-Encrypt: mutual\r\n" : NULL);
+			int e2ee_enabled = dc_sqlite3_get_config_int(context->sql, "e2ee_enabled", DC_E2EE_DEFAULT_ENABLED);
+			char* payload_key_asc = dc_key_render_asc(curr_private_key, e2ee_enabled? "Autocrypt-Prefer-Encrypt: mutual\r\n" : NULL);
 			if (payload_key_asc==NULL) {
 				goto cleanup;
 			}
@@ -592,10 +593,10 @@ static int set_self_key(dc_context_t* context, const char* armored, int set_defa
 	/* if we also received an Autocrypt-Prefer-Encrypt header, handle this */
 	if (buf_preferencrypt) {
 		if (strcmp(buf_preferencrypt, "nopreference")==0) {
-			dc_set_config_int(context, "e2ee_enabled", 0); /* use the top-level function as this also resets cached values */
+			dc_sqlite3_set_config_int(context->sql, "e2ee_enabled", 0);
 		}
 		else if (strcmp(buf_preferencrypt, "mutual")==0) {
-			dc_set_config_int(context, "e2ee_enabled", 1); /* use the top-level function as this also resets cached values */
+			dc_sqlite3_set_config_int(context->sql, "e2ee_enabled", 1);
 		}
 	}
 
