@@ -403,9 +403,6 @@ static char* get_sys_config_str(const char* key, const char* def)
  *                    NULL to remove the avatar.
  * - `e2ee_enabled` = 0=no end-to-end-encryption, 1=prefer end-to-end-encryption (default)
  *
- * If you want to set an integer, it may be easier to use dc_set_config_int(), however, it is also
- * fine to pass the integer as a string to this function.
- *
  * If you want to retrieve a value, use dc_get_config().
  *
  * @memberof dc_context_t
@@ -445,7 +442,6 @@ cleanup:
 
 /**
  * Get a configuration option. The configuration option is typically set by dc_set_config() or by the library itself.
- * To get an option as an integer, you can use dc_get_config_int() as an alternative.
  *
  * Moreover, this function can be used to query some global system values:
  *
@@ -486,50 +482,6 @@ char* dc_get_config(dc_context_t* context, const char* key, const char* def)
 	{
 		return dc_sqlite3_get_config(context->sql, key, def);
 	}
-}
-
-
-/**
- * Configure the context.  Similar to dc_set_config() but sets an integer instead of a string.
- * If there is already a key with a string set, this is overwritten by the given integer value.
- *
- * @memberof dc_context_t
- */
-int dc_set_config_int(dc_context_t* context, const char* key, int32_t value)
-{
-	int   ret = 0;
-	char* value_str = NULL;
-
-	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || key==NULL) {
-		goto cleanup;
-	}
-
-	value_str = dc_mprintf("%i", (int)value);
-	ret = dc_set_config(context, key, value_str);
-
-cleanup:
-	free(value_str);
-	return ret;
-}
-
-
-/**
- * Get a configuration option. Similar as dc_get_config() but gets the value as an integer instead of a string.
- *
- * @memberof dc_context_t
- */
-int32_t dc_get_config_int(dc_context_t* context, const char* key, int32_t def)
-{
-	if (key && key[0]=='s' && key[1]=='y' && key[2]=='s' && key[3]=='.') {
-		int def_returned = 0;
-		return get_sys_config_int(key, def, &def_returned);
-	}
-
-	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || key==NULL) {
-		return def;
-	}
-
-	return dc_sqlite3_get_config_int(context->sql, key, def);
 }
 
 

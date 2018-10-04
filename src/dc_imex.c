@@ -592,10 +592,10 @@ static int set_self_key(dc_context_t* context, const char* armored, int set_defa
 	/* if we also received an Autocrypt-Prefer-Encrypt header, handle this */
 	if (buf_preferencrypt) {
 		if (strcmp(buf_preferencrypt, "nopreference")==0) {
-			dc_set_config_int(context, "e2ee_enabled", 0); /* use the top-level function as this also resets cached values */
+			dc_sqlite3_set_config_int(context->sql, "e2ee_enabled", 0);
 		}
 		else if (strcmp(buf_preferencrypt, "mutual")==0) {
-			dc_set_config_int(context, "e2ee_enabled", 1); /* use the top-level function as this also resets cached values */
+			dc_sqlite3_set_config_int(context->sql, "e2ee_enabled", 1);
 		}
 	}
 
