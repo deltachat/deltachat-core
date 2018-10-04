@@ -213,9 +213,16 @@ void* dc_get_userdata(dc_context_t* context)
  * The function is called by dc_config_set*() and by dc_open().
  *
  * @private @memberof dc_context_t
+ * @param context The context object as created by dc_context_new().
+ * @param key Name of the value to update, NULL to update all.
+ * @return None.
  */
 static void update_config_cache(dc_context_t* context, const char* key)
 {
+	if (context==NULL) {
+		return;
+	}
+
 	if (key==NULL || strcmp(key, "e2ee_enabled")==0) {
 		context->e2ee_enabled = dc_sqlite3_get_config_int(context->sql, "e2ee_enabled", DC_E2EE_DEFAULT_ENABLED);
 	}
