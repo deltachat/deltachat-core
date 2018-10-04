@@ -143,7 +143,8 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 			self_addr = dc_sqlite3_get_config(context->sql, "configured_addr", NULL);
 			dc_key_load_self_private(curr_private_key, self_addr, context->sql);
 
-			char* payload_key_asc = dc_key_render_asc(curr_private_key, context->e2ee_enabled? "Autocrypt-Prefer-Encrypt: mutual\r\n" : NULL);
+			int e2ee_enabled = dc_sqlite3_get_config_int(context->sql, "e2ee_enabled", DC_E2EE_DEFAULT_ENABLED);
+			char* payload_key_asc = dc_key_render_asc(curr_private_key, e2ee_enabled? "Autocrypt-Prefer-Encrypt: mutual\r\n" : NULL);
 			if (payload_key_asc==NULL) {
 				goto cleanup;
 			}

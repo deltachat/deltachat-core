@@ -208,28 +208,6 @@ void* dc_get_userdata(dc_context_t* context)
 
 
 /**
- * This function reads some simple integer flags for fast and easy access.
- * To keep multi-thread-safety, we must not cache strings this way.
- * The function is called by dc_config_set*() and by dc_open().
- *
- * @private @memberof dc_context_t
- * @param context The context object as created by dc_context_new().
- * @param key Name of the value to update, NULL to update all.
- * @return None.
- */
-static void update_config_cache(dc_context_t* context, const char* key)
-{
-	if (context==NULL) {
-		return;
-	}
-
-	if (key==NULL || strcmp(key, "e2ee_enabled")==0) {
-		context->e2ee_enabled = dc_sqlite3_get_config_int(context->sql, "e2ee_enabled", DC_E2EE_DEFAULT_ENABLED);
-	}
-}
-
-
-/**
  * Open context database.  If the given file does not exist, it is
  * created and can be set up using dc_set_config() afterwards.
  *
@@ -273,8 +251,6 @@ int dc_open(dc_context_t* context, const char* dbfile, const char* blobdir)
 	if (!dc_sqlite3_open(context->sql, dbfile, 0)) {
 		goto cleanup;
 	}
-
-	update_config_cache(context, NULL);
 
 	success = 1;
 
@@ -434,7 +410,6 @@ int dc_set_config(dc_context_t* context, const char* key, const char* value)
 	}
 
 cleanup:
-	update_config_cache(context, key);
 	free(rel_path);
 	return ret;
 }
@@ -550,11 +525,8 @@ char* dc_get_info(dc_context_t* context)
 	contacts        = dc_get_real_contact_cnt(context);
 
 	is_configured   = dc_sqlite3_get_config_int(context->sql, "configured", 0);
-
 	dbversion       = dc_sqlite3_get_config_int(context->sql, "dbversion", 0);
-
-	e2ee_enabled    = context->e2ee_enabled;
-
+	e2ee_enabled    = dc_sqlite3_get_config_int(context->sql, "e2ee_enabled", DC_E2EE_DEFAULT_ENABLED);
 	mdns_enabled    = dc_sqlite3_get_config_int(context->sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED);
 
 	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->sql, "SELECT COUNT(*) FROM keypairs;");

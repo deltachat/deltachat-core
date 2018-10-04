@@ -2035,9 +2035,13 @@ static uint32_t send_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc_ms
 		}
 	}
 
-	/* check if we can guarantee E2EE for this message.  If we can, we won't send the message without E2EE later (because of a reset, changed settings etc. - messages may be delayed significally if there is no network present) */
+	/* check if we can guarantee E2EE for this message.
+	if we guarantee E2EE, and circumstances change
+	so that E2EE is no longer available at a later point (reset, changed settings),
+	we do not send the message out at all */
 	int do_guarantee_e2ee = 0;
-	if (context->e2ee_enabled && dc_param_get_int(msg->param, DC_PARAM_FORCE_PLAINTEXT, 0)==0)
+	int e2ee_enabled = dc_sqlite3_get_config_int(context->sql, "e2ee_enabled", DC_E2EE_DEFAULT_ENABLED);
+	if (e2ee_enabled && dc_param_get_int(msg->param, DC_PARAM_FORCE_PLAINTEXT, 0)==0)
 	{
 		int can_encrypt = 1, all_mutual = 1; /* be optimistic */
 		stmt = dc_sqlite3_prepare(context->sql,
