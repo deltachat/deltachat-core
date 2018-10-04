@@ -461,15 +461,18 @@ char* dc_get_config(dc_context_t* context, const char* key, const char* def)
  */
 int dc_set_config_int(dc_context_t* context, const char* key, int32_t value)
 {
-	int ret = 0;
+	int   ret = 0;
+	char* value_str = NULL;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || key==NULL) {
-		return 0;
+		goto cleanup;
 	}
 
-	ret = dc_sqlite3_set_config_int(context->sql, key, value);
-	update_config_cache(context, key);
+	value_str = dc_mprintf("%i", (int)value);
+	ret = dc_set_config(context, key, value_str);
 
+cleanup:
+	free(value_str);
 	return ret;
 }
 
