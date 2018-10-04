@@ -399,8 +399,7 @@ static char* get_sys_config_str(const char* key, const char* def)
  * - `server_flags` = IMAP-/SMTP-flags as a combination of @ref DC_LP flags, guessed if left out
  * - `displayname`  = Own name to use when sending messages.  MUAs are allowed to spread this way eg. using CC, defaults to empty
  * - `selfstatus`   = Own status to display eg. in email footers, defaults to a standard text
- * - `selfavatar`   = File containing avatar.
- *                    Will be copied to blob directory, if needed.
+ * - `selfavatar`   = File containing avatar. Will be copied to blob directory.
  *                    NULL to remove the avatar.
  * - `e2ee_enabled` = 0=no end-to-end-encryption, 1=prefer end-to-end-encryption (default)
  *
@@ -417,7 +416,8 @@ static char* get_sys_config_str(const char* key, const char* def)
  */
 int dc_set_config(dc_context_t* context, const char* key, const char* value)
 {
-	int ret = 0;
+	int   ret = 0;
+	char* rel_path = NULL;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || key==NULL) { /* "value" may be NULL */
 		return 0;
@@ -425,12 +425,11 @@ int dc_set_config(dc_context_t* context, const char* key, const char* value)
 
 	if (strcmp(key, "selfavatar")==0 && value)
 	{
-		char* rel_path = dc_strdup(value);
+		rel_path = dc_strdup(value);
 		if (!dc_make_rel_and_copy(context, &rel_path)) {
 			goto cleanup;
 		}
 		ret = dc_sqlite3_set_config(context->sql, key, rel_path);
-		free(rel_path);
 	}
 	else
 	{
@@ -439,6 +438,7 @@ int dc_set_config(dc_context_t* context, const char* key, const char* value)
 
 cleanup:
 	update_config_cache(context, key);
+	free(rel_path);
 	return ret;
 }
 
