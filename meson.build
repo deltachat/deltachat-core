@@ -1,9 +1,36 @@
 project(
   'deltachat-core', 'c',
   license: 'GPLv3',
+  version: '0.0.0',             # Dummy, see below.
   subproject_dir: 'libs',
   meson_version: '>=0.47.2',
 )
+
+
+## Figure out the version, use this instead of meson.project_version()
+# The version schema is:
+#  - X.Y.Z for tagged releases.
+#  - X.Y.Z990N for dev releases.
+#    Where N is the number of commits since the last tag.
+version = meson.project_version()
+git = find_program('git', required: false)
+if git.found()
+  git_desc = run_command(git, 'describe', '--tags')
+  if git_desc.returncode() == 0
+    git_desc_parts = git_desc.stdout().strip().split('-')
+    version = git_desc_parts[0].split('v')[1]
+    if git_desc_parts.length() > 1
+      version_parts = version.split('.')
+      version = '.'.join([version_parts[0],
+                          version_parts[1],
+                          version_parts[2] + '990' + git_desc_parts[1]])
+    endif
+  endif
+endif
+if version == meson.project_version()
+  warning('Git version not found, using (dummy) project version')
+endif
+
 
 # pthreads is not a real dependency
 pthreads = dependency('threads')
@@ -73,17 +100,3 @@ subdir('src')
 
 # Build the binaries.
 subdir('cmdline')
-
-
-version = run_command('git', 'describe', '--tags')
-if version.returncode() != 0
-  message('git version not found, pkg-config will not be generated')
-else
-  pkg = import('pkgconfig')
-  pkg.generate(libraries : lib,
-               version : version.stdout().strip(),
-               subdirs : ['deltachat'],
-               name : 'libdeltachat',
-               filebase : 'deltachat',
-               description : ' Create your own, email-compatible messenger.')
-endif
