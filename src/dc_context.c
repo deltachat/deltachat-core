@@ -213,9 +213,16 @@ void* dc_get_userdata(dc_context_t* context)
  * The function is called by dc_config_set*() and by dc_open().
  *
  * @private @memberof dc_context_t
+ * @param context The context object as created by dc_context_new().
+ * @param key Name of the value to update, NULL to update all.
+ * @return None.
  */
 static void update_config_cache(dc_context_t* context, const char* key)
 {
+	if (context==NULL) {
+		return;
+	}
+
 	if (key==NULL || strcmp(key, "e2ee_enabled")==0) {
 		context->e2ee_enabled = dc_sqlite3_get_config_int(context->sql, "e2ee_enabled", DC_E2EE_DEFAULT_ENABLED);
 	}
@@ -392,6 +399,8 @@ static char* get_sys_config_str(const char* key, const char* def)
  * - `server_flags` = IMAP-/SMTP-flags as a combination of @ref DC_LP flags, guessed if left out
  * - `displayname`  = Own name to use when sending messages.  MUAs are allowed to spread this way eg. using CC, defaults to empty
  * - `selfstatus`   = Own status to display eg. in email footers, defaults to a standard text
+ * - `selfavatar`   = File containing avatar. Will be copied to blob directory.
+ *                    NULL to remove the avatar.
  * - `e2ee_enabled` = 0=no end-to-end-encryption, 1=prefer end-to-end-encryption (default)
  *
  * If you want to set an integer, it may be easier to use dc_set_config_int(), however, it is also
@@ -407,15 +416,29 @@ static char* get_sys_config_str(const char* key, const char* def)
  */
 int dc_set_config(dc_context_t* context, const char* key, const char* value)
 {
-	int ret = 0;
+	int   ret = 0;
+	char* rel_path = NULL;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || key==NULL) { /* "value" may be NULL */
 		return 0;
 	}
 
-	ret = dc_sqlite3_set_config(context->sql, key, value);
-	update_config_cache(context, key);
+	if (strcmp(key, "selfavatar")==0 && value)
+	{
+		rel_path = dc_strdup(value);
+		if (!dc_make_rel_and_copy(context, &rel_path)) {
+			goto cleanup;
+		}
+		ret = dc_sqlite3_set_config(context->sql, key, rel_path);
+	}
+	else
+	{
+		ret = dc_sqlite3_set_config(context->sql, key, value);
+	}
 
+cleanup:
+	update_config_cache(context, key);
+	free(rel_path);
 	return ret;
 }
 
@@ -449,7 +472,20 @@ char* dc_get_config(dc_context_t* context, const char* key, const char* def)
 		return dc_strdup_keep_null(def);
 	}
 
-	return dc_sqlite3_get_config(context->sql, key, def);
+	if (strcmp(key, "selfavatar")==0)
+	{
+		char* rel_path = dc_sqlite3_get_config(context->sql, key, NULL);
+		if (rel_path==NULL) {
+			return dc_strdup_keep_null(def);
+		}
+		char* abs_path = dc_get_abs_path(context, rel_path);
+		free(rel_path);
+		return abs_path;
+	}
+	else
+	{
+		return dc_sqlite3_get_config(context->sql, key, def);
+	}
 }
 
 
@@ -461,15 +497,18 @@ char* dc_get_config(dc_context_t* context, const char* key, const char* def)
  */
 int dc_set_config_int(dc_context_t* context, const char* key, int32_t value)
 {
-	int ret = 0;
+	int   ret = 0;
+	char* value_str = NULL;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || key==NULL) {
-		return 0;
+		goto cleanup;
 	}
 
-	ret = dc_sqlite3_set_config_int(context->sql, key, value);
-	update_config_cache(context, key);
+	value_str = dc_mprintf("%i", (int)value);
+	ret = dc_set_config(context, key, value_str);
 
+cleanup:
+	free(value_str);
 	return ret;
 }
 
