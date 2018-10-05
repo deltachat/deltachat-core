@@ -811,10 +811,6 @@ int dc_is_configured(const dc_context_t* context)
 		return 0;
 	}
 
-	if (dc_imap_is_connected(context->imap)) { /* if we're connected, we're also configured. this check will speed up the check as no database is involved */
-		return 1;
-	}
-
 	return dc_sqlite3_get_config_int(context->sql, "configured", 0)? 1 : 0;
 }
 
