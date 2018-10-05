@@ -15,7 +15,7 @@ project(
 version = meson.project_version()
 git = find_program('git', required: false)
 if git.found()
-  git_desc = run_command(git, 'describe', '--tags')
+  git_desc = run_command(git, 'describe', '--tags', '--match=v*')
   if git_desc.returncode() == 0
     git_desc_parts = git_desc.stdout().strip().split('-')
     version = git_desc_parts[0].split('v')[1]
