@@ -63,12 +63,18 @@ if (get_option('openssl-camellia').enabled()
     and not config_h.get('HAVE_OPENSSL_CAMELLIA_H'))
   error('OpenSSL camellia feature is enabled but not found')
 endif
-config_h.set('OPENSSL_NO_CAMELLIA', get_option('openssl-camellia').disabled())
+if get_option('openssl-camellia').disabled()
+  config_h.set('OPENSSL_NO_CAMELLIA', false)
+  config_h.set('HAVE_OPENSSL_CAMELLIA_H', false)
+endif
 if (get_option('openssl-idea').enabled()
     and not config_h.get('HAVE_OPENSSL_IDEA_H'))
   error('OpenSSL idea feature is enabled but not found')
 endif
-config_h.set('OPENSSL_NO_IDEA', get_option('openssl-idea').disabled())
+if get_option('openssl-idea').disabled()
+  config_h.set('OPENSSL_NO_IDEA', false)
+  config_h.set('HAVE_OPENSSL_IDEA_H', false)
+endif
 
 configure_file(output: 'config-netpgp-meson.h', configuration: config_h)
 add_project_arguments('-DHAVE_CONFIG_MESON', language: 'c')
