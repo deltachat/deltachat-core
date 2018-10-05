@@ -49,17 +49,23 @@ inc = include_directories(
 
 # Silence warnings, we don't own this subproject
 cc = meson.get_compiler('c')
-ccargs = cc.get_supported_arguments(['-Wno-discarded-qualifiers',
-                                     '-Wno-format',
-                                     '-Wno-incompatible-pointer-types',
-                                     '-Wno-nonnull-compare',
-                                     '-Wno-pointer-sign',
-                                     '-Wno-tautological-compare',
-                                     '-Wno-unused-but-set-variable',
-                                     '-Wno-unused-const-variable',
-                                     '-Wno-unused-const-variable',
-                                     '-Wno-unused-function',
-                                     '-Wno-unused-variable'])
+ccargs = cc.get_supported_arguments(
+  [
+    '-Wno-discarded-qualifiers',
+    '-Wno-format',
+    '-Wno-incompatible-pointer-types',
+    '-Wno-nonnull-compare',
+    '-Wno-parentheses-equality',
+    '-Wno-pointer-sign',
+    '-Wno-sometimes-uninitialized',
+    '-Wno-tautological-compare',
+    '-Wno-unused-but-set-variable',
+    '-Wno-unused-const-variable',
+    '-Wno-unused-const-variable',
+    '-Wno-unused-function',
+    '-Wno-unused-variable',
+  ]
+)
 
 if get_option('static-pic-lib')
   lib = static_library(
