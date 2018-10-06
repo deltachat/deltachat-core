@@ -1311,7 +1311,7 @@ void dc_imap_disconnect(dc_imap_t* imap)
 
 int dc_imap_is_connected(const dc_imap_t* imap)
 {
-	return (imap && imap->connected); /* we do not use a LOCK - otherwise, the check may take seconds and is not sufficient for some GUI state updates. */
+	return (imap && imap->connected);
 }
 
 
