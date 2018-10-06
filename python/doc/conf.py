@@ -115,10 +115,10 @@ html_theme = 'alabaster'
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
-    # 'index_logo': '_static/delta-chat.svg',
-    'font_size': "1.0em",
-    'caption_font_size': "0.8em",
-    'code_font_size': "1.0em",
+    'logo': '_static/delta-chat.svg',
+    'font_size': "1.1em",
+    'caption_font_size': "0.9em",
+    'code_font_size': "1.1em",
 
 
 }
