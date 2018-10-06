@@ -64,7 +64,7 @@ if (get_option('openssl-camellia').enabled()
   error('OpenSSL camellia feature is enabled but not found')
 endif
 if get_option('openssl-camellia').disabled()
-  config_h.set('OPENSSL_NO_CAMELLIA', false)
+  config_h.set('OPENSSL_NO_CAMELLIA', true)
   config_h.set('HAVE_OPENSSL_CAMELLIA_H', false)
 endif
 if (get_option('openssl-idea').enabled()
@@ -72,7 +72,7 @@ if (get_option('openssl-idea').enabled()
   error('OpenSSL idea feature is enabled but not found')
 endif
 if get_option('openssl-idea').disabled()
-  config_h.set('OPENSSL_NO_IDEA', false)
+  config_h.set('OPENSSL_NO_IDEA', true)
   config_h.set('HAVE_OPENSSL_IDEA_H', false)
 endif
 
