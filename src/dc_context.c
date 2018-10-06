@@ -555,43 +555,58 @@ char* dc_get_info(dc_context_t* context)
 	- use neutral speach; the Delta Chat Core is not directly related to any front end or end-product
 	- contributors: You're welcome to add your names here */
 	temp = dc_mprintf(
-		"Chats: %i\n"
-		"Chat messages: %i\n"
-		"Messages in contact requests: %i\n"
-		"Contacts: %i\n"
-		"Database=%s, dbversion=%i, Blobdir=%s\n"
-		"\n"
-		"displayname=%s\n"
-		"configured=%i\n"
-		"config0=%s\n"
-		"config1=%s\n"
+		"# key=value data\n"
+		"deltachat_core_version=v%s\n"
+		"sqlite_version=%s\n"
+		"sqlite_thread_safe=%i\n"
+		"libetpan_version=%i.%i\n"
+		"openssl_version=%i.%i.%i%c\n"
+		"compile_date=" __DATE__ ", " __TIME__ "\n"
+		"arch=%i\n"
+		"number_of_chats=%i\n"
+		"number_of_chat_messages=%i\n"
+		"messages_in_contact_requests=%i\n"
+		"number_of_contacts=%i\n"
+		"database_dir=%s\n"
+		"database_version=%i\n"
+		"blobdir=%s\n"
+		"display_name=%s\n"
+		"is_configured=%i\n"
+		"entered_account_settings=%s\n"
+		"used_account_settings=%s\n"
 		"mdns_enabled=%i\n"
 		"e2ee_enabled=%i\n"
-		"E2EE_DEFAULT_ENABLED=%i\n"
-		"Private keys=%i, public keys=%i, fingerprint=\n%s\n"
+		"e2ee_default_enabled=%i\n"
+		"private_key_count=%i\n"
+		"public_key_count=%i\n"
+		"fingerprint=%s\n"
 		"\n"
-		"Using Delta Chat Core v%s, SQLite %s-ts%i, libEtPan %i.%i, OpenSSL %i.%i.%i%c. Compiled " __DATE__ ", " __TIME__ " for %i bit usage.\n\n"
-		"Log excerpt:\n"
+		"# log excerpt"
 		/* In the frontends, additional software hints may follow here. */
 
-		, chats, real_msgs, deaddrop_msgs, contacts
-		, context->dbfile? context->dbfile : unset,   dbversion,   context->blobdir? context->blobdir : unset
-
-        , displayname? displayname : unset
-		, is_configured
-		, l_readable_str, l2_readable_str
-
-		, mdns_enabled
-
-		, e2ee_enabled
-		, DC_E2EE_DEFAULT_ENABLED
-		, prv_key_cnt, pub_key_cnt, fingerprint_str
-
 		, DC_VERSION_STR
-		, SQLITE_VERSION, sqlite3_threadsafe()   ,  libetpan_get_version_major(), libetpan_get_version_minor()
+		, SQLITE_VERSION
+		, sqlite3_threadsafe()
+		, libetpan_get_version_major(), libetpan_get_version_minor()
 		, (int)(OPENSSL_VERSION_NUMBER>>28), (int)(OPENSSL_VERSION_NUMBER>>20)&0xFF, (int)(OPENSSL_VERSION_NUMBER>>12)&0xFF, (char)('a'-1+((OPENSSL_VERSION_NUMBER>>4)&0xFF))
 		, sizeof(void*)*8
-
+		, chats
+		, real_msgs
+		, deaddrop_msgs
+		, contacts
+		, context->dbfile? context->dbfile : unset
+		, dbversion
+		, context->blobdir? context->blobdir : unset
+		, displayname? displayname : unset
+		, is_configured
+		, l_readable_str
+		, l2_readable_str
+		, mdns_enabled
+		, e2ee_enabled
+		, DC_E2EE_DEFAULT_ENABLED
+		, prv_key_cnt
+		, pub_key_cnt
+		, fingerprint_str
 		);
 	dc_strbuilder_cat(&ret, temp);
 	free(temp);
