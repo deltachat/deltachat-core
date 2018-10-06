@@ -136,9 +136,14 @@ add_project_arguments('-DHAVE_CONFIG_H', language: 'c')
 
 # We don't own this subproject, silence some warnings
 cc = meson.get_compiler('c')
-ccargs = cc.get_supported_arguments(['-Wno-unused-function',
-                                     '-Wno-format-truncation',
-                                     '-Wno-misleading-indentation'])
+ccargs = cc.get_supported_arguments(
+  [
+    '-Wno-format-truncation',
+    '-Wno-misleading-indentation',
+    '-Wno-sometimes-uninitialized',
+    '-Wno-unused-function',
+  ]
+)
 
 if get_option('static-pic-lib')
   lib = static_library(
