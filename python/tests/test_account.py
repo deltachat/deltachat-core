@@ -146,6 +146,7 @@ class TestOfflineAccount:
         assert msg.type.name == "file"
         assert msg.type.is_file()
         assert os.path.exists(msg.filename)
+        assert msg.filename.endswith(msg.basename)
         assert msg.filemime == typeout
 
     def test_chat_message_distinctions(self, acfactory):

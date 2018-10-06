@@ -197,6 +197,7 @@ class Account(object):
 
     def get_message_by_id(self, msg_id):
         """ return Message instance. """
+        assert msg_id > 0
         return Message(self._dc_context, msg_id)
 
     def mark_seen_messages(self, messages):

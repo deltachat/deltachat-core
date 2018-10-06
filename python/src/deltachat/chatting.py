@@ -239,6 +239,11 @@ class Message(object):
         return from_dc_charpointer(lib.dc_msg_get_file(self._dc_msg))
 
     @property_with_doc
+    def basename(self):
+        """basename of the attachment if it exists, otherwise empty string. """
+        return from_dc_charpointer(lib.dc_msg_get_filename(self._dc_msg))
+
+    @property_with_doc
     def filemime(self):
         """mime type of the file (if it exists)"""
         return from_dc_charpointer(lib.dc_msg_get_filemime(self._dc_msg))
@@ -294,7 +299,7 @@ class MessageType(object):
     @property_with_doc
     def name(self):
         """ human readable type name. """
-        return self._mapping[self._type]
+        return self._mapping.get(self._type, "")
 
     def is_text(self):
         """ return True if it's a text message. """
