@@ -1,3 +1,9 @@
+0.7
+---
+
+- add Chat.delete(), Chat.send_image() and Chat.send_file()
+
+- renamed Chat.send_text_message to Chat.sent_text 
 
 0.6
 ---

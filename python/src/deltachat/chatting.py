@@ -107,15 +107,30 @@ class Chat(object):
 
     # ------  chat messaging API ------------------------------
 
-    def send_text_message(self, msg):
+    def send_text(self, text):
         """ send a text message and return the resulting Message instance.
 
         :param msg: unicode text
         :raises: ValueError if message can not be send/chat does not exist.
         :returns: the resulting :class:`deltachat.chatting.Message` instance
         """
-        msg = as_dc_charpointer(msg)
+        msg = as_dc_charpointer(text)
         msg_id = lib.dc_send_text_msg(self._dc_context, self.id, msg)
+        if msg_id == 0:
+            raise ValueError("message could not be send, does chat exist?")
+        return Message(self._dc_context, msg_id)
+
+    def send_file(self, path, mime_type="application/octet-stream"):
+        """ send a file and return the resulting Message instance.
+
+        :param path: path to the file.
+        :param mime_type: the mime-type of this file, defaults to application/octet-stream.
+        :raises: ValueError if message can not be send/chat does not exist.
+        :returns: the resulting :class:`deltachat.chatting.Message` instance
+        """
+        path = as_dc_charpointer(path)
+        mtype = as_dc_charpointer(mime_type)
+        msg_id = lib.dc_send_file_msg(self._dc_context, self.id, path, mtype)
         if msg_id == 0:
             raise ValueError("message could not be send, does chat exist?")
         return Message(self._dc_context, msg_id)

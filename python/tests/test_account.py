@@ -90,13 +90,13 @@ class TestOfflineAccount:
         chat.delete()
         ac1._evlogger.get_matching("DC_EVENT_MSGS_CHANGED")
         with pytest.raises(ValueError):
-            chat.send_text_message("msg1")
+            chat.send_text("msg1")
 
     def test_message(self, acfactory):
         ac1 = acfactory.get_configured_offline_account()
         contact1 = ac1.create_contact("some1@hello.com", name="some1")
         chat = ac1.create_chat_by_contact(contact1)
-        msg = chat.send_text_message("msg1")
+        msg = chat.send_text("msg1")
         assert msg
         assert msg.type.is_text()
         assert msg.type.name == "text"
@@ -114,13 +114,14 @@ class TestOfflineAccount:
         assert not msg_state.is_out_delivered()
         assert not msg_state.is_out_mdn_received()
 
-    def test_message_image(self, acfactory, data):
+    def test_message_image(self, acfactory, data, lp):
         ac1 = acfactory.get_configured_offline_account()
         contact1 = ac1.create_contact("some1@hello.com", name="some1")
         chat = ac1.create_chat_by_contact(contact1)
         with pytest.raises(ValueError):
             chat.send_image(path="notexists")
         fn = data.get_path("d.png")
+        lp.sec("sending image")
         msg = chat.send_image(fn)
         assert msg.type.name == "image"
         assert msg
@@ -128,12 +129,31 @@ class TestOfflineAccount:
         assert os.path.exists(msg.filename)
         assert msg.filemime == "image/png"
 
+    @pytest.mark.parametrize("typein,typeout", [
+            (None, "application/octet-stream"),
+            ("text/plain", "text/plain"),
+            ("image/png", "image/png"),
+    ])
+    def test_message_file(self, acfactory, data, lp, typein, typeout):
+        ac1 = acfactory.get_configured_offline_account()
+        contact1 = ac1.create_contact("some1@hello.com", name="some1")
+        chat = ac1.create_chat_by_contact(contact1)
+        lp.sec("sending file")
+        fn = data.get_path("r.txt")
+        msg = chat.send_file(fn, typein)
+        assert msg
+        assert msg.id > 0
+        assert msg.type.name == "file"
+        assert msg.type.is_file()
+        assert os.path.exists(msg.filename)
+        assert msg.filemime == typeout
+
     def test_chat_message_distinctions(self, acfactory):
         ac1 = acfactory.get_configured_offline_account()
         contact1 = ac1.create_contact("some1@hello.com", name="some1")
         chat = ac1.create_chat_by_contact(contact1)
         past1s = datetime.now() - timedelta(seconds=1)
-        msg = chat.send_text_message("msg1")
+        msg = chat.send_text("msg1")
         ts = msg.time_sent
         assert ts.strftime("Y")
         assert past1s < ts
@@ -162,7 +182,7 @@ class TestOnlineAccount:
         wait_successful_IMAP_SMTP_connection(ac2)
         wait_configuration_progress(ac2, 1000)
 
-        msg_out = chat.send_text_message("message2")
+        msg_out = chat.send_text("message2")
 
         # wait for other account to receive
         ev = ac2._evlogger.get_matching("DC_EVENT_MSGS_CHANGED")
@@ -195,7 +215,7 @@ class TestOnlineAccount:
         wait_configuration_progress(ac2, 1000)
 
         lp.sec("sending text message from ac1 to ac2")
-        msg_out = chat.send_text_message("message1")
+        msg_out = chat.send_text("message1")
         ev = ac1._evlogger.get_matching("DC_EVENT_MSG_DELIVERED")
         evt_name, data1, data2 = ev
         assert data1 == chat.id
@@ -254,5 +274,6 @@ class TestOnlineAccount:
         ev = ac2._evlogger.get_matching("DC_EVENT_MSGS_CHANGED")
         assert ev[2] == msg_out.id
         msg_in = ac2.get_message_by_id(msg_out.id)
+        assert msg_in.type.is_image()
         assert os.path.exists(msg_in.filename)
         assert os.stat(msg_in.filename).st_size == os.stat(path).st_size
