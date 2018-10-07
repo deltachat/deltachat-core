@@ -103,6 +103,14 @@ class Account(object):
         self.check_is_configured()
         return Contact(self._dc_context, const.DC_CONTACT_ID_SELF)
 
+    def create_message(self, view_type):
+        """ create a new message (not yet persistent in database).
+
+        :param view_type: a string specifying "text", "video",
+                          "image", "audio" or "file".
+        :returns: :class:`deltachat.chatting.Message` instance.
+        """
+
     def create_contact(self, email, name=None):
         """ create a (new) Contact. If there already is a Contact
         with that e-mail address, it is unblocked and its name is
