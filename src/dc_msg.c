@@ -38,11 +38,11 @@
  *
  * @memberof dc_msg_t
  * @param context The context that should be stored in the message object.
- * @param view_type The type to the message object to create,
+ * @param viewtype The type to the message object to create,
  *     one of the @ref DC_MSG constants.
  * @return The created message object.
  */
-dc_msg_t* dc_msg_new(dc_context_t* context, int view_type)
+dc_msg_t* dc_msg_new(dc_context_t* context, int viewtype)
 {
 	dc_msg_t* msg = NULL;
 
@@ -52,7 +52,7 @@ dc_msg_t* dc_msg_new(dc_context_t* context, int view_type)
 
 	msg->context   = context;
 	msg->magic     = DC_MSG_MAGIC;
-	msg->type      = view_type;
+	msg->type      = viewtype;
 	msg->state     = DC_STATE_UNDEFINED;
 	msg->param     = dc_param_new();
 
@@ -179,7 +179,7 @@ uint32_t dc_msg_get_chat_id(const dc_msg_t* msg)
  * @param msg The message object.
  * @return One of the @ref DC_MSG constants.
  */
-int dc_msg_get_type(const dc_msg_t* msg)
+int dc_msg_get_viewtype(const dc_msg_t* msg)
 {
 	if (msg==NULL || msg->magic!=DC_MSG_MAGIC) {
 		return DC_MSG_UNDEFINED;
@@ -745,7 +745,7 @@ int dc_msg_is_info(const dc_msg_t* msg)
  * @memberof dc_msg_t
  * @param msg The message object.
  * @return 1=message is a setup message, 0=no setup message.
- *     For setup messages, dc_msg_get_type() returns DC_MSG_FILE.
+ *     For setup messages, dc_msg_get_viewtype() returns DC_MSG_FILE.
  */
 int dc_msg_is_setupmessage(const dc_msg_t* msg)
 {
