@@ -1094,25 +1094,6 @@ void dc_msg_save_param_to_disk(dc_msg_t* msg)
 
 
 /**
- * Set the type of a message object.
- * The function does not check of the type is valid and the function does not alter any information in the database;
- * both may be done by dc_send_msg() later.
- *
- * @memberof dc_msg_t
- * @param msg The message object.
- * @param type The type to set, one of the @ref DC_MSG constants
- * @return None.
- */
-void dc_msg_set_type(dc_msg_t* msg, int type)
-{
-	if (msg==NULL || msg->magic!=DC_MSG_MAGIC) {
-		return;
-	}
-	msg->type = type;
-}
-
-
-/**
  * Set the text of a message object.
  * This does not alter any information in the database; this may be done by dc_send_msg() later.
  *

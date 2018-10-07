@@ -65,7 +65,7 @@ struct _dc_msg
 	uint32_t        chat_id;
 
 
-	int             type;                   /**< Message type. It is recommended to use dc_msg_set_type() and dc_msg_get_type() to access this field. */
+	int             type;                   /**< Message view type. */
 
 	int             state;                  /**< Message state. It is recommended to use dc_msg_get_state() to access this field. */
 
