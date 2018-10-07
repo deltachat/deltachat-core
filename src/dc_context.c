@@ -540,7 +540,7 @@ char* dc_get_info(dc_context_t* context)
 	sqlite3_finalize(stmt);
 
 	if (dc_key_load_self_public(self_public, l2->addr, context->sql)) {
-		fingerprint_str = dc_key_get_formatted_fingerprint(self_public);
+		fingerprint_str = dc_key_get_fingerprint(self_public);
 	}
 	else {
 		fingerprint_str = dc_strdup("<Not yet calculated>");
