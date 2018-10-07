@@ -40,10 +40,9 @@ class Message(object):
         msg = cls(dc_context, 0)
         view_type_code = MessageType.get_typecode(view_type)
         msg._dc_msg_volatile = ffi.gc(
-            lib.dc_msg_new(dc_context),
+            lib.dc_msg_new(dc_context, view_type_code),
             lib.dc_msg_unref
         )
-        lib.dc_msg_set_type(msg._dc_msg, view_type_code)
         return msg
 
     def get_state(self):
@@ -89,7 +88,7 @@ class Message(object):
 
         :returns: a :class:`deltachat.chatting.MessageType` instance.
         """
-        return MessageType(lib.dc_msg_get_type(self._dc_msg))
+        return MessageType(lib.dc_msg_get_viewtype(self._dc_msg))
 
     @property_with_doc
     def time_sent(self):
