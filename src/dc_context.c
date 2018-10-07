@@ -549,11 +549,6 @@ char* dc_get_info(dc_context_t* context)
 	l_readable_str = dc_loginparam_get_readable(l);
 	l2_readable_str = dc_loginparam_get_readable(l2);
 
-	/* create info
-	- some keys are display lower case - these can be changed using the `set`-command
-	- we do not display the password here; in the cli-utility, you can see it using `get mail_pw`
-	- use neutral speach; the Delta Chat Core is not directly related to any front end or end-product
-	- contributors: You're welcome to add your names here */
 	temp = dc_mprintf(
 		"# key=value data\n"
 		"deltachat_core_version=v%s\n"
@@ -582,7 +577,6 @@ char* dc_get_info(dc_context_t* context)
 		"fingerprint=%s\n"
 		"\n"
 		"# log excerpt"
-		/* In the frontends, additional software hints may follow here. */
 
 		, DC_VERSION_STR
 		, SQLITE_VERSION
