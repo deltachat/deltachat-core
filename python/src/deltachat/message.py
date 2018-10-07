@@ -1,5 +1,6 @@
 """ chatting related objects: Contact, Chat, Message. """
 
+import os
 from .cutil import from_dc_charpointer, as_dc_charpointer
 from .capi import lib, ffi
 from .types import property_with_doc
@@ -29,7 +30,7 @@ class Message(object):
         return self._dc_msg_volatile
 
     @classmethod
-    def from_id(cls, _dc_context, id):
+    def from_db(cls, _dc_context, id):
         assert id > 0
         return cls(_dc_context, id)
 
@@ -37,16 +38,13 @@ class Message(object):
     def new(cls, dc_context, view_type):
         """ create a non-persistent method. """
         msg = cls(dc_context, 0)
+        view_type_code = MessageType.get_typecode(view_type)
         msg._dc_msg_volatile = ffi.gc(
             lib.dc_msg_new(dc_context),
             lib.dc_msg_unref
         )
-        lib.dc_msg_set_type(msg._dc_msg, MessageType.get_typecode(view_type))
+        lib.dc_msg_set_type(msg._dc_msg, view_type_code)
         return msg
-
-    def is_persistent(self):
-        """ return True if the message is persistent in the database. """
-        return self.id > 0
 
     def get_state(self):
         """ get the message in/out state.
@@ -71,6 +69,9 @@ class Message(object):
 
     def set_file(self, path, mime_type=None):
         """set file for this message. """
+        mtype = ffi.NULL if mime_type is None else mime_type
+        assert os.path.exists(path)
+        lib.dc_msg_set_file(self._dc_msg, as_dc_charpointer(path), mtype)
 
     @property_with_doc
     def basename(self):

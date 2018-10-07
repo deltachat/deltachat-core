@@ -118,7 +118,7 @@ class Chat(object):
         msg_id = lib.dc_send_text_msg(self._dc_context, self.id, msg)
         if msg_id == 0:
             raise ValueError("message could not be send, does chat exist?")
-        return Message.from_id(self._dc_context, msg_id)
+        return Message.from_db(self._dc_context, msg_id)
 
     def send_file(self, path, mime_type="application/octet-stream"):
         """ send a file and return the resulting Message instance.
@@ -133,7 +133,7 @@ class Chat(object):
         msg_id = lib.dc_send_file_msg(self._dc_context, self.id, path, mtype)
         if msg_id == 0:
             raise ValueError("message could not be send, does chat exist?")
-        return Message.from_id(self._dc_context, msg_id)
+        return Message.from_db(self._dc_context, msg_id)
 
     def send_image(self, path):
         """ send an image message and return the resulting Message instance.
@@ -144,11 +144,10 @@ class Chat(object):
         """
         if not os.path.exists(path):
             raise ValueError("path does not exist: {!r}".format(path))
-        path = as_dc_charpointer(path)
-        msg_id = lib.dc_send_image_msg(self._dc_context, self.id, path, ffi.NULL, 0, 0)
-        if msg_id == 0:
-            raise ValueError("chat does not exist")
-        return Message.from_id(self._dc_context, msg_id)
+        msg = Message.new(self._dc_context, "image")
+        msg.set_file(path)
+        msg_id = lib.dc_send_msg(self._dc_context, self.id, msg._dc_msg)
+        return Message.from_db(self._dc_context, msg_id)
 
     def get_messages(self):
         """ return list of messages in this chat.
@@ -159,7 +158,7 @@ class Chat(object):
             lib.dc_get_chat_msgs(self._dc_context, self.id, 0, 0),
             lib.dc_array_unref
         )
-        return list(iter_array(dc_array, lambda x: Message.from_id(self._dc_context, x)))
+        return list(iter_array(dc_array, lambda x: Message.from_db(self._dc_context, x)))
 
     def count_fresh_messages(self):
         """ return number of fresh messages in this chat.

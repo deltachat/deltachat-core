@@ -206,7 +206,7 @@ class Account(object):
 
     def get_message_by_id(self, msg_id):
         """ return Message instance. """
-        return Message.from_id(self._dc_context, msg_id)
+        return Message.from_db(self._dc_context, msg_id)
 
     def mark_seen_messages(self, messages):
         """ mark the given set of messages as seen.

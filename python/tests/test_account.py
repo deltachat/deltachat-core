@@ -99,7 +99,7 @@ class TestOfflineAccount:
         assert message._dc_msg is message._dc_msg
         message.set_text("hello")
         assert message.text == "hello"
-        assert not message.is_persistent()
+        assert message.id == 0
 
     def test_message(self, acfactory):
         ac1 = acfactory.get_configured_offline_account()
