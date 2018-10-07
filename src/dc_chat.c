@@ -2116,23 +2116,27 @@ cleanup:
 
 
 /**
- * Send a message of any type to a chat. The given message object is not unref'd
- * by the function but some fields are set up.
+ * Send a message defined by a dc_msg_t object to a chat.
  *
  * Sends the event #DC_EVENT_MSGS_CHANGED on succcess.
  * However, this does not imply, the message really reached the recipient -
  * sending may be delayed eg. due to network problems. However, from your
  * view, you're done with the message. Sooner or later it will find its way.
  *
- * To send a simple text message, you can also use dc_send_text_msg()
- * which is easier to use.
+ * Example:
+ * ~~~
+ * dc_msg_t* msg = dc_msg_new(context, DC_MSG_IMAGE);
+ * dc_msg_set_file(msg, "/file/to/send.jpg", NULL);
+ * dc_send_msg(context, msg);
+ * ~~~
  *
  * @memberof dc_context_t
  * @param context The context object as returned from dc_context_new().
  * @param chat_id Chat ID to send the message to.
  * @param msg Message object to send to the chat defined by the chat ID.
- *     The function does not take ownership of the object, so you have to
- *     free it using dc_msg_unref() as usual.
+ *     On succcess, msg_id of the object is set up,
+ *     The function does not take ownership of the object,
+ *     so you have to free it using dc_msg_unref() as usual.
  * @return The ID of the message that is about being sent.
  */
 uint32_t dc_send_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
@@ -2250,15 +2254,13 @@ cleanup:
  */
 uint32_t dc_send_text_msg(dc_context_t* context, uint32_t chat_id, const char* text_to_send)
 {
-	dc_msg_t* msg = dc_msg_new_untyped(context);
+	dc_msg_t* msg = dc_msg_new(context, DC_MSG_TEXT);
 	uint32_t  ret = 0;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || chat_id<=DC_CHAT_ID_LAST_SPECIAL || text_to_send==NULL) {
-		dc_log_info(context, 0, "some error");
 		goto cleanup;
 	}
 
-	msg->type = DC_MSG_TEXT;
 	msg->text = dc_strdup(text_to_send);
 
 	ret = dc_send_msg(context, chat_id, msg);
@@ -2269,7 +2271,8 @@ cleanup:
 }
 
 
-/**
+/*
+ * Deprecated, use dc_send_msg() instead.
  * Send an image to a chat.
  *
  * Sends the event #DC_EVENT_MSGS_CHANGED on succcess.
@@ -2313,7 +2316,8 @@ cleanup:
 }
 
 
-/**
+/*
+ * Deprecated, use dc_send_msg() instead.
  * Send a video to a chat.
  *
  * Sends the event #DC_EVENT_MSGS_CHANGED on succcess.
@@ -2362,7 +2366,8 @@ cleanup:
 }
 
 
-/**
+/*
+ * Deprecated, use dc_send_msg() instead.
  * Send a voice message to a chat.  Voice messages are messages just recorded through the device microphone.
  * For sending music or other audio data, use dc_send_audio_msg().
  *
@@ -2403,7 +2408,8 @@ cleanup:
 }
 
 
-/**
+/*
+ * Deprecated, use dc_send_msg() instead.
  * Send an audio file to a chat.  Audio messages are eg. music tracks.
  * For voice messages just recorded though the device microphone, use dc_send_voice_msg().
  *
@@ -2446,7 +2452,8 @@ cleanup:
 }
 
 
-/**
+/*
+ * Deprecated, use dc_send_msg() instead.
  * Send a document to a chat. Use this function to send any document or file to
  * a chat.
  *
@@ -2483,7 +2490,8 @@ cleanup:
 }
 
 
-/**
+/*
+ * Deprecated, use dc_send_msg() instead.
  * Send foreign contact data to a chat.
  *
  * Sends the name and the email address of another contact to a chat.
