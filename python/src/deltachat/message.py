@@ -1,6 +1,6 @@
 """ chatting related objects: Contact, Chat, Message. """
 
-from .cutil import from_dc_charpointer
+from .cutil import from_dc_charpointer, as_dc_charpointer
 from .capi import lib, ffi
 from .types import property_with_doc
 from . import const
@@ -21,10 +21,32 @@ class Message(object):
 
     @property
     def _dc_msg(self):
-        return ffi.gc(
-            lib.dc_get_msg(self._dc_context, self.id),
+        if self.id > 0:
+            return ffi.gc(
+                lib.dc_get_msg(self._dc_context, self.id),
+                lib.dc_msg_unref
+            )
+        return self._dc_msg_volatile
+
+    @classmethod
+    def from_id(cls, _dc_context, id):
+        assert id > 0
+        return cls(_dc_context, id)
+
+    @classmethod
+    def new(cls, dc_context, view_type):
+        """ create a non-persistent method. """
+        msg = cls(dc_context, 0)
+        msg._dc_msg_volatile = ffi.gc(
+            lib.dc_msg_new(dc_context),
             lib.dc_msg_unref
         )
+        lib.dc_msg_set_type(msg._dc_msg, MessageType.get_typecode(view_type))
+        return msg
+
+    def is_persistent(self):
+        """ return True if the message is persistent in the database. """
+        return self.id > 0
 
     def get_state(self):
         """ get the message in/out state.
@@ -38,10 +60,17 @@ class Message(object):
         """unicode text of this messages (might be empty if not a text message). """
         return from_dc_charpointer(lib.dc_msg_get_text(self._dc_msg))
 
+    def set_text(self, text):
+        """set text of this message. """
+        return lib.dc_msg_set_text(self._dc_msg, as_dc_charpointer(text))
+
     @property_with_doc
     def filename(self):
         """filename if there was an attachment, otherwise empty string. """
         return from_dc_charpointer(lib.dc_msg_get_file(self._dc_msg))
+
+    def set_file(self, path, mime_type=None):
+        """set file for this message. """
 
     @property_with_doc
     def basename(self):
@@ -102,6 +131,13 @@ class MessageType(object):
             const.DC_MSG_VIDEO: 'video',
             const.DC_MSG_FILE: 'file'
     }
+
+    @classmethod
+    def get_typecode(cls, view_type):
+        for code, value in cls._mapping.items():
+            if value == view_type:
+                return code
+        raise ValueError("message typecode not found for {!r}".format(view_type))
 
     @property_with_doc
     def name(self):
