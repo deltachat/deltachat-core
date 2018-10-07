@@ -499,7 +499,7 @@ char* dc_initiate_key_transfer(dc_context_t* context)
 		goto cleanup;
 	}
 
-	msg = dc_msg_new(context);
+	msg = dc_msg_new_untyped(context);
 	msg->type = DC_MSG_FILE;
 	dc_param_set    (msg->param, DC_PARAM_FILE,              setup_file_name);
 	dc_param_set    (msg->param, DC_PARAM_MIMETYPE,          "application/autocrypt-setup");

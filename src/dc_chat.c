@@ -791,7 +791,7 @@ uint32_t dc_create_chat_by_msg_id(dc_context_t* context, uint32_t msg_id)
 {
 	uint32_t   chat_id  = 0;
 	int        send_event = 0;
-	dc_msg_t*  msg = dc_msg_new(context);
+	dc_msg_t*  msg = dc_msg_new_untyped(context);
 	dc_chat_t* chat = dc_chat_new(context);
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
@@ -874,7 +874,7 @@ dc_array_t* dc_get_chat_media(dc_context_t* context, uint32_t chat_id, int msg_t
 uint32_t dc_get_next_media(dc_context_t* context, uint32_t curr_msg_id, int dir)
 {
 	uint32_t    ret_msg_id = 0;
-	dc_msg_t*   msg = dc_msg_new(context);
+	dc_msg_t*   msg = dc_msg_new_untyped(context);
 	dc_array_t* list = NULL;
 	int         i = 0;
 	int         cnt = 0;
@@ -1614,7 +1614,7 @@ int dc_set_chat_name(dc_context_t* context, uint32_t chat_id, const char* new_na
 	/* the function only sets the names of group chats; normal chats get their names from the contacts */
 	int        success = 0;
 	dc_chat_t* chat = dc_chat_new(context);
-	dc_msg_t*  msg = dc_msg_new(context);
+	dc_msg_t*  msg = dc_msg_new_untyped(context);
 	char*      q3 = NULL;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || new_name==NULL || new_name[0]==0 || chat_id<=DC_CHAT_ID_LAST_SPECIAL) {
@@ -1683,7 +1683,7 @@ int dc_set_chat_profile_image(dc_context_t* context, uint32_t chat_id, const cha
 {
 	int        success = 0;
 	dc_chat_t* chat = dc_chat_new(context);
-	dc_msg_t*  msg = dc_msg_new(context);
+	dc_msg_t*  msg = dc_msg_new_untyped(context);
 	char*      new_image_rel = NULL;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || chat_id<=DC_CHAT_ID_LAST_SPECIAL) {
@@ -1786,7 +1786,7 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 	int              success = 0;
 	dc_contact_t*    contact = dc_get_contact(context, contact_id);
 	dc_chat_t*       chat = dc_chat_new(context);
-	dc_msg_t*        msg = dc_msg_new(context);
+	dc_msg_t*        msg = dc_msg_new_untyped(context);
 	char*            self_addr = NULL;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || contact==NULL || chat_id<=DC_CHAT_ID_LAST_SPECIAL) {
@@ -1903,7 +1903,7 @@ int dc_remove_contact_from_chat(dc_context_t* context, uint32_t chat_id, uint32_
 	int           success = 0;
 	dc_contact_t* contact = dc_get_contact(context, contact_id);
 	dc_chat_t*    chat = dc_chat_new(context);
-	dc_msg_t*     msg = dc_msg_new(context);
+	dc_msg_t*     msg = dc_msg_new_untyped(context);
 	char*         q3 = NULL;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || chat_id<=DC_CHAT_ID_LAST_SPECIAL || (contact_id<=DC_CONTACT_ID_LAST_SPECIAL && contact_id!=DC_CONTACT_ID_SELF)) {
@@ -2116,23 +2116,27 @@ cleanup:
 
 
 /**
- * Send a message of any type to a chat. The given message object is not unref'd
- * by the function but some fields are set up.
+ * Send a message defined by a dc_msg_t object to a chat.
  *
  * Sends the event #DC_EVENT_MSGS_CHANGED on succcess.
  * However, this does not imply, the message really reached the recipient -
  * sending may be delayed eg. due to network problems. However, from your
  * view, you're done with the message. Sooner or later it will find its way.
  *
- * To send a simple text message, you can also use dc_send_text_msg()
- * which is easier to use.
+ * Example:
+ * ~~~
+ * dc_msg_t* msg = dc_msg_new(context, DC_MSG_IMAGE);
+ * dc_msg_set_file(msg, "/file/to/send.jpg", NULL);
+ * dc_send_msg(context, msg);
+ * ~~~
  *
  * @memberof dc_context_t
  * @param context The context object as returned from dc_context_new().
  * @param chat_id Chat ID to send the message to.
  * @param msg Message object to send to the chat defined by the chat ID.
- *     The function does not take ownership of the object, so you have to
- *     free it using dc_msg_unref() as usual.
+ *     On succcess, msg_id of the object is set up,
+ *     The function does not take ownership of the object,
+ *     so you have to free it using dc_msg_unref() as usual.
  * @return The ID of the message that is about being sent.
  */
 uint32_t dc_send_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
@@ -2250,15 +2254,13 @@ cleanup:
  */
 uint32_t dc_send_text_msg(dc_context_t* context, uint32_t chat_id, const char* text_to_send)
 {
-	dc_msg_t* msg = dc_msg_new(context);
+	dc_msg_t* msg = dc_msg_new(context, DC_MSG_TEXT);
 	uint32_t  ret = 0;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || chat_id<=DC_CHAT_ID_LAST_SPECIAL || text_to_send==NULL) {
-		dc_log_info(context, 0, "some error");
 		goto cleanup;
 	}
 
-	msg->type = DC_MSG_TEXT;
 	msg->text = dc_strdup(text_to_send);
 
 	ret = dc_send_msg(context, chat_id, msg);
@@ -2269,7 +2271,8 @@ cleanup:
 }
 
 
-/**
+/*
+ * Deprecated, use dc_send_msg() instead.
  * Send an image to a chat.
  *
  * Sends the event #DC_EVENT_MSGS_CHANGED on succcess.
@@ -2290,7 +2293,7 @@ cleanup:
  */
 uint32_t dc_send_image_msg(dc_context_t* context, uint32_t chat_id, const char* file, const char* filemime, int width, int height)
 {
-	dc_msg_t* msg = dc_msg_new(context);
+	dc_msg_t* msg = dc_msg_new_untyped(context);
 	uint32_t  ret = 0;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || chat_id<=DC_CHAT_ID_LAST_SPECIAL || file==NULL) {
@@ -2313,7 +2316,8 @@ cleanup:
 }
 
 
-/**
+/*
+ * Deprecated, use dc_send_msg() instead.
  * Send a video to a chat.
  *
  * Sends the event #DC_EVENT_MSGS_CHANGED on succcess.
@@ -2335,7 +2339,7 @@ cleanup:
  */
 uint32_t dc_send_video_msg(dc_context_t* context, uint32_t chat_id, const char* file, const char* filemime, int width, int height, int duration)
 {
-	dc_msg_t* msg = dc_msg_new(context);
+	dc_msg_t* msg = dc_msg_new_untyped(context);
 	uint32_t  ret = 0;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || chat_id<=DC_CHAT_ID_LAST_SPECIAL || file==NULL) {
@@ -2362,7 +2366,8 @@ cleanup:
 }
 
 
-/**
+/*
+ * Deprecated, use dc_send_msg() instead.
  * Send a voice message to a chat.  Voice messages are messages just recorded through the device microphone.
  * For sending music or other audio data, use dc_send_audio_msg().
  *
@@ -2381,7 +2386,7 @@ cleanup:
  */
 uint32_t dc_send_voice_msg(dc_context_t* context, uint32_t chat_id, const char* file, const char* filemime, int duration)
 {
-	dc_msg_t* msg = dc_msg_new(context);
+	dc_msg_t* msg = dc_msg_new_untyped(context);
 	uint32_t  ret = 0;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || chat_id<=DC_CHAT_ID_LAST_SPECIAL || file==NULL) {
@@ -2403,7 +2408,8 @@ cleanup:
 }
 
 
-/**
+/*
+ * Deprecated, use dc_send_msg() instead.
  * Send an audio file to a chat.  Audio messages are eg. music tracks.
  * For voice messages just recorded though the device microphone, use dc_send_voice_msg().
  *
@@ -2424,7 +2430,7 @@ cleanup:
  */
 uint32_t dc_send_audio_msg(dc_context_t* context, uint32_t chat_id, const char* file, const char* filemime, int duration, const char* author, const char* trackname)
 {
-	dc_msg_t* msg = dc_msg_new(context);
+	dc_msg_t* msg = dc_msg_new_untyped(context);
 	uint32_t ret = 0;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || chat_id<=DC_CHAT_ID_LAST_SPECIAL || file==NULL) {
@@ -2446,7 +2452,8 @@ cleanup:
 }
 
 
-/**
+/*
+ * Deprecated, use dc_send_msg() instead.
  * Send a document to a chat. Use this function to send any document or file to
  * a chat.
  *
@@ -2464,7 +2471,7 @@ cleanup:
  */
 uint32_t dc_send_file_msg(dc_context_t* context, uint32_t chat_id, const char* file, const char* filemime)
 {
-	dc_msg_t* msg = dc_msg_new(context);
+	dc_msg_t* msg = dc_msg_new_untyped(context);
 	uint32_t  ret = 0;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || chat_id<=DC_CHAT_ID_LAST_SPECIAL || file==NULL) {
@@ -2483,7 +2490,8 @@ cleanup:
 }
 
 
-/**
+/*
+ * Deprecated, use dc_send_msg() instead.
  * Send foreign contact data to a chat.
  *
  * Sends the name and the email address of another contact to a chat.
@@ -2506,7 +2514,7 @@ cleanup:
 uint32_t dc_send_vcard_msg(dc_context_t* context, uint32_t chat_id, uint32_t contact_id)
 {
 	uint32_t      ret = 0;
-	dc_msg_t*     msg = dc_msg_new(context);
+	dc_msg_t*     msg = dc_msg_new_untyped(context);
 	dc_contact_t* contact = NULL;
 	char*         text_to_send = NULL;
 
@@ -2584,7 +2592,7 @@ cleanup:
  */
 void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt, uint32_t chat_id)
 {
-	dc_msg_t*      msg = dc_msg_new(context);
+	dc_msg_t*      msg = dc_msg_new_untyped(context);
 	dc_chat_t*     chat = dc_chat_new(context);
 	dc_contact_t*  contact = dc_contact_new(context);
 	int            transaction_pending = 0;

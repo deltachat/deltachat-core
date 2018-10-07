@@ -65,7 +65,7 @@ struct _dc_msg
 	uint32_t        chat_id;
 
 
-	int             type;                   /**< Message type. It is recommended to use dc_msg_set_type() and dc_msg_get_type() to access this field. */
+	int             type;                   /**< Message view type. */
 
 	int             state;                  /**< Message state. It is recommended to use dc_msg_get_state() to access this field. */
 
@@ -88,6 +88,7 @@ struct _dc_msg
 };
 
 
+dc_msg_t*       dc_msg_new_untyped                    (dc_context_t*);
 int             dc_msg_load_from_db                   (dc_msg_t*, dc_context_t*, uint32_t id);
 int             dc_msg_is_increation                  (const dc_msg_t*);
 char*           dc_msg_get_summarytext_by_raw         (int type, const char* text, dc_param_t*, int approx_bytes, dc_context_t*); /* the returned value must be free()'d */
