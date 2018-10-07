@@ -37,7 +37,7 @@ is older there is a recommended way of getting a better version:
 
 1. uninstall your system-level ``meson`` package (if possible)
 
-2. ensure you have at least ``python3.4`` installed and type:
+2. ensure you have at least ``python3.5`` installed and type:
    ```
        python3 -m pip 
    ```
