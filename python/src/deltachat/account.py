@@ -103,6 +103,15 @@ class Account(object):
         self.check_is_configured()
         return Contact(self._dc_context, const.DC_CONTACT_ID_SELF)
 
+    def create_message(self, view_type):
+        """ create a new non persistent message.
+
+        :param view_type: a string specifying "text", "video",
+                          "image", "audio" or "file".
+        :returns: :class:`deltachat.chatting.Message` instance.
+        """
+        return Message.new(self._dc_context, view_type)
+
     def create_contact(self, email, name=None):
         """ create a (new) Contact. If there already is a Contact
         with that e-mail address, it is unblocked and its name is
@@ -197,8 +206,7 @@ class Account(object):
 
     def get_message_by_id(self, msg_id):
         """ return Message instance. """
-        assert msg_id > 0
-        return Message(self._dc_context, msg_id)
+        return Message.from_db(self._dc_context, msg_id)
 
     def mark_seen_messages(self, messages):
         """ mark the given set of messages as seen.

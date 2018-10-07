@@ -92,6 +92,15 @@ class TestOfflineAccount:
         with pytest.raises(ValueError):
             chat.send_text("msg1")
 
+    def test_create_message(self, acfactory):
+        ac1 = acfactory.get_configured_offline_account()
+        message = ac1.create_message("text")
+        assert message.id == 0
+        assert message._dc_msg is message._dc_msg
+        message.set_text("hello")
+        assert message.text == "hello"
+        assert message.id == 0
+
     def test_message(self, acfactory):
         ac1 = acfactory.get_configured_offline_account()
         contact1 = ac1.create_contact("some1@hello.com", name="some1")
