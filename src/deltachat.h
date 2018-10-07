@@ -489,13 +489,13 @@ typedef struct _dc_msg dc_msg_t;
 #define         DC_MAX_GET_INFO_LEN          100000 // approx. max. lenght returned by dc_get_msg_info()
 
 
-dc_msg_t*       dc_msg_new                   (dc_context_t*);
+dc_msg_t*       dc_msg_new                   (dc_context_t*, int viewtype);
 void            dc_msg_unref                 (dc_msg_t*);
 void            dc_msg_empty                 (dc_msg_t*);
 uint32_t        dc_msg_get_id                (const dc_msg_t*);
 uint32_t        dc_msg_get_from_id           (const dc_msg_t*);
 uint32_t        dc_msg_get_chat_id           (const dc_msg_t*);
-int             dc_msg_get_type              (const dc_msg_t*);
+int             dc_msg_get_viewtype          (const dc_msg_t*);
 int             dc_msg_get_state             (const dc_msg_t*);
 time_t          dc_msg_get_timestamp         (const dc_msg_t*);
 char*           dc_msg_get_text              (const dc_msg_t*);
@@ -517,7 +517,6 @@ int             dc_msg_is_info               (const dc_msg_t*);
 int             dc_msg_is_increation         (const dc_msg_t*);
 int             dc_msg_is_setupmessage       (const dc_msg_t*);
 char*           dc_msg_get_setupcodebegin    (const dc_msg_t*);
-void            dc_msg_set_type              (dc_msg_t*, int type);
 void            dc_msg_set_text              (dc_msg_t*, const char* text);
 void            dc_msg_set_file              (dc_msg_t*, const char* file, const char* filemime);
 void            dc_msg_set_dimension         (dc_msg_t*, int width, int height);
@@ -589,15 +588,15 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 /**
  * @defgroup DC_MSG DC_MSG
  *
- * With the constants the type of a message is defined.
+ * With these constants the type of a message is defined.
  * From the view of the library, all types are all primary types of the same level,
  * so the library does not regard eg. #DC_MSG_GIF as a subtype for #DC_MSG_IMAGE and
  * it's up to the UI to decide whether a GIF is shown eg. in an IMAGE or in a VIDEO
  * container.
  *
- * If you want to define the type of a dc_msg_t object for sending, use dc_msg_set_type().
+ * If you want to define the type of a dc_msg_t object for sending, use dc_msg_new().
  *
- * To get the types of dc_msg_t objects received, use dc_msg_get_type().
+ * To get the types of dc_msg_t objects received, use dc_msg_get_viewtype().
  *
  * @addtogroup DC_MSG
  * @{

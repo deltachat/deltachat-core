@@ -186,7 +186,7 @@ extern "C" {
 #define mrmsg_get_id                        dc_msg_get_id
 #define mrmsg_get_from_id                   dc_msg_get_from_id
 #define mrmsg_get_chat_id                   dc_msg_get_chat_id
-#define mrmsg_get_type                      dc_msg_get_type
+#define mrmsg_get_type                      dc_msg_get_viewtype
 #define mrmsg_get_state                     dc_msg_get_state
 #define mrmsg_get_timestamp                 dc_msg_get_timestamp
 #define mrmsg_get_text                      dc_msg_get_text
