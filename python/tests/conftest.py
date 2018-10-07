@@ -1,4 +1,5 @@
 from __future__ import print_function
+import os
 import pytest
 from deltachat import Account
 from deltachat.types import cached_property
@@ -11,6 +12,19 @@ def pytest_addoption(parser):
         help="a file with >=2 lines where each line "
              "contains NAME=VALUE config settings for one account"
     )
+
+
+@pytest.fixture(scope="session")
+def data():
+    class Data:
+        def __init__(self):
+            self.path = os.path.join(os.path.dirname(__file__), "data")
+
+        def get_path(self, bn):
+            fn = os.path.join(self.path, bn)
+            assert os.path.exists(fn)
+            return fn
+    return Data()
 
 
 @pytest.fixture

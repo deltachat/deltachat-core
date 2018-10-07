@@ -11,6 +11,7 @@ high level API reference
 - :class:`deltachat.chatting.Contact`
 - :class:`deltachat.chatting.Chat`
 - :class:`deltachat.chatting.Message`
+- :class:`deltachat.chatting.MessageType`
 - :class:`deltachat.chatting.MessageState`
 
 Account
@@ -38,6 +39,11 @@ Message
 .. autoclass:: deltachat.chatting.Message
     :members:
 
+MessageType
+------------
+
+.. autoclass:: deltachat.chatting.MessageType
+    :members:
 
 MessageState
 ------------
