@@ -8,6 +8,10 @@
   as it's pretty clear Chat.send_X is going to send a message
   to the chat)
 
+- new Account.create_message() to create new messages 
+  that are not in the database (yet) 
+  
+
 0.6
 ---
 
