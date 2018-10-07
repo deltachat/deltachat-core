@@ -489,7 +489,7 @@ typedef struct _dc_msg dc_msg_t;
 #define         DC_MAX_GET_INFO_LEN          100000 // approx. max. lenght returned by dc_get_msg_info()
 
 
-dc_msg_t*       dc_msg_new                   (dc_context_t*);
+dc_msg_t*       dc_msg_new                   (dc_context_t*, int view_type);
 void            dc_msg_unref                 (dc_msg_t*);
 void            dc_msg_empty                 (dc_msg_t*);
 uint32_t        dc_msg_get_id                (const dc_msg_t*);

@@ -791,7 +791,7 @@ uint32_t dc_create_chat_by_msg_id(dc_context_t* context, uint32_t msg_id)
 {
 	uint32_t   chat_id  = 0;
 	int        send_event = 0;
-	dc_msg_t*  msg = dc_msg_new(context);
+	dc_msg_t*  msg = dc_msg_new_untyped(context);
 	dc_chat_t* chat = dc_chat_new(context);
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
@@ -874,7 +874,7 @@ dc_array_t* dc_get_chat_media(dc_context_t* context, uint32_t chat_id, int msg_t
 uint32_t dc_get_next_media(dc_context_t* context, uint32_t curr_msg_id, int dir)
 {
 	uint32_t    ret_msg_id = 0;
-	dc_msg_t*   msg = dc_msg_new(context);
+	dc_msg_t*   msg = dc_msg_new_untyped(context);
 	dc_array_t* list = NULL;
 	int         i = 0;
 	int         cnt = 0;
@@ -1614,7 +1614,7 @@ int dc_set_chat_name(dc_context_t* context, uint32_t chat_id, const char* new_na
 	/* the function only sets the names of group chats; normal chats get their names from the contacts */
 	int        success = 0;
 	dc_chat_t* chat = dc_chat_new(context);
-	dc_msg_t*  msg = dc_msg_new(context);
+	dc_msg_t*  msg = dc_msg_new_untyped(context);
 	char*      q3 = NULL;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || new_name==NULL || new_name[0]==0 || chat_id<=DC_CHAT_ID_LAST_SPECIAL) {
@@ -1683,7 +1683,7 @@ int dc_set_chat_profile_image(dc_context_t* context, uint32_t chat_id, const cha
 {
 	int        success = 0;
 	dc_chat_t* chat = dc_chat_new(context);
-	dc_msg_t*  msg = dc_msg_new(context);
+	dc_msg_t*  msg = dc_msg_new_untyped(context);
 	char*      new_image_rel = NULL;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || chat_id<=DC_CHAT_ID_LAST_SPECIAL) {
@@ -1786,7 +1786,7 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 	int              success = 0;
 	dc_contact_t*    contact = dc_get_contact(context, contact_id);
 	dc_chat_t*       chat = dc_chat_new(context);
-	dc_msg_t*        msg = dc_msg_new(context);
+	dc_msg_t*        msg = dc_msg_new_untyped(context);
 	char*            self_addr = NULL;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || contact==NULL || chat_id<=DC_CHAT_ID_LAST_SPECIAL) {
@@ -1903,7 +1903,7 @@ int dc_remove_contact_from_chat(dc_context_t* context, uint32_t chat_id, uint32_
 	int           success = 0;
 	dc_contact_t* contact = dc_get_contact(context, contact_id);
 	dc_chat_t*    chat = dc_chat_new(context);
-	dc_msg_t*     msg = dc_msg_new(context);
+	dc_msg_t*     msg = dc_msg_new_untyped(context);
 	char*         q3 = NULL;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || chat_id<=DC_CHAT_ID_LAST_SPECIAL || (contact_id<=DC_CONTACT_ID_LAST_SPECIAL && contact_id!=DC_CONTACT_ID_SELF)) {
@@ -2250,7 +2250,7 @@ cleanup:
  */
 uint32_t dc_send_text_msg(dc_context_t* context, uint32_t chat_id, const char* text_to_send)
 {
-	dc_msg_t* msg = dc_msg_new(context);
+	dc_msg_t* msg = dc_msg_new_untyped(context);
 	uint32_t  ret = 0;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || chat_id<=DC_CHAT_ID_LAST_SPECIAL || text_to_send==NULL) {
@@ -2290,7 +2290,7 @@ cleanup:
  */
 uint32_t dc_send_image_msg(dc_context_t* context, uint32_t chat_id, const char* file, const char* filemime, int width, int height)
 {
-	dc_msg_t* msg = dc_msg_new(context);
+	dc_msg_t* msg = dc_msg_new_untyped(context);
 	uint32_t  ret = 0;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || chat_id<=DC_CHAT_ID_LAST_SPECIAL || file==NULL) {
@@ -2335,7 +2335,7 @@ cleanup:
  */
 uint32_t dc_send_video_msg(dc_context_t* context, uint32_t chat_id, const char* file, const char* filemime, int width, int height, int duration)
 {
-	dc_msg_t* msg = dc_msg_new(context);
+	dc_msg_t* msg = dc_msg_new_untyped(context);
 	uint32_t  ret = 0;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || chat_id<=DC_CHAT_ID_LAST_SPECIAL || file==NULL) {
@@ -2381,7 +2381,7 @@ cleanup:
  */
 uint32_t dc_send_voice_msg(dc_context_t* context, uint32_t chat_id, const char* file, const char* filemime, int duration)
 {
-	dc_msg_t* msg = dc_msg_new(context);
+	dc_msg_t* msg = dc_msg_new_untyped(context);
 	uint32_t  ret = 0;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || chat_id<=DC_CHAT_ID_LAST_SPECIAL || file==NULL) {
@@ -2424,7 +2424,7 @@ cleanup:
  */
 uint32_t dc_send_audio_msg(dc_context_t* context, uint32_t chat_id, const char* file, const char* filemime, int duration, const char* author, const char* trackname)
 {
-	dc_msg_t* msg = dc_msg_new(context);
+	dc_msg_t* msg = dc_msg_new_untyped(context);
 	uint32_t ret = 0;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || chat_id<=DC_CHAT_ID_LAST_SPECIAL || file==NULL) {
@@ -2464,7 +2464,7 @@ cleanup:
  */
 uint32_t dc_send_file_msg(dc_context_t* context, uint32_t chat_id, const char* file, const char* filemime)
 {
-	dc_msg_t* msg = dc_msg_new(context);
+	dc_msg_t* msg = dc_msg_new_untyped(context);
 	uint32_t  ret = 0;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || chat_id<=DC_CHAT_ID_LAST_SPECIAL || file==NULL) {
@@ -2506,7 +2506,7 @@ cleanup:
 uint32_t dc_send_vcard_msg(dc_context_t* context, uint32_t chat_id, uint32_t contact_id)
 {
 	uint32_t      ret = 0;
-	dc_msg_t*     msg = dc_msg_new(context);
+	dc_msg_t*     msg = dc_msg_new_untyped(context);
 	dc_contact_t* contact = NULL;
 	char*         text_to_send = NULL;
 
@@ -2584,7 +2584,7 @@ cleanup:
  */
 void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt, uint32_t chat_id)
 {
-	dc_msg_t*      msg = dc_msg_new(context);
+	dc_msg_t*      msg = dc_msg_new_untyped(context);
 	dc_chat_t*     chat = dc_chat_new(context);
 	dc_contact_t*  contact = dc_contact_new(context);
 	int            transaction_pending = 0;

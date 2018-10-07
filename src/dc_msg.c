@@ -38,9 +38,11 @@
  *
  * @memberof dc_msg_t
  * @param context The context that should be stored in the message object.
+ * @param view_type The type to the message object to create,
+ *     one of the @ref DC_MSG constants.
  * @return The created message object.
  */
-dc_msg_t* dc_msg_new(dc_context_t* context)
+dc_msg_t* dc_msg_new(dc_context_t* context, int view_type)
 {
 	dc_msg_t* msg = NULL;
 
@@ -50,11 +52,17 @@ dc_msg_t* dc_msg_new(dc_context_t* context)
 
 	msg->context   = context;
 	msg->magic     = DC_MSG_MAGIC;
-	msg->type      = DC_MSG_UNDEFINED;
+	msg->type      = view_type;
 	msg->state     = DC_STATE_UNDEFINED;
 	msg->param     = dc_param_new();
 
 	return msg;
+}
+
+
+dc_msg_t* dc_msg_new_untyped(dc_context_t* context)
+{
+	return dc_msg_new(context, DC_MSG_UNDEFINED);
 }
 
 
@@ -1287,7 +1295,7 @@ void dc_update_msg_state(dc_context_t* context, uint32_t msg_id, int state)
  */
 void dc_set_msg_failed(dc_context_t* context, uint32_t msg_id, const char* error)
 {
-	dc_msg_t*     msg = dc_msg_new(context);
+	dc_msg_t*     msg = dc_msg_new_untyped(context);
 	sqlite3_stmt* stmt = NULL;
 
 	if (!dc_msg_load_from_db(msg, context, msg_id)) {
@@ -1450,7 +1458,7 @@ void dc_update_server_uid(dc_context_t* context, const char* rfc724_mid, const c
 dc_msg_t* dc_get_msg(dc_context_t* context, uint32_t msg_id)
 {
 	int success = 0;
-	dc_msg_t* obj = dc_msg_new(context);
+	dc_msg_t* obj = dc_msg_new_untyped(context);
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
 		goto cleanup;
@@ -1488,7 +1496,7 @@ cleanup:
 char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 {
 	sqlite3_stmt*   stmt = NULL;
-	dc_msg_t*       msg = dc_msg_new(context);
+	dc_msg_t*       msg = dc_msg_new_untyped(context);
 	dc_contact_t*   contact_from = dc_contact_new(context);
 	char*           rawtxt = NULL;
 	char*           p = NULL;

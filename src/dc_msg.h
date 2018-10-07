@@ -88,6 +88,7 @@ struct _dc_msg
 };
 
 
+dc_msg_t*       dc_msg_new_untyped                    (dc_context_t*);
 int             dc_msg_load_from_db                   (dc_msg_t*, dc_context_t*, uint32_t id);
 int             dc_msg_is_increation                  (const dc_msg_t*);
 char*           dc_msg_get_summarytext_by_raw         (int type, const char* text, dc_param_t*, int approx_bytes, dc_context_t*); /* the returned value must be free()'d */
