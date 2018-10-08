@@ -56,6 +56,7 @@ dc_chatlist_t* dc_chatlist_new(dc_context_t* context)
  *
  * @memberof dc_chatlist_t
  * @param chatlist The chatlist object to free, created eg. by dc_get_chatlist(), dc_search_msgs().
+ *     If NULL is given, nothing is done.
  * @return None.
  */
 void dc_chatlist_unref(dc_chatlist_t* chatlist)
@@ -456,8 +457,9 @@ int dc_get_archived_cnt(dc_context_t* context)
  *     are returned.  Give NULL for no filtering.
  * @param query_id An optional contact ID for filtering the list.  Only chats including this contact ID
  *     are returned.  Give 0 for no filtering.
- * @return A chatlist as an dc_chatlist_t object. Must be freed using
- *     dc_chatlist_unref() when no longer used.
+ * @return A chatlist as an dc_chatlist_t object.
+ *     On errors, NULL is returned.
+ *     Must be freed using dc_chatlist_unref() when no longer used.
  *
  * See also: dc_get_chat_msgs() to get the messages of a single chat.
  */

@@ -71,6 +71,7 @@ dc_msg_t* dc_msg_new_untyped(dc_context_t* context)
  *
  * @memberof dc_msg_t
  * @param msg The message object to free.
+ *     If NULL is given, nothing is done.
  * @return None.
  */
 void dc_msg_unref(dc_msg_t* msg)
@@ -1434,7 +1435,9 @@ void dc_update_server_uid(dc_context_t* context, const char* rfc724_mid, const c
  * @memberof dc_context_t
  * @param context The context as created by dc_context_new().
  * @param msg_id The message ID for which the message object should be created.
- * @return A dc_msg_t message object. When done, the object must be freed using dc_msg_unref()
+ * @return A dc_msg_t message object.
+ *     On errors, NULL is returned.
+ *     When done, the object must be freed using dc_msg_unref().
  */
 dc_msg_t* dc_get_msg(dc_context_t* context, uint32_t msg_id)
 {
