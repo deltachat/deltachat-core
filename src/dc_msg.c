@@ -62,7 +62,7 @@ dc_msg_t* dc_msg_new(dc_context_t* context, int viewtype)
 
 dc_msg_t* dc_msg_new_untyped(dc_context_t* context)
 {
-	return dc_msg_new(context, DC_MSG_UNDEFINED);
+	return dc_msg_new(context, 0);
 }
 
 
@@ -120,7 +120,8 @@ void dc_msg_empty(dc_msg_t* msg)
  *
  * @memberof dc_msg_t
  * @param msg The message object.
- * @return The ID of the message, 0 on errors.
+ * @return The ID of the message.
+ *     0 if the given message object is invalid.
  */
 uint32_t dc_msg_get_id(const dc_msg_t* msg)
 {
@@ -179,11 +180,12 @@ uint32_t dc_msg_get_chat_id(const dc_msg_t* msg)
  * @memberof dc_msg_t
  * @param msg The message object.
  * @return One of the @ref DC_MSG constants.
+ *     0 if the given message object is invalid.
  */
 int dc_msg_get_viewtype(const dc_msg_t* msg)
 {
 	if (msg==NULL || msg->magic!=DC_MSG_MAGIC) {
-		return DC_MSG_UNDEFINED;
+		return 0;
 	}
 	return msg->type;
 }
@@ -908,7 +910,7 @@ void dc_msg_guess_msgtype_from_suffix(const char* pathNfilename, int* ret_msgtyp
 	if (ret_msgtype==NULL) { ret_msgtype = &dummy_msgtype; }
 	if (ret_mime==NULL)    { ret_mime = &dummy_buf; }
 
-	*ret_msgtype = DC_MSG_UNDEFINED;
+	*ret_msgtype = 0;
 	*ret_mime = NULL;
 
 	suffix = dc_get_filesuffix_lc(pathNfilename);

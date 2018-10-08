@@ -164,7 +164,7 @@ extern "C" {
 #define MR_MSG_ID_MARKER1                   DC_MSG_ID_MARKER1
 #define MR_MSG_ID_DAYMARKER                 DC_MSG_ID_DAYMARKER
 #define MR_MSG_ID_LAST_SPECIAL              DC_MSG_ID_LAST_SPECIAL
-#define MR_MSG_UNDEFINED                    DC_MSG_UNDEFINED
+#define MR_MSG_UNDEFINED                    0
 #define MR_MSG_TEXT                         DC_MSG_TEXT
 #define MR_MSG_IMAGE                        DC_MSG_IMAGE
 #define MR_MSG_GIF                          DC_MSG_GIF
