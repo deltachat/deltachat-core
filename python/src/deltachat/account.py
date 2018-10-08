@@ -3,6 +3,7 @@
 from __future__ import print_function
 import threading
 import re
+import time
 import requests
 from array import array
 try:
@@ -327,6 +328,8 @@ class EventHandler(object):
 
 
 class EventLogger:
+    _loglock = threading.RLock()
+
     def __init__(self, dc_context, logid=None, debug=True):
         self._dc_context = dc_context
         self._event_queue = Queue()
@@ -335,6 +338,7 @@ class EventLogger:
             logid = str(self._dc_context).strip(">").split()[-1]
         self.logid = logid
         self._timeout = None
+        self.init_time = time.time()
 
     def __call__(self, evt_name, data1, data2):
         self._log_event(evt_name, data1, data2)
@@ -351,7 +355,7 @@ class EventLogger:
         return ev
 
     def get_matching(self, event_name_regex):
-        print ("-- waiting for event with regex:", event_name_regex, "--")
+        self._log("-- waiting for event with regex: {} --".format(event_name_regex))
         rex = re.compile("(?:{}).*".format(event_name_regex))
         while 1:
             ev = self.get()
@@ -370,10 +374,16 @@ class EventLogger:
         if evt_name in ("DC_EVENT_GET_STRING", "DC_EVENT_IS_OFFLINE"):
             return
         if self._debug:
-            t = threading.currentThread()
-            tname = getattr(t, "name", t)
-            print("[{}-{}] {}({!r},{!r})".format(
-                 tname, self.logid, evt_name, data1, data2))
+            evpart = "{}({!r},{!r})".format(evt_name, data1, data2)
+            self._log(evpart)
+
+    def _log(self, msg):
+        t = threading.currentThread()
+        tname = getattr(t, "name", t)
+        if tname == "MainThread":
+            tname = "MAIN"
+        with self._loglock:
+            print("{:2.2f} [{}-{}] {}".format(time.time() - self.init_time, tname, self.logid, msg))
 
 
 def _destroy_dc_context(dc_context, dc_context_unref=lib.dc_context_unref):

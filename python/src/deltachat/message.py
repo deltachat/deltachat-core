@@ -83,7 +83,7 @@ class Message(object):
         return from_dc_charpointer(lib.dc_msg_get_filemime(self._dc_msg))
 
     @property_with_doc
-    def type(self):
+    def view_type(self):
         """the view type of this message.
 
         :returns: a :class:`deltachat.chatting.MessageType` instance.

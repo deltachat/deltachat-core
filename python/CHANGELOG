@@ -10,6 +10,8 @@
 
 - new Account.create_message() to create new messages 
   that are not in the database (yet) 
+
+- refined logging of events which now shows relative timestamps
   
 
 0.6

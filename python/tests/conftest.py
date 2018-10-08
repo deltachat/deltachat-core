@@ -1,6 +1,7 @@
 from __future__ import print_function
 import os
 import pytest
+import time
 from deltachat import Account
 from deltachat.types import cached_property
 from deltachat.capi import lib
@@ -37,6 +38,7 @@ def acfactory(pytestconfig, tmpdir, request):
             self.offline_count = 0
             self._finalizers = []
             request.addfinalizer(self.finalize)
+            self.init_time = time.time()
 
         def finalize(self):
             while self._finalizers:
@@ -59,6 +61,7 @@ def acfactory(pytestconfig, tmpdir, request):
             self.offline_count += 1
             tmpdb = tmpdir.join("offlinedb%d" % self.offline_count)
             ac = Account(tmpdb.strpath, logid="ac{}".format(self.offline_count))
+            ac._evlogger.init_time = self.init_time
             ac._evlogger.set_timeout(2)
             return ac
 
@@ -81,6 +84,7 @@ def acfactory(pytestconfig, tmpdir, request):
             configdict = self.configlist.pop(0)
             tmpdb = tmpdir.join("livedb%d" % self.live_count)
             ac = Account(tmpdb.strpath, logid="ac{}".format(self.live_count))
+            ac._evlogger.init_time = self.init_time
             ac._evlogger.set_timeout(30)
             ac.configure(**configdict)
             ac.start_threads()
