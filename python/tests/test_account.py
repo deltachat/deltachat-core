@@ -18,6 +18,11 @@ class TestOfflineAccount:
         with pytest.raises(ValueError):
             ac1.get_self_contact()
 
+    def test_get_info(self, acfactory):
+        ac1 = acfactory.get_configured_offline_account()
+        out = ac1.get_infostring()
+        assert "number_of_chats=0" in out
+
     def test_selfcontact_configured(self, acfactory):
         ac1 = acfactory.get_configured_offline_account()
         me = ac1.get_self_contact()

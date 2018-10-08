@@ -96,6 +96,11 @@ class Account(object):
         if not self.is_configured():
             raise ValueError("need to configure first")
 
+    def get_infostring(self):
+        """ return info of the configured account. """
+        self.check_is_configured()
+        return from_dc_charpointer(lib.dc_get_info(self._dc_context))
+
     def get_self_contact(self):
         """ return this account's identity as a :class:`deltachat.chatting.Contact`.
 
