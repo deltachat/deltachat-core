@@ -830,6 +830,12 @@ cleanup:
  * Typically used to add the whole address book from the OS. As names here are typically not
  * well formatted, we call normalize() for each name given.
  *
+ * No email-address is added twice.
+ * Trying to add email-addresses that are already in the contact list,
+ * results in updating the name unless the name was changed manually by the user.
+ * If any email-address or any name is really updated,
+ * the event DC_EVENT_CONTACTS_CHANGED is sent.
+ *
  * To add a single contact entered by the user, you should prefer dc_create_contact(),
  * however, for adding a bunch of addresses, this function is _much_ faster.
  *
@@ -871,6 +877,10 @@ int dc_add_address_book(dc_context_t* context, const char* adr_book)
 		}
 
 	dc_sqlite3_commit(context->sql);
+
+	if (modify_cnt) {
+		context->cb(context, DC_EVENT_CONTACTS_CHANGED, 0, 0);
+	}
 
 cleanup:
 	dc_free_splitted_lines(lines);
