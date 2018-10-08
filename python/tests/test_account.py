@@ -107,13 +107,13 @@ class TestOfflineAccount:
         chat = ac1.create_chat_by_contact(contact1)
         msg = chat.send_text("msg1")
         assert msg
-        assert msg.type.is_text()
-        assert msg.type.name == "text"
-        assert not msg.type.is_audio()
-        assert not msg.type.is_video()
-        assert not msg.type.is_gif()
-        assert not msg.type.is_file()
-        assert not msg.type.is_image()
+        assert msg.view_type.is_text()
+        assert msg.view_type.name == "text"
+        assert not msg.view_type.is_audio()
+        assert not msg.view_type.is_video()
+        assert not msg.view_type.is_gif()
+        assert not msg.view_type.is_file()
+        assert not msg.view_type.is_image()
         msg_state = msg.get_state()
         assert not msg_state.is_in_fresh()
         assert not msg_state.is_in_noticed()
@@ -132,7 +132,7 @@ class TestOfflineAccount:
         fn = data.get_path("d.png")
         lp.sec("sending image")
         msg = chat.send_image(fn)
-        assert msg.type.name == "image"
+        assert msg.view_type.name == "image"
         assert msg
         assert msg.id > 0
         assert os.path.exists(msg.filename)
@@ -152,8 +152,8 @@ class TestOfflineAccount:
         msg = chat.send_file(fn, typein)
         assert msg
         assert msg.id > 0
-        assert msg.type.name == "file"
-        assert msg.type.is_file()
+        assert msg.view_type.name == "file"
+        assert msg.view_type.is_file()
         assert os.path.exists(msg.filename)
         assert msg.filename.endswith(msg.basename)
         assert msg.filemime == typeout
@@ -195,7 +195,7 @@ class TestOnlineAccount:
         msg_out = chat.send_text("message2")
 
         # wait for other account to receive
-        ev = ac2._evlogger.get_matching("DC_EVENT_MSGS_CHANGED")
+        ev = ac2._evlogger.get_matching("DC_EVENT_INCOMING_MSG|DC_EVENT_MSGS_CHANGED")
         assert ev[2] == msg_out.id
         msg_in = ac2.get_message_by_id(msg_out.id)
         assert msg_in.text == "message2"
@@ -284,6 +284,6 @@ class TestOnlineAccount:
         ev = ac2._evlogger.get_matching("DC_EVENT_MSGS_CHANGED")
         assert ev[2] == msg_out.id
         msg_in = ac2.get_message_by_id(msg_out.id)
-        assert msg_in.type.is_image()
+        assert msg_in.view_type.is_image()
         assert os.path.exists(msg_in.filename)
         assert os.stat(msg_in.filename).st_size == os.stat(path).st_size
