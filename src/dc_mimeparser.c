@@ -672,7 +672,7 @@ static int mailmime_get_mime_type(struct mailmime* mime, int* msg_type)
 
 	struct mailmime_content* c = mime->mm_content_type;
 	int dummy = 0; if (msg_type==NULL) { msg_type = &dummy; }
-	*msg_type = DC_MSG_UNDEFINED;
+	*msg_type = 0;
 
 	if (c==NULL || c->ct_type==NULL) {
 		return 0;
@@ -786,7 +786,7 @@ static dc_mimepart_t* dc_mimepart_new(void)
 		exit(33);
 	}
 
-	mimepart->type    = DC_MSG_UNDEFINED;
+	mimepart->type    = 0;
 	mimepart->param   = dc_param_new();
 
 	return mimepart;

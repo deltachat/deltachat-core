@@ -602,11 +602,6 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * @{
  */
 
-/**
- * Type undefined.
- */
-#define DC_MSG_UNDEFINED  0
-
 
 /**
  * Text message.
