@@ -336,27 +336,28 @@ char* dc_get_blobdir(const dc_context_t* context)
  ******************************************************************************/
 
 
-static int32_t get_sys_config_int(const char* key, int32_t def, int* def_returned)
+static char* get_sys_config_str(const char* key)
 {
-	if (strcmp(key, "sys.msgsize_max_recommended")==0) {
-		return DC_MSGSIZE_MAX_RECOMMENDED;
-	}
-	else {
-		*def_returned = 1;
-		return def;
-	}
-}
-
-
-static char* get_sys_config_str(const char* key, const char* def)
-{
-	if (strcmp(key, "sys.version")==0) {
+	if (strcmp(key, "sys.version")==0)
+	{
 		return dc_strdup(DC_VERSION_STR);
 	}
+	else if (strcmp(key, "sys.msgsize_max_recommended")==0)
+	{
+		return dc_mprintf("%i", DC_MSGSIZE_MAX_RECOMMENDED);
+	}
+	else if (strcmp(key, "sys.config_keys")==0)
+	{
+		return dc_strdup("addr"
+		       " mail_server mail_user mail_pw mail_port"
+		       " send_server send_user send_pw send_port"
+		       " server_flags displayname"
+		       " selfstatus selfavatar"
+		       " e2ee_enabled mdns_enabled"
+		       " sys.version sys.msgsize_max_recommended sys.config_keys");
+	}
 	else {
-		int def_returned = 0;
-		int32_t int_val = get_sys_config_int(key, 0, &def_returned);
-		return def_returned? dc_strdup_keep_null(def) : dc_mprintf("%i", int_val);
+		return dc_strdup(NULL);
 	}
 }
 
@@ -379,6 +380,8 @@ static char* get_sys_config_str(const char* key, const char* def)
  * - `selfavatar`   = File containing avatar. Will be copied to blob directory.
  *                    NULL to remove the avatar.
  * - `e2ee_enabled` = 0=no end-to-end-encryption, 1=prefer end-to-end-encryption (default)
+ * - `mdns_enabled` = 0=do not send or request read receipts,
+ *                    1=send and request read receipts
  *
  * If you want to retrieve a value, use dc_get_config().
  *
@@ -426,6 +429,8 @@ cleanup:
  *                    All possible overheads are already subtracted and this value can be used eg. for direct comparison
  *                    with the size of a file the user wants to attach. If an attachment is larger than this value,
  *                    an error (no warning as it should be shown to the user) is logged but the attachment is sent anyway.
+ * - `sys.config_keys` = get a space-separated list of all config-keys available.
+ *                    The config-keys are the keys that can be passed to the parameter `key` of this function.
  *
  * @memberof dc_context_t
  * @param context The context object as created by dc_context_new(). For querying system values, this can be NULL.
@@ -437,7 +442,7 @@ cleanup:
 char* dc_get_config(dc_context_t* context, const char* key, const char* def)
 {
 	if (key && key[0]=='s' && key[1]=='y' && key[2]=='s' && key[3]=='.') {
-		return get_sys_config_str(key, def);
+		return get_sys_config_str(key);
 	}
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || key==NULL) { /* "def" may be NULL */
