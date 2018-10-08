@@ -60,7 +60,9 @@ dc_array_t* dc_array_new(dc_context_t* context, size_t initsize)
  * Free an array object. Does not free any data items.
  *
  * @memberof dc_array_t
- * @param array The array object to free, created eg. by dc_get_chatlist(), dc_get_contacts() and so on.
+ * @param array The array object to free,
+ *     created eg. by dc_get_chatlist(), dc_get_contacts() and so on.
+ *     If NULL is given, nothing is done.
  * @return None.
  */
 void dc_array_unref(dc_array_t* array)

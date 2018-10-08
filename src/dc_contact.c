@@ -58,6 +58,7 @@ dc_contact_t* dc_contact_new(dc_context_t* context)
  *
  * @memberof dc_contact_t
  * @param contact The contact object as created eg. by dc_get_contact().
+ *     If NULL is given, nothing is done.
  * @return None.
  */
 void dc_contact_unref(dc_contact_t* contact)

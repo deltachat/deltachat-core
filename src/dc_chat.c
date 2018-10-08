@@ -61,6 +61,7 @@ dc_chat_t* dc_chat_new(dc_context_t* context)
  *
  * @memberof dc_chat_t
  * @param chat Chat object are returned eg. by dc_get_chat().
+ *     If NULL is given, nothing is done.
  * @return None.
  */
 void dc_chat_unref(dc_chat_t* chat)
@@ -540,7 +541,9 @@ int dc_add_to_chat_contacts_table(dc_context_t* context, uint32_t chat_id, uint3
  * @memberof dc_context_t
  * @param context The context object as returned from dc_context_new().
  * @param chat_id The ID of the chat to get the chat object for.
- * @return A chat object of the type dc_chat_t, must be freed using dc_chat_unref() when done.
+ * @return A chat object of the type dc_chat_t,
+ *     must be freed using dc_chat_unref() when done.
+ *     On errors, NULL is returned.
  */
 dc_chat_t* dc_get_chat(dc_context_t* context, uint32_t chat_id)
 {

@@ -154,6 +154,7 @@ dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_na
  *
  * @memberof dc_context_t
  * @param context The context object as created by dc_context_new().
+ *     If NULL is given, nothing is done.
  * @return None.
  */
 void dc_context_unref(dc_context_t* context)
