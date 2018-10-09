@@ -420,9 +420,11 @@ cleanup:
 
 
 /**
- * Get a configuration option. The configuration option is typically set by dc_set_config() or by the library itself.
+ * Get a configuration option.
+ * The configuration option is set by dc_set_config() or by the library itself.
  *
- * Moreover, this function can be used to query some global system values:
+ * Beside the options shown at dc_set_config(),
+ * this function can be used to query some global system values:
  *
  * - `sys.version`  = get the version string eg. as `1.2.3` or as `1.2.3special4`
  * - `sys.msgsize_max_recommended` = maximal recommended attachment size in bytes.
@@ -434,35 +436,48 @@ cleanup:
  *
  * @memberof dc_context_t
  * @param context The context object as created by dc_context_new(). For querying system values, this can be NULL.
- * @param key The key to query
- * @param def Default value to return if "key" is unset.
- * @return Returns current value of "key", if "key" is unset, "def" is returned (which may be NULL)
- *     If the returned values is not NULL, the return value must be free()'d,
+ * @param key The key to query.
+ * @return Returns current value of "key", if "key" is unset, the default value is returned.
+ *     The returned value must be free()'d, NULL is never returned.
  */
-char* dc_get_config(dc_context_t* context, const char* key, const char* def)
+char* dc_get_config(dc_context_t* context, const char* key)
 {
+	char* value = NULL;
+
 	if (key && key[0]=='s' && key[1]=='y' && key[2]=='s' && key[3]=='.') {
 		return get_sys_config_str(key);
 	}
 
-	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || key==NULL) { /* "def" may be NULL */
-		return dc_strdup_keep_null(def);
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || key==NULL) {
+		return dc_strdup("");
 	}
 
-	if (strcmp(key, "selfavatar")==0)
-	{
+	if (strcmp(key, "selfavatar")==0) {
 		char* rel_path = dc_sqlite3_get_config(context->sql, key, NULL);
-		if (rel_path==NULL) {
-			return dc_strdup_keep_null(def);
+		if (rel_path) {
+			value = dc_get_abs_path(context, rel_path);
+			free(rel_path);
 		}
-		char* abs_path = dc_get_abs_path(context, rel_path);
-		free(rel_path);
-		return abs_path;
 	}
-	else
+	else {
+		value = dc_sqlite3_get_config(context->sql, key, NULL);
+	}
+
+	if (value==NULL)
 	{
-		return dc_sqlite3_get_config(context->sql, key, def);
+		// no value yet, use default value
+		if (strcmp(key, "e2ee_enabled")==0) {
+			value = dc_mprintf("%i", DC_E2EE_DEFAULT_ENABLED);
+		}
+		else if (strcmp(key, "mdns_enabled")==0) {
+			value = dc_mprintf("%i", DC_MDNS_DEFAULT_ENABLED);
+		}
+		else {
+			value = dc_mprintf("");
+		}
 	}
+
+	return value;
 }
 
 

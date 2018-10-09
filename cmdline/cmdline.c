@@ -487,7 +487,7 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 	else if (!s_is_auth)
 	{
 		if (strcmp(cmd, "auth")==0) {
-			char* is_pw = dc_get_config(context, "mail_pw", "");
+			char* is_pw = dc_get_config(context, "mail_pw");
 			if (strcmp(arg1, is_pw)==0) {
 				s_is_auth = 1;
 				ret = COMMAND_SUCCEEDED;
@@ -646,14 +646,9 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 	else if (strcmp(cmd, "get")==0)
 	{
 		if (arg1) {
-			char* val = dc_get_config(context, arg1, "<unset>");
-			if (val) {
-				ret = dc_mprintf("%s=%s", arg1, val);
-				free(val);
-			}
-			else {
-				ret = COMMAND_FAILED;
-			}
+			char* val = dc_get_config(context, arg1);
+			ret = dc_mprintf("%s=%s", arg1, val);
+			free(val);
 		}
 		else {
 			ret = dc_strdup("ERROR: Argument <key> missing.");

@@ -360,6 +360,9 @@ void stress_functions(dc_context_t* context)
 	 **************************************************************************/
 
 	{
+		assert( atol("")==0 ); /* we rely on this eg. in dc_sqlite3_get_config() */
+		assert( atoi("")==0 );
+
 		assert( !dc_may_be_valid_addr(NULL) );
 		assert( !dc_may_be_valid_addr("") );
 		assert(  dc_may_be_valid_addr("user@domain.tld") );
