@@ -45,8 +45,12 @@ script:
   - source venv/bin/activate
   - pip install tox
   - ldd /usr/local/lib/x86_64-linux-gnu/libdeltachat.so
-  - tox 
-  - tox -e doc 
+  - tox
+  - tox -e doc
+  # Ensure a few ways of building delta-core keep working
+  - meson setup build-monolith -Dmonolith=true && ninja -C build-monolith
+  - meson setup build-fallbacks --wrap-mode=forcefallback --default-library=static && ninja -C build-fallbacks
+  - meson setup build-static --default-library=static && ninja -C build-static
 
 deploy:
   provider: script
