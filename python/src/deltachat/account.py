@@ -45,6 +45,12 @@ class Account(object):
         self._evlogger = EventLogger(self._dc_context, logid)
         deltachat.set_context_callback(self._dc_context, self._process_event)
         self._threads = IOThreads(self._dc_context)
+        self._configkeys = self.get_config("sys.config_keys").split()
+
+    def _check_config_key(self, name):
+        if name not in self._configkeys:
+            raise KeyError("{!r} not a valid config key, existing keys: {!r}".format(
+                           name, self._configkeys))
 
     def set_config(self, name, value):
         """ set configuration values.
@@ -53,6 +59,7 @@ class Account(object):
         :param value: value to set (unicode)
         :returns: None
         """
+        self._check_config_key(name)
         name = name.encode("utf8")
         value = value.encode("utf8")
         if name == b"addr" and self.is_configured():
@@ -66,6 +73,8 @@ class Account(object):
         :returns: unicode value
         :raises: KeyError if no config value was found.
         """
+        if name != "sys.config_keys":
+            self._check_config_key(name)
         name = name.encode("utf8")
         res = lib.dc_get_config(self._dc_context, name, ffi.NULL)
         if res == ffi.NULL:
