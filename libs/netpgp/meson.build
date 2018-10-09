@@ -19,7 +19,8 @@ config_h = configuration_data()
 config_h.set_quoted('PACKAGE_BUGREPORT',
                     'Floris Bruynooghe <flub+delta@devork.be>')
 config_h.set_quoted('PACKAGE_VERSION', meson.project_version())
-config_h.set('HAVE_ZLIB_H', cc.has_header('zlib.h', dependencies: zlib))
+config_h.set('HAVE_ZLIB_H', zlib.type_name() == 'internal'
+                            or cc.has_header('zlib.h', dependencies: zlib))
 config_h.set('HAVE_BZLIB_H', not get_option('bzip2').disabled()
                              and cc.has_header('bzlib.h', dependencies: bzip2))
 
@@ -56,7 +57,9 @@ ssl_headers = [
   ['openssl/sha.h', 'HAVE_OPENSSL_SHA_H'],
 ]
 foreach hdr: ssl_headers
-  config_h.set(hdr.get(1), cc.has_header(hdr.get(0), dependencies: openssl))
+  config_h.set(hdr.get(1),
+               openssl.type_name() == 'internal'
+               or cc.has_header(hdr.get(0), dependencies: openssl))
 endforeach
 
 if (get_option('openssl-camellia').enabled()
