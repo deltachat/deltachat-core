@@ -576,6 +576,8 @@ int dc_pgp_pk_encrypt( dc_context_t*       context,
 		const void* signed_text = NULL;
 		size_t      signed_bytes = 0;
 		int         encrypt_raw_packet = 0;
+		clock_t     sign_clocks = 0;
+		clock_t     encrypt_clocks = 0;
 
 		if (raw_private_key_for_signing) {
 			pgp_memory_clear(keysmem);
@@ -586,9 +588,14 @@ int dc_pgp_pk_encrypt( dc_context_t*       context,
 				goto cleanup;
 			}
 
+			clock_t start = clock();
+
 			pgp_key_t* sk0 = &private_keys->keys[0];
 			signedmem = pgp_sign_buf(&s_io, plain_text, plain_bytes, &sk0->key.seckey, time(NULL)/*birthtime*/, 0/*duration*/,
 				NULL/*hash, defaults to sha256*/, 0/*armored*/, 0/*cleartext*/);
+
+			sign_clocks = clock()-start;
+
 			if (signedmem==NULL) {
 				dc_log_warning(context, 0, "Signing failed.");
 				goto cleanup;
@@ -603,7 +610,14 @@ int dc_pgp_pk_encrypt( dc_context_t*       context,
 			encrypt_raw_packet = 0;
 		}
 
+		clock_t start = clock();
+
 		pgp_memory_t* outmem = pgp_encrypt_buf(&s_io, signed_text, signed_bytes, public_keys, use_armor, NULL/*cipher*/, encrypt_raw_packet);
+
+		encrypt_clocks = clock()-start;
+
+		dc_log_info(context, 0, "Message signed in %.3f ms and encrypted in %.3f ms.", (double)(sign_clocks)*1000.0/CLOCKS_PER_SEC, (double)(encrypt_clocks)*1000.0/CLOCKS_PER_SEC);
+
 		if (outmem==NULL) {
 			dc_log_warning(context, 0, "Encryption failed.");
 			goto cleanup;
