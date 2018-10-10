@@ -35,18 +35,24 @@ install:
 
 script:
   - doxygen --version
-  - mkdir -p builddir && cd builddir && meson && ninja -v && sudo ninja install
+  - mkdir -p builddir && pushd builddir
+  - meson && ninja -v && sudo ninja install
   - export LD_LIBRARY_PATH=/usr/local/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
   - sudo ldconfig -v
-  - cd ../docs
+  - popd && pushd docs
   - doxygen
-  - cd ../python
+  - popd && pushd python
   - virtualenv -p /usr/bin/python3.5 venv
   - source venv/bin/activate
   - pip install tox
   - ldd /usr/local/lib/x86_64-linux-gnu/libdeltachat.so
-  - tox 
-  - tox -e doc 
+  - tox
+  - tox -e doc
+  - popd
+  # Ensure a few ways of building delta-core keep working
+  - meson setup build-monolith -Dmonolith=true && ninja -C build-monolith
+  - meson setup build-fallbacks --wrap-mode=forcefallback --default-library=static && ninja -C build-fallbacks
+  - meson setup build-static --default-library=static && ninja -C build-static
 
 deploy:
   provider: script
