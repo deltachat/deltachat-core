@@ -76,9 +76,8 @@ class Account(object):
         if name != "sys.config_keys":
             self._check_config_key(name)
         name = name.encode("utf8")
-        res = lib.dc_get_config(self._dc_context, name, ffi.NULL)
-        if res == ffi.NULL:
-            raise KeyError("config value not found for: {!r}".format(name))
+        res = lib.dc_get_config(self._dc_context, name)
+        assert res != ffi.NULL, "config value not found for: {!r}".format(name)
         return from_dc_charpointer(res)
 
     def configure(self, **kwargs):
