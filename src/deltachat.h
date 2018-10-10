@@ -230,7 +230,7 @@ int             dc_is_open                   (const dc_context_t*);
 char*           dc_get_blobdir               (const dc_context_t*);
 
 int             dc_set_config                (dc_context_t*, const char* key, const char* value);
-char*           dc_get_config                (dc_context_t*, const char* key, const char* def);
+char*           dc_get_config                (dc_context_t*, const char* key);
 char*           dc_get_info                  (dc_context_t*);
 char*           dc_get_version_str           (void);
 void            dc_openssl_init_not_required (void);
