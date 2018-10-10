@@ -13,6 +13,13 @@ class TestOfflineAccount:
         with pytest.raises(ValueError):
             ac1.check_is_configured()
 
+    def test_wrong_config_keys(self, acfactory):
+        ac1 = acfactory.get_unconfigured_account()
+        with pytest.raises(KeyError):
+            ac1.set_config("lqkwje", "value")
+        with pytest.raises(KeyError):
+            ac1.get_config("lqkwje")
+
     def test_selfcontact_if_unconfigured(self, acfactory):
         ac1 = acfactory.get_unconfigured_account()
         with pytest.raises(ValueError):
