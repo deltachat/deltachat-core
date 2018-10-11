@@ -14,3 +14,5 @@ see https://delta.chat/en/changelog
 * default parameter removed from dc_get_config().
   if the requested value was not set before, 
   the core returns an appropriate default value on its own.
+* messages of all types can contain text now;
+  use dc_msg_get_text() to check.
