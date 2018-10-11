@@ -8,6 +8,14 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes anywhere in the Delta Chat ecosystem,
 see https://delta.chat/en/changelog
 
+
+## v0.22.0
+2018-10-11
+
+* dc_send_msg() creates a copy of passed files before returning
+* the event DC_EVENT_FILE_COPIED is no longer used
+
+
 ## v0.21.0
 2018-10-11
 
