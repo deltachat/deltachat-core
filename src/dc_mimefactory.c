@@ -705,11 +705,11 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 		}
 
 		const char* final_text = NULL;
-		if (msg->type==DC_MSG_TEXT && msg->text && msg->text[0]) { /* `text` may also contain data otherwise, eg. the filename of attachments */
-			final_text = msg->text;
-		}
-		else if (placeholdertext) {
+		if (placeholdertext) {
 			final_text = placeholdertext;
+		}
+		else if (msg->text && msg->text[0]) {
+			final_text = msg->text;
 		}
 
 		char* footer = factory->selfstatus;
