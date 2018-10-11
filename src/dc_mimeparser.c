@@ -799,15 +799,11 @@ static void dc_mimepart_unref(dc_mimepart_t* mimepart)
 		return;
 	}
 
-	if (mimepart->msg) {
-		free(mimepart->msg);
-		mimepart->msg = NULL;
-	}
+	free(mimepart->msg);
+	mimepart->msg = NULL;
 
-	if (mimepart->msg_raw) {
-		free(mimepart->msg_raw);
-		mimepart->msg_raw = NULL;
-	}
+	free(mimepart->msg_raw);
+	mimepart->msg_raw = NULL;
 
 	dc_param_unref(mimepart->param);
 	free(mimepart);
@@ -863,8 +859,15 @@ void dc_mimeparser_unref(dc_mimeparser_t* mimeparser)
 	}
 
 	dc_mimeparser_empty(mimeparser);
-	if (mimeparser->parts)   { carray_free(mimeparser->parts); }
-	if (mimeparser->reports) { carray_free(mimeparser->reports); }
+
+	if (mimeparser->parts) {
+		carray_free(mimeparser->parts);
+	}
+
+	if (mimeparser->reports) {
+		carray_free(mimeparser->reports);
+	}
+
 	free(mimeparser->e2ee_helper);
 	free(mimeparser);
 }
@@ -1482,10 +1485,6 @@ void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_termi
 
 	/* recursively check, whats parsed, this also sets up header_old */
 	dc_mimeparser_parse_mime_recursive(mimeparser, mimeparser->mimeroot);
-
-	// TOCHECK: text parts may be moved to the beginning of the list - either here or in do_add_single_part()
-	//       usecase: eg. the Buchungsbestätigungen of Deutsch Bahn have the PDF before the explaining text.
-	//       may also be handy for extracting binaries from uuencoded text and just add the rest text after the binaries.
 
 	/* setup header */
 	hash_header(&mimeparser->header, mimeparser->header_root, mimeparser->context);
