@@ -2185,23 +2185,6 @@ uint32_t dc_send_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 			}
 
 			dc_log_info(context, 0, "Attaching \"%s\" for message type #%i.", pathNfilename, (int)msg->type);
-
-			if (msg->text) { free(msg->text); }
-			if (msg->type==DC_MSG_AUDIO) {
-				char* filename = dc_get_filename(pathNfilename);
-				char* author = dc_param_get(msg->param, DC_PARAM_AUTHORNAME, "");
-				char* title = dc_param_get(msg->param, DC_PARAM_TRACKNAME, "");
-				msg->text = dc_mprintf("%s %s %s", filename, author, title); /* for outgoing messages, also add the mediainfo. For incoming messages, this is not needed as the filename is build from these information */
-				free(filename);
-				free(author);
-				free(title);
-			}
-			else if (DC_MSG_MAKE_FILENAME_SEARCHABLE(msg->type)) {
-				msg->text = dc_get_filename(pathNfilename);
-			}
-			else if (DC_MSG_MAKE_SUFFIX_SEARCHABLE(msg->type)) {
-				msg->text = dc_get_filesuffix_lc(pathNfilename);
-			}
 		}
 		else
 		{
@@ -2244,7 +2227,7 @@ cleanup:
  * sending may be delayed eg. due to network problems. However, from your
  * view, you're done with the message. Sooner or later it will find its way.
  *
- * See also dc_send_image_msg().
+ * See also dc_send_msg().
  *
  * @memberof dc_context_t
  * @param context The context object as returned from dc_context_new().

@@ -28,6 +28,19 @@
 #include "dc_simplify.h"
 
 
+
+// deprecated: flag to switch generation of compound messages on and off.
+static int s_generate_compound_msgs = 1;
+
+
+// deprecated: call dc_no_compound_msgs()
+// to switch generation of compound messages off for the whole library.
+void dc_no_compound_msgs(void)
+{
+	s_generate_compound_msgs = 0;
+}
+
+
 /*******************************************************************************
  * debug output
  ******************************************************************************/
@@ -799,15 +812,11 @@ static void dc_mimepart_unref(dc_mimepart_t* mimepart)
 		return;
 	}
 
-	if (mimepart->msg) {
-		free(mimepart->msg);
-		mimepart->msg = NULL;
-	}
+	free(mimepart->msg);
+	mimepart->msg = NULL;
 
-	if (mimepart->msg_raw) {
-		free(mimepart->msg_raw);
-		mimepart->msg_raw = NULL;
-	}
+	free(mimepart->msg_raw);
+	mimepart->msg_raw = NULL;
 
 	dc_param_unref(mimepart->param);
 	free(mimepart);
@@ -863,8 +872,15 @@ void dc_mimeparser_unref(dc_mimeparser_t* mimeparser)
 	}
 
 	dc_mimeparser_empty(mimeparser);
-	if (mimeparser->parts)   { carray_free(mimeparser->parts); }
-	if (mimeparser->reports) { carray_free(mimeparser->reports); }
+
+	if (mimeparser->parts) {
+		carray_free(mimeparser->parts);
+	}
+
+	if (mimeparser->reports) {
+		carray_free(mimeparser->reports);
+	}
+
 	free(mimeparser->e2ee_helper);
 	free(mimeparser);
 }
@@ -965,12 +981,6 @@ static void do_add_single_file_part(dc_mimeparser_t* parser, int msg_type, int m
 	part->int_mimetype = mime_type;
 	part->bytes = decoded_data_bytes;
 	dc_param_set(part->param, DC_PARAM_FILE, pathNfilename);
-	if (DC_MSG_MAKE_FILENAME_SEARCHABLE(msg_type)) {
-		part->msg = dc_get_filename(pathNfilename);
-	}
-	else if (DC_MSG_MAKE_SUFFIX_SEARCHABLE(msg_type)) {
-		part->msg = dc_get_filesuffix_lc(pathNfilename);
-	}
 
 	if (mime_type==DC_MIMETYPE_IMAGE) {
 		uint32_t w = 0, h = 0;
@@ -1489,10 +1499,6 @@ void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_termi
 	/* recursively check, whats parsed, this also sets up header_old */
 	dc_mimeparser_parse_mime_recursive(mimeparser, mimeparser->mimeroot);
 
-	// TOCHECK: text parts may be moved to the beginning of the list - either here or in do_add_single_part()
-	//       usecase: eg. the Buchungsbestätigungen of Deutsch Bahn have the PDF before the explaining text.
-	//       may also be handy for extracting binaries from uuencoded text and just add the rest text after the binaries.
-
 	/* setup header */
 	hash_header(&mimeparser->header, mimeparser->header_root, mimeparser->context);
 	hash_header(&mimeparser->header, mimeparser->header_protected, mimeparser->context); /* overwrite the original header with the protected one */
@@ -1531,6 +1537,24 @@ void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_termi
 			}
 		}
 		mimeparser->is_send_by_messenger = 0; /* do not treat a setup message as a messenger message (eg. do not move setup messages to the Chats-folder; there may be a 3rd device that wants to handle it) */
+	}
+
+	// create compound messages
+	if (mimeparser->is_send_by_messenger
+	 && s_generate_compound_msgs
+	 && carray_count(mimeparser->parts)==2)
+	{
+		dc_mimepart_t* textpart = (dc_mimepart_t*)carray_get(mimeparser->parts, 0);
+		dc_mimepart_t* filepart = (dc_mimepart_t*)carray_get(mimeparser->parts, 1);
+
+		if (textpart->type==DC_MSG_TEXT && DC_MSG_NEEDS_ATTACHMENT(filepart->type))
+		{
+			free(filepart->msg);
+			filepart->msg = textpart->msg;
+			textpart->msg = NULL;
+			dc_mimepart_unref(textpart);
+			carray_delete_slow(mimeparser->parts, 0);
+		}
 	}
 
 	/* prepend subject to message? */

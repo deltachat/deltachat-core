@@ -261,7 +261,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 						" state INTEGER DEFAULT 0,"
 						" msgrmsg INTEGER DEFAULT 1,"      /* does the message come from a messenger? (0=no, 1=yes, 2=no, but the message is a reply to a messenger message) */
 						" bytes INTEGER DEFAULT 0,"        /* not used, added in ~ v0.1.12 */
-						" txt TEXT DEFAULT '',"            /* as this is also used for (fulltext) searching, nothing but normal, plain text should go here */
+						" txt TEXT DEFAULT '',"
 						" txt_raw TEXT DEFAULT '',"
 						" param TEXT DEFAULT '');");
 			dc_sqlite3_execute(sql, "CREATE INDEX msgs_index1 ON msgs (rfc724_mid);");     /* in our database, one email may be split up to several messages (eg. one per image), so the email-Message-ID may be used for several records; id is always unique */
@@ -470,6 +470,19 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 				dc_sqlite3_set_config_int(sql, "dbversion", NEW_DB_VERSION);
 			}
 		#undef NEW_DB_VERSION
+
+		#define NEW_DB_VERSION 42
+			if (dbversion < NEW_DB_VERSION)
+			{
+				// older versions set the txt-field to the filenames, for debugging and fulltext search.
+				// to allow text+attachment compound messages, we need to reset these fields.
+				dc_sqlite3_execute(sql, "UPDATE msgs SET txt='' WHERE type!=" DC_STRINGIFY(DC_MSG_TEXT));
+
+				dbversion = NEW_DB_VERSION;
+				dc_sqlite3_set_config_int(sql, "dbversion", NEW_DB_VERSION);
+			}
+		#undef NEW_DB_VERSION
+
 
 		// (2) updates that require high-level objects
 		// (the structure is complete now and all objects are usable)

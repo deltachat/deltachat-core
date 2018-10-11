@@ -234,6 +234,7 @@ char*           dc_get_config                (dc_context_t*, const char* key);
 char*           dc_get_info                  (dc_context_t*);
 char*           dc_get_version_str           (void);
 void            dc_openssl_init_not_required (void);
+void            dc_no_compound_msgs          (void); // deprecated
 
 
 // connect
