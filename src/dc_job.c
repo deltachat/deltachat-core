@@ -334,12 +334,6 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 	if (DC_MSG_NEEDS_ATTACHMENT(mimefactory.msg->type)) {
 		char* pathNfilename = dc_param_get(mimefactory.msg->param, DC_PARAM_FILE, NULL);
 		if (pathNfilename) {
-			if (!dc_make_rel_and_copy(context, &pathNfilename)) {
-				dc_set_msg_failed(context, job->foreign_id, "Cannot copy file to internal directory.");
-				goto cleanup;
-			}
-			dc_param_set(mimefactory.msg->param, DC_PARAM_FILE, pathNfilename);
-
 			/* set width/height of images, if not yet done */
 			if ((mimefactory.msg->type==DC_MSG_IMAGE || mimefactory.msg->type==DC_MSG_GIF)
 			 && !dc_param_exists(mimefactory.msg->param, DC_PARAM_WIDTH)) {
@@ -353,9 +347,8 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 					}
 				}
 				free(buf);
+				dc_msg_save_param_to_disk(mimefactory.msg);
 			}
-
-			dc_msg_save_param_to_disk(mimefactory.msg);
 		}
 	}
 

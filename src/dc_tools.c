@@ -1474,8 +1474,6 @@ int dc_make_rel_and_copy(dc_context_t* context, char** path)
 		goto cleanup;
 	}
 
-	context->cb(context, DC_EVENT_FILE_COPIED, (uintptr_t)(*path), 0);
-
 	free(*path);
 	*path = blobdir_path;
 	blobdir_path = NULL;

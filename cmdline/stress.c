@@ -235,6 +235,9 @@ void stress_functions(dc_context_t* context)
 		assert( dc_get_filebytes(context, "$BLOBDIR/foobar")==7 );
 
 		char* absPath = dc_mprintf("%s/%s", context->blobdir, "foobar");
+		assert(  dc_is_in_blobdir(context, absPath) );
+		assert(  dc_is_in_blobdir(context, "$BLOBDIR/fofo") );
+		assert( !dc_is_in_blobdir(context, "/BLOBDIR/fofo") );
 		assert( dc_file_exist(context, absPath) );
 		free(absPath);
 
