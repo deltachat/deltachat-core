@@ -965,12 +965,6 @@ static void do_add_single_file_part(dc_mimeparser_t* parser, int msg_type, int m
 	part->int_mimetype = mime_type;
 	part->bytes = decoded_data_bytes;
 	dc_param_set(part->param, DC_PARAM_FILE, pathNfilename);
-	if (DC_MSG_MAKE_FILENAME_SEARCHABLE(msg_type)) {
-		part->msg = dc_get_filename(pathNfilename);
-	}
-	else if (DC_MSG_MAKE_SUFFIX_SEARCHABLE(msg_type)) {
-		part->msg = dc_get_filesuffix_lc(pathNfilename);
-	}
 
 	if (mime_type==DC_MIMETYPE_IMAGE) {
 		uint32_t w = 0, h = 0;
