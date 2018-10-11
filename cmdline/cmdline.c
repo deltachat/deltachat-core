@@ -449,7 +449,7 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 				"groupimage [<file>]\n"
 				"chatinfo\n"
 				"send <text>\n"
-				"sendimage <file>\n"
+				"sendimage <file> [<text>]\n"
 				"sendfile <file>\n"
 				"draft [<text>]\n"
 				"listmedia\n"
@@ -912,35 +912,20 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 			ret = dc_strdup("No chat selected.");
 		}
 	}
-	else if (strcmp(cmd, "sendimage")==0)
+	else if (strcmp(cmd, "sendimage")==0 || strcmp(cmd, "sendfile")==0)
 	{
 		if (sel_chat) {
 			if (arg1 && arg1[0]) {
-				if (dc_send_image_msg(context, dc_chat_get_id(sel_chat), arg1, NULL, 0, 0)) {
-					ret = dc_strdup("Image sent.");
-				}
-				else {
-					ret = dc_strdup("ERROR: Sending image failed.");
-				}
-			}
-			else {
-				ret = dc_strdup("ERROR: No image given.");
-			}
-		}
-		else {
-			ret = dc_strdup("No chat selected.");
-		}
-	}
-	else if (strcmp(cmd, "sendfile")==0)
-	{
-		if (sel_chat) {
-			if (arg1 && arg1[0]) {
-				if (dc_send_file_msg(context, dc_chat_get_id(sel_chat), arg1, NULL)) {
-					ret = dc_strdup("File sent.");
-				}
-				else {
-					ret = dc_strdup("ERROR: Sending file failed.");
-				}
+				char* arg2 = strchr(arg1, ' ');
+				if (arg2) { *arg2 = 0; arg2++; }
+
+				dc_msg_t* msg = dc_msg_new(context,
+					strcmp(cmd, "sendimage")==0? DC_MSG_IMAGE : DC_MSG_FILE);
+				dc_msg_set_file(msg, arg1, NULL);
+				dc_msg_set_text(msg, arg2);
+				dc_send_msg(context, dc_chat_get_id(sel_chat), msg);
+				dc_msg_unref(msg);
+				ret = COMMAND_SUCCEEDED;
 			}
 			else {
 				ret = dc_strdup("ERROR: No file given.");
