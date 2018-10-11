@@ -28,6 +28,19 @@
 #include "dc_simplify.h"
 
 
+
+// deprecated: flag to switch generation of compound messages on and off.
+static int s_generate_compound_msgs = 1;
+
+
+// deprecated: call dc_no_compound_msgs()
+// to switch generation of compound messages off for the whole library.
+void dc_no_compound_msgs(void)
+{
+	s_generate_compound_msgs = 0;
+}
+
+
 /*******************************************************************************
  * debug output
  ******************************************************************************/
@@ -1524,6 +1537,24 @@ void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_termi
 			}
 		}
 		mimeparser->is_send_by_messenger = 0; /* do not treat a setup message as a messenger message (eg. do not move setup messages to the Chats-folder; there may be a 3rd device that wants to handle it) */
+	}
+
+	// create compound messages
+	if (mimeparser->is_send_by_messenger
+	 && s_generate_compound_msgs
+	 && carray_count(mimeparser->parts)==2)
+	{
+		dc_mimepart_t* textpart = (dc_mimepart_t*)carray_get(mimeparser->parts, 0);
+		dc_mimepart_t* filepart = (dc_mimepart_t*)carray_get(mimeparser->parts, 1);
+
+		if (textpart->type==DC_MSG_TEXT && DC_MSG_NEEDS_ATTACHMENT(filepart->type))
+		{
+			free(filepart->msg);
+			filepart->msg = textpart->msg;
+			textpart->msg = NULL;
+			dc_mimepart_unref(textpart);
+			carray_delete_slow(mimeparser->parts, 0);
+		}
 	}
 
 	/* prepend subject to message? */
