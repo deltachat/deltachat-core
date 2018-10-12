@@ -2133,6 +2133,19 @@ cleanup:
  * dc_send_msg(context, msg);
  * ~~~
  *
+ * You can even call this function if the file to be sent is still in creation.
+ * For this purpose, create a file with the additional extension `.increation`
+ * beside the file to sent. Once you're done with creating the file, delete the
+ * increation-file and the message will really be sent.
+ * This is useful as the user can already send the next messages while
+ * eg. the recoding of a video is not yet finished. Or the user can even forward
+ * the message with the file being still in creation to other groups.
+ *
+ * Files being sent with the increation-method must be placed in the
+ * blob directory, see dc_get_blobdir().
+ * If the increation-method is not used - which is probably the normal case -
+ * the file is copied to the blob directory if it is not yet there.
+ *
  * @memberof dc_context_t
  * @param context The context object as returned from dc_context_new().
  * @param chat_id Chat ID to send the message to.
@@ -2161,36 +2174,38 @@ uint32_t dc_send_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 	else if (DC_MSG_NEEDS_ATTACHMENT(msg->type))
 	{
 		pathNfilename = dc_param_get(msg->param, DC_PARAM_FILE, NULL);
-		if (pathNfilename)
-		{
-			/* Got an attachment. Take care, the file may not be ready in this moment!
-			This is useful eg. if a video should be sent and already shown as "being processed" in the chat.
-			In this case, the user should create an `.increation`; when the file is deleted later on, the message is sent.
-			(we do not use a state in the database as this would make eg. forwarding such messages much more complicated) */
-
-			if (msg->type==DC_MSG_FILE || msg->type==DC_MSG_IMAGE)
-			{
-				/* Correct the type, take care not to correct already very special formats as GIF or VOICE.
-				Typical conversions:
-				- from FILE to AUDIO/VIDEO/IMAGE
-				- from FILE/IMAGE to GIF */
-				int   better_type = 0;
-				char* better_mime = NULL;
-				dc_msg_guess_msgtype_from_suffix(pathNfilename, &better_type, &better_mime);
-				if (better_type) {
-					msg->type = better_type;
-					dc_param_set(msg->param, DC_PARAM_MIMETYPE, better_mime);
-				}
-				free(better_mime);
-			}
-
-			dc_log_info(context, 0, "Attaching \"%s\" for message type #%i.", pathNfilename, (int)msg->type);
-		}
-		else
-		{
-			dc_log_error(context, 0, "Attachment missing for message of type #%i.", (int)msg->type); /* should not happen */
+		if (pathNfilename==NULL) {
+			dc_log_error(context, 0, "Attachment missing for message of type #%i.", (int)msg->type);
 			goto cleanup;
 		}
+
+		if (dc_msg_is_increation(msg) && !dc_is_blobdir_path(context, pathNfilename)) {
+			dc_log_error(context, 0, "Files must be created in the blob-directory.");
+			goto cleanup;
+		}
+
+		if (!dc_make_rel_and_copy(context, &pathNfilename)) {
+			goto cleanup;
+		}
+		dc_param_set(msg->param, DC_PARAM_FILE, pathNfilename);
+
+		if (msg->type==DC_MSG_FILE || msg->type==DC_MSG_IMAGE)
+		{
+			/* Correct the type, take care not to correct already very special formats as GIF or VOICE.
+			Typical conversions:
+			- from FILE to AUDIO/VIDEO/IMAGE
+			- from FILE/IMAGE to GIF */
+			int   better_type = 0;
+			char* better_mime = NULL;
+			dc_msg_guess_msgtype_from_suffix(pathNfilename, &better_type, &better_mime);
+			if (better_type) {
+				msg->type = better_type;
+				dc_param_set(msg->param, DC_PARAM_MIMETYPE, better_mime);
+			}
+			free(better_mime);
+		}
+
+		dc_log_info(context, 0, "Attaching \"%s\" for message type #%i.", pathNfilename, (int)msg->type);
 	}
 	else
 	{

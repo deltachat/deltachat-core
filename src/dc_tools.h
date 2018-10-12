@@ -110,6 +110,7 @@ int      dc_create_folder           (dc_context_t*, const char* pathNfilename);
 int      dc_write_file              (dc_context_t*, const char* pathNfilename, const void* buf, size_t buf_bytes);
 int      dc_read_file               (dc_context_t*, const char* pathNfilename, void** buf, size_t* buf_bytes);
 char*    dc_get_fine_pathNfilename  (dc_context_t*, const char* pathNfolder, const char* desired_name);
+int      dc_is_blobdir_path         (dc_context_t*, const char* path);
 void     dc_make_rel_path           (dc_context_t*, char** pathNfilename);
 int      dc_make_rel_and_copy       (dc_context_t*, char** pathNfilename);
 

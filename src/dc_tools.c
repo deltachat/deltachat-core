@@ -1430,6 +1430,21 @@ void dc_make_rel_path(dc_context_t* context, char** path)
 
 
 /**
+ * Check if a path describes a file in the blob directory.
+ * The path can be absolute or relative (starting with `$BLOBDIR`).
+ * The function does not check if the file really exists.
+ */
+int dc_is_blobdir_path(dc_context_t* context, const char* path)
+{
+	if ((strncmp(path, context->blobdir, strlen(context->blobdir))==0)
+	 || (strncmp(path, "$BLOBDIR", 8)==0)) {
+		return 1;
+	}
+	return 0;
+}
+
+
+/**
  * Copy a file to the blob directory, if needed.
  *
  * @param context The context object as returned from dc_context_new().
@@ -1447,8 +1462,7 @@ int dc_make_rel_and_copy(dc_context_t* context, char** path)
 		goto cleanup;
 	}
 
-	if ((strncmp(*path, context->blobdir, strlen(context->blobdir))==0)
-	 || (strncmp(*path, "$BLOBDIR", 8)==0)) {
+	if (dc_is_blobdir_path(context, *path)) {
 		dc_make_rel_path(context, path);
 		success = 1; // file is already in blobdir
 		goto cleanup;
@@ -1459,8 +1473,6 @@ int dc_make_rel_and_copy(dc_context_t* context, char** path)
 	 || !dc_copy_file(context, *path, blobdir_path)) {
 		goto cleanup;
 	}
-
-	context->cb(context, DC_EVENT_FILE_COPIED, (uintptr_t)(*path), 0);
 
 	free(*path);
 	*path = blobdir_path;

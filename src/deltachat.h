@@ -33,7 +33,7 @@ extern "C" {
 #endif
 
 
-#define DC_VERSION_STR "0.21.0"
+#define DC_VERSION_STR "0.22.0"
 
 
 /**
@@ -949,24 +949,6 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 
 
 /**
- * A file has been copied. Files given to dc_set_chat_profile_image(),
- * dc_send_msg() and related functions are copied to the internal blob directory
- * unless they are already there.
- *
- * After copying, this event is sent; from that moment on,
- * the given file is no longer needed by the library and it is safe to delete it
- * (eg. in case it was generated for sending only - if you send images from the
- * gallery you may not want to delete them afterwards).
- *
- * @param data1 (const char*) Path and file name.
- *     Must not be free()'d or modified and is valid only until the callback returns.
- * @param data2 0
- * @return 0
- */
-#define DC_EVENT_FILE_COPIED              2055
-
-
-/**
  * Progress information of a secure-join handshake from the view of the inviter
  * (Alice, the person who shows the QR code).
  *
@@ -1060,6 +1042,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * @}
  */
 
+#define DC_EVENT_FILE_COPIED         2055 // deprecated
 #define DC_EVENT_DATA1_IS_STRING(e)  ((e)==DC_EVENT_HTTP_GET || (e)==DC_EVENT_IMEX_FILE_WRITTEN || (e)==DC_EVENT_FILE_COPIED)
 #define DC_EVENT_DATA2_IS_STRING(e)  ((e)==DC_EVENT_INFO || (e) == DC_EVENT_WARNING || (e) == DC_EVENT_ERROR || (e) == DC_EVENT_SMTP_CONNECTED || (e) == DC_EVENT_SMTP_MESSAGE_SENT || (e) == DC_EVENT_IMAP_CONNECTED)
 #define DC_EVENT_RETURNS_INT(e)      ((e)==DC_EVENT_IS_OFFLINE)
