@@ -1431,10 +1431,10 @@ void dc_make_rel_path(dc_context_t* context, char** path)
 
 /**
  * Check if a path describes a file in the blob directory.
- * The path can be give absolute or relative (starting with `$BLOBDIR`).
+ * The path can be absolute or relative (starting with `$BLOBDIR`).
  * The function does not check if the file really exists.
  */
-int dc_is_in_blobdir(dc_context_t* context, const char* path)
+int dc_is_blobdir_path(dc_context_t* context, const char* path)
 {
 	if ((strncmp(path, context->blobdir, strlen(context->blobdir))==0)
 	 || (strncmp(path, "$BLOBDIR", 8)==0)) {
@@ -1462,7 +1462,7 @@ int dc_make_rel_and_copy(dc_context_t* context, char** path)
 		goto cleanup;
 	}
 
-	if (dc_is_in_blobdir(context, *path)) {
+	if (dc_is_blobdir_path(context, *path)) {
 		dc_make_rel_path(context, path);
 		success = 1; // file is already in blobdir
 		goto cleanup;

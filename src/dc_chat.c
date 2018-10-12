@@ -2179,7 +2179,7 @@ uint32_t dc_send_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 			goto cleanup;
 		}
 
-		if (dc_msg_is_increation(msg) && !dc_is_in_blobdir(context, pathNfilename)) {
+		if (dc_msg_is_increation(msg) && !dc_is_blobdir_path(context, pathNfilename)) {
 			dc_log_error(context, 0, "Files must be created in the blob-directory.");
 			goto cleanup;
 		}
