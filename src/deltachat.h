@@ -303,6 +303,7 @@ int             dc_set_chat_profile_image    (dc_context_t*, uint32_t chat_id, c
 
 // handle messages
 char*           dc_get_msg_info              (dc_context_t*, uint32_t msg_id);
+char*           dc_get_mime_headers          (dc_context_t*, uint32_t msg_id);
 void            dc_delete_msgs               (dc_context_t*, const uint32_t* msg_ids, int msg_cnt);
 void            dc_forward_msgs              (dc_context_t*, const uint32_t* msg_ids, int msg_cnt, uint32_t chat_id);
 void            dc_marknoticed_contact       (dc_context_t*, uint32_t contact_id);
