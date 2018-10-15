@@ -89,14 +89,6 @@ struct _dc_context
 
 	uint32_t         cmdline_sel_chat_id;   /**< Internal */
 
-	#define          DC_LOG_RINGBUF_SIZE 200
-	pthread_mutex_t  log_ringbuf_critical;  /**< Internal */
-	char*            log_ringbuf[DC_LOG_RINGBUF_SIZE];
-	                                          /**< Internal */
-	time_t           log_ringbuf_times[DC_LOG_RINGBUF_SIZE];
-	                                          /**< Internal */
-	int              log_ringbuf_pos;       /**< Internal. The oldest position resp. the position that is overwritten next */
-
 	// QR code scanning (view from Bob, the joiner)
 	#define          DC_VC_AUTH_REQUIRED     2
 	#define          DC_VC_CONTACT_CONFIRM   6
