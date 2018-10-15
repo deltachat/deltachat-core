@@ -1640,6 +1640,42 @@ cleanup:
 
 
 /**
+ * Get the raw mime-headers of the given message.
+ * Raw headers are saved for incoming messages
+ * only if `dc_set_config(context, "save_mime_headers", "1")`
+ * was called before.
+ *
+ * @memberof dc_context_t
+ * @param context The context object as created by dc_context_new().
+ * @param msg_id The message id, must be the id of an incoming message.
+ * @return Raw headers as a multi-line string, must be free()'d after usage.
+ *     Returns NULL if there are no headers saved for the given message,
+ *     eg. because of save_mime_headers is not set
+ *     or the message is not incoming.
+ */
+char* dc_get_mime_headers(dc_context_t* context, uint32_t msg_id)
+{
+	char*         eml = NULL;
+	sqlite3_stmt* stmt = NULL;
+
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		goto cleanup;
+	}
+
+	stmt = dc_sqlite3_prepare(context->sql,
+		"SELECT mime_headers FROM msgs WHERE id=?;");
+	sqlite3_bind_int(stmt, 1, msg_id);
+	if (sqlite3_step(stmt)==SQLITE_ROW) {
+		eml = dc_strdup_keep_null((const char*)sqlite3_column_text(stmt, 0));
+	}
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return eml;
+}
+
+
+/**
  * Star/unstar messages by setting the last parameter to 0 (unstar) or 1 (star).
  * Starred messages are collected in a virtual chat that can be shown using
  * dc_get_chat_msgs() using the chat_id DC_CHAT_ID_STARRED.

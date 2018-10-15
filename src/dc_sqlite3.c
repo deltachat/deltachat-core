@@ -114,8 +114,10 @@ cleanup:
 uint32_t dc_sqlite3_get_rowid(dc_sqlite3_t* sql, const char* table, const char* field, const char* value)
 {
 	// alternative to sqlite3_last_insert_rowid() which MUST NOT be used due to race conditions, see comment above.
+	// the ORDER BY ensures, this function always returns the most recent id,
+	// eg. if a Message-ID is splitted into different messages.
 	uint32_t id = 0;
-	char* q3 = sqlite3_mprintf("SELECT id FROM %s WHERE %s=%Q;", table, field, value);
+	char* q3 = sqlite3_mprintf("SELECT id FROM %s WHERE %s=%Q ORDER BY id DESC;", table, field, value);
 	sqlite3_stmt* stmt = dc_sqlite3_prepare(sql, q3);
 	if (SQLITE_ROW==sqlite3_step(stmt)) {
 		id = sqlite3_column_int(stmt, 0);
@@ -477,6 +479,16 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 				// older versions set the txt-field to the filenames, for debugging and fulltext search.
 				// to allow text+attachment compound messages, we need to reset these fields.
 				dc_sqlite3_execute(sql, "UPDATE msgs SET txt='' WHERE type!=" DC_STRINGIFY(DC_MSG_TEXT));
+
+				dbversion = NEW_DB_VERSION;
+				dc_sqlite3_set_config_int(sql, "dbversion", NEW_DB_VERSION);
+			}
+		#undef NEW_DB_VERSION
+
+		#define NEW_DB_VERSION 44
+			if (dbversion < NEW_DB_VERSION)
+			{
+				dc_sqlite3_execute(sql, "ALTER TABLE msgs ADD COLUMN mime_headers TEXT;");
 
 				dbversion = NEW_DB_VERSION;
 				dc_sqlite3_set_config_int(sql, "dbversion", NEW_DB_VERSION);

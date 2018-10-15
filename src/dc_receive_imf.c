@@ -959,7 +959,6 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 	sqlite3_stmt*    stmt = NULL;
 	size_t           i = 0;
 	size_t           icnt = 0;
-	uint32_t         first_dblocal_id = 0;
 	char*            rfc724_mid = NULL; /* Message-ID from the header */
 	time_t           sort_timestamp = DC_INVALID_TIMESTAMP;
 	time_t           sent_timestamp = DC_INVALID_TIMESTAMP;
@@ -1276,13 +1275,29 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				}
 			}
 
+			// if the mime-headers should be saved, find out its size
+			// (the mime-header ends with an empty line)
+			int save_mime_headers = dc_sqlite3_get_config_int(context->sql, "save_mime_headers", 0);
+			int header_bytes = imf_raw_bytes;
+			if (save_mime_headers) {
+				char* p;
+				if ((p=strstr(imf_raw_not_terminated, "\r\n\r\n"))!=NULL) {
+					header_bytes = (p-imf_raw_not_terminated)+4;
+				}
+				else if ((p=strstr(imf_raw_not_terminated, "\n\n"))!=NULL) {
+					header_bytes = (p-imf_raw_not_terminated)+2;
+				}
+			}
+
 			/* fine, so far.  now, split the message into simple parts usable as "short messages"
 			and add them to the database (mails sent by other messenger clients should result
 			into only one message; mails sent by other clients may result in several messages (eg. one per attachment)) */
 			icnt = carray_count(mime_parser->parts); /* should be at least one - maybe empty - part */
 			stmt = dc_sqlite3_prepare(context->sql,
-				"INSERT INTO msgs (rfc724_mid,server_folder,server_uid,chat_id,from_id, to_id,timestamp,timestamp_sent,timestamp_rcvd,type, state,msgrmsg,txt,txt_raw,param, bytes,hidden)"
-				" VALUES (?,?,?,?,?, ?,?,?,?,?, ?,?,?,?,?, ?,?);");
+				"INSERT INTO msgs (rfc724_mid, server_folder, server_uid, chat_id, from_id, to_id,"
+				" timestamp, timestamp_sent, timestamp_rcvd, type, state, msgrmsg, "
+				" txt, txt_raw, param, bytes, hidden, mime_headers)"
+				" VALUES (?,?,?,?,?,?, ?,?,?,?,?,?, ?,?,?,?,?,?);");
 			for (i = 0; i < icnt; i++)
 			{
 				dc_mimepart_t* part = (dc_mimepart_t*)carray_get(mime_parser->parts, i);
@@ -1316,6 +1331,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				sqlite3_bind_text (stmt, 15, part->param->packed, -1, SQLITE_STATIC);
 				sqlite3_bind_int  (stmt, 16, part->bytes);
 				sqlite3_bind_int  (stmt, 17, hidden);
+				sqlite3_bind_text (stmt, 18, save_mime_headers? imf_raw_not_terminated : NULL, header_bytes, SQLITE_STATIC);
 				if (sqlite3_step(stmt)!=SQLITE_DONE) {
 					dc_log_info(context, 0, "Cannot write DB.");
 					goto cleanup; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
@@ -1324,12 +1340,10 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				free(txt_raw);
 				txt_raw = NULL;
 
-				if (first_dblocal_id==0) {
-					first_dblocal_id = dc_sqlite3_get_rowid(context->sql, "msgs", "rfc724_mid", rfc724_mid); // rfc724_mid is unique only for the first insert
-				}
+				int insert_msg_id = dc_sqlite3_get_rowid(context->sql, "msgs", "rfc724_mid", rfc724_mid);
 
 				carray_add(created_db_entries, (void*)(uintptr_t)chat_id, NULL);
-				carray_add(created_db_entries, (void*)(uintptr_t)first_dblocal_id, NULL);
+				carray_add(created_db_entries, (void*)(uintptr_t)insert_msg_id, NULL);
 			}
 
 			dc_log_info(context, 0, "Message has %i parts and is assigned to chat #%i.", icnt, chat_id);
@@ -1454,19 +1468,8 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 
 		}
 
-		/* debug print? */
-		if (dc_sqlite3_get_config_int(context->sql, "save_eml", 0)) {
-			char* emlname = dc_mprintf("%s/%s-%i.eml", context->blobdir, server_folder, (int)first_dblocal_id /*may be 0 for MDNs*/);
-			FILE* emlfileob = fopen(emlname, "w");
-			if (emlfileob) {
-				fwrite(imf_raw_not_terminated, 1, imf_raw_bytes, emlfileob);
-				fclose(emlfileob);
-			}
-			free(emlname);
-		}
-
-		if (add_delete_job) {
-			dc_job_add(context, DC_JOB_DELETE_MSG_ON_IMAP, first_dblocal_id, NULL, 0);
+		if (add_delete_job && carray_count(created_db_entries)>=2) {
+			dc_job_add(context, DC_JOB_DELETE_MSG_ON_IMAP, (int)(uintptr_t)carray_get(created_db_entries, 1), NULL, 0);
 		}
 
 	dc_sqlite3_commit(context->sql);

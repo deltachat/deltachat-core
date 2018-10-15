@@ -348,6 +348,7 @@ static char* get_sys_config_str(const char* key)
 		       " server_flags displayname"
 		       " selfstatus selfavatar"
 		       " e2ee_enabled mdns_enabled"
+		       " save_mime_headers"
 		       " sys.version sys.msgsize_max_recommended sys.config_keys");
 	}
 	else {
@@ -376,6 +377,7 @@ static char* get_sys_config_str(const char* key)
  * - `e2ee_enabled` = 0=no end-to-end-encryption, 1=prefer end-to-end-encryption (default)
  * - `mdns_enabled` = 0=do not send or request read receipts,
  *                    1=send and request read receipts
+ * - `save_mime_headers` = set this to "1" if you want to use dc_get_mime_headers() later
  *
  * If you want to retrieve a value, use dc_get_config().
  *
