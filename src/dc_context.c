@@ -348,6 +348,7 @@ static char* get_sys_config_str(const char* key)
 		       " server_flags displayname"
 		       " selfstatus selfavatar"
 		       " e2ee_enabled mdns_enabled"
+		       " save_mime_headers"
 		       " sys.version sys.msgsize_max_recommended sys.config_keys");
 	}
 	else {
