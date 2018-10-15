@@ -68,14 +68,6 @@ static void log_vprintf(dc_context_t* context, int event, int code, const char* 
 
 	/* finally, log */
 	context->cb(context, event, (uintptr_t)code, (uintptr_t)msg);
-
-	/* remember the last N log entries */
-	pthread_mutex_lock(&context->log_ringbuf_critical);
-		free(context->log_ringbuf[context->log_ringbuf_pos]);
-		context->log_ringbuf[context->log_ringbuf_pos] = msg;
-		context->log_ringbuf_times[context->log_ringbuf_pos] = time(NULL);
-		context->log_ringbuf_pos = (context->log_ringbuf_pos+1) % DC_LOG_RINGBUF_SIZE;
-	pthread_mutex_unlock(&context->log_ringbuf_critical);
 }
 
 

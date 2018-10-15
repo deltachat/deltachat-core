@@ -111,7 +111,6 @@ dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_na
 
 	pthread_mutex_init(&context->smear_critical, NULL);
 	pthread_mutex_init(&context->bobs_qr_critical, NULL);
-	pthread_mutex_init(&context->log_ringbuf_critical, NULL);
 	pthread_mutex_init(&context->imapidle_condmutex, NULL);
 	pthread_mutex_init(&context->smtpidle_condmutex, NULL);
 	pthread_cond_init(&context->smtpidle_cond, NULL);
@@ -177,14 +176,9 @@ void dc_context_unref(dc_context_t* context)
 
 	pthread_mutex_destroy(&context->smear_critical);
 	pthread_mutex_destroy(&context->bobs_qr_critical);
-	pthread_mutex_destroy(&context->log_ringbuf_critical);
 	pthread_mutex_destroy(&context->imapidle_condmutex);
 	pthread_cond_destroy(&context->smtpidle_cond);
 	pthread_mutex_destroy(&context->smtpidle_condmutex);
-
-	for (int i = 0; i < DC_LOG_RINGBUF_SIZE; i++) {
-		free(context->log_ringbuf[i]);
-	}
 
 	free(context->os_name);
 	context->magic = 0;
@@ -495,8 +489,9 @@ char* dc_get_version_str(void)
 
 
 /**
- * Get information about the context.  The information is returned by a multi-line string and contains information about the current
- * configuration and the last log entries.
+ * Get information about the context.
+ * The information is returned by a multi-line string
+ * and contains information about the current configuration.
  *
  * @memberof dc_context_t
  * @param context The context as created by dc_context_new().
@@ -571,7 +566,6 @@ char* dc_get_info(dc_context_t* context)
 	l2_readable_str = dc_loginparam_get_readable(l2);
 
 	temp = dc_mprintf(
-		"# key=value data\n"
 		"deltachat_core_version=v%s\n"
 		"sqlite_version=%s\n"
 		"sqlite_thread_safe=%i\n"
@@ -596,8 +590,6 @@ char* dc_get_info(dc_context_t* context)
 		"private_key_count=%i\n"
 		"public_key_count=%i\n"
 		"fingerprint=%s\n"
-		"\n"
-		"# log excerpt"
 
 		, DC_VERSION_STR
 		, SQLITE_VERSION
@@ -625,21 +617,6 @@ char* dc_get_info(dc_context_t* context)
 		);
 	dc_strbuilder_cat(&ret, temp);
 	free(temp);
-
-	/* add log excerpt */
-	pthread_mutex_lock(&context->log_ringbuf_critical); /*take care not to log here! */
-		for (int i = 0; i < DC_LOG_RINGBUF_SIZE; i++) {
-			int j = (context->log_ringbuf_pos+i) % DC_LOG_RINGBUF_SIZE;
-			if (context->log_ringbuf[j]) {
-				struct tm wanted_struct;
-				memcpy(&wanted_struct, localtime(&context->log_ringbuf_times[j]), sizeof(struct tm));
-				temp = dc_mprintf("\n%02i:%02i:%02i ", (int)wanted_struct.tm_hour, (int)wanted_struct.tm_min, (int)wanted_struct.tm_sec);
-					dc_strbuilder_cat(&ret, temp);
-					dc_strbuilder_cat(&ret, context->log_ringbuf[j]);
-				free(temp);
-			}
-		}
-	pthread_mutex_unlock(&context->log_ringbuf_critical);
 
 	/* free data */
 	dc_loginparam_unref(l);
