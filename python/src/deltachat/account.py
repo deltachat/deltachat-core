@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 import threading
+import six
 import re
 import time
 import requests
@@ -221,6 +222,25 @@ class Account(object):
     def get_message_by_id(self, msg_id):
         """ return Message instance. """
         return Message.from_db(self._dc_context, msg_id)
+
+    def get_mime_headers(self, msg_id):
+        """ return mime-header object for an incoming message.
+
+        This only returns a non-None object if ``save_mime_headers``
+        config option was set and ``msg_id`` refers to an incoming
+        message.
+
+        :param msg_id: integer message id
+        :returns: email-mime message object.
+        """
+        import email.parser
+        mime_headers = lib.dc_get_mime_headers(self._dc_context, msg_id)
+        if mime_headers:
+            s = ffi.string(mime_headers)
+            if isinstance(s, bytes):
+                s = s.decode("ascii")
+            fp = six.StringIO(s)
+            return email.parser.Parser().parse(fp)
 
     def mark_seen_messages(self, messages):
         """ mark the given set of messages as seen.

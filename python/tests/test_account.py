@@ -20,6 +20,10 @@ class TestOfflineAccount:
         with pytest.raises(KeyError):
             ac1.get_config("lqkwje")
 
+    def test_has_savemime(self, acfactory):
+        ac1 = acfactory.get_unconfigured_account()
+        assert "save_mime_headers" in ac1.get_config("sys.config_keys").split()
+
     def test_selfcontact_if_unconfigured(self, acfactory):
         ac1 = acfactory.get_unconfigured_account()
         with pytest.raises(ValueError):
@@ -272,6 +276,27 @@ class TestOnlineAccount:
         lp.step("2")
         ac1._evlogger.get_info_matching("Message marked as seen")
         assert msg_out.get_state().is_out_mdn_received()
+
+    def test_saved_mime_on_received_message(self, acfactory, lp):
+        lp.sec("starting accounts, waiting for configuration")
+        ac1 = acfactory.get_online_configuring_account()
+        ac2 = acfactory.get_online_configuring_account()
+        ac2.set_config("save_mime_headers", "1")
+        c2 = ac1.create_contact(email=ac2.get_config("addr"))
+        chat = ac1.create_chat_by_contact(c2)
+        wait_configuration_progress(ac1, 1000)
+        wait_configuration_progress(ac2, 1000)
+        lp.sec("sending text message from ac1 to ac2")
+        msg_out = chat.send_text("message1")
+        ac1._evlogger.get_matching("DC_EVENT_MSG_DELIVERED")
+        assert ac1.get_mime_headers(msg_out.id) is None
+
+        lp.sec("wait for ac2 to receive message")
+        ev = ac2._evlogger.get_matching("DC_EVENT_MSGS_CHANGED")
+        in_id = ev[2]
+        mime = ac2.get_mime_headers(in_id)
+        assert mime.get_all("From")
+        assert mime.get_all("Received")
 
     def test_send_and_receive_image(self, acfactory, lp, data):
         lp.sec("starting accounts, waiting for configuration")
