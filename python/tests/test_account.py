@@ -181,6 +181,7 @@ class TestOfflineAccount:
         past1s = datetime.utcnow() - timedelta(seconds=1)
         msg = chat.send_text("msg1")
         ts = msg.time_sent
+        assert msg.time_received is None
         assert ts.strftime("Y")
         assert past1s < ts
         contact = msg.get_sender_contact()
@@ -259,6 +260,7 @@ class TestOnlineAccount:
         assert msg_in in chat2.get_messages()
         assert chat2.is_deaddrop()
         assert chat2.count_fresh_messages() == 0
+        assert msg_in.time_received > msg_in.time_sent
 
         lp.sec("create new chat with contact and verify it's proper")
         chat2b = ac2.create_chat_by_message(msg_in)
