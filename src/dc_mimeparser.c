@@ -1613,8 +1613,6 @@ void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_termi
 		dc_mimepart_t* part = (dc_mimepart_t*)carray_get(mimeparser->parts, 0);
 		if (part->type==DC_MSG_AUDIO) {
 			if (dc_mimeparser_lookup_optional_field2(mimeparser, "Chat-Voice-Message", "X-MrVoiceMessage")) {
-				free(part->msg);
-				part->msg = strdup("ogg"); /* DC_MSG_AUDIO adds sets the whole filename which is useless. however, the extension is useful. */
 				part->type = DC_MSG_VOICE;
 				dc_param_set(part->param, DC_PARAM_AUTHORNAME, NULL); /* remove unneeded information */
 				dc_param_set(part->param, DC_PARAM_TRACKNAME, NULL);
