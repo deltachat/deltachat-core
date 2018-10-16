@@ -1511,7 +1511,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_termi
 		}
 	}
 
-	if (dc_mimeparser_lookup_optional_field2(mimeparser, "Chat-Version", "X-MrMsg")) {
+	if (dc_mimeparser_lookup_optional_field(mimeparser, "Chat-Version")) {
 		mimeparser->is_send_by_messenger = 1;
 	}
 
@@ -1612,7 +1612,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_termi
 		and read some additional parameters */
 		dc_mimepart_t* part = (dc_mimepart_t*)carray_get(mimeparser->parts, 0);
 		if (part->type==DC_MSG_AUDIO) {
-			if (dc_mimeparser_lookup_optional_field2(mimeparser, "Chat-Voice-Message", "X-MrVoiceMessage")) {
+			if (dc_mimeparser_lookup_optional_field(mimeparser, "Chat-Voice-Message")) {
 				part->type = DC_MSG_VOICE;
 				dc_param_set(part->param, DC_PARAM_AUTHORNAME, NULL); /* remove unneeded information */
 				dc_param_set(part->param, DC_PARAM_TRACKNAME, NULL);
@@ -1620,7 +1620,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_termi
 		}
 
 		if (part->type==DC_MSG_AUDIO || part->type==DC_MSG_VOICE || part->type==DC_MSG_VIDEO) {
-			const struct mailimf_optional_field* field = dc_mimeparser_lookup_optional_field2(mimeparser, "Chat-Duration", "X-MrDurationMs");
+			const struct mailimf_optional_field* field = dc_mimeparser_lookup_optional_field(mimeparser, "Chat-Duration");
 			if (field) {
 				int duration_ms = atoi(field->fld_value);
 				if (duration_ms > 0 && duration_ms < 24*60*60*1000) {
@@ -1732,17 +1732,6 @@ struct mailimf_optional_field* dc_mimeparser_lookup_optional_field(dc_mimeparser
 		return field->fld_data.fld_optional_field;
 	}
 	return NULL;
-}
-
-
-/*
- * Lookup the first name and return, if found.
- * If not, try to lookup the second name.
- */
-struct mailimf_optional_field* dc_mimeparser_lookup_optional_field2(dc_mimeparser_t* mimeparser, const char* field_name, const char* or_field_name)
-{
-	struct mailimf_optional_field* of = dc_mimeparser_lookup_optional_field(mimeparser, field_name);
-	return of? of : dc_mimeparser_lookup_optional_field(mimeparser, or_field_name);
 }
 
 
