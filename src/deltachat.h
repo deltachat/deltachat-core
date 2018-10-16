@@ -494,6 +494,7 @@ uint32_t        dc_msg_get_chat_id           (const dc_msg_t*);
 int             dc_msg_get_viewtype          (const dc_msg_t*);
 int             dc_msg_get_state             (const dc_msg_t*);
 time_t          dc_msg_get_timestamp         (const dc_msg_t*);
+time_t          dc_msg_get_received_timestamp(const dc_msg_t*);
 char*           dc_msg_get_text              (const dc_msg_t*);
 char*           dc_msg_get_file              (const dc_msg_t*);
 char*           dc_msg_get_filename          (const dc_msg_t*);

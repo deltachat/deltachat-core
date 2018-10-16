@@ -92,12 +92,22 @@ class Message(object):
 
     @property_with_doc
     def time_sent(self):
-        """time (utc) when the message was sent.
+        """UTC time when the message was sent.
 
         :returns: naive datetime.datetime() object.
         """
         ts = lib.dc_msg_get_timestamp(self._dc_msg)
         return datetime.utcfromtimestamp(ts)
+
+    @property_with_doc
+    def time_received(self):
+        """UTC time when the message was received.
+
+        :returns: naive datetime.datetime() object or None if message is an outgoing one.
+        """
+        ts = lib.dc_msg_get_received_timestamp(self._dc_msg)
+        if ts:
+            return datetime.utcfromtimestamp(ts)
 
     @property
     def chat(self):
