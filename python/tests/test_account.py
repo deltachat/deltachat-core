@@ -178,7 +178,7 @@ class TestOfflineAccount:
         ac1 = acfactory.get_configured_offline_account()
         contact1 = ac1.create_contact("some1@hello.com", name="some1")
         chat = ac1.create_chat_by_contact(contact1)
-        past1s = datetime.now() - timedelta(seconds=1)
+        past1s = datetime.utcnow() - timedelta(seconds=1)
         msg = chat.send_text("msg1")
         ts = msg.time_sent
         assert ts.strftime("Y")
@@ -297,6 +297,7 @@ class TestOnlineAccount:
         mime = ac2.get_mime_headers(in_id)
         assert mime.get_all("From")
         assert mime.get_all("Received")
+        assert ac2.get_mime_headers(ac2.get_message_by_id(in_id)).get_all("From")
 
     def test_send_and_receive_image(self, acfactory, lp, data):
         lp.sec("starting accounts, waiting for configuration")
