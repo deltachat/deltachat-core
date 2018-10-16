@@ -9,6 +9,14 @@ For a high-level overview about changes anywhere in the Delta Chat ecosystem,
 see https://delta.chat/en/changelog
 
 
+## v0.23.0
+2018-10-17
+
+* add dc_get_received_timestamp()
+* dc_send_X_msg() functions removed in favor to dc_send_msg()
+* removed deprcated mrmailbox.h
+
+
 ## v0.22.0
 2018-10-11
 
