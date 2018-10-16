@@ -130,7 +130,9 @@ class Chat(object):
         """
         path = as_dc_charpointer(path)
         mtype = as_dc_charpointer(mime_type)
-        msg_id = lib.dc_send_file_msg(self._dc_context, self.id, path, mtype)
+        msg = Message.new(self._dc_context, "file")
+        msg.set_file(path, mtype)
+        msg_id = lib.dc_send_msg(self._dc_context, self.id, msg._dc_msg)
         if msg_id == 0:
             raise ValueError("message could not be send, does chat exist?")
         return Message.from_db(self._dc_context, msg_id)
