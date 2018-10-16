@@ -254,6 +254,27 @@ time_t dc_msg_get_timestamp(const dc_msg_t* msg)
 
 
 /**
+ * Get message receive time.
+ * The receive time is returned as a unix timestamp in seconds.
+ *
+ * To get the sending time, use dc_msg_get_timestamp().
+ *
+ * @memberof dc_msg_t
+ * @param msg The message object.
+ * @return Receiving time of the message.
+ *     For outgoing messages, 0 is returned.
+ */
+time_t dc_msg_get_received_timestamp(const dc_msg_t* msg)
+{
+	if (msg==NULL || msg->magic!=DC_MSG_MAGIC) {
+		return 0;
+	}
+
+	return msg->timestamp_rcvd;
+}
+
+
+/**
  * Get the text of the message.
  * If there is no text associated with the message, an empty string is returned.
  * NULL is never returned.
