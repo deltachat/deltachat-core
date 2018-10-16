@@ -265,12 +265,6 @@ uint32_t        dc_get_chat_id_by_contact_id (dc_context_t*, uint32_t contact_id
 
 uint32_t        dc_send_msg                  (dc_context_t*, uint32_t chat_id, dc_msg_t*);
 uint32_t        dc_send_text_msg             (dc_context_t*, uint32_t chat_id, const char* text_to_send);
-uint32_t        dc_send_image_msg            (dc_context_t*, uint32_t chat_id, const char* file, const char* filemime, int width, int height);
-uint32_t        dc_send_video_msg            (dc_context_t*, uint32_t chat_id, const char* file, const char* filemime, int width, int height, int duration);
-uint32_t        dc_send_voice_msg            (dc_context_t*, uint32_t chat_id, const char* file, const char* filemime, int duration);
-uint32_t        dc_send_audio_msg            (dc_context_t*, uint32_t chat_id, const char* file, const char* filemime, int duration, const char* author, const char* trackname);
-uint32_t        dc_send_file_msg             (dc_context_t*, uint32_t chat_id, const char* file, const char* filemime);
-uint32_t        dc_send_vcard_msg            (dc_context_t*, uint32_t chat_id, uint32_t contact_id);
 void            dc_set_text_draft            (dc_context_t*, uint32_t chat_id, const char*);
 
 #define         DC_GCM_ADDDAYMARKER          0x01
