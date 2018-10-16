@@ -23,7 +23,6 @@
 #include "dc_context.h"
 #include "dc_mimeparser.h"
 #include "dc_mimefactory.h"
-#include "dc_uudecode.h"
 #include "dc_pgp.h"
 #include "dc_simplify.h"
 
@@ -1076,36 +1075,7 @@ static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* mimeparser, s
 					}
 				}
 
-				// add uuencoded stuff as DC_MSG_FILE/DC_MSG_IMAGE/etc. parts
-				char* txt = strndup(decoded_data, decoded_data_bytes);
-				{
-					char*  uu_blob = NULL, *uu_filename = NULL, *new_txt = NULL;
-					size_t uu_blob_bytes = 0;
-					int    uu_msg_type = 0, added_uu_parts = 0;
-					while ((new_txt=dc_uudecode_do(txt, &uu_blob, &uu_blob_bytes, &uu_filename))!=NULL)
-					{
-						dc_msg_guess_msgtype_from_suffix(uu_filename, &uu_msg_type, NULL);
-						if (uu_msg_type==0) {
-							uu_msg_type = DC_MSG_FILE;
-						}
-
-						do_add_single_file_part(mimeparser, uu_msg_type, 0, uu_blob, uu_blob_bytes, uu_filename);
-
-						free(txt);         txt = new_txt; new_txt = NULL;
-						free(uu_blob);     uu_blob = NULL; uu_blob_bytes = 0; uu_msg_type = 0;
-						free(uu_filename); uu_filename = NULL;
-
-						added_uu_parts++;
-						if (added_uu_parts > 50/*fence against endless loops*/) {
-							break;
-						}
-					}
-				}
-
-				// add text as DC_MSG_TEXT part
-				char* simplified_txt = dc_simplify_simplify(simplifier, txt, strlen(txt), mime_type==DC_MIMETYPE_TEXT_HTML? 1 : 0);
-				free(txt);
-				txt = NULL;
+				char* simplified_txt = dc_simplify_simplify(simplifier, decoded_data, decoded_data_bytes, mime_type==DC_MIMETYPE_TEXT_HTML? 1 : 0);
 				if (simplified_txt && simplified_txt[0])
 				{
 					part = dc_mimepart_new();
