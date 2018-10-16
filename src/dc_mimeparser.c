@@ -989,16 +989,6 @@ static void do_add_single_file_part(dc_mimeparser_t* parser, int msg_type, int m
 		}
 	}
 
-	/* split author/title from the original filename (if we do it from the real filename, we'll also get numbers appended by dc_get_fine_pathNfilename()) */
-	if (msg_type==DC_MSG_AUDIO) {
-		char* author = NULL, *title = NULL;
-		dc_msg_get_authorNtitle_from_filename(desired_filename, &author, &title);
-		dc_param_set(part->param, DC_PARAM_AUTHORNAME, author);
-		dc_param_set(part->param, DC_PARAM_TRACKNAME, title);
-		free(author);
-		free(title);
-	}
-
 	do_add_single_part(parser, part);
 	part = NULL;
 
@@ -1584,8 +1574,6 @@ void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_termi
 		if (part->type==DC_MSG_AUDIO) {
 			if (dc_mimeparser_lookup_optional_field(mimeparser, "Chat-Voice-Message")) {
 				part->type = DC_MSG_VOICE;
-				dc_param_set(part->param, DC_PARAM_AUTHORNAME, NULL); /* remove unneeded information */
-				dc_param_set(part->param, DC_PARAM_TRACKNAME, NULL);
 			}
 		}
 

@@ -48,8 +48,6 @@ typedef struct dc_param_t
 #define DC_PARAM_HEIGHT            'h'  /* for msgs */
 #define DC_PARAM_DURATION          'd'  /* for msgs */
 #define DC_PARAM_MIMETYPE          'm'  /* for msgs */
-#define DC_PARAM_AUTHORNAME        'N'  /* for msgs: name of author or artist */
-#define DC_PARAM_TRACKNAME         'n'  /* for msgs: name of author or artist */
 #define DC_PARAM_GUARANTEE_E2EE    'c'  /* for msgs: incoming: message is encryoted, outgoing: guarantee E2EE or the message is not send */
 #define DC_PARAM_ERRONEOUS_E2EE    'e'  /* for msgs: decrypted with validation errors or without mutual set, if neither 'c' nor 'e' are preset, the messages is only transport encrypted */
 #define DC_PARAM_FORCE_PLAINTEXT   'u'  /* for msgs: force unencrypted message, either DC_FP_ADD_AUTOCRYPT_HEADER (1), DC_FP_NO_AUTOCRYPT_HEADER (2) or 0 */

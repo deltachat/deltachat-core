@@ -44,8 +44,7 @@ dc_lot_t* dc_lot_new()
 /**
  * Frees an object containing a set of parameters.
  * If the set object contains strings, the strings are also freed with this function.
- * Set objects are created eg. by dc_chatlist_get_summary(), dc_msg_get_summary or by
- * dc_msg_get_mediainfo().
+ * Set objects are created eg. by dc_chatlist_get_summary() or dc_msg_get_summary().
  *
  * @memberof dc_lot_t
  * @param set The object to free.

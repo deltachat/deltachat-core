@@ -470,8 +470,6 @@ void stress_functions(dc_context_t* context)
 		assert( DC_PARAM_HEIGHT == 'h' );
 		assert( DC_PARAM_DURATION == 'd' );
 		assert( DC_PARAM_MIMETYPE == 'm' );
-		assert( DC_PARAM_AUTHORNAME == 'N' );
-		assert( DC_PARAM_TRACKNAME == 'n' );
 		assert( DC_PARAM_FORWARDED == 'a' );
 		assert( DC_PARAM_UNPROMOTED == 'U' );
 

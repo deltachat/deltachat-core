@@ -94,7 +94,6 @@ int             dc_msg_is_increation                  (const dc_msg_t*);
 char*           dc_msg_get_summarytext_by_raw         (int type, const char* text, dc_param_t*, int approx_bytes, dc_context_t*); /* the returned value must be free()'d */
 void            dc_msg_save_param_to_disk             (dc_msg_t*);
 void            dc_msg_guess_msgtype_from_suffix      (const char* pathNfilename, int* ret_msgtype, char** ret_mime);
-void            dc_msg_get_authorNtitle_from_filename (const char* pathNfilename, char** ret_author, char** ret_title);
 
 #define DC_MSG_NEEDS_ATTACHMENT(a)         ((a)==DC_MSG_IMAGE || (a)==DC_MSG_GIF || (a)==DC_MSG_AUDIO || (a)==DC_MSG_VOICE || (a)==DC_MSG_VIDEO || (a)==DC_MSG_FILE)
 
