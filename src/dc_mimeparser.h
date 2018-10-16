@@ -95,7 +95,6 @@ void             dc_mimeparser_parse                  (dc_mimeparser_t*, const c
 /* the following functions can be used only after a call to dc_mimeparser_parse() */
 struct mailimf_field*          dc_mimeparser_lookup_field           (dc_mimeparser_t*, const char* field_name);
 struct mailimf_optional_field* dc_mimeparser_lookup_optional_field  (dc_mimeparser_t*, const char* field_name);
-struct mailimf_optional_field* dc_mimeparser_lookup_optional_field2 (dc_mimeparser_t*, const char* field_name, const char* or_field_name);
 dc_mimepart_t*                 dc_mimeparser_get_last_nonmeta       (dc_mimeparser_t*);
 #define                        dc_mimeparser_has_nonmeta(a)         (dc_mimeparser_get_last_nonmeta((a))!=NULL)
 int                            dc_mimeparser_is_mailinglist_message (dc_mimeparser_t*);

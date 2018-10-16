@@ -164,7 +164,7 @@ static int dc_is_reply_to_known_message(dc_context_t* context, dc_mimeparser_t* 
 	`In-Reply-To`/`References:` (to support non-Delta-Clients) or from `Chat-Predecessor:` (Delta clients, see comment in dc_chat.c) */
 
 	struct mailimf_optional_field* optional_field = NULL;
-	if ((optional_field=dc_mimeparser_lookup_optional_field2(mime_parser, "Chat-Predecessor", "X-MrPredecessor"))!=NULL)
+	if ((optional_field=dc_mimeparser_lookup_optional_field(mime_parser, "Chat-Predecessor"))!=NULL)
 	{
 		if (is_known_rfc724_mid(context, optional_field->fld_value)) {
 			return 1;
@@ -706,7 +706,7 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 		struct mailimf_field*          field = NULL;
 		struct mailimf_optional_field* optional_field = NULL;
 
-		if ((optional_field=dc_mimeparser_lookup_optional_field2(mime_parser, "Chat-Group-ID", "X-MrGrpId"))!=NULL) {
+		if ((optional_field=dc_mimeparser_lookup_optional_field(mime_parser, "Chat-Group-ID"))!=NULL) {
 			grpid = dc_strdup(optional_field->fld_value);
 		}
 
@@ -746,19 +746,19 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 			}
 		}
 
-		if ((optional_field=dc_mimeparser_lookup_optional_field2(mime_parser, "Chat-Group-Name", "X-MrGrpName"))!=NULL) {
+		if ((optional_field=dc_mimeparser_lookup_optional_field(mime_parser, "Chat-Group-Name"))!=NULL) {
 			grpname = dc_decode_header_words(optional_field->fld_value); /* this is no changed groupname message */
 		}
 
-		if ((optional_field=dc_mimeparser_lookup_optional_field2(mime_parser, "Chat-Group-Member-Removed", "X-MrRemoveFromGrp"))!=NULL) {
+		if ((optional_field=dc_mimeparser_lookup_optional_field(mime_parser, "Chat-Group-Member-Removed"))!=NULL) {
 			X_MrRemoveFromGrp = optional_field->fld_value;
 			mime_parser->is_system_message = DC_CMD_MEMBER_REMOVED_FROM_GROUP;
 		}
-		else if ((optional_field=dc_mimeparser_lookup_optional_field2(mime_parser, "Chat-Group-Member-Added", "X-MrAddToGrp"))!=NULL) {
+		else if ((optional_field=dc_mimeparser_lookup_optional_field(mime_parser, "Chat-Group-Member-Added"))!=NULL) {
 			X_MrAddToGrp = optional_field->fld_value;
 			mime_parser->is_system_message = DC_CMD_MEMBER_ADDED_TO_GROUP;
 		}
-		else if ((optional_field=dc_mimeparser_lookup_optional_field2(mime_parser, "Chat-Group-Name-Changed", "X-MrGrpNameChanged"))!=NULL) {
+		else if ((optional_field=dc_mimeparser_lookup_optional_field(mime_parser, "Chat-Group-Name-Changed"))!=NULL) {
 			X_MrGrpNameChanged = 1;
 			mime_parser->is_system_message = DC_CMD_GROUPNAME_CHANGED;
 		}

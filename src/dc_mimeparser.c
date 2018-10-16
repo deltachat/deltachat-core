@@ -23,7 +23,6 @@
 #include "dc_context.h"
 #include "dc_mimeparser.h"
 #include "dc_mimefactory.h"
-#include "dc_uudecode.h"
 #include "dc_pgp.h"
 #include "dc_simplify.h"
 
@@ -1076,36 +1075,7 @@ static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* mimeparser, s
 					}
 				}
 
-				// add uuencoded stuff as DC_MSG_FILE/DC_MSG_IMAGE/etc. parts
-				char* txt = strndup(decoded_data, decoded_data_bytes);
-				{
-					char*  uu_blob = NULL, *uu_filename = NULL, *new_txt = NULL;
-					size_t uu_blob_bytes = 0;
-					int    uu_msg_type = 0, added_uu_parts = 0;
-					while ((new_txt=dc_uudecode_do(txt, &uu_blob, &uu_blob_bytes, &uu_filename))!=NULL)
-					{
-						dc_msg_guess_msgtype_from_suffix(uu_filename, &uu_msg_type, NULL);
-						if (uu_msg_type==0) {
-							uu_msg_type = DC_MSG_FILE;
-						}
-
-						do_add_single_file_part(mimeparser, uu_msg_type, 0, uu_blob, uu_blob_bytes, uu_filename);
-
-						free(txt);         txt = new_txt; new_txt = NULL;
-						free(uu_blob);     uu_blob = NULL; uu_blob_bytes = 0; uu_msg_type = 0;
-						free(uu_filename); uu_filename = NULL;
-
-						added_uu_parts++;
-						if (added_uu_parts > 50/*fence against endless loops*/) {
-							break;
-						}
-					}
-				}
-
-				// add text as DC_MSG_TEXT part
-				char* simplified_txt = dc_simplify_simplify(simplifier, txt, strlen(txt), mime_type==DC_MIMETYPE_TEXT_HTML? 1 : 0);
-				free(txt);
-				txt = NULL;
+				char* simplified_txt = dc_simplify_simplify(simplifier, decoded_data, decoded_data_bytes, mime_type==DC_MIMETYPE_TEXT_HTML? 1 : 0);
 				if (simplified_txt && simplified_txt[0])
 				{
 					part = dc_mimepart_new();
@@ -1511,7 +1481,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_termi
 		}
 	}
 
-	if (dc_mimeparser_lookup_optional_field2(mimeparser, "Chat-Version", "X-MrMsg")) {
+	if (dc_mimeparser_lookup_optional_field(mimeparser, "Chat-Version")) {
 		mimeparser->is_send_by_messenger = 1;
 	}
 
@@ -1612,7 +1582,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_termi
 		and read some additional parameters */
 		dc_mimepart_t* part = (dc_mimepart_t*)carray_get(mimeparser->parts, 0);
 		if (part->type==DC_MSG_AUDIO) {
-			if (dc_mimeparser_lookup_optional_field2(mimeparser, "Chat-Voice-Message", "X-MrVoiceMessage")) {
+			if (dc_mimeparser_lookup_optional_field(mimeparser, "Chat-Voice-Message")) {
 				part->type = DC_MSG_VOICE;
 				dc_param_set(part->param, DC_PARAM_AUTHORNAME, NULL); /* remove unneeded information */
 				dc_param_set(part->param, DC_PARAM_TRACKNAME, NULL);
@@ -1620,7 +1590,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_termi
 		}
 
 		if (part->type==DC_MSG_AUDIO || part->type==DC_MSG_VOICE || part->type==DC_MSG_VIDEO) {
-			const struct mailimf_optional_field* field = dc_mimeparser_lookup_optional_field2(mimeparser, "Chat-Duration", "X-MrDurationMs");
+			const struct mailimf_optional_field* field = dc_mimeparser_lookup_optional_field(mimeparser, "Chat-Duration");
 			if (field) {
 				int duration_ms = atoi(field->fld_value);
 				if (duration_ms > 0 && duration_ms < 24*60*60*1000) {
@@ -1732,17 +1702,6 @@ struct mailimf_optional_field* dc_mimeparser_lookup_optional_field(dc_mimeparser
 		return field->fld_data.fld_optional_field;
 	}
 	return NULL;
-}
-
-
-/*
- * Lookup the first name and return, if found.
- * If not, try to lookup the second name.
- */
-struct mailimf_optional_field* dc_mimeparser_lookup_optional_field2(dc_mimeparser_t* mimeparser, const char* field_name, const char* or_field_name)
-{
-	struct mailimf_optional_field* of = dc_mimeparser_lookup_optional_field(mimeparser, field_name);
-	return of? of : dc_mimeparser_lookup_optional_field(mimeparser, or_field_name);
 }
 
 
