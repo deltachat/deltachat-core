@@ -536,9 +536,6 @@
 		<Unit filename="src/dc_tools.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="src/dc_uudecode.c">
-			<Option compilerVar="CC" />
-		</Unit>
 		<Unit filename="src/deltachat.h" />
 		<Extensions>
 			<envvars />
