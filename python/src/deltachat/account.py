@@ -223,7 +223,7 @@ class Account(object):
         """ return Message instance. """
         return Message.from_db(self._dc_context, msg_id)
 
-    def get_mime_headers(self, msg_id):
+    def get_mime_headers(self, msg):
         """ return mime-header object for an incoming message.
 
         This only returns a non-None object if ``save_mime_headers``
@@ -234,6 +234,7 @@ class Account(object):
         :returns: email-mime message object.
         """
         import email.parser
+        msg_id = getattr(msg, "id", msg)
         mime_headers = lib.dc_get_mime_headers(self._dc_context, msg_id)
         if mime_headers:
             s = ffi.string(mime_headers)
