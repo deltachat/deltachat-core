@@ -421,6 +421,12 @@ int dc_get_archived_cnt(dc_context_t* context)
 /**
  * Get a list of chats.
  * The list can be filtered by query parameters.
+ *
+ * The list is already sorted and starts with the most recent chat in use.
+ * The sorting takes care of invalid sending dates, drafts and chats without messages.
+ * Clients should not try to re-sort the list as this would be an expensive action
+ * and would result in inconsistencies between clients.
+ *
  * To get information about each entry, use eg. dc_chatlist_get_summary().
  *
  * By default, the function adds some special entries to the list.

@@ -972,6 +972,11 @@ cleanup:
 
 /**
  * Get all message IDs belonging to a chat.
+ *
+ * The list is already sorted and starts with the oldest message.
+ * Clients should not try to re-sort the list as this would be an expensive action
+ * and would result in inconsistencies between clients.
+ *
  * Optionally, some special markers added to the ID-array may help to
  * implement virtual lists.
  *
