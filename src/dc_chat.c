@@ -143,7 +143,7 @@ uint32_t dc_chat_get_id(const dc_chat_t* chat)
  *   chats_contacts contains one record for the user.  DC_CONTACT_ID_SELF
  *   (see dc_contact_t::id) is added _only_ for a self talk.
  *
- * - DC_CHAT_TYPE_GROUP  (120) - a group chat, chats_contacts conain all group
+ * - DC_CHAT_TYPE_GROUP  (120) - a group chat, chats_contacts contain all group
  *   members, incl. DC_CONTACT_ID_SELF
  *
  * - DC_CHAT_TYPE_VERIFIED_GROUP  (130) - a verified group chat. In verified groups,
