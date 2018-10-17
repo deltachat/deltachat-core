@@ -376,7 +376,7 @@ static char* get_sys_config_str(const char* key)
  *                    NULL to remove the avatar.
  * - `e2ee_enabled` = 0=no end-to-end-encryption, 1=prefer end-to-end-encryption (default)
  * - `mdns_enabled` = 0=do not send or request read receipts,
- *                    1=send and request read receipts
+ *                    1=send and request read receipts (default)
  * - `save_mime_headers` = set this to "1" if you want to use dc_get_mime_headers() later
  *
  * If you want to retrieve a value, use dc_get_config().
