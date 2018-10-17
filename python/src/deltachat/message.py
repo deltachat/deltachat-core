@@ -18,7 +18,10 @@ class Message(object):
     :class:`deltachat.chatting.Chat`.
     """
     _dc_context = attr.ib(validator=v.instance_of(ffi.CData))
-    id = attr.ib(validator=v.instance_of(int))
+    try:
+        id = attr.ib(validator=v.instance_of((int, long)))
+    except NameError:  # py35
+        id = attr.ib(validator=v.instance_of(int))
 
     @property
     def _dc_msg(self):
