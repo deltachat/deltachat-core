@@ -376,16 +376,7 @@ static struct mailmime* build_body_file(const dc_msg_t* msg, const char* base_na
 			suffix? suffix : "dat");
 	}
 	else if (msg->type==DC_MSG_AUDIO) {
-		char* author = dc_param_get(msg->param, DC_PARAM_AUTHORNAME, NULL);
-		char* title = dc_param_get(msg->param, DC_PARAM_TRACKNAME, NULL);
-		if (author && author[0] && title && title[0] && suffix) {
-			filename_to_send = dc_mprintf("%s - %s.%s",  author, title, suffix); /* the separator ` - ` is used on the receiver's side to construct the information; we avoid using ID3-scanners for security purposes */
-		}
-		else {
-			filename_to_send = dc_get_filename(pathNfilename);
-		}
-		free(author);
-		free(title);
+		filename_to_send = dc_get_filename(pathNfilename);
 	}
 	else if (msg->type==DC_MSG_IMAGE || msg->type==DC_MSG_GIF) {
 		if (base_name==NULL) {

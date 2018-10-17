@@ -500,7 +500,6 @@ char*           dc_msg_get_file              (const dc_msg_t*);
 char*           dc_msg_get_filename          (const dc_msg_t*);
 char*           dc_msg_get_filemime          (const dc_msg_t*);
 uint64_t        dc_msg_get_filebytes         (const dc_msg_t*);
-dc_lot_t*       dc_msg_get_mediainfo         (const dc_msg_t*);
 int             dc_msg_get_width             (const dc_msg_t*);
 int             dc_msg_get_height            (const dc_msg_t*);
 int             dc_msg_get_duration          (const dc_msg_t*);
@@ -518,7 +517,6 @@ void            dc_msg_set_text              (dc_msg_t*, const char* text);
 void            dc_msg_set_file              (dc_msg_t*, const char* file, const char* filemime);
 void            dc_msg_set_dimension         (dc_msg_t*, int width, int height);
 void            dc_msg_set_duration          (dc_msg_t*, int duration);
-void            dc_msg_set_mediainfo         (dc_msg_t*, const char* author, const char* trackname);
 void            dc_msg_latefiling_mediasize  (dc_msg_t*, int width, int height, int duration);
 
 
@@ -559,7 +557,7 @@ int             dc_contact_is_verified       (dc_contact_t*);
  * @class dc_lot_t
  *
  * An object containing a set of values.  The meaning of the values is defined by the function returning the set object.
- * Set objects are created eg. by dc_chatlist_get_summary(), dc_msg_get_summary() or by dc_msg_get_mediainfo().
+ * Set objects are created eg. by dc_chatlist_get_summary() or dc_msg_get_summary().
  *
  * NB: _Lot_ is used in the meaning _heap_ here.
  */

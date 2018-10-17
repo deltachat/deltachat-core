@@ -441,65 +441,6 @@ cleanup:
 
 
 /**
- * Get real author and title.
- *
- * The information is returned by a dc_lot_t object with the following fields:
- *
- * - dc_lot_t::text1: Author of the media.  For voice messages, this is the sender.
- *   For music messages, the information are read from the filename. NULL if unknown.
- * - dc_lot_t::text2: Title of the media.  For voice messages, this is the date.
- *   For music messages, the information are read from the filename. NULL if unknown.
- *
- * Currently, we do not read ID3 and such at this stage, the needed libraries are too complicated and oversized.
- * However, this is no big problem, as the sender usually sets the filename in a way we expect it.
- *
- * @memberof dc_msg_t
- * @param msg The message object.
- * @return Media information as an dc_lot_t object. Must be freed using dc_lot_unref().  NULL is never returned.
- */
-dc_lot_t* dc_msg_get_mediainfo(const dc_msg_t* msg)
-{
-	dc_lot_t*     ret = dc_lot_new();
-	char*         pathNfilename = NULL;
-	dc_contact_t* contact = NULL;
-
-	if (msg==NULL || msg->magic!=DC_MSG_MAGIC || msg->context==NULL) {
-		goto cleanup;
-	}
-
-	if (msg->type==DC_MSG_VOICE)
-	{
-		if ((contact = dc_get_contact(msg->context, msg->from_id))==NULL) {
-			goto cleanup;
-		}
-		ret->text1 = dc_strdup((contact->name&&contact->name[0])? contact->name : contact->addr);
-		ret->text2 = dc_stock_str(msg->context, DC_STR_VOICEMESSAGE);
-	}
-	else
-	{
-		ret->text1 = dc_param_get(msg->param, DC_PARAM_AUTHORNAME, NULL);
-		ret->text2 = dc_param_get(msg->param, DC_PARAM_TRACKNAME, NULL);
-		if (ret->text1 && ret->text1[0] && ret->text2 && ret->text2[0]) {
-			goto cleanup;
-		}
-		free(ret->text1); ret->text1 = NULL;
-		free(ret->text2); ret->text2 = NULL;
-
-		pathNfilename = dc_param_get(msg->param, DC_PARAM_FILE, NULL);
-		if (pathNfilename==NULL) {
-			goto cleanup;
-		}
-		dc_msg_get_authorNtitle_from_filename(pathNfilename, &ret->text1, &ret->text2);
-	}
-
-cleanup:
-	free(pathNfilename);
-	dc_contact_unref(contact);
-	return ret;
-}
-
-
-/**
  * Get width of image or video.  The width is returned in pixels.
  * If the width is unknown or if the associated file is no image or video file,
  * 0 is returned.
@@ -966,38 +907,6 @@ cleanup:
 }
 
 
-/**
- * Extracts AUTHOR and TITLE from a path.
- * Ideally, the path is something like `/path/AUTHOR - TITLE.mp3`.
- * If the separator ` - ` is not preset, the whole name (without suffix) is used as TITLE and AUTHOR is NULL.
- *
- * @private @memberof dc_msg_t
- * @param pathNfilename Path to extract AUTHOR and TITLE from.
- * @param[out] ret_author If present, AUTHOR is copied here, must be free()'d then.
- *     NULL if you're not interested in this value.
- * @param[out] ret_title If present, TITLE is copied here, must be free()'d then.
- *     NULL if you're not interested in this value.
- * @return None.
- */
-void dc_msg_get_authorNtitle_from_filename(const char* pathNfilename, char** ret_author, char** ret_title)
-{
-	char* author = NULL;
-	char* title = NULL;
-	char* p = NULL;
-
-	dc_split_filename(pathNfilename, &title, NULL);
-	p = strstr(title, " - ");
-	if (p) {
-		*p = 0;
-		author = title;
-		title  = dc_strdup(&p[3]);
-	}
-
-	if (ret_author) { *ret_author = author; } else { free(author); }
-	if (ret_title)  { *ret_title  = title; }  else { free(title); }
-}
-
-
 char* dc_msg_get_summarytext_by_raw(int type, const char* text, dc_param_t* param, int approx_characters, dc_context_t* context)
 {
 	/* get a summary text, result must be free()'d, never returns NULL. */
@@ -1024,10 +933,7 @@ char* dc_msg_get_summarytext_by_raw(int type, const char* text, dc_param_t* para
 			break;
 
 		case DC_MSG_AUDIO:
-			if ((value=dc_param_get(param, DC_PARAM_TRACKNAME, NULL))==NULL) { /* although we send files with "author - title" in the filename, existing files may follow other conventions, so this lookup is neccessary */
-				pathNfilename = dc_param_get(param, DC_PARAM_FILE, "ErrFilename");
-				dc_msg_get_authorNtitle_from_filename(pathNfilename, NULL, &value);
-			}
+			value = dc_param_get(param, DC_PARAM_FILE, "ErrFilename");
 			label = dc_stock_str(context, DC_STR_AUDIO);
 			ret = dc_mprintf("%s: %s", label, value);
 			break;
@@ -1196,27 +1102,6 @@ void dc_msg_set_duration(dc_msg_t* msg, int duration)
 		return;
 	}
 	dc_param_set_int(msg->param, DC_PARAM_DURATION, duration);
-}
-
-
-/**
- * Set the media information associated with message object.
- * Typically this is the author and the trackname of an audio or video associated using dc_msg_set_file().
- * This does not alter any information in the database; this may be done by dc_send_msg() later.
- *
- * @memberof dc_msg_t
- * @param msg The message object.
- * @param author Author or artist. NULL if you don't know or don't care.
- * @param trackname Trackname or title. NULL if you don't know or don't care.
- * @return None.
- */
-void dc_msg_set_mediainfo(dc_msg_t* msg, const char* author, const char* trackname)
-{
-	if (msg==NULL || msg->magic!=DC_MSG_MAGIC) {
-		return;
-	}
-	dc_param_set(msg->param, DC_PARAM_AUTHORNAME, author);
-	dc_param_set(msg->param, DC_PARAM_TRACKNAME, trackname);
 }
 
 
