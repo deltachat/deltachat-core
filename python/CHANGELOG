@@ -1,3 +1,23 @@
+0.8.0
+-----
+
+- now depends on core tagged as v0.23.0
+
+- drop send_image and other helper methods in favor of 
+  just a Chat.send_file() that takes all kinds of media types
+
+- introduce Message.get_mime_headers() which returns 
+  the headers for an incoming message if the ``save_mime_headers``
+  config option is set. 
+
+- add Message.time_received attribute, now returning an unaware
+  datetime
+
+- set_config() and get_config() now throw an error if a config option
+  does not exist 
+
+- some API renames
+
 0.7.1
 -----
 

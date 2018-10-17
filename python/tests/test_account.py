@@ -291,15 +291,14 @@ class TestOnlineAccount:
         lp.sec("sending text message from ac1 to ac2")
         msg_out = chat.send_text("message1")
         ac1._evlogger.get_matching("DC_EVENT_MSG_DELIVERED")
-        assert ac1.get_mime_headers(msg_out.id) is None
+        assert msg_out.get_mime_headers() is None
 
         lp.sec("wait for ac2 to receive message")
         ev = ac2._evlogger.get_matching("DC_EVENT_MSGS_CHANGED")
         in_id = ev[2]
-        mime = ac2.get_mime_headers(in_id)
+        mime = ac2.get_message_by_id(in_id).get_mime_headers()
         assert mime.get_all("From")
         assert mime.get_all("Received")
-        assert ac2.get_mime_headers(ac2.get_message_by_id(in_id)).get_all("From")
 
     def test_send_and_receive_image(self, acfactory, lp, data):
         lp.sec("starting accounts, waiting for configuration")

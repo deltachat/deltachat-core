@@ -109,6 +109,22 @@ class Message(object):
         if ts:
             return datetime.utcfromtimestamp(ts)
 
+    def get_mime_headers(self):
+        """ return mime-header object for an incoming message.
+
+        This only returns a non-None object if ``save_mime_headers``
+        config option was set and the message is incoming.
+
+        :returns: email-mime message object (with headers only, no body).
+        """
+        import email.parser
+        mime_headers = lib.dc_get_mime_headers(self._dc_context, self.id)
+        if mime_headers:
+            s = ffi.string(mime_headers)
+            if isinstance(s, bytes):
+                s = s.decode("ascii")
+            return email.message_from_string(s)
+
     @property
     def chat(self):
         """chat this message was posted in.
