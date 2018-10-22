@@ -933,11 +933,6 @@ char* dc_msg_get_summarytext_by_raw(int type, const char* text, dc_param_t* para
 			break;
 
 		case DC_MSG_AUDIO:
-			value = dc_param_get(param, DC_PARAM_FILE, "ErrFilename");
-			label = dc_stock_str(context, DC_STR_AUDIO);
-			ret = dc_mprintf("%s: %s", label, value);
-			break;
-
 		case DC_MSG_FILE:
 			if (dc_param_get_int(param, DC_PARAM_CMD, 0)==DC_CMD_AUTOCRYPT_SETUP_MESSAGE) {
 				ret = dc_stock_str(context, DC_STR_AC_SETUP_MSG_SUBJECT);
@@ -945,7 +940,7 @@ char* dc_msg_get_summarytext_by_raw(int type, const char* text, dc_param_t* para
 			else {
 				pathNfilename = dc_param_get(param, DC_PARAM_FILE, "ErrFilename");
 				value = dc_get_filename(pathNfilename);
-				label = dc_stock_str(context, DC_STR_FILE);
+				label = dc_stock_str(context, type==DC_MSG_AUDIO? DC_STR_AUDIO : DC_STR_FILE);
 				ret = dc_mprintf("%s: %s", label, value);
 			}
 			break;
