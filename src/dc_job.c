@@ -308,11 +308,10 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 		goto cleanup;
 	}
 
-	/* copy the file to the internal blob directory (if it is not already there) */
+	/* set width/height of images, if not yet done */
 	if (DC_MSG_NEEDS_ATTACHMENT(mimefactory.msg->type)) {
 		char* pathNfilename = dc_param_get(mimefactory.msg->param, DC_PARAM_FILE, NULL);
 		if (pathNfilename) {
-			/* set width/height of images, if not yet done */
 			if ((mimefactory.msg->type==DC_MSG_IMAGE || mimefactory.msg->type==DC_MSG_GIF)
 			 && !dc_param_exists(mimefactory.msg->param, DC_PARAM_WIDTH)) {
 				unsigned char* buf = NULL; size_t buf_bytes; uint32_t w, h;
