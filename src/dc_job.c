@@ -214,10 +214,6 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* context, dc_job_
 		in_ms_flags |= DC_MS_SET_MDNSent_FLAG;
 	}
 
-	if (msg->is_msgrmsg) {
-		in_ms_flags |= DC_MS_ALSO_MOVE;
-	}
-
 	if (dc_imap_markseen_msg(context->imap, msg->server_folder, msg->server_uid,
 		   in_ms_flags, &new_server_folder, &new_server_uid, &out_ms_flags)!=0)
 	{
@@ -261,7 +257,7 @@ static void dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP(dc_context_t* context, dc_job_
 		}
 	}
 
-	if (dc_imap_markseen_msg(context->imap, server_folder, server_uid, DC_MS_ALSO_MOVE, &new_server_folder, &new_server_uid, &out_ms_flags)==0) {
+	if (dc_imap_markseen_msg(context->imap, server_folder, server_uid, 0, &new_server_folder, &new_server_uid, &out_ms_flags)==0) {
 		dc_job_try_again_later(job, DC_AT_ONCE, NULL);
 	}
 
