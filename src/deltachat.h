@@ -700,8 +700,6 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  */
 
 #define DC_LP_AUTH_XOAUTH2               0x2
-#define DC_NO_EXTRA_IMAP_UPLOAD    0x2000000
-#define DC_NO_MOVE_TO_CHATS        0x4000000
 #define DC_LP_AUTH_FLAGS        (DC_LP_AUTH_XOAUTH2|DC_LP_AUTH_NORMAL) // if none of these flags are set, the default is choosen
 #define DC_LP_IMAP_SOCKET_FLAGS (DC_LP_IMAP_SOCKET_STARTTLS|DC_LP_IMAP_SOCKET_SSL|DC_LP_IMAP_SOCKET_PLAIN) // if none of these flags are set, the default is choosen
 #define DC_LP_SMTP_SOCKET_FLAGS (DC_LP_SMTP_SOCKET_STARTTLS|DC_LP_SMTP_SOCKET_SSL|DC_LP_SMTP_SOCKET_PLAIN) // if none of these flags are set, the default is choosen

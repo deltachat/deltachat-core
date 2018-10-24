@@ -304,101 +304,6 @@ static void free_folders(clist* folders)
 }
 
 
-static int init_chat_folders(dc_imap_t* imap)
-{
-	int        success = 0;
-	clist*     folder_list = NULL;
-	clistiter* iter1;
-	char*      normal_folder = NULL;
-	char*      sent_folder = NULL;
-	char*      chats_folder = NULL;
-
-	if (imap==NULL || imap->etpan==NULL) {
-		goto cleanup;
-	}
-
-	if (imap->sent_folder && imap->sent_folder[0]) {
-		success = 1;
-		goto cleanup;
-	}
-
-	free(imap->sent_folder);
-	imap->sent_folder = NULL;
-
-	free(imap->moveto_folder);
-	imap->moveto_folder = NULL;
-	//this sets imap->imap_delimiter as side-effect
-	folder_list = list_folders(imap);
-
-	//as a fallback, the chats_folder is created under INBOX as required e.g. for DomainFactory
-	char fallback_folder[64];
-	snprintf(fallback_folder, sizeof(fallback_folder), "INBOX%c%s", imap->imap_delimiter, DC_CHATS_FOLDER);
-
-	for (iter1 = clist_begin(folder_list); iter1!=NULL ; iter1 = clist_next(iter1)) {
-		dc_imapfolder_t* folder = (struct dc_imapfolder_t*)clist_content(iter1);
-		if (strcmp(folder->name_utf8, DC_CHATS_FOLDER)==0 || strcmp(folder->name_utf8, fallback_folder)==0) {
-			chats_folder = dc_strdup(folder->name_to_select);
-			break;
-		}
-		else if (folder->meaning==MEANING_SENT_OBJECTS) {
-			sent_folder = dc_strdup(folder->name_to_select);
-		}
-		else if (folder->meaning==MEANING_NORMAL && normal_folder==NULL) {
-			normal_folder = dc_strdup(folder->name_to_select);
-		}
-	}
-
-	if (chats_folder==NULL && (imap->server_flags&DC_NO_MOVE_TO_CHATS)==0) {
-		dc_log_info(imap->context, 0, "Creating IMAP-folder \"%s\"...", DC_CHATS_FOLDER);
-		int r = mailimap_create(imap->etpan, DC_CHATS_FOLDER);
-		if (is_error(imap, r)) {
-			dc_log_warning(imap->context, 0, "Cannot create IMAP-folder, using trying INBOX subfolder.");
-			r = mailimap_create(imap->etpan, fallback_folder);
-			if (is_error(imap, r)) {
-				/* continue on errors, we'll just use a different folder then */
-				dc_log_warning(imap->context, 0, "Cannot create IMAP-folder, using default.");
-			}
-			else {
-				chats_folder = dc_strdup(fallback_folder);
-				dc_log_info(imap->context, 0, "IMAP-folder created (inbox subfolder).");
-			}
-		}
-		else {
-			chats_folder = dc_strdup(DC_CHATS_FOLDER);
-			dc_log_info(imap->context, 0, "IMAP-folder created.");
-		}
-	}
-
-	/* Subscribe to the created folder.  Otherwise, although a top-level folder, if clients use LSUB for listing, the created folder may be hidden.
-	(we could also do this directly after creation, however, we forgot this in versions <v0.1.19 */
-	if (chats_folder && imap->get_config(imap, "imap.subscribedToChats", NULL)==NULL) {
-		mailimap_subscribe(imap->etpan, chats_folder);
-		imap->set_config(imap, "imap.subscribedToChats", "1");
-	}
-
-	if (chats_folder) {
-		imap->moveto_folder = dc_strdup(chats_folder);
-		imap->sent_folder   = dc_strdup(chats_folder);
-		success = 1;
-	}
-	else if (sent_folder) {
-		imap->sent_folder = dc_strdup(sent_folder);
-		success = 1;
-	}
-	else if (normal_folder) {
-		imap->sent_folder = dc_strdup(normal_folder);
-		success = 1;
-	}
-
-cleanup:
-	free_folders(folder_list);
-	free(chats_folder);
-	free(sent_folder);
-	free(normal_folder);
-	return success;
-}
-
-
 static int select_folder(dc_imap_t* imap, const char* folder /*may be NULL*/)
 {
 	if (imap==NULL) {
@@ -1194,12 +1099,6 @@ static void free_connect_param(dc_imap_t* imap)
 
 	imap->selected_folder[0] = 0;
 
-	free(imap->moveto_folder);
-	imap->moveto_folder = NULL;
-
-	free(imap->sent_folder);
-	imap->sent_folder = NULL;
-
 	imap->imap_port = 0;
 	imap->can_idle  = 0;
 	imap->has_xlist = 0;
@@ -1320,8 +1219,6 @@ dc_imap_t* dc_imap_new(dc_get_config_t get_config, dc_set_config_t set_config, d
 	//imap->enter_watch_wait_time = 0;
 
 	imap->selected_folder = calloc(1, 1);
-	imap->moveto_folder   = NULL;
-	imap->sent_folder     = NULL;
 
 	/* create some useful objects */
 	imap->fetch_type_uid = mailimap_fetch_type_new_fetch_att_list_empty(); /* object to fetch the ID */
@@ -1357,72 +1254,6 @@ void dc_imap_unref(dc_imap_t* imap)
 	if (imap->fetch_type_body)       { mailimap_fetch_type_free(imap->fetch_type_body); }
 	if (imap->fetch_type_flags)      { mailimap_fetch_type_free(imap->fetch_type_flags); }
 	free(imap);
-}
-
-
-int dc_imap_append_msg(dc_imap_t* imap, time_t timestamp, const char* data_not_terminated, size_t data_bytes, char** ret_server_folder, uint32_t* ret_server_uid)
-{
-	int                        success = 0;
-	int                        r  = 0;
-	uint32_t                   ret_uidvalidity = 0;
-	struct mailimap_flag_list* flag_list = NULL;
-	struct mailimap_date_time* imap_date = NULL;
-
-	*ret_server_folder = NULL;
-
-	if (imap==NULL) {
-		goto cleanup;
-	}
-
-	if (imap->etpan==NULL) {
-		goto cleanup;
-	}
-
-	dc_log_info(imap->context, 0, "Appending message to IMAP-server...");
-
-	if (!init_chat_folders(imap)) {
-		dc_log_error_if(&imap->log_connect_errors, imap->context, 0, "Cannot find out IMAP-sent-folder.");
-		goto cleanup;
-	}
-
-	if (!select_folder(imap, imap->sent_folder)) {
-		dc_log_error_if(&imap->log_connect_errors, imap->context, 0, "Cannot select IMAP-folder \"%s\".", imap->sent_folder);
-		imap->sent_folder[0] = 0; /* force re-init */
-		goto cleanup;
-	}
-
-	flag_list = mailimap_flag_list_new_empty();
-	mailimap_flag_list_add(flag_list, mailimap_flag_new_seen());
-
-	imap_date = dc_timestamp_to_mailimap_date_time(timestamp);
-	if (imap_date==NULL) {
-		dc_log_error(imap->context, 0, "Bad date.");
-		goto cleanup;
-	}
-
-	r = mailimap_uidplus_append(imap->etpan, imap->sent_folder, flag_list, imap_date, data_not_terminated, data_bytes, &ret_uidvalidity, ret_server_uid);
-	if (is_error(imap, r)) {
-		dc_log_error_if(&imap->log_connect_errors, imap->context, 0, "Cannot append message to \"%s\", error #%i.", imap->sent_folder, (int)r);
-		goto cleanup;
-	}
-
-	*ret_server_folder = dc_strdup(imap->sent_folder);
-
-	dc_log_info(imap->context, 0, "Message appended to \"%s\".", imap->sent_folder);
-
-	success = 1;
-
-cleanup:
-
-    if (imap_date) {
-        mailimap_date_time_free(imap_date);
-    }
-
-    if (flag_list) {
-		mailimap_flag_list_free(flag_list);
-    }
-
-	return success;
 }
 
 
@@ -1538,65 +1369,6 @@ int dc_imap_markseen_msg(dc_imap_t* imap, const char* folder, uint32_t server_ui
 		{
 			*ret_ms_flags |= DC_MS_MDNSent_JUST_SET;
 			dc_log_info(imap->context, 0, "Cannot store $MDNSent flags, risk sending duplicate MDN.");
-		}
-	}
-
-	if ((ms_flags&DC_MS_ALSO_MOVE) && (imap->server_flags&DC_NO_MOVE_TO_CHATS)==0)
-	{
-		init_chat_folders(imap);
-		if (imap->moveto_folder && strcmp(folder, imap->moveto_folder)==0)
-		{
-			dc_log_info(imap->context, 0, "Message %s/%i is already in %s...", folder, (int)server_uid, imap->moveto_folder);
-			/* avoid deadlocks as moving messages in the same folder may be result in a new server_uid and the state "fresh" -
-			we will catch these messages again on the next poll, try to move them away and so on, see also (***) in dc_receive_imf.c */
-		}
-		else if (imap->moveto_folder)
-		{
-			dc_log_info(imap->context, 0, "Moving message %s/%i to %s...", folder, (int)server_uid, imap->moveto_folder);
-
-			/* TODO/TOCHECK: UIDPLUS extension may not be supported on servers;
-			if in doubt, we can find out the resulting UID using "imap_selection_info->sel_uidnext" then */
-			uint32_t             res_uid = 0;
-			struct mailimap_set* res_setsrc = NULL;
-			struct mailimap_set* res_setdest = NULL;
-			r = mailimap_uidplus_uid_move(imap->etpan, set, imap->moveto_folder, &res_uid, &res_setsrc, &res_setdest); /* the correct folder is already selected in add_flag() above */
-			if (is_error(imap, r)) {
-				dc_log_info(imap->context, 0, "Cannot move message, fallback to COPY/DELETE %s/%i to %s...", folder, (int)server_uid, imap->moveto_folder);
-				r = mailimap_uidplus_uid_copy(imap->etpan, set, imap->moveto_folder, &res_uid, &res_setsrc, &res_setdest);
-				if (is_error(imap, r)) {
-					dc_log_info(imap->context, 0, "Cannot copy message. Leaving in INBOX");
-					goto cleanup;
-				}
-				else {
-					dc_log_info(imap->context, 0, "Deleting msg ...");
-					if (add_flag(imap, server_uid, mailimap_flag_new_deleted())==0) {
-							dc_log_warning(imap->context, 0, "Cannot mark message as \"Deleted\".");/* maybe the message is already deleted */
-					}
-
-					/* force an EXPUNGE resp. CLOSE for the selected folder */
-					imap->selected_folder_needs_expunge = 1;
-				}
-			}
-
-			if (res_setsrc) {
-				mailimap_set_free(res_setsrc);
-			}
-
-			if (res_setdest) {
-				clistiter* cur = clist_begin(res_setdest->set_list);
-				if (cur!=NULL) {
-					struct mailimap_set_item* item;
-					item = clist_content(cur);
-					*ret_server_uid = item->set_first;
-					*ret_server_folder = dc_strdup(imap->moveto_folder);
-				}
-				mailimap_set_free(res_setdest);
-			}
-
-			// TODO: If the new UID is equal to lastuid.Chats, we should increase lastuid.Chats by one
-			// (otherwise, we'll download the mail in moment again from the chats folder ...)
-
-			dc_log_info(imap->context, 0, "Message moved.");
 		}
 	}
 

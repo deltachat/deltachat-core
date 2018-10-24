@@ -552,7 +552,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	{
 		/* NB: Checking GMa'l too often (<10 Minutes) may result in blocking, says https://github.com/itprojects/InboxPager/blob/HEAD/README.md#gmail-configuration
 		Also note https://www.google.com/settings/security/lesssecureapps */
-		param->server_flags |= DC_LP_AUTH_XOAUTH2 | DC_NO_EXTRA_IMAP_UPLOAD | DC_NO_MOVE_TO_CHATS;
+		param->server_flags |= DC_LP_AUTH_XOAUTH2;
 	}
 
 

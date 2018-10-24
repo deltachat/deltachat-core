@@ -51,46 +51,6 @@ cleanup:
 }
 
 
-static void dc_job_do_DC_JOB_SEND_MSG_TO_IMAP(dc_context_t* context, dc_job_t* job)
-{
-	char*             server_folder = NULL;
-	uint32_t          server_uid = 0;
-	dc_mimefactory_t  mimefactory;
-	dc_mimefactory_init(&mimefactory, context);
-
-	/* connect to IMAP-server */
-	if (!dc_imap_is_connected(context->imap)) {
-		connect_to_imap(context, NULL);
-		if (!dc_imap_is_connected(context->imap)) {
-			dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
-			goto cleanup;
-		}
-	}
-
-	/* create message */
-	if (dc_mimefactory_load_msg(&mimefactory, job->foreign_id)==0
-	 || mimefactory.from_addr==NULL) {
-		goto cleanup; /* should not happen as we've sent the message to the SMTP server before */
-	}
-
-	if (!dc_mimefactory_render(&mimefactory)) {
-		goto cleanup; /* should not happen as we've sent the message to the SMTP server before */
-	}
-
-	if (!dc_imap_append_msg(context->imap, mimefactory.msg->timestamp, mimefactory.out->str, mimefactory.out->len, &server_folder, &server_uid)) {
-		dc_job_try_again_later(job, DC_AT_ONCE, NULL);
-		goto cleanup;
-	}
-	else {
-		dc_update_server_uid(context, mimefactory.msg->rfc724_mid, server_folder, server_uid);
-	}
-
-cleanup:
-	dc_mimefactory_empty(&mimefactory);
-	free(server_folder);
-}
-
-
 static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(dc_context_t* context, dc_job_t* job)
 {
 	int           delete_from_server = 1;
@@ -573,7 +533,6 @@ static void dc_job_perform(dc_context_t* context, int thread)
 
 			switch (job.action) {
 				case DC_JOB_SEND_MSG_TO_SMTP:     dc_job_do_DC_JOB_SEND_MSG_TO_SMTP     (context, &job); break;
-				case DC_JOB_SEND_MSG_TO_IMAP:     dc_job_do_DC_JOB_SEND_MSG_TO_IMAP     (context, &job); break;
 				case DC_JOB_DELETE_MSG_ON_IMAP:   dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP   (context, &job); break;
 				case DC_JOB_MARKSEEN_MSG_ON_IMAP: dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP (context, &job); break;
 				case DC_JOB_MARKSEEN_MDN_ON_IMAP: dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP (context, &job); break;

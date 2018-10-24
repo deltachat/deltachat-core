@@ -46,8 +46,6 @@ typedef struct dc_imap_t
 
 	int                   can_idle;
 	int                   has_xlist;
-	char*                 moveto_folder;// Folder, where reveived chat messages should go to.  Normally DC_CHATS_FOLDER, may be NULL to leave them in the INBOX
-	char*                 sent_folder;  // Folder, where send messages should go to.  Normally DC_CHATS_FOLDER.
 	char                  imap_delimiter;/* IMAP Path separator. Set as a side-effect in list_folders__ */
 
 	pthread_cond_t        watch_cond;
