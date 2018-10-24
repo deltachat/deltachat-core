@@ -365,12 +365,6 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 			dc_msg_save_param_to_disk(mimefactory.msg);
 		}
 
-		if ((context->imap->server_flags&DC_NO_EXTRA_IMAP_UPLOAD)==0
-		 && dc_param_get(mimefactory.chat->param, DC_PARAM_SELFTALK, 0)==0
-		 && dc_param_get_int(mimefactory.msg->param, DC_PARAM_CMD, 0)!=DC_CMD_SECUREJOIN_MESSAGE) {
-			dc_job_add(context, DC_JOB_SEND_MSG_TO_IMAP, mimefactory.msg->id, NULL, 0); /* send message to IMAP in another job */
-		}
-
 		// TODO: add to keyhistory
 		dc_add_to_keyhistory(context, NULL, 0, NULL, NULL);
 
