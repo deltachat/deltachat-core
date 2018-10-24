@@ -126,9 +126,13 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 
 			factory->req_mdn = 0;
 
+			if (dc_chat_is_self_talk(factory->chat))
+			{
 				clist_append(factory->recipients_names, (void*)dc_strdup_keep_null(factory->from_displayname));
 				clist_append(factory->recipients_addr,  (void*)dc_strdup(factory->from_addr));
-
+			}
+			else
+			{
 				stmt = dc_sqlite3_prepare(context->sql,
 					"SELECT c.authname, c.addr "
 					" FROM chats_contacts cc "
@@ -168,6 +172,7 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 				 && dc_sqlite3_get_config_int(context->sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED)) {
 					factory->req_mdn = 1;
 				}
+			}
 
 			/* Get a predecessor of the mail to send.
 			For simplicity, we use the last message send not by us.

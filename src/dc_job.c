@@ -285,8 +285,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 		}
 	}
 
-	/* send message - it's okay if there are no recipients, this is a group with only OURSELF; we only upload to IMAP in this case */
-	if (clist_count(mimefactory.recipients_addr) > 0)
+	/* send message */
 	{
 		if (!dc_mimefactory_render(&mimefactory)) {
 			dc_set_msg_failed(context, job->foreign_id, mimefactory.error);
@@ -297,6 +296,12 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 		if (dc_param_get_int(mimefactory.msg->param, DC_PARAM_GUARANTEE_E2EE, 0) && !mimefactory.out_encrypted) {
 			dc_set_msg_failed(context, job->foreign_id, "End-to-end-encryption unavailable unexpectedly.");
 			goto cleanup; /* unrecoverable */
+		}
+
+		/* add SELF to the recipient list (it's no longer used elsewhere, so a copy of the whole list is needless) */
+		if (clist_search_string_nocase(mimefactory.recipients_addr, mimefactory.from_addr)==0) {
+			clist_append(mimefactory.recipients_names, NULL);
+			clist_append(mimefactory.recipients_addr,  (void*)dc_strdup(mimefactory.from_addr));
 		}
 
 		if (!dc_smtp_send_msg(context->smtp, mimefactory.recipients_addr, mimefactory.out->str, mimefactory.out->len)) {
