@@ -346,48 +346,6 @@ static int select_folder(dc_imap_t* imap, const char* folder /*may be NULL*/)
 }
 
 
-static uint32_t search_uid(dc_imap_t* imap, const char* message_id)
-{
-	/* Search Message-ID in all folders.
-	On success, the folder containing the message is selected and the UID is returned.
-	On failure, 0 is returned and any or none folder is selected. */
-	clist*                      folders = list_folders(imap);
-	clist*                      search_result = NULL;
-	clistiter*                  cur = NULL;
-	clistiter*                  cur2 = NULL;
-	struct mailimap_search_key* key = mailimap_search_key_new_header(strdup("Message-ID"), dc_mprintf("<%s>", message_id));
-	uint32_t                    uid = 0;
-
-	for (cur = clist_begin(folders); cur!=NULL ; cur = clist_next(cur))
-	{
-		dc_imapfolder_t* folder = (dc_imapfolder_t*)clist_content(cur);
-		if (select_folder(imap, folder->name_to_select))
-		{
-			int r = mailimap_uid_search(imap->etpan, "utf-8", key, &search_result);
-			if (!is_error(imap, r) && search_result) {
-				if ((cur2=clist_begin(search_result))!=NULL) {
-					uint32_t* ptr_uid = (uint32_t *)clist_content(cur2);
-					if (ptr_uid) {
-						uid = *ptr_uid;
-					}
-				}
-				mailimap_search_result_free(search_result);
-				search_result = NULL;
-				if (uid) {
-					goto cleanup;
-				}
-			}
-		}
-	}
-
-cleanup:
-	if (search_result) { mailimap_search_result_free(search_result); }
-	if (key) { mailimap_search_key_free(key); }
-	free_folders(folders);
-	return uid;
-}
-
-
 /*******************************************************************************
  * Fetch Messages
  ******************************************************************************/
@@ -1402,8 +1360,7 @@ int dc_imap_delete_msg(dc_imap_t* imap, const char* rfc724_mid, const char* fold
 
 	/* check if Folder+UID matches the Message-ID (to detect if the messages
 	was moved around by other MUAs and in place of an UIDVALIDITY check)
-	(we also detect messages moved around when we do a fetch-all, see
-	dc_update_server_uid() in receive_imf(), however this may take a while) */
+	*/
 	if (server_uid)
 	{
 		clistiter* cur = NULL;
@@ -1427,12 +1384,8 @@ int dc_imap_delete_msg(dc_imap_t* imap, const char* rfc724_mid, const char* fold
 	/* server_uid is 0 now if it was not given or if it does not match the given message id;
 	try to search for it in all folders (the message may be moved by another MUA to a folder we do not sync or the sync is a moment ago) */
 	if (server_uid==0) {
-		dc_log_info(imap->context, 0, "Searching UID by Message-ID \"%s\"...", rfc724_mid);
-		if ((server_uid=search_uid(imap, rfc724_mid))==0) {
 			dc_log_warning(imap->context, 0, "Message-ID \"%s\" not found in any folder, cannot delete message.", rfc724_mid);
 			goto cleanup;
-		}
-		dc_log_info(imap->context, 0, "Message-ID \"%s\" found in %s/%i", rfc724_mid, imap->selected_folder, server_uid);
 	}
 
 
