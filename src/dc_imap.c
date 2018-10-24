@@ -112,198 +112,6 @@ static void set_config_lastseenuid(dc_imap_t* imap, const char* folder, uint32_t
  ******************************************************************************/
 
 
-static int get_folder_meaning(const dc_imap_t* imap, struct mailimap_mbx_list_flags* flags, const char* folder_name, bool force_fallback)
-{
-	#define MEANING_NORMAL       1
-	#define MEANING_INBOX        2
-	#define MEANING_IGNORE       3
-	#define MEANING_SENT_OBJECTS 4
-
-	char* lower = NULL;
-	int   ret_meaning = MEANING_NORMAL;
-
-	if (!force_fallback && (imap->has_xlist || flags!=NULL))
-	{
-		/* We check for flags if we get some (LIST may also return some, see https://tools.ietf.org/html/rfc6154 )
-		or if has_xlist is set.  However, we also allow a NULL-pointer for "no flags" if has_xlist is true. */
-		if (flags && flags->mbf_oflags)
-		{
-			clistiter* iter2;
-			for (iter2=clist_begin(flags->mbf_oflags); iter2!=NULL; iter2=clist_next(iter2))
-			{
-				struct mailimap_mbx_list_oflag* oflag = (struct mailimap_mbx_list_oflag*)clist_content(iter2);
-				switch (oflag->of_type)
-				{
-					case MAILIMAP_MBX_LIST_OFLAG_FLAG_EXT:
-						if (strcasecmp(oflag->of_flag_ext, "spam")==0
-						 || strcasecmp(oflag->of_flag_ext, "trash")==0
-						 || strcasecmp(oflag->of_flag_ext, "drafts")==0
-						 || strcasecmp(oflag->of_flag_ext, "junk")==0)
-						{
-							ret_meaning = MEANING_IGNORE;
-						}
-						else if (strcasecmp(oflag->of_flag_ext, "sent")==0)
-						{
-							ret_meaning = MEANING_SENT_OBJECTS;
-						}
-						else if (strcasecmp(oflag->of_flag_ext, "inbox")==0)
-						{
-							ret_meaning = MEANING_INBOX;
-						}
-						break;
-				}
-			}
-		}
-
-		if (ret_meaning==MEANING_NORMAL && strcasecmp(folder_name, "INBOX")==0) {
-			ret_meaning = MEANING_INBOX;
-		}
-	}
-	else
-	{
-		/* we have no flag list; try some known default names */
-		lower = dc_strlower(folder_name);
-		if (strcmp(lower, "spam")==0
-		 || strcmp(lower, "junk")==0
-		 || strcmp(lower, "indésirables")==0 /* fr */
-
-		 || strcmp(lower, "trash")==0
-		 || strcmp(lower, "deleted")==0
-		 || strcmp(lower, "deleted items")==0
-		 || strcmp(lower, "papierkorb")==0   /* de */
-		 || strcmp(lower, "corbeille")==0    /* fr */
-		 || strcmp(lower, "papelera")==0     /* es */
-		 || strcmp(lower, "papperskorg")==0  /* sv */
-
-		 || strcmp(lower, "drafts")==0
-		 || strcmp(lower, "entwürfe")==0     /* de */
-		 || strcmp(lower, "brouillons")==0   /* fr */
-		 || strcmp(lower, "borradores")==0   /* es */
-		 || strcmp(lower, "utkast")==0       /* sv */
-		 )
-		{
-			ret_meaning = MEANING_IGNORE;
-		}
-		else if (strcmp(lower, "inbox")==0) /* the "INBOX" foldername is IMAP-standard */
-		{
-			ret_meaning = MEANING_INBOX;
-		}
-		else if (strcmp(lower, "sent")==0 || strcmp(lower, "sent objects")==0 || strcmp(lower, "gesendet")==0)
-		{
-			ret_meaning = MEANING_SENT_OBJECTS;
-		}
-	}
-
-	free(lower);
-	return ret_meaning;
-}
-
-
-typedef struct dc_imapfolder_t
-{
-	char* name_to_select;
-	char* name_utf8;
-	int   meaning;
-} dc_imapfolder_t;
-
-
-static clist* list_folders(dc_imap_t* imap)
-{
-	clist*     imap_list = NULL;
-	clistiter* iter1 = NULL;
-	clist *    ret_list = clist_new();
-	int        r = 0;
-	int        xlist_works = 0;
-
-	if (imap==NULL || imap->etpan==NULL) {
-		goto cleanup;
-	}
-
-	/* the "*" not only gives us the folders from the main directory, but also all subdirectories; so the resulting foldernames may contain
-	delimiters as "folder/subdir/subsubdir" etc.  However, as we do not really use folders, this is just fine (otherwise we'd implement this
-	functinon recursively. */
-	if (imap->has_xlist)  {
-		r = mailimap_xlist(imap->etpan, "", "*", &imap_list);
-	}
-	else {
-		r = mailimap_list(imap->etpan, "", "*", &imap_list);
-	}
-
-	if (is_error(imap, r) || imap_list==NULL) {
-		imap_list = NULL;
-		dc_log_warning(imap->context, 0, "Cannot get folder list.");
-		goto cleanup;
-	}
-
-	if (clist_count(imap_list)<=0) {
-		dc_log_warning(imap->context, 0, "Folder list is empty.");
-		goto cleanup;
-	}
-
-	//default IMAP delimiter if none is returned by the list command
-	imap->imap_delimiter = '.';
-	for (iter1 = clist_begin(imap_list); iter1!=NULL ; iter1 = clist_next(iter1))
-	{
-		struct mailimap_mailbox_list* imap_folder = (struct mailimap_mailbox_list*)clist_content(iter1);
-		if (imap_folder->mb_delimiter) {
-			/* Set IMAP delimiter */
-			imap->imap_delimiter = imap_folder->mb_delimiter;
-		}
-
-		dc_imapfolder_t* ret_folder = calloc(1, sizeof(dc_imapfolder_t));
-
-		if (strcasecmp(imap_folder->mb_name, "INBOX")==0) {
-			/* Force upper case INBOX as we also use it directly this way; a unified name is needed as we use the folder name to remember the last uid.
-			Servers may return any case, however, all variants MUST lead to the same INBOX, see RFC 3501 5.1 */
-			ret_folder->name_to_select = dc_strdup("INBOX");
-		}
-		else {
-			ret_folder->name_to_select = dc_strdup(imap_folder->mb_name);
-		}
-
-		ret_folder->name_utf8      = dc_decode_modified_utf7(imap_folder->mb_name, 0);
-		ret_folder->meaning        = get_folder_meaning(imap, imap_folder->mb_flag, ret_folder->name_utf8, false);
-
-		if (ret_folder->meaning==MEANING_IGNORE || ret_folder->meaning==MEANING_SENT_OBJECTS /*MEANING_INBOX is no hint for a working XLIST*/) {
-			xlist_works = 1;
-		}
-
-		clist_append(ret_list, (void*)ret_folder);
-	}
-
-	/* at least my own server claims that it support XLIST but does not return folder flags. So, if we did not get a single
-	flag, fall back to the default behaviour */
-	if (!xlist_works) {
-		for (iter1 = clist_begin(ret_list); iter1!=NULL ; iter1 = clist_next(iter1))
-		{
-			dc_imapfolder_t* ret_folder = (struct dc_imapfolder_t*)clist_content(iter1);
-			ret_folder->meaning = get_folder_meaning(imap, NULL, ret_folder->name_utf8, true);
-		}
-	}
-
-cleanup:
-	if (imap_list) {
-		mailimap_list_result_free(imap_list);
-	}
-	return ret_list;
-}
-
-
-static void free_folders(clist* folders)
-{
-	if (folders) {
-		clistiter* iter1;
-		for (iter1 = clist_begin(folders); iter1!=NULL ; iter1 = clist_next(iter1)) {
-			dc_imapfolder_t* ret_folder = (struct dc_imapfolder_t*)clist_content(iter1);
-			free(ret_folder->name_to_select);
-			free(ret_folder->name_utf8);
-			free(ret_folder);
-		}
-		clist_free(folders);
-	}
-}
-
-
 static int select_folder(dc_imap_t* imap, const char* folder /*may be NULL*/)
 {
 	if (imap==NULL) {
@@ -701,41 +509,6 @@ cleanup:
 }
 
 
-static int fetch_from_all_folders(dc_imap_t* imap)
-{
-	clist*     folder_list = NULL;
-	clistiter* cur = NULL;
-	int        total_cnt = 0;
-
-		folder_list = list_folders(imap);
-
-	/* first, read the INBOX, this looks much better on the initial load as the INBOX
-	has the most recent mails.  Moreover, this is for speed reasons, as the other folders only have few new messages. */
-	for (cur = clist_begin(folder_list); cur!=NULL ; cur = clist_next(cur))
-	{
-		dc_imapfolder_t* folder = (dc_imapfolder_t*)clist_content(cur);
-		if (folder->meaning==MEANING_INBOX) {
-			total_cnt += fetch_from_single_folder(imap, folder->name_to_select);
-		}
-	}
-
-	for (cur = clist_begin(folder_list); cur!=NULL ; cur = clist_next(cur))
-	{
-		dc_imapfolder_t* folder = (dc_imapfolder_t*)clist_content(cur);
-		if (folder->meaning==MEANING_IGNORE) {
-			dc_log_info(imap->context, 0, "Ignoring \"%s\".", folder->name_utf8);
-		}
-		else if (folder->meaning!=MEANING_INBOX) {
-			total_cnt += fetch_from_single_folder(imap, folder->name_to_select);
-		}
-	}
-
-	free_folders(folder_list);
-
-	return total_cnt;
-}
-
-
 /*******************************************************************************
  * Watch thread
  ******************************************************************************/
@@ -748,13 +521,6 @@ int dc_imap_fetch(dc_imap_t* imap)
 	}
 
 	setup_handle_if_needed(imap);
-
-	#define FULL_FETCH_EVERY_SECONDS (22*60)
-
-	if (time(NULL) - imap->last_fullread_time > FULL_FETCH_EVERY_SECONDS) {
-		fetch_from_all_folders(imap);
-		imap->last_fullread_time = time(NULL);
-	}
 
 	// as during the fetch commands, new messages may arrive, we fetch until we do not
 	// get any more. if IDLE is called directly after, there is only a small chance that
@@ -1059,7 +825,6 @@ static void free_connect_param(dc_imap_t* imap)
 
 	imap->imap_port = 0;
 	imap->can_idle  = 0;
-	imap->has_xlist = 0;
 }
 
 
@@ -1088,7 +853,6 @@ int dc_imap_connect(dc_imap_t* imap, const dc_loginparam_t* lp)
 
 	/* we set the following flags here and not in setup_handle_if_needed() as they must not change during connection */
 	imap->can_idle = mailimap_has_idle(imap->etpan);
-	imap->has_xlist = mailimap_has_xlist(imap->etpan);
 
 	#ifdef __APPLE__
 	imap->can_idle = 0; // HACK to force iOS not to work IMAP-IDLE which does not work for now, see also (*)

@@ -37,15 +37,12 @@ typedef struct dc_imap_t
 	int                   connected;
 	mailimap*             etpan;   /* normally, if connected, etpan is also set; however, if a reconnection is required, we may lost this handle */
 
-	time_t                last_fullread_time;
-
 	int                   idle_set_up;
 	char*                 selected_folder;
 	int                   selected_folder_needs_expunge;
 	int                   should_reconnect;
 
 	int                   can_idle;
-	int                   has_xlist;
 	char                  imap_delimiter;/* IMAP Path separator. Set as a side-effect in list_folders__ */
 
 	pthread_cond_t        watch_cond;
