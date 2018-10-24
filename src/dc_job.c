@@ -677,6 +677,10 @@ void dc_perform_imap_idle(dc_context_t* context)
 {
 	connect_to_imap(context, NULL); // also idle if connection fails because of not-configured, no-network, whatever. dc_imap_idle() will handle this by the fake-idle and log a warning
 
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		return;
+	}
+
 	pthread_mutex_lock(&context->imapidle_condmutex);
 		if (context->perform_imap_jobs_needed) {
 			dc_log_info(context, 0, "IMAP-IDLE will not be started because of waiting jobs.");
