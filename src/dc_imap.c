@@ -516,8 +516,11 @@ cleanup:
 
 int dc_imap_fetch(dc_imap_t* imap)
 {
+	int   success = 0;
+	char* imap_folder = NULL;
+
 	if (imap==NULL || !imap->connected) {
-		return 0;
+		goto cleanup;
 	}
 
 	setup_handle_if_needed(imap);
@@ -525,15 +528,20 @@ int dc_imap_fetch(dc_imap_t* imap)
 	// as during the fetch commands, new messages may arrive, we fetch until we do not
 	// get any more. if IDLE is called directly after, there is only a small chance that
 	// messages are missed and delayed until the next IDLE call
-	while (fetch_from_single_folder(imap, "INBOX") > 0) {
+	imap_folder = imap->get_config(imap, "imap_folder", "INBOX");
+	while (fetch_from_single_folder(imap, imap_folder) > 0) {
 		;
 	}
 
-	return 1;
+	success = 1;
+
+cleanup:
+	free(imap_folder);
+	return success;
 }
 
 
-static void fake_idle(dc_imap_t* imap)
+static void fake_idle(dc_imap_t* imap, const char* imap_folder)
 {
 	/* Idle using timeouts. This is also needed if we're not yet configured -
 	in this case, we're waiting for a configure job */
@@ -572,7 +580,7 @@ static void fake_idle(dc_imap_t* imap)
 		// are also downloaded, however, typically this would take place in the FETCH command
 		// following IDLE otherwise, so this seems okay here.
 		if (setup_handle_if_needed(imap)) { // the handle may not be set up if configure is not yet done
-			if (fetch_from_single_folder(imap, "INBOX")) {
+			if (fetch_from_single_folder(imap, imap_folder)) {
 				do_fake_idle = 0;
 			}
 		}
@@ -588,8 +596,15 @@ static void fake_idle(dc_imap_t* imap)
 
 void dc_imap_idle(dc_imap_t* imap)
 {
-	int r = 0;
-	int r2 = 0;
+	int   r = 0;
+	int   r2 = 0;
+	char* imap_folder = NULL;
+
+	if (imap==NULL) {
+		goto cleanup;
+	}
+
+	imap_folder = imap->get_config(imap, "imap_folder", "INBOX");
 
 	if (imap->can_idle)
 	{
@@ -599,23 +614,23 @@ void dc_imap_idle(dc_imap_t* imap)
 			r = mailstream_setup_idle(imap->etpan->imap_stream);
 			if (is_error(imap, r)) {
 				dc_log_warning(imap->context, 0, "IMAP-IDLE: Cannot setup.");
-				fake_idle(imap);
-				return;
+				fake_idle(imap, imap_folder);
+				goto cleanup;
 			}
 			imap->idle_set_up = 1;
 		}
 
-		if (!imap->idle_set_up || !select_folder(imap, "INBOX")) {
+		if (!imap->idle_set_up || !select_folder(imap, imap_folder)) {
 			dc_log_warning(imap->context, 0, "IMAP-IDLE not setup.");
-			fake_idle(imap);
-			return;
+			fake_idle(imap, imap_folder);
+			goto cleanup;
 		}
 
 		r = mailimap_idle(imap->etpan);
 		if (is_error(imap, r)) {
 			dc_log_warning(imap->context, 0, "IMAP-IDLE: Cannot start.");
-			fake_idle(imap);
-			return;
+			fake_idle(imap, imap_folder);
+			goto cleanup;
 		}
 
 		// most servers do not allow more than ~28 minutes; stay clearly below that.
@@ -645,8 +660,11 @@ void dc_imap_idle(dc_imap_t* imap)
 	}
 	else
 	{
-		fake_idle(imap);
+		fake_idle(imap, imap_folder);
 	}
+
+cleanup:
+	free(imap_folder);
 }
 
 
