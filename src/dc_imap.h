@@ -82,7 +82,6 @@ void       dc_imap_interrupt_idle    (dc_imap_t*);
 
 int        dc_imap_append_msg        (dc_imap_t*, time_t timestamp, const char* data_not_terminated, size_t data_bytes, char** ret_server_folder, uint32_t* ret_server_uid);
 
-#define    DC_MS_ALSO_MOVE          0x01
 #define    DC_MS_SET_MDNSent_FLAG   0x02
 #define    DC_MS_MDNSent_JUST_SET   0x10
 int        dc_imap_markseen_msg      (dc_imap_t*, const char* folder, uint32_t server_uid, int ms_flags, char** ret_server_folder, uint32_t* ret_server_uid, int* ret_ms_flags); /* only returns 0 on connection problems; we should try later again in this case */
