@@ -329,17 +329,24 @@ int dc_chat_get_archived(const dc_chat_t* chat)
 
 
 /**
- * Check if a chat is still unpromoted.  Chats are unpromoted until the first
- * message is sent.  With unpromoted chats, members can be sent, settings can be
- * modified without the need of special status messages being sent.
+ * Check if a group chat is still unpromoted.
  *
- * After the creation with dc_create_group_chat() the chat is usuall  unpromoted
+ * After the creation with dc_create_group_chat() the chat is usually unpromoted
  * until the first call to dc_send_text_msg() or another sending function.
+ *
+ * With unpromoted chats, members can be added
+ * and settings can be modified without the need of special status messages being sent.
+ *
+ * While the core takes care of the unpromoted state on its own,
+ * checking the state from the UI side may be useful to decide whether a hint as
+ * "Send the first message to allow others to reply within the group"
+ * should be shown to the user or not.
  *
  * @memberof dc_chat_t
  * @param chat The chat object.
  * @return 1=chat is still unpromoted, no message was ever send to the chat,
  *     0=chat is not unpromoted, messages were send and/or received
+ *     or the chat is not group chat.
  */
 int dc_chat_is_unpromoted(const dc_chat_t* chat)
 {
