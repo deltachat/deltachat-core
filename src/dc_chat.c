@@ -834,8 +834,13 @@ cleanup:
 
 
 /**
- * Returns all message IDs of the given types in a chat.  Typically used to show
- * a gallery.  The result must be dc_array_unref()'d
+ * Returns all message IDs of the given types in a chat.
+ * Typically used to show a gallery.
+ * The result must be dc_array_unref()'d
+ *
+ * The list is already sorted and starts with the oldest message.
+ * Clients should not try to re-sort the list as this would be an expensive action
+ * and would result in inconsistencies between clients.
  *
  * @memberof dc_context_t
  * @param context The context object as returned from dc_context_new().
