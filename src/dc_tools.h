@@ -67,7 +67,6 @@ time_t dc_create_smeared_timestamps  (dc_context_t*, int count);
 /* Message-ID tools */
 #define DC_CREATE_ID_LEN                   11
 char* dc_create_id                         (void);
-char* dc_create_dummy_references_mid       (void);
 char* dc_create_incoming_rfc724_mid        (time_t message_timestamp, uint32_t contact_id_from, dc_array_t* contact_ids_to);
 char* dc_create_outgoing_rfc724_mid        (const char* grpid, const char* addr);
 char* dc_extract_grpid_from_rfc724_mid     (const char* rfc724_mid);

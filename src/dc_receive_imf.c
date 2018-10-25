@@ -944,6 +944,8 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 	dc_mimeparser_t* mime_parser = dc_mimeparser_new(context->blobdir, context);
 	int              transaction_pending = 0;
 	const struct mailimf_field* field;
+	char*            mime_in_reply_to = NULL;
+	char*            mime_references = NULL;
 
 	carray*          created_db_entries = carray_new(16);
 	int              create_event_to_send = DC_EVENT_MSGS_CHANGED;
@@ -1267,6 +1269,24 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				}
 			}
 
+			if ((field=dc_mimeparser_lookup_field(mime_parser, "In-Reply-To"))!=NULL
+			 && field->fld_type==MAILIMF_FIELD_IN_REPLY_TO)
+			{
+				struct mailimf_in_reply_to* fld_in_reply_to = field->fld_data.fld_in_reply_to;
+				if (fld_in_reply_to) {
+					mime_in_reply_to = dc_str_from_clist(field->fld_data.fld_in_reply_to->mid_list, " ");
+				}
+			}
+
+			if ((field=dc_mimeparser_lookup_field(mime_parser, "References"))!=NULL
+			 && field->fld_type==MAILIMF_FIELD_REFERENCES)
+			{
+				struct mailimf_references* fld_references = field->fld_data.fld_references;
+				if (fld_references) {
+					mime_references = dc_str_from_clist(field->fld_data.fld_references->mid_list, " ");
+				}
+			}
+
 			/* fine, so far.  now, split the message into simple parts usable as "short messages"
 			and add them to the database (mails sent by other messenger clients should result
 			into only one message; mails sent by other clients may result in several messages (eg. one per attachment)) */
@@ -1274,8 +1294,9 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 			stmt = dc_sqlite3_prepare(context->sql,
 				"INSERT INTO msgs (rfc724_mid, server_folder, server_uid, chat_id, from_id, to_id,"
 				" timestamp, timestamp_sent, timestamp_rcvd, type, state, msgrmsg, "
-				" txt, txt_raw, param, bytes, hidden, mime_headers)"
-				" VALUES (?,?,?,?,?,?, ?,?,?,?,?,?, ?,?,?,?,?,?);");
+				" txt, txt_raw, param, bytes, hidden, mime_headers, "
+				" mime_in_reply_to, mime_references)"
+				" VALUES (?,?,?,?,?,?, ?,?,?,?,?,?, ?,?,?,?,?,?, ?,?);");
 			for (i = 0; i < icnt; i++)
 			{
 				dc_mimepart_t* part = (dc_mimepart_t*)carray_get(mime_parser->parts, i);
@@ -1310,6 +1331,8 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				sqlite3_bind_int  (stmt, 16, part->bytes);
 				sqlite3_bind_int  (stmt, 17, hidden);
 				sqlite3_bind_text (stmt, 18, save_mime_headers? imf_raw_not_terminated : NULL, header_bytes, SQLITE_STATIC);
+				sqlite3_bind_text (stmt, 19, mime_in_reply_to, -1, SQLITE_STATIC);
+				sqlite3_bind_text (stmt, 20, mime_references, -1, SQLITE_STATIC);
 				if (sqlite3_step(stmt)!=SQLITE_DONE) {
 					dc_log_info(context, 0, "Cannot write DB.");
 					goto cleanup; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
@@ -1458,6 +1481,8 @@ cleanup:
 
 	dc_mimeparser_unref(mime_parser);
 	free(rfc724_mid);
+	free(mime_in_reply_to);
+	free(mime_references);
 	dc_array_unref(to_ids);
 
 	if (created_db_entries) {
