@@ -412,6 +412,29 @@ void stress_functions(dc_context_t* context)
 		assert( strcmp(str, "")==0 );
 		free(str);
 
+		clist* list = dc_str_to_clist(NULL, " ");
+		assert( clist_count(list)==0 );
+		clist_free_content(list);
+		clist_free(list);
+
+		list = dc_str_to_clist("", " ");
+		assert( clist_count(list)==1 );
+		clist_free_content(list);
+		clist_free(list);
+
+		list = dc_str_to_clist(" ", " ");
+		assert( clist_count(list)==2 );
+		clist_free_content(list);
+		clist_free(list);
+
+		list = dc_str_to_clist("foo bar test", " ");
+		assert(clist_count(list)==3);
+		str = dc_str_from_clist(list, " ");
+		assert( strcmp(str, "foo bar test")==0 );
+		clist_free_content(list);
+		clist_free(list);
+		free(str);
+
 		assert( strcmp("fresh="     DC_STRINGIFY(DC_STATE_IN_FRESH),      "fresh=10")==0 ); /* these asserts check the values, the existance of the macros and also DC_STRINGIFY() */
 		assert( strcmp("noticed="   DC_STRINGIFY(DC_STATE_IN_NOTICED),    "noticed=13")==0 );
 		assert( strcmp("seen="      DC_STRINGIFY(DC_STATE_IN_SEEN),       "seen=16")==0 );

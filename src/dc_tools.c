@@ -552,6 +552,58 @@ char* dc_insert_breaks(const char* in, int break_every, const char* break_chars)
 }
 
 
+// Join clist element to a string.
+char* dc_str_from_clist(const clist* list, const char* delimiter)
+{
+	dc_strbuilder_t str;
+	dc_strbuilder_init(&str, 256);
+
+	if (list) {
+		for (clistiter* cur = clist_begin(list); cur!=NULL ; cur=clist_next(cur)) {
+			const char* rfc724_mid = clist_content(cur);
+			if (rfc724_mid) {
+				if (str.buf[0] && delimiter) {
+					dc_strbuilder_cat(&str, delimiter);
+				}
+				dc_strbuilder_cat(&str, rfc724_mid);
+			}
+		}
+	}
+
+	return str.buf;
+}
+
+
+// Split a string by a character.
+// If the string is empty or NULL, an empty list is returned.
+// The returned clist must be freed using clist_free_content()+clist_free()
+// or given eg. to libetpan objects.
+clist* dc_str_to_clist(const char* str, const char* delimiter)
+{
+	clist* list = clist_new();
+	if (list==NULL) {
+		exit(54);
+	}
+
+	if (str && delimiter && strlen(delimiter)>=1) {
+		const char* p1 = str;
+		while (1) {
+			const char* p2 = strstr(p1, delimiter);
+			if (p2==NULL) {
+				clist_append(list,  (void*)strdup(p1));
+				break;
+			}
+			else {
+				clist_append(list, (void*)strndup(p1, p2-p1));
+				p1 = p2+strlen(delimiter);
+			}
+		}
+	}
+
+	return list;
+}
+
+
 /*******************************************************************************
  * clist tools
  ******************************************************************************/
