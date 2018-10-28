@@ -234,7 +234,7 @@ char* dc_chat_get_subtitle(const dc_chat_t* chat)
 		else
 		{
 			cnt = dc_get_chat_contact_cnt(chat->context, chat->id);
-			ret = dc_stock_str_repl_pl(chat->context, DC_STR_MEMBER, cnt /*SELF is included in group chats (if not removed)*/);
+			ret = dc_stock_str_repl_int(chat->context, DC_STR_MEMBER, cnt /*SELF is included in group chats (if not removed)*/);
 		}
 	}
 

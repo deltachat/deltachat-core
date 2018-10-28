@@ -28,14 +28,14 @@ errors from here. */
 #include "dc_context.h"
 
 
-static char* default_string(int id, int qty)
+static char* default_string(int id)
 {
 	switch (id) {
 		case DC_STR_NOMESSAGES:            return dc_strdup("No messages.");
 		case DC_STR_SELF:                  return dc_strdup("Me");
 		case DC_STR_DRAFT:                 return dc_strdup("Draft");
-		case DC_STR_MEMBER:                return dc_mprintf("%i member(s)", qty);
-		case DC_STR_CONTACT:               return dc_mprintf("%i contact(s)", qty);
+		case DC_STR_MEMBER:                return dc_strdup("%1$s member(s)");
+		case DC_STR_CONTACT:               return dc_strdup("%1$s contact(s)");
 		case DC_STR_VOICEMESSAGE:          return dc_strdup("Voice message");
 		case DC_STR_DEADDROP:              return dc_strdup("Mailbox");
 		case DC_STR_IMAGE:                 return dc_strdup("Image");
@@ -74,31 +74,38 @@ static char* default_string(int id, int qty)
 }
 
 
-char* dc_stock_str(dc_context_t* context, int id) /* get the string with the given ID, the result must be free()'d! */
+static char* get_string(dc_context_t* context, int id, int qty)
 {
 	char* ret = NULL;
 	if (context) {
-		ret = (char*)context->cb(context, DC_EVENT_GET_STRING, id, 0);
+		ret = (char*)context->cb(context, DC_EVENT_GET_STRING, id, qty);
 	}
 	if (ret == NULL) {
-		ret = default_string(id, 0);
+		ret = default_string(id);
 	}
 	return ret;
 }
 
 
+char* dc_stock_str(dc_context_t* context, int id)
+{
+	return get_string(context, id, 0);
+}
+
+
 char* dc_stock_str_repl_string(dc_context_t* context, int id, const char* to_insert)
 {
-	char* p1 = dc_stock_str(context, id);
-	dc_str_replace(&p1, "%1$s", to_insert);
-	return p1;
+	char* ret = get_string(context, id, 0);
+	dc_str_replace(&ret, "%1$s", to_insert);
+	return ret;
 }
 
 
 char* dc_stock_str_repl_int(dc_context_t* context, int id, int to_insert_int)
 {
-	char* ret, *to_insert_str = dc_mprintf("%i", (int)to_insert_int);
-	ret = dc_stock_str_repl_string(context, id, to_insert_str);
+	char* ret = get_string(context, id, to_insert_int);
+	char* to_insert_str = dc_mprintf("%i", (int)to_insert_int);
+	dc_str_replace(&ret, "%1$s", to_insert_str);
 	free(to_insert_str);
 	return ret;
 }
@@ -106,21 +113,8 @@ char* dc_stock_str_repl_int(dc_context_t* context, int id, int to_insert_int)
 
 char* dc_stock_str_repl_string2(dc_context_t* context, int id, const char* to_insert, const char* to_insert2)
 {
-	char* p1 = dc_stock_str(context, id);
-	dc_str_replace(&p1, "%1$s", to_insert);
-	dc_str_replace(&p1, "%2$s", to_insert2);
-	return p1;
-}
-
-
-char* dc_stock_str_repl_pl(dc_context_t* context, int id, int cnt)
-{
-	char* ret = NULL;
-	if (context) {
-		ret = (char*)context->cb(context, DC_EVENT_GET_QUANTITY_STRING, id, cnt);
-	}
-	if (ret == NULL) {
-		ret = default_string(id, cnt);
-	}
+	char* ret = get_string(context, id, 0);
+	dc_str_replace(&ret, "%1$s", to_insert);
+	dc_str_replace(&ret, "%2$s", to_insert2);
 	return ret;
 }

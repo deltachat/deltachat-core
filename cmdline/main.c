@@ -52,7 +52,6 @@ static uintptr_t receive_event(dc_context_t* context, int event, uintptr_t data1
 	switch (event)
 	{
 		case DC_EVENT_GET_STRING:
-		case DC_EVENT_GET_QUANTITY_STRING:
 			break; /* do not show the event as this would fill the screen */
 
 		case DC_EVENT_INFO:

@@ -993,28 +993,16 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 /**
  * Requeste a localized string from the frontend.
  *
- * @param data1 (int) ID of the string to request, one of the DC_STR_* constants as defined in stock.h
- * @param data2 0
- * @return (const char*) Null-terminated UTF-8 string.  CAVE: The string will be free()'d by the core, so make
- *     sure it is allocated using malloc() or a compatible function.
- *     If you cannot provide the requested string, just return 0; the core will use a default string then.
+ * @param data1 (int) ID of the string to request, one of the DC_STR_* constants.
+ * @param data2 (int) The count. If the requested string contains a placeholder for a numeric value,
+ *     the ui may use this value to return different strings on different plural forms.
+ * @return (const char*) Null-terminated UTF-8 string.
+ *     The string will be free()'d by the core,
+ *     so it must be allocated using malloc() or a compatible function.
+ *     Return 0 if the ui cannot provide the requested string
+ *     the core will use a default string in english language then.
  */
 #define DC_EVENT_GET_STRING               2091
-
-
-/**
- * Requeste a localized quantitiy string from the frontend.
- * Quantitiy strings may have eg. different plural forms and usually also include the count itself to the string.
- * Typical strings in this form are "1 Message" vs. "2 Messages".
- *
- * @param data1 (int) ID of the string to request, one of the DC_STR_* constants as defined in stock.h
- * @param data2 (int) The count. The frontend may return different strings on this value and normally also includes
- *     the value itself to the string.
- * @return (const char*) Null-terminated UTF-8 string.  CAVE: The string will be free()'d by the core, so make
- *     sure it is allocated using malloc() or a compatible function.
- *     If you cannot provide the requested string, just return 0; the core will use a default string then.
- */
-#define DC_EVENT_GET_QUANTITY_STRING      2092
 
 
 /**
@@ -1040,7 +1028,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 #define DC_EVENT_DATA1_IS_STRING(e)  ((e)==DC_EVENT_HTTP_GET || (e)==DC_EVENT_IMEX_FILE_WRITTEN || (e)==DC_EVENT_FILE_COPIED)
 #define DC_EVENT_DATA2_IS_STRING(e)  ((e)==DC_EVENT_INFO || (e) == DC_EVENT_WARNING || (e) == DC_EVENT_ERROR || (e) == DC_EVENT_SMTP_CONNECTED || (e) == DC_EVENT_SMTP_MESSAGE_SENT || (e) == DC_EVENT_IMAP_CONNECTED)
 #define DC_EVENT_RETURNS_INT(e)      ((e)==DC_EVENT_IS_OFFLINE)
-#define DC_EVENT_RETURNS_STRING(e)   ((e)==DC_EVENT_GET_QUANTITY_STRING || (e)==DC_EVENT_GET_STRING || (e)==DC_EVENT_HTTP_GET)
+#define DC_EVENT_RETURNS_STRING(e)   ((e)==DC_EVENT_GET_STRING || (e)==DC_EVENT_HTTP_GET)
 
 
 /**

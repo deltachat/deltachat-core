@@ -89,11 +89,6 @@ The result must be free()'d! */
 char* dc_stock_str_repl_string2 (dc_context_t*, int id, const char*, const char*);
 
 
-/* Return a string with a correct plural form by callint DC_EVENT_GET_QUANTITY_STRING.
-The result must be free()'d! */
-char* dc_stock_str_repl_pl (dc_context_t*, int id, int cnt);
-
-
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
