@@ -1075,6 +1075,61 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  */
 
 
+/*
+ * TODO: Strings need some doumentation about used placeholders.
+ *
+ * @defgroup DC_STR DC_STR
+ *
+ * These constants are used to request strings using #DC_EVENT_GET_STRING.
+ *
+ * @addtogroup DC_STR
+ * @{
+ */
+#define DC_STR_NOMESSAGES                 1
+#define DC_STR_SELF                       2
+#define DC_STR_DRAFT                      3
+#define DC_STR_MEMBER                     4
+#define DC_STR_CONTACT                    6
+#define DC_STR_VOICEMESSAGE               7
+#define DC_STR_DEADDROP                   8
+#define DC_STR_IMAGE                      9
+#define DC_STR_VIDEO                      10
+#define DC_STR_AUDIO                      11
+#define DC_STR_FILE                       12
+#define DC_STR_STATUSLINE                 13
+#define DC_STR_NEWGROUPDRAFT              14
+#define DC_STR_MSGGRPNAME                 15
+#define DC_STR_MSGGRPIMGCHANGED           16
+#define DC_STR_MSGADDMEMBER               17
+#define DC_STR_MSGDELMEMBER               18
+#define DC_STR_MSGGROUPLEFT               19
+#define DC_STR_SELFNOTINGRP               21
+#define DC_STR_NONETWORK                  22
+#define DC_STR_GIF                        23
+#define DC_STR_ENCRYPTEDMSG               24
+#define DC_STR_E2E_AVAILABLE              25
+#define DC_STR_ENCR_TRANSP                27
+#define DC_STR_ENCR_NONE                  28
+#define DC_STR_CANTDECRYPT_MSG_BODY       29
+#define DC_STR_FINGERPRINTS               30
+#define DC_STR_READRCPT                   31
+#define DC_STR_READRCPT_MAILBODY          32
+#define DC_STR_MSGGRPIMGDELETED           33
+#define DC_STR_E2E_PREFERRED              34
+#define DC_STR_ARCHIVEDCHATS              40
+#define DC_STR_STARREDMSGS                41
+#define DC_STR_AC_SETUP_MSG_SUBJECT       42
+#define DC_STR_AC_SETUP_MSG_BODY          43
+#define DC_STR_SELFTALK_SUBTITLE          50
+#define DC_STR_CANNOT_LOGIN               60
+#define DC_STR_SERVER_RESPONSE            61
+#define DC_STR_COUNT                      62
+
+/**
+ * @}
+ */
+
+
 #ifdef __cplusplus
 }
 #endif
