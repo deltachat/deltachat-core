@@ -1125,7 +1125,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 #define DC_STR_SERVER_RESPONSE            61
 #define DC_STR_COUNT                      62
 
-/**
+/*
  * @}
  */
 
