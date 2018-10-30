@@ -993,28 +993,16 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 /**
  * Requeste a localized string from the frontend.
  *
- * @param data1 (int) ID of the string to request, one of the DC_STR_* constants as defined in stock.h
- * @param data2 0
- * @return (const char*) Null-terminated UTF-8 string.  CAVE: The string will be free()'d by the core, so make
- *     sure it is allocated using malloc() or a compatible function.
- *     If you cannot provide the requested string, just return 0; the core will use a default string then.
+ * @param data1 (int) ID of the string to request, one of the DC_STR_* constants.
+ * @param data2 (int) The count. If the requested string contains a placeholder for a numeric value,
+ *     the ui may use this value to return different strings on different plural forms.
+ * @return (const char*) Null-terminated UTF-8 string.
+ *     The string will be free()'d by the core,
+ *     so it must be allocated using malloc() or a compatible function.
+ *     Return 0 if the ui cannot provide the requested string
+ *     the core will use a default string in english language then.
  */
 #define DC_EVENT_GET_STRING               2091
-
-
-/**
- * Requeste a localized quantitiy string from the frontend.
- * Quantitiy strings may have eg. different plural forms and usually also include the count itself to the string.
- * Typical strings in this form are "1 Message" vs. "2 Messages".
- *
- * @param data1 (int) ID of the string to request, one of the DC_STR_* constants as defined in stock.h
- * @param data2 (int) The count. The frontend may return different strings on this value and normally also includes
- *     the value itself to the string.
- * @return (const char*) Null-terminated UTF-8 string.  CAVE: The string will be free()'d by the core, so make
- *     sure it is allocated using malloc() or a compatible function.
- *     If you cannot provide the requested string, just return 0; the core will use a default string then.
- */
-#define DC_EVENT_GET_QUANTITY_STRING      2092
 
 
 /**
@@ -1040,7 +1028,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 #define DC_EVENT_DATA1_IS_STRING(e)  ((e)==DC_EVENT_HTTP_GET || (e)==DC_EVENT_IMEX_FILE_WRITTEN || (e)==DC_EVENT_FILE_COPIED)
 #define DC_EVENT_DATA2_IS_STRING(e)  ((e)==DC_EVENT_INFO || (e) == DC_EVENT_WARNING || (e) == DC_EVENT_ERROR || (e) == DC_EVENT_SMTP_CONNECTED || (e) == DC_EVENT_SMTP_MESSAGE_SENT || (e) == DC_EVENT_IMAP_CONNECTED)
 #define DC_EVENT_RETURNS_INT(e)      ((e)==DC_EVENT_IS_OFFLINE)
-#define DC_EVENT_RETURNS_STRING(e)   ((e)==DC_EVENT_GET_QUANTITY_STRING || (e)==DC_EVENT_GET_STRING || (e)==DC_EVENT_HTTP_GET)
+#define DC_EVENT_RETURNS_STRING(e)   ((e)==DC_EVENT_GET_STRING || (e)==DC_EVENT_HTTP_GET)
 
 
 /**
@@ -1083,6 +1071,61 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 #define DC_ERROR_NO_NETWORK                 2
 
 /**
+ * @}
+ */
+
+
+/*
+ * TODO: Strings need some doumentation about used placeholders.
+ *
+ * @defgroup DC_STR DC_STR
+ *
+ * These constants are used to request strings using #DC_EVENT_GET_STRING.
+ *
+ * @addtogroup DC_STR
+ * @{
+ */
+#define DC_STR_NOMESSAGES                 1
+#define DC_STR_SELF                       2
+#define DC_STR_DRAFT                      3
+#define DC_STR_MEMBER                     4
+#define DC_STR_CONTACT                    6
+#define DC_STR_VOICEMESSAGE               7
+#define DC_STR_DEADDROP                   8
+#define DC_STR_IMAGE                      9
+#define DC_STR_VIDEO                      10
+#define DC_STR_AUDIO                      11
+#define DC_STR_FILE                       12
+#define DC_STR_STATUSLINE                 13
+#define DC_STR_NEWGROUPDRAFT              14
+#define DC_STR_MSGGRPNAME                 15
+#define DC_STR_MSGGRPIMGCHANGED           16
+#define DC_STR_MSGADDMEMBER               17
+#define DC_STR_MSGDELMEMBER               18
+#define DC_STR_MSGGROUPLEFT               19
+#define DC_STR_SELFNOTINGRP               21
+#define DC_STR_NONETWORK                  22
+#define DC_STR_GIF                        23
+#define DC_STR_ENCRYPTEDMSG               24
+#define DC_STR_E2E_AVAILABLE              25
+#define DC_STR_ENCR_TRANSP                27
+#define DC_STR_ENCR_NONE                  28
+#define DC_STR_CANTDECRYPT_MSG_BODY       29
+#define DC_STR_FINGERPRINTS               30
+#define DC_STR_READRCPT                   31
+#define DC_STR_READRCPT_MAILBODY          32
+#define DC_STR_MSGGRPIMGDELETED           33
+#define DC_STR_E2E_PREFERRED              34
+#define DC_STR_ARCHIVEDCHATS              40
+#define DC_STR_STARREDMSGS                41
+#define DC_STR_AC_SETUP_MSG_SUBJECT       42
+#define DC_STR_AC_SETUP_MSG_BODY          43
+#define DC_STR_SELFTALK_SUBTITLE          50
+#define DC_STR_CANNOT_LOGIN               60
+#define DC_STR_SERVER_RESPONSE            61
+#define DC_STR_COUNT                      62
+
+/*
  * @}
  */
 

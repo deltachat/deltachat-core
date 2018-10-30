@@ -581,7 +581,6 @@ void stress_functions(dc_context_t* context)
 		assert( !DC_EVENT_DATA2_IS_STRING(2010) );
 
 		assert(  DC_EVENT_RETURNS_STRING(2091) );
-		assert(  DC_EVENT_RETURNS_STRING(2092) );
 		assert(  DC_EVENT_RETURNS_STRING(2100) );
 		assert( !DC_EVENT_RETURNS_STRING(100) );
 		assert( !DC_EVENT_RETURNS_STRING(300) );

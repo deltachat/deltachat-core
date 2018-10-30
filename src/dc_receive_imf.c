@@ -560,7 +560,7 @@ static void create_or_lookup_adhoc_group(dc_context_t* context, dc_mimeparser_t*
 		grpname = dc_strdup(mime_parser->subject);
 	}
 	else {
-		grpname = dc_stock_str_repl_pl(context, DC_STR_MEMBER,  dc_array_get_cnt(member_ids));
+		grpname = dc_stock_str_repl_int(context, DC_STR_MEMBER,  dc_array_get_cnt(member_ids));
 	}
 
 	/* create group record */
