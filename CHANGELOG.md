@@ -9,6 +9,12 @@ For a high-level overview about changes anywhere in the Delta Chat ecosystem,
 see https://delta.chat/en/changelog
 
 
+## v0.24.0
+2018-10-29
+
+* removed DC_EVENT_GET_QUANTITY_STRING
+* added quantity parameter to DC_EVENT_GET_STRING
+
 ## v0.23.0
 2018-10-17
 
