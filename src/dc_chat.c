@@ -1984,8 +1984,43 @@ static int last_msg_in_chat_encrypted(dc_sqlite3_t* sql, uint32_t chat_id)
 }
 
 
+static int get_parent_mime_headers(const dc_chat_t* chat,
+                                   char**           parent_rfc724_mid,
+                                   char**           parent_in_reply_to,
+                                   char**           parent_references)
+{
+	int           success = 0;
+	sqlite3_stmt* stmt = NULL;
+
+	if (chat==NULL
+	 || parent_rfc724_mid==NULL || parent_in_reply_to==NULL || parent_references==NULL) {
+		goto cleanup;
+	}
+
+	stmt = dc_sqlite3_prepare(chat->context->sql,
+		"SELECT rfc724_mid, mime_in_reply_to, mime_references"
+		" FROM msgs"
+		" WHERE timestamp=(SELECT max(timestamp) FROM msgs WHERE chat_id=? AND from_id!=?);");
+	sqlite3_bind_int  (stmt, 1, chat->id);
+	sqlite3_bind_int  (stmt, 2, DC_CONTACT_ID_SELF);
+	if (sqlite3_step(stmt)) {
+		*parent_rfc724_mid  = dc_strdup((const char*)sqlite3_column_text(stmt, 0));
+		*parent_in_reply_to = dc_strdup((const char*)sqlite3_column_text(stmt, 1));
+		*parent_references  = dc_strdup((const char*)sqlite3_column_text(stmt, 2));
+		success = 1;
+	}
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return success;
+}
+
+
 static uint32_t send_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc_msg_t* msg, time_t timestamp)
 {
+	char*         parent_rfc724_mid = NULL;
+	char*         parent_references = NULL;
+	char*         parent_in_reply_to = NULL;
 	char*         new_rfc724_mid = NULL;
 	char*         new_references = NULL;
 	char*         new_in_reply_to = NULL;
@@ -2089,17 +2124,7 @@ static uint32_t send_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc_ms
 
 	// setup In-Reply-To: and corresponding fields
 	// according to RFC 5322 3.6.4, page 25
-	stmt = dc_sqlite3_prepare(context->sql,
-		"SELECT rfc724_mid, mime_in_reply_to, mime_references"
-		" FROM msgs"
-		" WHERE timestamp=(SELECT max(timestamp) FROM msgs WHERE chat_id=? AND from_id!=?);");
-	sqlite3_bind_int  (stmt, 1, chat->id);
-	sqlite3_bind_int  (stmt, 2, DC_CONTACT_ID_SELF);
-	if (sqlite3_step(stmt)) {
-		const char* parent_rfc724_mid  = (const char*)sqlite3_column_text(stmt, 0);
-		const char* parent_in_reply_to = (const char*)sqlite3_column_text(stmt, 1);
-		const char* parent_references  = (const char*)sqlite3_column_text(stmt, 2);
-
+	if (get_parent_mime_headers(chat, &parent_rfc724_mid, &parent_in_reply_to, &parent_references)) {
 		if (parent_rfc724_mid && parent_rfc724_mid[0]) {
 			new_in_reply_to = dc_strdup(parent_rfc724_mid);
 		}
@@ -2120,8 +2145,6 @@ static uint32_t send_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc_ms
 			new_references = dc_strdup(parent_in_reply_to);
 		}
 	}
-	sqlite3_finalize(stmt);
-	stmt = NULL;
 
 	/* add message to the database */
 	stmt = dc_sqlite3_prepare(context->sql,
@@ -2150,6 +2173,9 @@ static uint32_t send_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc_ms
 	dc_job_add(context, DC_JOB_SEND_MSG_TO_SMTP, msg_id, NULL, 0);
 
 cleanup:
+	free(parent_rfc724_mid);
+	free(parent_in_reply_to);
+	free(parent_references);
 	free(new_rfc724_mid);
 	free(new_in_reply_to);
 	free(new_references);
