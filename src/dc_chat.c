@@ -2003,7 +2003,7 @@ static int get_parent_mime_headers(const dc_chat_t* chat,
 		" WHERE timestamp=(SELECT max(timestamp) FROM msgs WHERE chat_id=? AND from_id!=?);");
 	sqlite3_bind_int  (stmt, 1, chat->id);
 	sqlite3_bind_int  (stmt, 2, DC_CONTACT_ID_SELF);
-	if (sqlite3_step(stmt)) {
+	if (sqlite3_step(stmt)==SQLITE_ROW) {
 		*parent_rfc724_mid  = dc_strdup((const char*)sqlite3_column_text(stmt, 0));
 		*parent_in_reply_to = dc_strdup((const char*)sqlite3_column_text(stmt, 1));
 		*parent_references  = dc_strdup((const char*)sqlite3_column_text(stmt, 2));
