@@ -1,10 +1,3 @@
-/*************************************************************************
- * (C) 2018 Bjoern Petersen and contributors.
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *************************************************************************/
-
 /* Parse MIME body; this is the text part of an IMF, see https://tools.ietf.org/html/rfc5322
 dc_mimeparser_t has no deep dependencies to dc_context_t or to the database
 (dc_context_t is used for logging only). */

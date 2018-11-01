@@ -1,10 +1,3 @@
-/*************************************************************************
- * (C) 2018 Bjoern Petersen and contributors.
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *************************************************************************/
-
 /* dc_saxparser_t parses XML and HTML files that may not be wellformed
 and spits out all text and tags found.
 
