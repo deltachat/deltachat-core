@@ -1,5 +1,6 @@
 #include <stdarg.h>
 #include <unistd.h>
+#include <math.h>
 #include "dc_context.h"
 #include "dc_loginparam.h"
 #include "dc_job.h"
@@ -409,6 +410,48 @@ static void dc_suspend_smtp_thread(dc_context_t* context, int suspend)
  ******************************************************************************/
 
 
+static time_t get_backoff_time_offset(int c_tries)
+{
+	#define MULTIPLY 5.0
+	#define JOB_RETRIES 16 // results in max. 17 hours
+
+	int N = (int)pow((double)2, c_tries) - 1;
+
+	int r = rand() % (N+1);
+
+	time_t seconds = r * MULTIPLY;
+
+	if (seconds<1) {
+		seconds = 1;
+	}
+
+	return seconds;
+}
+
+
+static time_t get_next_wakeup_time(dc_context_t* context, int thread)
+{
+	time_t        wakeup_time = 0;
+	sqlite3_stmt* stmt = NULL;
+
+	stmt = dc_sqlite3_prepare(context->sql,
+		"SELECT MIN(desired_timestamp)"
+		" FROM jobs"
+		" WHERE thread=?;");
+	sqlite3_bind_int(stmt, 1, thread);
+	if (sqlite3_step(stmt)==SQLITE_ROW) {
+		wakeup_time = sqlite3_column_int(stmt, 0);
+	}
+
+	if (wakeup_time==0) {
+		wakeup_time = time(NULL) + 10*60;
+	}
+
+	sqlite3_finalize(stmt);
+	return wakeup_time;
+}
+
+
 void dc_job_add(dc_context_t* context, int action, int foreign_id, const char* param, int delay_seconds)
 {
 	time_t        timestamp = time(NULL);
@@ -572,20 +615,19 @@ static void dc_job_perform(dc_context_t* context, int thread)
 		}
 		else if (job.try_again==DC_AT_ONCE || job.try_again==DC_STANDARD_DELAY)
 		{
-			// Define the number of job-retries, each retry may result in 2 tries (for fast network-failure-recover).
-			// The first job-retries are done asap, the last retry is delayed about a minute.
-			// Network errors do not count as failed tries.
-			#define JOB_RETRIES 3
+			int tries = job.tries + 1;
 
-			int is_online = dc_is_online(context)? 1 : 0;
-			int tries_while_online = dc_param_get_int(job.param, DC_PARAM_TIMES, 0) + is_online;
+			if( tries < JOB_RETRIES ) {
+				job.tries = tries;
 
-			if( tries_while_online < JOB_RETRIES ) {
-				dc_param_set_int(job.param, DC_PARAM_TIMES, tries_while_online);
+				time_t time_offset = get_backoff_time_offset(tries);
+				job.desired_timestamp = job.added_timestamp + time_offset;
+
 				dc_job_update(context, &job);
-				dc_log_info(context, 0, "%s-job #%i not succeeded on try #%i.", THREAD_STR, (int)job.job_id, tries_while_online);
+				dc_log_info(context, 0, "%s-job #%i not succeeded on try #%i, retry in ADD_TIME+%i (in %i seconds).", THREAD_STR, (int)job.job_id,
+					tries, time_offset, (job.added_timestamp+time_offset)-time(NULL));
 
-				if (thread==DC_SMTP_THREAD && is_online && tries_while_online<(JOB_RETRIES-1)) {
+				if (thread==DC_SMTP_THREAD && tries<(JOB_RETRIES-1)) {
 					pthread_mutex_lock(&context->smtpidle_condmutex);
 						context->perform_smtp_jobs_needed = DC_JOBS_NEEDED_AVOID_DOS;
 					pthread_mutex_unlock(&context->smtpidle_condmutex);
@@ -839,7 +881,7 @@ void dc_perform_smtp_idle(dc_context_t* context)
 			int r = 0;
 			struct timespec wakeup_at;
 			memset(&wakeup_at, 0, sizeof(wakeup_at));
-			wakeup_at.tv_sec  = time(NULL) + ((context->perform_smtp_jobs_needed==DC_JOBS_NEEDED_AVOID_DOS)? 2 : DC_SMTP_IDLE_SEC);
+			wakeup_at.tv_sec  = get_next_wakeup_time(context, DC_SMTP_THREAD)+1;
 			while (context->smtpidle_condflag==0 && r==0) {
 				r = pthread_cond_timedwait(&context->smtpidle_cond, &context->smtpidle_condmutex, &wakeup_at); // unlock mutex -> wait -> lock mutex
 			}
