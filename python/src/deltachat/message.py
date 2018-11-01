@@ -1,9 +1,9 @@
 """ chatting related objects: Contact, Chat, Message. """
 
 import os
+from . import props
 from .cutil import from_dc_charpointer, as_dc_charpointer
 from .capi import lib, ffi
-from .types import property_with_doc
 from . import const
 from datetime import datetime
 import attr
@@ -55,7 +55,7 @@ class Message(object):
         """
         return MessageState(self)
 
-    @property_with_doc
+    @props.with_doc
     def text(self):
         """unicode text of this messages (might be empty if not a text message). """
         return from_dc_charpointer(lib.dc_msg_get_text(self._dc_msg))
@@ -64,7 +64,7 @@ class Message(object):
         """set text of this message. """
         return lib.dc_msg_set_text(self._dc_msg, as_dc_charpointer(text))
 
-    @property_with_doc
+    @props.with_doc
     def filename(self):
         """filename if there was an attachment, otherwise empty string. """
         return from_dc_charpointer(lib.dc_msg_get_file(self._dc_msg))
@@ -75,17 +75,17 @@ class Message(object):
         assert os.path.exists(path)
         lib.dc_msg_set_file(self._dc_msg, as_dc_charpointer(path), mtype)
 
-    @property_with_doc
+    @props.with_doc
     def basename(self):
         """basename of the attachment if it exists, otherwise empty string. """
         return from_dc_charpointer(lib.dc_msg_get_filename(self._dc_msg))
 
-    @property_with_doc
+    @props.with_doc
     def filemime(self):
         """mime type of the file (if it exists)"""
         return from_dc_charpointer(lib.dc_msg_get_filemime(self._dc_msg))
 
-    @property_with_doc
+    @props.with_doc
     def view_type(self):
         """the view type of this message.
 
@@ -93,7 +93,7 @@ class Message(object):
         """
         return MessageType(lib.dc_msg_get_viewtype(self._dc_msg))
 
-    @property_with_doc
+    @props.with_doc
     def time_sent(self):
         """UTC time when the message was sent.
 
@@ -102,7 +102,7 @@ class Message(object):
         ts = lib.dc_msg_get_timestamp(self._dc_msg)
         return datetime.utcfromtimestamp(ts)
 
-    @property_with_doc
+    @props.with_doc
     def time_received(self):
         """UTC time when the message was received.
 
@@ -168,7 +168,7 @@ class MessageType(object):
                 return code
         raise ValueError("message typecode not found for {!r}".format(view_type))
 
-    @property_with_doc
+    @props.with_doc
     def name(self):
         """ human readable type name. """
         return self._mapping.get(self._type, "")

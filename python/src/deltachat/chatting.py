@@ -1,9 +1,10 @@
 """ chatting related objects: Contact, Chat, Message. """
 
 import os
+
+from . import props
 from .cutil import as_dc_charpointer, from_dc_charpointer, iter_array
 from .capi import lib, ffi
-from .types import property_with_doc
 from . import const
 import attr
 from attr import validators as v
@@ -26,12 +27,12 @@ class Contact(object):
             lib.dc_contact_unref
         )
 
-    @property_with_doc
+    @props.with_doc
     def addr(self):
         """ normalized e-mail address for this account. """
         return from_dc_charpointer(lib.dc_contact_get_addr(self._dc_contact))
 
-    @property_with_doc
+    @props.with_doc
     def display_name(self):
         """ display name for this contact. """
         return from_dc_charpointer(lib.dc_contact_get_display_name(self._dc_contact))
