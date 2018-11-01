@@ -177,12 +177,11 @@ extern "C" {
  *   (a simple `LF`, `0x0A` or `\n`)
  *
  * If you need any further assistance, please do not hesitate to contact us
- * through the channels shown at https://delta.chat
+ * through the channels shown at https://delta.chat/en/contribute
  *
- * Please keep in mind, that your derived work must be released under a
- * **GPL-compatible licence**.  For details, please have a look at the
- * [LICENSE file](https://github.com/deltachat/deltachat-core/blob/master/LICENSE)
- * accompanying the source code.
+ * Please keep in mind, that your derived work must respect the Mozilla
+ * Public License 2.0 of libdeltachat and the respective licenses of
+ * the libraries libdeltachat links with. 
  *
  * See you.
  */

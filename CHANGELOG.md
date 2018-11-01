@@ -8,6 +8,11 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes anywhere in the Delta Chat ecosystem,
 see https://delta.chat/en/changelog
 
+## v0.24.1
+2018-11-01
+
+* Re-licensed to MPL 2.0. For confirmations from contributors see
+  https://github.com/deltachat/deltachat-core/issues/403.
 
 ## v0.24.0
 2018-10-29
