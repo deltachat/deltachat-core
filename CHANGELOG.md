@@ -11,7 +11,8 @@ see https://delta.chat/en/changelog
 ## v0.24.1
 2018-11-01
 
-* Re-licensed to MPL 2.0. For confirmations from contributors see
+* Re-licensed files in src, doc, cmdline and python directories to MPL 2.0. 
+  For confirmations from contributors see the thus finalized issue
   https://github.com/deltachat/deltachat-core/issues/403.
 
 ## v0.24.0
