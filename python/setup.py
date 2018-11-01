@@ -1,11 +1,10 @@
 import setuptools
 import os
 import re
-import distutils.log
+
 
 def main():
     long_description, version = read_meta()
-    distutils.log.set_verbosity(1)
     setuptools.setup(
         name='deltachat',
         version=version,
