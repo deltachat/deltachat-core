@@ -1,3 +1,10 @@
+/*************************************************************************
+ * (C) 2018 Bjoern Petersen and contributors.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ *************************************************************************/
+
 /* Stress some functions for testing; if used as a lib, this file is obsolete.
 For memory checking, use eg.
 $ valgrind --leak-check=full --tool=memcheck ./deltachat-core <db>
