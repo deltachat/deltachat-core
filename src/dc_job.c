@@ -432,7 +432,7 @@ void dc_job_add(dc_context_t* context, int action, int foreign_id, const char* p
 	sqlite3_bind_int  (stmt, 3, action);
 	sqlite3_bind_int  (stmt, 4, foreign_id);
 	sqlite3_bind_text (stmt, 5, param? param : "",  -1, SQLITE_STATIC);
-	sqlite3_bind_int64(stmt, 6, delay_seconds>0? (timestamp+delay_seconds) : 0);
+	sqlite3_bind_int64(stmt, 6, timestamp+delay_seconds);
 	sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
 
@@ -447,12 +447,16 @@ void dc_job_add(dc_context_t* context, int action, int foreign_id, const char* p
 
 static void dc_job_update(dc_context_t* context, const dc_job_t* job)
 {
-	sqlite3_stmt* update_stmt = dc_sqlite3_prepare(context->sql,
-		"UPDATE jobs SET desired_timestamp=0, param=? WHERE id=?;");
-	sqlite3_bind_text (update_stmt, 1, job->param->packed, -1, SQLITE_STATIC);
-	sqlite3_bind_int  (update_stmt, 2, job->job_id);
-	sqlite3_step(update_stmt);
-	sqlite3_finalize(update_stmt);
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->sql,
+		"UPDATE jobs"
+		" SET desired_timestamp=?, tries=?, param=?"
+		" WHERE id=?;");
+	sqlite3_bind_int64(stmt, 1, job->desired_timestamp);
+	sqlite3_bind_int64(stmt, 2, job->tries);
+	sqlite3_bind_text (stmt, 3, job->param->packed, -1, SQLITE_STATIC);
+	sqlite3_bind_int  (stmt, 4, job->job_id);
+	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
 }
 
 
@@ -509,15 +513,21 @@ static void dc_job_perform(dc_context_t* context, int thread)
 	}
 
 	select_stmt = dc_sqlite3_prepare(context->sql,
-		"SELECT id, action, foreign_id, param FROM jobs WHERE thread=? AND desired_timestamp<=? ORDER BY action DESC, added_timestamp;");
+		"SELECT id, action, foreign_id, param, added_timestamp, desired_timestamp, tries"
+		" FROM jobs"
+		" WHERE thread=? AND desired_timestamp<=?"
+		" ORDER BY action DESC, added_timestamp DESC;");
 	sqlite3_bind_int64(select_stmt, 1, thread);
 	sqlite3_bind_int64(select_stmt, 2, time(NULL));
 	while (sqlite3_step(select_stmt)==SQLITE_ROW)
 	{
-		job.job_id                          = sqlite3_column_int (select_stmt, 0);
-		job.action                          = sqlite3_column_int (select_stmt, 1);
-		job.foreign_id                      = sqlite3_column_int (select_stmt, 2);
-		dc_param_set_packed(job.param, (char*)sqlite3_column_text(select_stmt, 3));
+		job.job_id                          = sqlite3_column_int  (select_stmt, 0);
+		job.action                          = sqlite3_column_int  (select_stmt, 1);
+		job.foreign_id                      = sqlite3_column_int  (select_stmt, 2);
+		dc_param_set_packed(job.param, (char*)sqlite3_column_text (select_stmt, 3));
+		job.added_timestamp                 = sqlite3_column_int64(select_stmt, 4);
+		job.desired_timestamp               = sqlite3_column_int64(select_stmt, 5);
+		job.tries                           = sqlite3_column_int  (select_stmt, 6);
 
 		dc_log_info(context, 0, "%s-job #%i, action %i started...", THREAD_STR, (int)job.job_id, (int)job.action);
 

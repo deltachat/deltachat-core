@@ -46,6 +46,9 @@ typedef struct dc_job_t
 	uint32_t    job_id;
 	int         action;
 	uint32_t    foreign_id;
+	time_t      desired_timestamp;
+	time_t      added_timestamp;
+	int         tries;
 	dc_param_t* param;
 
 	int         try_again;
