@@ -57,5 +57,7 @@ def ffibuilder():
 
 
 if __name__ == '__main__':
+    import os.path
+    pkgdir = os.path.join(os.path.dirname(__file__), '..')
     builder = ffibuilder()
-    builder.compile(verbose=True)
+    builder.compile(tmpdir=pkgdir, verbose=True)

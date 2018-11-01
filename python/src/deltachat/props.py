@@ -1,12 +1,13 @@
+"""Helpers for properties."""
 
-def property_with_doc(f):
+
+def with_doc(f):
     return property(f, None, None, f.__doc__)
 
 
 # copied over unmodified from
 # https://github.com/devpi/devpi/blob/master/common/devpi_common/types.py
-
-def cached_property(f):
+def cached(f):
     """returns a cached property that is calculated by function f"""
     def get(self):
         try:

@@ -3,7 +3,7 @@ import os
 import pytest
 import time
 from deltachat import Account
-from deltachat.types import cached_property
+from deltachat import props
 from deltachat.capi import lib
 
 
@@ -45,7 +45,7 @@ def acfactory(pytestconfig, tmpdir, request):
                 fin = self._finalizers.pop()
                 fin()
 
-        @cached_property
+        @props.cached
         def configlist(self):
             configlist = []
             for line in open(fn):

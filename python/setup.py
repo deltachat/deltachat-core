@@ -9,7 +9,7 @@ def main():
         name='deltachat',
         version=version,
         description='Python bindings for deltachat-core using CFFI',
-        long_description = long_description,
+        long_description=long_description,
         author='holger krekel, bjoern petersen and contributors',
         setup_requires=['cffi>=1.0.0'],
         install_requires=['cffi>=1.0.0', 'requests', 'attrs', 'six'],
@@ -28,8 +28,6 @@ def main():
 
 
 def read_meta():
-    with open('README.rst') as fd:
-        long_description = fd.read()
     with open(os.path.join("src", "deltachat", "__init__.py")) as f:
         for line in f:
             m = re.match('__version__ = "(\S*).*"', line)
@@ -43,4 +41,3 @@ def read_meta():
 
 if __name__ == "__main__":
     main()
-
