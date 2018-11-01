@@ -1,25 +1,3 @@
-/*******************************************************************************
- *
- *                              Delta Chat Core
- *                      Copyright (C) 2017 Björn Petersen
- *                   Contact: r10s@b44t.com, http://b44t.com
- *
- * This program is free software: you can redistribute it and/or modify it under
- * the terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option) any later
- * version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
- * details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program.  If not, see http://www.gnu.org/licenses/ .
- *
- ******************************************************************************/
-
-
 #ifndef __DELTACHAT_H__
 #define __DELTACHAT_H__
 #ifdef __cplusplus
@@ -177,12 +155,11 @@ extern "C" {
  *   (a simple `LF`, `0x0A` or `\n`)
  *
  * If you need any further assistance, please do not hesitate to contact us
- * through the channels shown at https://delta.chat
+ * through the channels shown at https://delta.chat/en/contribute
  *
- * Please keep in mind, that your derived work must be released under a
- * **GPL-compatible licence**.  For details, please have a look at the
- * [LICENSE file](https://github.com/deltachat/deltachat-core/blob/master/LICENSE)
- * accompanying the source code.
+ * Please keep in mind, that your derived work must respect the Mozilla
+ * Public License 2.0 of libdeltachat and the respective licenses of
+ * the libraries libdeltachat links with. 
  *
  * See you.
  */
