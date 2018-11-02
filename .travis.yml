@@ -2,7 +2,8 @@ sudo: required
 language: c
 
 env:
-  - DEPLOY_USER=delta DEPLOY_SERVER="py.delta.chat"
+  global:
+    - DEPLOY_USER=delta DEPLOY_SERVER="py.delta.chat"
 
   matrix:
     - MESONARGS=""
