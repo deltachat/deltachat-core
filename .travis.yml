@@ -6,8 +6,8 @@ env:
     - DEPLOY_USER=delta DEPLOY_SERVER="py.delta.chat"
 
   matrix:
-    - MESONARGS=""
-    - MESONARGS="-Dmonolith=true"
+    - MESONARGS="" DOCS=t TESTS=t
+    - MESONARGS="-Dmonolith=true" TESTS=t
     - MESONARGS="--default-library=static"
     - MESONARGS="--wrap-mode=forcefallback --default-library=static"
 
@@ -47,14 +47,14 @@ script:
   - export LD_LIBRARY_PATH=/usr/local/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
   - sudo ldconfig -v
   - popd && pushd docs
-  - if ["$MESONARGS" == ""]; then doxygen; fi
+  - if [ -n "$DOCS" ]; then doxygen; fi
   - popd && pushd python
   - virtualenv -p /usr/bin/python3.5 venv
   - source venv/bin/activate
   - pip install tox
-  - ldd /usr/local/lib/x86_64-linux-gnu/libdeltachat.so
+  - if [ -e /usr/local/lib/x86_64-linux-gnu/libdeltachat.so ]; then ldd /usr/local/lib/x86_64-linux-gnu/libdeltachat.so; fi
   - tox
-  - if ["$MESONARGS" == ""]; then tox -e doc; fi
+  - if [ -n "$TESTS" ]; then tox -e doc; fi
   - popd
 
 deploy:
