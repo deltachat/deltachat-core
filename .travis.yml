@@ -53,8 +53,8 @@ script:
   - source venv/bin/activate
   - pip install tox
   - if [ -e /usr/local/lib/x86_64-linux-gnu/libdeltachat.so ]; then ldd /usr/local/lib/x86_64-linux-gnu/libdeltachat.so; fi
-  - tox
-  - if [ -n "$TESTS" ]; then tox -e doc; fi
+  - if [ -n "$TESTS" ]; then tox; fi
+  - if [ -n "$DOCS" ]; then tox -e doc; fi
   - popd
 
 deploy:
