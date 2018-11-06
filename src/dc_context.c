@@ -358,20 +358,24 @@ static int is_gettable_config_key(const char* key)
 }
 
 
-static char* get_config_keys_str() {
+static char* get_config_keys_str()
+{
 	dc_strbuilder_t  ret;
 	dc_strbuilder_init(&ret, 0);
 
 	for (int i = 0; i < str_array_len(config_keys); i++) {
+		if (ret.buf != NULL) {
+			dc_strbuilder_cat(&ret, " ");
+		}
 		dc_strbuilder_cat(&ret, config_keys[i]);
-		dc_strbuilder_cat(&ret, " ");
 	}
 
-	for (int i = 0; i < str_array_len(sys_config_keys) - 1; i++) {
+	for (int i = 0; i < str_array_len(sys_config_keys); i++) {
+		if (ret.buf != NULL) {
+			dc_strbuilder_cat(&ret, " ");
+		}
 		dc_strbuilder_cat(&ret, sys_config_keys[i]);
-		dc_strbuilder_cat(&ret, " ");
 	}
-	dc_strbuilder_cat(&ret, sys_config_keys[str_array_len(sys_config_keys) - 1]);
 
 	return ret.buf;
 }
