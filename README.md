@@ -167,6 +167,6 @@ https://github.com/deltachat/deltachat-core/tree/master/python/tests
 
 ## License
 
-Licensed under the GPLv3, see [LICENSE](./LICENSE) file for details.
+Licensed under the MPL 2.0 see [LICENSE](./LICENSE) file for details.
 
 Copyright © 2017, 2018 Björn Petersen and Delta Chat contributors.
