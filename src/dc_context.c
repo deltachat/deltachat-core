@@ -367,14 +367,14 @@ static char* get_config_keys_str()
 	dc_strbuilder_init(&ret, 0);
 
 	for (int i = 0; i < str_array_len(config_keys); i++) {
-		if (ret.buf != NULL) {
+		if (strlen(ret.buf) > 0) {
 			dc_strbuilder_cat(&ret, " ");
 		}
 		dc_strbuilder_cat(&ret, config_keys[i]);
 	}
 
 	for (int i = 0; i < str_array_len(sys_config_keys); i++) {
-		if (ret.buf != NULL) {
+		if (strlen(ret.buf) > 0) {
 			dc_strbuilder_cat(&ret, " ");
 		}
 		dc_strbuilder_cat(&ret, sys_config_keys[i]);
