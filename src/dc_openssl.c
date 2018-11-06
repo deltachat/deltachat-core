@@ -116,7 +116,7 @@ void dc_openssl_init(void)
 					OPENSSL_init();
 				#else
 					SSL_load_error_strings();
-					#if OPENSSL_VERSION_NUMBER < 0x10100000L
+					#if (OPENSSL_VERSION_NUMBER < 0x10100000L) || (defined(LIBRESSL_VERSION_NUMBER) && (LIBRESSL_VERSION_NUMBER < 0x2070000fL))
 					SSL_library_init();
 					#else
 					OPENSSL_init_ssl(0, NULL);
