@@ -32,6 +32,9 @@ static const char* config_keys[] = {
 	"e2ee_enabled",
 	"mdns_enabled",
 	"save_mime_headers",
+	"configured_addr",
+	"configured_mail_pw",
+	"configured",
 };
 
 
