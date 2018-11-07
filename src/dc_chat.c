@@ -2014,7 +2014,7 @@ static int get_parent_mime_headers(const dc_chat_t* chat,
 	stmt = NULL;
 
 	if (!success) {
-		// there are not messages of other users - use the first message if SELF as parent
+		// there are no messages of other users - use the first message if SELF as parent
 		stmt = dc_sqlite3_prepare(chat->context->sql,
 			"SELECT rfc724_mid, mime_in_reply_to, mime_references"
 			" FROM msgs"
