@@ -42,7 +42,6 @@ typedef struct dc_param_t
 #define DC_PARAM_SERVER_UID        'z'  /* for jobs */
 #define DC_PARAM_TIMES             't'  /* for jobs: times a job was tried */
 
-#define DC_PARAM_REFERENCES        'R'  /* for groups and chats: References-header last used for a chat */
 #define DC_PARAM_UNPROMOTED        'U'  /* for groups */
 #define DC_PARAM_PROFILE_IMAGE     'i'  /* for groups and contacts */
 #define DC_PARAM_SELFTALK          'K'  /* for chats */

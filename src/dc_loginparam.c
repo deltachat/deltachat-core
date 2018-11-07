@@ -114,9 +114,6 @@ static char* get_readable_flags(int flags)
 			CAT_FLAG(DC_LP_SMTP_SOCKET_SSL,      "SMTP_SSL ");
 			CAT_FLAG(DC_LP_SMTP_SOCKET_PLAIN,    "SMTP_PLAIN ");
 
-			CAT_FLAG(DC_NO_EXTRA_IMAP_UPLOAD, "NO_EXTRA_IMAP_UPLOAD ");
-			CAT_FLAG(DC_NO_MOVE_TO_CHATS,     "NO_MOVE_TO_CHATS ");
-
 			if (!flag_added) {
 				char* temp = dc_mprintf("0x%x ", 1<<bit); dc_strbuilder_cat(&strbuilder, temp); free(temp);
 			}

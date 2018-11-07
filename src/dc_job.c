@@ -51,46 +51,6 @@ cleanup:
 }
 
 
-static void dc_job_do_DC_JOB_SEND_MSG_TO_IMAP(dc_context_t* context, dc_job_t* job)
-{
-	char*             server_folder = NULL;
-	uint32_t          server_uid = 0;
-	dc_mimefactory_t  mimefactory;
-	dc_mimefactory_init(&mimefactory, context);
-
-	/* connect to IMAP-server */
-	if (!dc_imap_is_connected(context->imap)) {
-		connect_to_imap(context, NULL);
-		if (!dc_imap_is_connected(context->imap)) {
-			dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
-			goto cleanup;
-		}
-	}
-
-	/* create message */
-	if (dc_mimefactory_load_msg(&mimefactory, job->foreign_id)==0
-	 || mimefactory.from_addr==NULL) {
-		goto cleanup; /* should not happen as we've sent the message to the SMTP server before */
-	}
-
-	if (!dc_mimefactory_render(&mimefactory)) {
-		goto cleanup; /* should not happen as we've sent the message to the SMTP server before */
-	}
-
-	if (!dc_imap_append_msg(context->imap, mimefactory.msg->timestamp, mimefactory.out->str, mimefactory.out->len, &server_folder, &server_uid)) {
-		dc_job_try_again_later(job, DC_AT_ONCE, NULL);
-		goto cleanup;
-	}
-	else {
-		dc_update_server_uid(context, mimefactory.msg->rfc724_mid, server_folder, server_uid);
-	}
-
-cleanup:
-	dc_mimefactory_empty(&mimefactory);
-	free(server_folder);
-}
-
-
 static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(dc_context_t* context, dc_job_t* job)
 {
 	int           delete_from_server = 1;
@@ -214,10 +174,6 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* context, dc_job_
 		in_ms_flags |= DC_MS_SET_MDNSent_FLAG;
 	}
 
-	if (msg->is_msgrmsg) {
-		in_ms_flags |= DC_MS_ALSO_MOVE;
-	}
-
 	if (dc_imap_markseen_msg(context->imap, msg->server_folder, msg->server_uid,
 		   in_ms_flags, &new_server_folder, &new_server_uid, &out_ms_flags)!=0)
 	{
@@ -261,7 +217,7 @@ static void dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP(dc_context_t* context, dc_job_
 		}
 	}
 
-	if (dc_imap_markseen_msg(context->imap, server_folder, server_uid, DC_MS_ALSO_MOVE, &new_server_folder, &new_server_uid, &out_ms_flags)==0) {
+	if (dc_imap_markseen_msg(context->imap, server_folder, server_uid, 0, &new_server_folder, &new_server_uid, &out_ms_flags)==0) {
 		dc_job_try_again_later(job, DC_AT_ONCE, NULL);
 	}
 
@@ -308,11 +264,10 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 		goto cleanup;
 	}
 
-	/* copy the file to the internal blob directory (if it is not already there) */
+	/* set width/height of images, if not yet done */
 	if (DC_MSG_NEEDS_ATTACHMENT(mimefactory.msg->type)) {
 		char* pathNfilename = dc_param_get(mimefactory.msg->param, DC_PARAM_FILE, NULL);
 		if (pathNfilename) {
-			/* set width/height of images, if not yet done */
 			if ((mimefactory.msg->type==DC_MSG_IMAGE || mimefactory.msg->type==DC_MSG_GIF)
 			 && !dc_param_exists(mimefactory.msg->param, DC_PARAM_WIDTH)) {
 				unsigned char* buf = NULL; size_t buf_bytes; uint32_t w, h;
@@ -330,8 +285,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 		}
 	}
 
-	/* send message - it's okay if there are no recipients, this is a group with only OURSELF; we only upload to IMAP in this case */
-	if (clist_count(mimefactory.recipients_addr) > 0)
+	/* send message */
 	{
 		if (!dc_mimefactory_render(&mimefactory)) {
 			dc_set_msg_failed(context, job->foreign_id, mimefactory.error);
@@ -342,6 +296,12 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 		if (dc_param_get_int(mimefactory.msg->param, DC_PARAM_GUARANTEE_E2EE, 0) && !mimefactory.out_encrypted) {
 			dc_set_msg_failed(context, job->foreign_id, "End-to-end-encryption unavailable unexpectedly.");
 			goto cleanup; /* unrecoverable */
+		}
+
+		/* add SELF to the recipient list (it's no longer used elsewhere, so a copy of the whole list is needless) */
+		if (clist_search_string_nocase(mimefactory.recipients_addr, mimefactory.from_addr)==0) {
+			clist_append(mimefactory.recipients_names, NULL);
+			clist_append(mimefactory.recipients_addr,  (void*)dc_strdup(mimefactory.from_addr));
 		}
 
 		if (!dc_smtp_send_msg(context->smtp, mimefactory.recipients_addr, mimefactory.out->str, mimefactory.out->len)) {
@@ -364,12 +324,6 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 		if (mimefactory.out_encrypted && dc_param_get_int(mimefactory.msg->param, DC_PARAM_GUARANTEE_E2EE, 0)==0) {
 			dc_param_set_int(mimefactory.msg->param, DC_PARAM_GUARANTEE_E2EE, 1); /* can upgrade to E2EE - fine! */
 			dc_msg_save_param_to_disk(mimefactory.msg);
-		}
-
-		if ((context->imap->server_flags&DC_NO_EXTRA_IMAP_UPLOAD)==0
-		 && dc_param_get(mimefactory.chat->param, DC_PARAM_SELFTALK, 0)==0
-		 && dc_param_get_int(mimefactory.msg->param, DC_PARAM_CMD, 0)!=DC_CMD_SECUREJOIN_MESSAGE) {
-			dc_job_add(context, DC_JOB_SEND_MSG_TO_IMAP, mimefactory.msg->id, NULL, 0); /* send message to IMAP in another job */
 		}
 
 		// TODO: add to keyhistory
@@ -584,7 +538,6 @@ static void dc_job_perform(dc_context_t* context, int thread)
 
 			switch (job.action) {
 				case DC_JOB_SEND_MSG_TO_SMTP:     dc_job_do_DC_JOB_SEND_MSG_TO_SMTP     (context, &job); break;
-				case DC_JOB_SEND_MSG_TO_IMAP:     dc_job_do_DC_JOB_SEND_MSG_TO_IMAP     (context, &job); break;
 				case DC_JOB_DELETE_MSG_ON_IMAP:   dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP   (context, &job); break;
 				case DC_JOB_MARKSEEN_MSG_ON_IMAP: dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP (context, &job); break;
 				case DC_JOB_MARKSEEN_MDN_ON_IMAP: dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP (context, &job); break;
@@ -728,6 +681,10 @@ void dc_perform_imap_fetch(dc_context_t* context)
 void dc_perform_imap_idle(dc_context_t* context)
 {
 	connect_to_imap(context, NULL); // also idle if connection fails because of not-configured, no-network, whatever. dc_imap_idle() will handle this by the fake-idle and log a warning
+
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		return;
+	}
 
 	pthread_mutex_lock(&context->imapidle_condmutex);
 		if (context->perform_imap_jobs_needed) {

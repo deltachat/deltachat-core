@@ -43,7 +43,7 @@ typedef struct dc_mimefactory_t {
 	dc_msg_t*     msg;
 	dc_chat_t*    chat;
 	int           increation;
-	char*         predecessor;
+	char*         in_reply_to;
 	char*         references;
 	int           req_mdn;
 

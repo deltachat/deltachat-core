@@ -37,17 +37,12 @@ typedef struct dc_imap_t
 	int                   connected;
 	mailimap*             etpan;   /* normally, if connected, etpan is also set; however, if a reconnection is required, we may lost this handle */
 
-	time_t                last_fullread_time;
-
 	int                   idle_set_up;
 	char*                 selected_folder;
 	int                   selected_folder_needs_expunge;
 	int                   should_reconnect;
 
 	int                   can_idle;
-	int                   has_xlist;
-	char*                 moveto_folder;// Folder, where reveived chat messages should go to.  Normally DC_CHATS_FOLDER, may be NULL to leave them in the INBOX
-	char*                 sent_folder;  // Folder, where send messages should go to.  Normally DC_CHATS_FOLDER.
 	char                  imap_delimiter;/* IMAP Path separator. Set as a side-effect in list_folders__ */
 
 	pthread_cond_t        watch_cond;
@@ -84,7 +79,6 @@ void       dc_imap_interrupt_idle    (dc_imap_t*);
 
 int        dc_imap_append_msg        (dc_imap_t*, time_t timestamp, const char* data_not_terminated, size_t data_bytes, char** ret_server_folder, uint32_t* ret_server_uid);
 
-#define    DC_MS_ALSO_MOVE          0x01
 #define    DC_MS_SET_MDNSent_FLAG   0x02
 #define    DC_MS_MDNSent_JUST_SET   0x10
 int        dc_imap_markseen_msg      (dc_imap_t*, const char* folder, uint32_t server_uid, int ms_flags, char** ret_server_folder, uint32_t* ret_server_uid, int* ret_ms_flags); /* only returns 0 on connection problems; we should try later again in this case */

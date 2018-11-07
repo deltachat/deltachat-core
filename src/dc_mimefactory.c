@@ -58,8 +58,8 @@ void dc_mimefactory_empty(dc_mimefactory_t* factory)
 	dc_chat_unref(factory->chat);
 	factory->chat = NULL;
 
-	free(factory->predecessor);
-	factory->predecessor = NULL;
+	free(factory->in_reply_to);
+	factory->in_reply_to = NULL;
 
 	free(factory->references);
 	factory->references = NULL;
@@ -174,56 +174,15 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 				}
 			}
 
-			/* Get a predecessor of the mail to send.
-			For simplicity, we use the last message send not by us.
-			This is not 100% accurate and may even be a newer message if first sending fails and new messages arrive -
-			however, as we currently only use it to identifify answers from different email addresses, this is sufficient.
-
-			Our first idea was to write the predecessor to the `In-Reply-To:` header, however, this results
-			in infinite depth thread views eg. in thunderbird.  Maybe we can work around this issue by using only one
-			predecessor anchor a day, however, for the moment, we just use the `Chat-Predecessor` header that does not
-			disturb other mailers.
-
-			Finally, maybe the Predecessor/In-Reply-To header is not needed for all answers but only to the first ones -
-			or after the sender has changes its email address. */
 			stmt = dc_sqlite3_prepare(context->sql,
-				"SELECT rfc724_mid FROM msgs WHERE timestamp=(SELECT max(timestamp) FROM msgs WHERE chat_id=? AND from_id!=?);");
-			sqlite3_bind_int  (stmt, 1, factory->msg->chat_id);
-			sqlite3_bind_int  (stmt, 2, DC_CONTACT_ID_SELF);
+				"SELECT mime_in_reply_to, mime_references FROM msgs WHERE id=?");
+			sqlite3_bind_int  (stmt, 1, factory->msg->id);
 			if (sqlite3_step(stmt)==SQLITE_ROW) {
-				factory->predecessor = dc_strdup_keep_null((const char*)sqlite3_column_text(stmt, 0));
+				factory->in_reply_to = dc_strdup((const char*)sqlite3_column_text(stmt, 0));
+				factory->references  = dc_strdup((const char*)sqlite3_column_text(stmt, 1));
 			}
 			sqlite3_finalize(stmt);
 			stmt = NULL;
-
-			/* get a References:-header: either the same as the last one or a random one.
-			To avoid endless nested threads, we do not use In-Reply-To: here but link subsequent mails to the same reference.
-			This "same reference" is re-calculated after 24 hours to avoid completely different messages being linked to an old context.
-
-			Regarding multi-client: Different clients will create difference References:-header, maybe we will sync these headers some day,
-			however one could also see this as a feature :) (there may be different contextes on different clients)
-			(also, the References-header is not the most important thing, and, at least for now, we do not want to make things too complicated.  */
-			time_t prev_msg_time = 0;
-			stmt = dc_sqlite3_prepare(context->sql,
-				"SELECT max(timestamp) FROM msgs WHERE chat_id=? AND id!=?");
-			sqlite3_bind_int  (stmt, 1, factory->msg->chat_id);
-			sqlite3_bind_int  (stmt, 2, factory->msg->id);
-			if (sqlite3_step(stmt)==SQLITE_ROW) {
-				prev_msg_time = sqlite3_column_int64(stmt, 0);
-			}
-			sqlite3_finalize(stmt);
-			stmt = NULL;
-
-			#define NEW_THREAD_THRESHOLD 24*60*60
-			if (prev_msg_time!=0 && factory->msg->timestamp - prev_msg_time < NEW_THREAD_THRESHOLD) {
-				factory->references = dc_param_get(factory->chat->param, DC_PARAM_REFERENCES, NULL);
-			}
-
-			if (factory->references==NULL) {
-				factory->references = dc_create_dummy_references_mid();
-				dc_param_set(factory->chat->param, DC_PARAM_REFERENCES, factory->references);
-				dc_chat_update_param(factory->chat);
-			}
 
 			success = 1;
 			factory->loaded = DC_MF_MSG_LOADED;
@@ -507,14 +466,18 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 		}
 
 		clist* references_list = NULL;
-		if (factory->references) {
-			references_list = clist_new();
-			clist_append(references_list,  (void*)dc_strdup(factory->references));
+		if (factory->references && factory->references[0]) {
+			references_list = dc_str_to_clist(factory->references, " ");
+		}
+
+		clist* in_reply_to_list = NULL;
+		if (factory->in_reply_to && factory->in_reply_to[0]) {
+			in_reply_to_list = dc_str_to_clist(factory->in_reply_to, " ");
 		}
 
 		imf_fields = mailimf_fields_new_with_data_all(mailimf_get_date(factory->timestamp), from,
 			NULL /* sender */, NULL /* reply-to */,
-			to, NULL /* cc */, NULL /* bcc */, dc_strdup(factory->rfc724_mid), NULL /* in-reply-to */,
+			to, NULL /* cc */, NULL /* bcc */, dc_strdup(factory->rfc724_mid), in_reply_to_list,
 			references_list /* references */,
 			NULL /* subject set later */);
 
@@ -527,9 +490,6 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 			factory->context->os_name? factory->context->os_name : "")));
 
 		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Version"), strdup("1.0"))); /* mark message as being sent by a messenger */
-		if (factory->predecessor) {
-			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Predecessor"), strdup(factory->predecessor)));
-		}
 
 		if (factory->req_mdn) {
 			/* we use "Chat-Disposition-Notification-To" as replies to "Disposition-Notification-To" are weird in many cases, are just freetext and/or do not follow any standard. */

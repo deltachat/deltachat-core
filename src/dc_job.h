@@ -14,7 +14,6 @@ extern "C" {
 #define DC_JOB_DELETE_MSG_ON_IMAP     110    // low priority ...
 #define DC_JOB_MARKSEEN_MDN_ON_IMAP   120
 #define DC_JOB_MARKSEEN_MSG_ON_IMAP   130
-#define DC_JOB_SEND_MSG_TO_IMAP       700
 #define DC_JOB_CONFIGURE_IMAP         900
 #define DC_JOB_IMEX_IMAP              910    // ... high priority
 
