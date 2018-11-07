@@ -15,6 +15,38 @@
 #include "dc_apeerstate.h"
 
 
+static const char* config_keys[] = {
+	"addr",
+	"mail_server",
+	"mail_user",
+	"mail_pw",
+	"mail_port"
+	"send_server",
+	"send_user",
+	"send_pw",
+	"send_port"
+	"server_flags",
+	"displayname"
+	"selfstatus",
+	"selfavatar",
+	"e2ee_enabled",
+	"mdns_enabled",
+	"save_mime_headers",
+	"configured_addr",
+	"configured_mail_pw",
+	"configured",
+};
+
+
+static const char* sys_config_keys[] = {
+	"sys.version",
+	"sys.msgsize_max_recommended",
+	"sys.config_keys",
+};
+
+#define str_array_len(a) (sizeof(a)/sizeof(char*))
+
+
 /**
  * A callback function that is used if no user-defined callback is given to dc_context_new().
  * The callback function simply returns 0 which is safe for every event.
@@ -307,6 +339,49 @@ char* dc_get_blobdir(const dc_context_t* context)
  * INI-handling, Information
  ******************************************************************************/
 
+static int is_settable_config_key(const char* key)
+{
+	for (int i = 0; i < str_array_len(config_keys); i++) {
+		if (strcmp(key, config_keys[i]) == 0) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+
+static int is_gettable_config_key(const char* key)
+{
+	for (int i = 0; i < str_array_len(sys_config_keys); i++) {
+		if (strcmp(key, sys_config_keys[i]) == 0) {
+			return 1;
+		}
+	}
+	return is_settable_config_key(key);
+}
+
+
+static char* get_config_keys_str()
+{
+	dc_strbuilder_t  ret;
+	dc_strbuilder_init(&ret, 0);
+
+	for (int i = 0; i < str_array_len(config_keys); i++) {
+		if (strlen(ret.buf) > 0) {
+			dc_strbuilder_cat(&ret, " ");
+		}
+		dc_strbuilder_cat(&ret, config_keys[i]);
+	}
+
+	for (int i = 0; i < str_array_len(sys_config_keys); i++) {
+		if (strlen(ret.buf) > 0) {
+			dc_strbuilder_cat(&ret, " ");
+		}
+		dc_strbuilder_cat(&ret, sys_config_keys[i]);
+	}
+
+	return ret.buf;
+}
 
 static char* get_sys_config_str(const char* key)
 {
@@ -320,14 +395,7 @@ static char* get_sys_config_str(const char* key)
 	}
 	else if (strcmp(key, "sys.config_keys")==0)
 	{
-		return dc_strdup("addr"
-		       " mail_server mail_user mail_pw mail_port"
-		       " send_server send_user send_pw send_port"
-		       " server_flags displayname"
-		       " selfstatus selfavatar"
-		       " e2ee_enabled mdns_enabled"
-		       " save_mime_headers"
-		       " sys.version sys.msgsize_max_recommended sys.config_keys");
+		return get_config_keys_str();
 	}
 	else {
 		return dc_strdup(NULL);
@@ -371,7 +439,7 @@ int dc_set_config(dc_context_t* context, const char* key, const char* value)
 	int   ret = 0;
 	char* rel_path = NULL;
 
-	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || key==NULL) { /* "value" may be NULL */
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || key==NULL || !is_settable_config_key(key)) { /* "value" may be NULL */
 		return 0;
 	}
 
@@ -423,7 +491,7 @@ char* dc_get_config(dc_context_t* context, const char* key)
 		return get_sys_config_str(key);
 	}
 
-	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || key==NULL) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || key==NULL || !is_gettable_config_key(key)) {
 		return dc_strdup("");
 	}
 
