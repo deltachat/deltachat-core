@@ -26,6 +26,7 @@ static const char* config_keys[] = {
 	"send_pw",
 	"send_port"
 	"server_flags",
+	"imap_folder",
 	"displayname"
 	"selfstatus",
 	"selfavatar",
