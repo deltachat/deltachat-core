@@ -2141,8 +2141,9 @@ static uint32_t send_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc_ms
 	}
 	dc_param_set(msg->param, DC_PARAM_ERRONEOUS_E2EE, NULL); /* reset eg. on forwarding */
 
-	// setup In-Reply-To: and corresponding fields
-	// according to RFC 5322 3.6.4, page 25
+	// set "In-Reply-To:" to identify the message to which the composed message is a reply;
+	// set "References:" to identify the "thread" of the conversation;
+	// both according to RFC 5322 3.6.4, page 25
 	if (get_parent_mime_headers(chat, &parent_rfc724_mid, &parent_in_reply_to, &parent_references)) {
 		if (parent_rfc724_mid && parent_rfc724_mid[0]) {
 			new_in_reply_to = dc_strdup(parent_rfc724_mid);
