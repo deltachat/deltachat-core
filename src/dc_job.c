@@ -951,3 +951,23 @@ void dc_interrupt_smtp_idle(dc_context_t* context)
 
 	pthread_mutex_unlock(&context->smtpidle_condmutex);
 }
+
+
+
+/**
+ * This function can be called whenever there is a hint
+ * that the network is available again.
+ * The library will try to send pending messages out.
+ *
+ * @memberof dc_context_t
+ * @param context The context as created by dc_context_new().
+ * @return None.
+ */
+void dc_maybe_network(dc_context_t* context)
+{
+	// TODO: make sure, sending is tried independingly of retry-count or timeouts.
+	// if the first messages comes through, the others should be retried as well.
+
+	dc_interrupt_smtp_idle(context);
+	dc_interrupt_imap_idle(context);
+}
