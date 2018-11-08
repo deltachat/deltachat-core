@@ -1,7 +1,7 @@
 
 # release new core version
 
-1. deltachat-core: bump version, commit
+1. deltachat-core: bump version, check CHANGELOG.md, commit
 2. $ VERSION=1.2.3
 3. $ git tag -s -m "Realease v${VERSION}" v${VERSION} # create signed tag
 4. $ git tag -v v${VERSION} # verify tag signature
@@ -11,7 +11,7 @@
 
 # create the github release with signed binaries
 
-1. "draft a new release" with ${VERSION} on github.com
+1. "draft a new release" with v${VERSION} on github.com
 2. publish release
 3. down zip and tar.gz files
 4. verify content
