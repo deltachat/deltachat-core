@@ -541,7 +541,7 @@ void dc_job_kill_actions(dc_context_t* context, int action1, int action2)
 }
 
 
-static void dc_job_perform(dc_context_t* context, int thread)
+static void dc_job_perform(dc_context_t* context, int thread, int probe_network)
 {
 	sqlite3_stmt* select_stmt = NULL;
 	dc_job_t      job;
@@ -554,6 +554,9 @@ static void dc_job_perform(dc_context_t* context, int thread)
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
 		goto cleanup;
 	}
+
+	// TODO: if probe_network ist set,
+	// send out _all_ pending messages in the order of their backoff-times.
 
 	select_stmt = dc_sqlite3_prepare(context->sql,
 		"SELECT id, action, foreign_id, param, added_timestamp, desired_timestamp, tries"
@@ -677,7 +680,9 @@ void dc_perform_imap_jobs(dc_context_t* context)
 		context->perform_imap_jobs_needed = 0;
 	pthread_mutex_unlock(&context->imapidle_condmutex);
 
-	dc_job_perform(context, DC_IMAP_THREAD);
+	dc_job_perform(context, DC_IMAP_THREAD, context->probe_imap_network);
+	context->probe_imap_network = 0;
+
 
 	dc_log_info(context, 0, "IMAP-jobs ended.");
 }
@@ -841,7 +846,8 @@ void dc_perform_smtp_jobs(dc_context_t* context)
 	pthread_mutex_unlock(&context->smtpidle_condmutex);
 
 	dc_log_info(context, 0, "SMTP-jobs started...");
-	dc_job_perform(context, DC_SMTP_THREAD);
+	dc_job_perform(context, DC_SMTP_THREAD, context->probe_smtp_network);
+	context->probe_smtp_network = 0;
 	dc_log_info(context, 0, "SMTP-jobs ended.");
 
 	pthread_mutex_lock(&context->smtpidle_condmutex);
@@ -965,8 +971,11 @@ void dc_interrupt_smtp_idle(dc_context_t* context)
  */
 void dc_maybe_network(dc_context_t* context)
 {
-	// TODO: make sure, sending is tried independingly of retry-count or timeouts.
-	// if the first messages comes through, the others should be retried as well.
+	// the following flags are forwarded to dc_job_perform() and make sure,
+	// sending is tried independingly of retry-count or timeouts.
+	// if the first messages comes through, the others are be retried as well.
+	context->probe_smtp_network = 1;
+	context->probe_imap_network = 1;
 
 	dc_interrupt_smtp_idle(context);
 	dc_interrupt_imap_idle(context);
