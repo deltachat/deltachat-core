@@ -690,17 +690,18 @@ char* dc_get_info(dc_context_t* context)
 
 
 /**
- * Returns the message IDs of all _fresh_ messages of any chat. Typically used for implementing
- * notification summaries.
+ * Returns the message IDs of all _fresh_ messages of any chat.
+ * Typically used for implementing notification summaries.
+ * The list is already sorted and starts with the most recent fresh message.
  *
  * @memberof dc_context_t
  * @param context The context object as returned from dc_context_new().
  * @return Array of message IDs, must be dc_array_unref()'d when no longer used.
+ *     On errors, the list is empty. NULL is never returned.
  */
 dc_array_t* dc_get_fresh_msgs(dc_context_t* context)
 {
 	int           show_deaddrop = 0;
-	int           success = 0;
 	dc_array_t*   ret = dc_array_new(context, 128);
 	sqlite3_stmt* stmt = NULL;
 
@@ -708,35 +709,27 @@ dc_array_t* dc_get_fresh_msgs(dc_context_t* context)
 		goto cleanup;
 	}
 
-	show_deaddrop = 0;//dc_sqlite3_get_config_int(context->sql, "show_deaddrop", 0);
-
 	stmt = dc_sqlite3_prepare(context->sql,
 		"SELECT m.id"
-			" FROM msgs m"
-			" LEFT JOIN contacts ct ON m.from_id=ct.id"
-			" LEFT JOIN chats c ON m.chat_id=c.id"
-			" WHERE m.state=" DC_STRINGIFY(DC_STATE_IN_FRESH) " AND ct.blocked=0 AND (c.blocked=0 OR c.blocked=?)"
-			" ORDER BY m.timestamp DESC,m.id DESC;"); /* the list starts with the newest messages*/
-	sqlite3_bind_int(stmt, 1, show_deaddrop? DC_CHAT_DEADDROP_BLOCKED : 0);
+		" FROM msgs m"
+		" LEFT JOIN contacts ct ON m.from_id=ct.id"
+		" LEFT JOIN chats c ON m.chat_id=c.id"
+		" WHERE m.state=?"
+		"   AND m.chat_id>?"
+		"   AND ct.blocked=0"
+		"   AND (c.blocked=0 OR c.blocked=?)"
+		" ORDER BY m.timestamp DESC,m.id DESC;");
+	sqlite3_bind_int(stmt, 1, DC_STATE_IN_FRESH);
+	sqlite3_bind_int(stmt, 2, DC_CHAT_ID_LAST_SPECIAL);
+	sqlite3_bind_int(stmt, 3, show_deaddrop? DC_CHAT_DEADDROP_BLOCKED : 0);
 
 	while (sqlite3_step(stmt)==SQLITE_ROW) {
 		dc_array_add_id(ret, sqlite3_column_int(stmt, 0));
 	}
 
-	success = 1;
-
 cleanup:
 	sqlite3_finalize(stmt);
-
-	if (success) {
-		return ret;
-	}
-	else {
-		if (ret) {
-			dc_array_unref(ret);
-		}
-		return NULL;
-	}
+	return ret;
 }
 
 
