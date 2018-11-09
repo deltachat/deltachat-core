@@ -555,16 +555,28 @@ static void dc_job_perform(dc_context_t* context, int thread, int probe_network)
 		goto cleanup;
 	}
 
-	// TODO: if probe_network ist set,
-	// send out _all_ pending messages in the order of their backoff-times.
+	if (probe_network==0) {
+		// processing for first-try and after backoff-timeouts:
+		// process jobs in the order they were added.
+		#define FIELDS "id, action, foreign_id, param, added_timestamp, desired_timestamp, tries"
+		select_stmt = dc_sqlite3_prepare(context->sql,
+			"SELECT " FIELDS " FROM jobs"
+			" WHERE thread=? AND desired_timestamp<=?"
+			" ORDER BY action DESC, added_timestamp;");
+		sqlite3_bind_int64(select_stmt, 1, thread);
+		sqlite3_bind_int64(select_stmt, 2, time(NULL));
+	}
+	else {
+		// processing after call to dc_maybe_network():
+		// process _all_ pending jobs that failed before
+		// in the order of their backoff-times.
+		select_stmt = dc_sqlite3_prepare(context->sql,
+			"SELECT " FIELDS " FROM jobs"
+			" WHERE thread=? AND tries>0"
+			" ORDER BY desired_timestamp, action DESC;");
+		sqlite3_bind_int64(select_stmt, 1, thread);
+	}
 
-	select_stmt = dc_sqlite3_prepare(context->sql,
-		"SELECT id, action, foreign_id, param, added_timestamp, desired_timestamp, tries"
-		" FROM jobs"
-		" WHERE thread=? AND desired_timestamp<=?"
-		" ORDER BY action DESC, added_timestamp DESC;");
-	sqlite3_bind_int64(select_stmt, 1, thread);
-	sqlite3_bind_int64(select_stmt, 2, time(NULL));
 	while (sqlite3_step(select_stmt)==SQLITE_ROW)
 	{
 		job.job_id                          = sqlite3_column_int  (select_stmt, 0);
@@ -641,6 +653,14 @@ static void dc_job_perform(dc_context_t* context, int thread, int probe_network)
 					dc_set_msg_failed(context, job.foreign_id, job.pending_error);
 				}
 				dc_job_delete(context, &job);
+			}
+
+			if (probe_network) {
+				// on dc_maybe_network() we stop trying here;
+				// these jobs are already tried once.
+				// otherwise, we just continue with the next job
+				// to give other jobs a chance being tried at least once.
+				goto cleanup;
 			}
 		}
 		else
