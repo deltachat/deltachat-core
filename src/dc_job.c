@@ -412,7 +412,7 @@ static void dc_suspend_smtp_thread(dc_context_t* context, int suspend)
 
 static time_t get_backoff_time_offset(int c_tries)
 {
-	#define MULTIPLY 5.0
+	#define MULTIPLY 5
 	#define JOB_RETRIES 16 // results in max. 17 hours
 
 	int N = (int)pow((double)2, c_tries) - 1;
