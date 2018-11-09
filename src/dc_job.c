@@ -697,12 +697,13 @@ void dc_perform_imap_jobs(dc_context_t* context)
 	dc_log_info(context, 0, "IMAP-jobs started...");
 
 	pthread_mutex_lock(&context->imapidle_condmutex);
+		int probe_imap_network = context->probe_imap_network;
+		context->probe_imap_network = 0;
+
 		context->perform_imap_jobs_needed = 0;
 	pthread_mutex_unlock(&context->imapidle_condmutex);
 
-	dc_job_perform(context, DC_IMAP_THREAD, context->probe_imap_network);
-	context->probe_imap_network = 0;
-
+	dc_job_perform(context, DC_IMAP_THREAD, probe_imap_network);
 
 	dc_log_info(context, 0, "IMAP-jobs ended.");
 }
@@ -856,6 +857,9 @@ void dc_interrupt_imap_idle(dc_context_t* context)
 void dc_perform_smtp_jobs(dc_context_t* context)
 {
 	pthread_mutex_lock(&context->smtpidle_condmutex);
+		int probe_smtp_network = context->probe_smtp_network;
+		context->probe_smtp_network = 0;
+
 		context->perform_smtp_jobs_needed = 0;
 		if (context->smtp_suspended) {
 			dc_log_info(context, 0, "SMTP-jobs suspended.");
@@ -866,8 +870,7 @@ void dc_perform_smtp_jobs(dc_context_t* context)
 	pthread_mutex_unlock(&context->smtpidle_condmutex);
 
 	dc_log_info(context, 0, "SMTP-jobs started...");
-	dc_job_perform(context, DC_SMTP_THREAD, context->probe_smtp_network);
-	context->probe_smtp_network = 0;
+	dc_job_perform(context, DC_SMTP_THREAD, probe_smtp_network);
 	dc_log_info(context, 0, "SMTP-jobs ended.");
 
 	pthread_mutex_lock(&context->smtpidle_condmutex);
@@ -994,8 +997,13 @@ void dc_maybe_network(dc_context_t* context)
 	// the following flags are forwarded to dc_job_perform() and make sure,
 	// sending is tried independingly of retry-count or timeouts.
 	// if the first messages comes through, the others are be retried as well.
-	context->probe_smtp_network = 1;
-	context->probe_imap_network = 1;
+	pthread_mutex_lock(&context->smtpidle_condmutex);
+		context->probe_smtp_network = 1;
+	pthread_mutex_unlock(&context->smtpidle_condmutex);
+
+	pthread_mutex_lock(&context->imapidle_condmutex);
+		context->probe_imap_network = 1;
+	pthread_mutex_unlock(&context->imapidle_condmutex);
 
 	dc_interrupt_smtp_idle(context);
 	dc_interrupt_imap_idle(context);
