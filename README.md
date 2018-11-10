@@ -77,7 +77,8 @@ which you may need to install (we have some fallbacks if you don't):
 - [LibEtPan](https://github.com/dinhviethoa/libetpan); Note that this
   library does not use pkg-config so the system-provided version will
   be looked up by using `libetpan-config` which must be in the PATH.
-  Version 1.8 or newer is required.
+  Version 1.8 or newer is required. LibEtPan must be compiled with
+  SASL support enabled.
 
 - [OpenSSL](https://www.openssl.org/)
 
