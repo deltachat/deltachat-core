@@ -8,6 +8,19 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes anywhere in the Delta Chat ecosystem,
 see https://delta.chat/en/changelog
 
+## v0.25.0
+2018-11-12
+
+* use a single folder for all incoming and outgoing messages;
+  defaults to INBOX and can be configured using
+  dc_set_config(context, "imap_folder", folder)
+* dc_set_config() and dc_get_config() check for correct key
+* new function dc_maybe_network() to trigger jobs (as sending messages)
+  and bypass the new exponential backoff algorithm
+
+The changes have been done by Azul, Björn Petersen, Borys Piddubnyi,
+Floris Bruynooghe, Holger Krekel, Stefan Strogin
+
 ## v0.24.1
 2018-11-01
 
