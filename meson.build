@@ -35,6 +35,9 @@ endif
 # pthreads is not a real dependency
 pthreads = dependency('threads')
 
+# declare option to link against libm
+math = declare_dependency(link_args: ['-lm'])
+
 # zlib should move grow static-pic-lib support and be handled like
 # this as well.
 zlib = dependency('zlib', fallback: ['zlib', 'zlib_dep'])
