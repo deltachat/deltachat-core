@@ -39,7 +39,7 @@ lib_src = [
   'dc_tools.c',
 ]
 
-lib_deps = [pthreads, zlib, openssl, sasl, sqlite, etpan, netpgp]
+lib_deps = [pthreads, zlib, openssl, sasl, sqlite, etpan, netpgp, math]
 lib_inc = include_directories('.')
 lib = library(
   'deltachat', lib_src,

@@ -50,6 +50,7 @@ struct _dc_context
 	dc_imap_t*       imap;                  /**< Internal IMAP object, never NULL */
 	pthread_mutex_t  imapidle_condmutex;
 	int              perform_imap_jobs_needed;
+	int              probe_imap_network;    /**< if this flag is set, the imap-job timeouts are bypassed and messages are sent until they fail */
 
 	dc_smtp_t*       smtp;                  /**< Internal SMTP object, never NULL */
 	pthread_cond_t   smtpidle_cond;
@@ -60,6 +61,7 @@ struct _dc_context
 	#define          DC_JOBS_NEEDED_AT_ONCE   1
 	#define          DC_JOBS_NEEDED_AVOID_DOS 2
 	int              perform_smtp_jobs_needed;
+	int              probe_smtp_network;   /**< if this flag is set, the smtp-job timeouts are bypassed and messages are sent until they fail */
 
 	dc_callback_t    cb;                    /**< Internal */
 

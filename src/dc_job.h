@@ -30,12 +30,6 @@ extern "C" {
 #define DC_SMTP_TIMEOUT_SEC       10
 
 
-// this is the timeout after which dc_perform_smtp_idle() returns at latest.
-// this timeout should not be too large as this might be the only option to perform
-// jobs that failed on the first execution.
-#define DC_SMTP_IDLE_SEC          60
-
-
 /**
  * Library-internal.
  */
@@ -46,6 +40,9 @@ typedef struct dc_job_t
 	uint32_t    job_id;
 	int         action;
 	uint32_t    foreign_id;
+	time_t      desired_timestamp;
+	time_t      added_timestamp;
+	int         tries;
 	dc_param_t* param;
 
 	int         try_again;

@@ -35,6 +35,10 @@ endif
 # pthreads is not a real dependency
 pthreads = dependency('threads')
 
+# declare option to link against libm
+cc = meson.get_compiler('c')
+math = cc.find_library('m')
+
 # zlib should move grow static-pic-lib support and be handled like
 # this as well.
 zlib = dependency('zlib', fallback: ['zlib', 'zlib_dep'])

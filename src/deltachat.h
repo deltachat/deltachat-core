@@ -227,6 +227,8 @@ void            dc_perform_smtp_jobs         (dc_context_t*);
 void            dc_perform_smtp_idle         (dc_context_t*);
 void            dc_interrupt_smtp_idle       (dc_context_t*);
 
+void            dc_maybe_network             (dc_context_t*);
+
 
 // handle chatlists
 #define         DC_GCL_ARCHIVED_ONLY         0x01

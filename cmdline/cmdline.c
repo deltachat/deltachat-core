@@ -411,7 +411,7 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 				"configure\n"
 				"connect\n"
 				"disconnect\n"
-				"poll\n"
+				"maybenetwork\n"
 				"help imex (Import/Export)\n"
 				"==============================Chat commands==\n"
 				"listchats [<query>]\n"
@@ -638,6 +638,11 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 		if (ret == NULL) {
 			ret = COMMAND_FAILED;
 		}
+	}
+	else if (strcmp(cmd, "maybenetwork")==0)
+	{
+		dc_maybe_network(context);
+		ret = COMMAND_SUCCEEDED;
 	}
 
 	/*******************************************************************************
