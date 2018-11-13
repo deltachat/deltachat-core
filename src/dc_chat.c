@@ -2144,7 +2144,12 @@ static uint32_t send_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc_ms
 	// set "In-Reply-To:" to identify the message to which the composed message is a reply;
 	// set "References:" to identify the "thread" of the conversation;
 	// both according to RFC 5322 3.6.4, page 25
-	if (get_parent_mime_headers(chat, &parent_rfc724_mid, &parent_in_reply_to, &parent_references)) {
+	//
+	// as self-talks are mainly used to transfer data between devices,
+	// we do not set In-Reply-To/References in this case.
+	if (!dc_chat_is_self_talk(chat)
+	 && get_parent_mime_headers(chat, &parent_rfc724_mid, &parent_in_reply_to, &parent_references))
+	{
 		if (parent_rfc724_mid && parent_rfc724_mid[0]) {
 			new_in_reply_to = dc_strdup(parent_rfc724_mid);
 		}
