@@ -16,41 +16,41 @@
 
 
 static const char* config_keys[] = {
-	"addr",
-	"mail_server",
-	"mail_user",
-	"mail_pw",
-	"mail_port",
-	"send_server",
-	"send_user",
-	"send_pw",
-	"send_port",
-	"server_flags",
-	"imap_folder",
-	"displayname",
-	"selfstatus",
-	"selfavatar",
-	"e2ee_enabled",
-	"mdns_enabled",
-	"save_mime_headers",
-	"configured_addr",
-	"configured_mail_server",
-	"configured_mail_user",
-	"configured_mail_pw",
-	"configured_mail_port"
-	"configured_send_server",
-	"configured_send_user",
-	"configured_send_pw",
-	"configured_send_port"
-	"configured_server_flags",
-	"configured",
+	 "addr"
+	,"mail_server"
+	,"mail_user"
+	,"mail_pw"
+	,"mail_port"
+	,"send_server"
+	,"send_user"
+	,"send_pw"
+	,"send_port"
+	,"server_flags"
+	,"imap_folder"
+	,"displayname"
+	,"selfstatus"
+	,"selfavatar"
+	,"e2ee_enabled"
+	,"mdns_enabled"
+	,"save_mime_headers"
+	,"configured_addr"
+	,"configured_mail_server"
+	,"configured_mail_user"
+	,"configured_mail_pw"
+	,"configured_mail_port"
+	,"configured_send_server"
+	,"configured_send_user"
+	,"configured_send_pw"
+	,"configured_send_port"
+	,"configured_server_flags"
+	,"configured"
 };
 
 
 static const char* sys_config_keys[] = {
-	"sys.version",
-	"sys.msgsize_max_recommended",
-	"sys.config_keys",
+	 "sys.version"
+	,"sys.msgsize_max_recommended"
+	,"sys.config_keys"
 };
 
 #define str_array_len(a) (sizeof(a)/sizeof(char*))
