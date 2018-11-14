@@ -34,7 +34,15 @@ static const char* config_keys[] = {
 	"mdns_enabled",
 	"save_mime_headers",
 	"configured_addr",
+	"configured_mail_server",
+	"configured_mail_user",
 	"configured_mail_pw",
+	"configured_mail_port"
+	"configured_send_server",
+	"configured_send_user",
+	"configured_send_pw",
+	"configured_send_port"
+	"configured_server_flags",
 	"configured",
 };
 
