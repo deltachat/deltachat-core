@@ -259,42 +259,57 @@ static void calc_timestamps(dc_context_t* context, uint32_t chat_id, uint32_t fr
                                time_t* sort_timestamp, time_t* sent_timestamp, time_t* rcvd_timestamp)
 {
 	*rcvd_timestamp = time(NULL);
-
 	*sent_timestamp = message_timestamp;
-	if (*sent_timestamp > *rcvd_timestamp /* no sending times in the future */) {
+	if (*sent_timestamp > *rcvd_timestamp) { /* truncate future send_timestamp to the rcvd_timestamp as the MAXIMUM */
 		*sent_timestamp = *rcvd_timestamp;
 	}
+	
+	*sort_timestamp = message_timestamp; /* truncated below to smeared time (not to _now_ to keep the order) */
 
-	*sort_timestamp = message_timestamp; /* truncatd below to smeared time (not to _now_ to keep the order) */
-
-	/* use the last message from another user (including SELF) as the MINIMUM for sort_timestamp;
-	this is to force fresh messages popping up at the end of the list.
-	(we do this check only for fresh messages, other messages may pop up whereever, this may happen eg. when restoring old messages or synchronizing different clients) */
+	/* get last_msg_time from all other messages (including SELF) as the MINIMUM ;
+	used to force fresh messages popping up at the end of the list:
+		* for sort_timestamp of delayed messages, if message_timestamp predates a later message
+		* for sent_timestamp, if the local system time is running behind (e.g. after a reset)
+	(we do this check only for fresh messages, other messages may pop up whereever,
+	 this may happen eg. when restoring old messages or synchronizing different clients) */
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->sql,
+		"SELECT MAX(timestamp) FROM msgs WHERE chat_id=? and from_id!=? AND timestamp>=?");
+	sqlite3_bind_int  (stmt,  1, chat_id);
+	sqlite3_bind_int  (stmt,  2, from_id);
+	sqlite3_bind_int64(stmt,  3, *sort_timestamp);
+	if (sqlite3_step(stmt)==SQLITE_ROW)
+	{
+		time_t last_msg_time = sqlite3_column_int64(stmt, 0);
+	}
+	sqlite3_finalize(stmt);
+	
 	if (is_fresh_msg)
 	{
-		sqlite3_stmt* stmt = dc_sqlite3_prepare(context->sql,
-			"SELECT MAX(timestamp) FROM msgs WHERE chat_id=? and from_id!=? AND timestamp>=?");
-		sqlite3_bind_int  (stmt,  1, chat_id);
-		sqlite3_bind_int  (stmt,  2, from_id);
-		sqlite3_bind_int64(stmt,  3, *sort_timestamp);
-		if (sqlite3_step(stmt)==SQLITE_ROW)
-		{
-			time_t last_msg_time = sqlite3_column_int64(stmt, 0);
-			if (last_msg_time > 0 /* may happen as we do not check against sqlite3_column_type()!=SQLITE_NULL */) {
-				if (*sort_timestamp <= last_msg_time) {
-					*sort_timestamp = last_msg_time+1; /* this may result in several incoming messages having the same
-					                                     one-second-after-the-last-other-message-timestamp.  however, this is no big deal
-					                                     as we do not try to recrete the order of bad-date-messages and as we always order by ID as second criterion */
-				}
+
+		/* ensure correct sorting if message transport got delayed, by using a later sort_timestamp*/
+		if (last_msg_time > 0 /* may happen as we do not check against sqlite3_column_type()!=SQLITE_NULL */) {
+			if (*message_timestamp <= last_msg_time) {
+				*sort_timestamp = last_msg_time+1; /* this may result in several incoming messages having the same
+				                                     one-second-after-the-last-other-message-timestamp.  however, this is no big deal
+				                                     as we do not try to recrete the order of bad-date-messages and as we always order by ID as second criterion */
 			}
 		}
-		sqlite3_finalize(stmt);
 	}
 
-	/* use the (smeared) current time as the MAXIMUM */
+	/* ensure correct sorting ;
+	   reset sort_timestamp of equal or future times to the (smeared) current time as the MAXIMUM */
 	if (*sort_timestamp >= dc_smeared_time(context)) {
 		*sort_timestamp = dc_create_smeared_timestamp(context);
 	}
+	
+	/* at least ensure better overall sorting if system time has been set back, and thus the last step truncated too much */
+	if (*rcvt_timestamp < last_msg_time) {
+		*sort_timestamp = last_msg_time+1; /* this may result in several messages having the same
+				                                     one-second-after-the-last-other-message-timestamp.
+								     However, this may be better than sorting newer messages behind earlier ones due to dates known to have past. */
+	}
+
+
 }
 
 
