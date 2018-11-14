@@ -306,7 +306,7 @@ static void calc_timestamps(dc_context_t* context, uint32_t chat_id, uint32_t fr
 	if (*rcvt_timestamp < last_msg_time) {
 		*sort_timestamp = last_msg_time+1; /* this may result in several messages having the same
 				                                     one-second-after-the-last-other-message-timestamp.
-								     However, this may be better than sorting newer messages behind earlier ones due to dates known to have past. */
+								     However, this may be better than sorting newer messages before earlier ones due to a system time known to have past. */
 	}
 
 
