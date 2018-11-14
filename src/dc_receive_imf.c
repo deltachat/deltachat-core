@@ -302,8 +302,8 @@ static void calc_timestamps(dc_context_t* context, uint32_t chat_id, uint32_t fr
 		*sort_timestamp = dc_create_smeared_timestamp(context);
 	}
 	
-	/* in case system time has been turned back and the last step truncated too much,
-	   at least ensure better overall sorting */
+	/* in case system time has been turned back and thus the last step truncated too much,
+	   at least ensure to sort to the end of existing messages */
 	if (*rcvt_timestamp < last_msg_time) {
 		*sort_timestamp = last_msg_time+1; /* this may result in several messages having the same
 				                                     one-second-after-the-last-other-message-timestamp.
