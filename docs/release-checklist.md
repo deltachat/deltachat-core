@@ -15,9 +15,9 @@
 2. publish release
 3. down zip and tar.gz files
 4. verify content
-5. sign content (to get the key overview, use gpg --list-secret-keys) 
-   $ gpg -a --detach-sign -u <KEY> deltachat-core-${VERSION}.zip 
-   $ gpg -a --detach-sign -u <KEY> deltachat-core-${VERSION}.tar.gz
+5. sign content (to get the key overview, use gpg --list-secret-keys)  
+   $ gpg -a --detach-sign -u FINGERPRINT deltachat-core-${VERSION}.zip  
+   $ gpg -a --detach-sign -u FINGERPRINT deltachat-core-${VERSION}.tar.gz
 6. upload created signatures to github,
    rename to v${VERSION}.zip.asc and v${VERSION}.tar.gz.asc
 
