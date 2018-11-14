@@ -296,7 +296,7 @@ static void calc_timestamps(dc_context_t* context, uint32_t chat_id, uint32_t fr
 		}
 	}
 
-	/* ensure correct sorting of simultaneous messages and truncate false future message timestamps ;
+	/* ensure correct sorting of simultaneous messages and truncate future message timestamps ;
 	   using the (smeared) current time as the MAXIMUM */
 	if (*sort_timestamp >= dc_smeared_time(context)) {
 		*sort_timestamp = dc_create_smeared_timestamp(context);
