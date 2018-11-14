@@ -676,6 +676,51 @@ void stress_functions(dc_context_t* context)
 		dc_param_unref(p1);
 	}
 
+	/* test keys for dc_set_config() and dc_get_config()
+	 **************************************************************************/
+
+	{
+		char* keys = dc_get_config(context, "sys.config_keys");
+		assert( keys && keys[0] );
+
+		dc_strbuilder_t sb;
+		dc_strbuilder_init(&sb, 200);
+		dc_strbuilder_catf(&sb, " %s ", keys);
+		free(keys);
+		keys = sb.buf;
+
+		assert( strstr(keys, " probably_never_a_key ")==NULL );
+		assert( strstr(keys, " addr ")!=NULL );
+		assert( strstr(keys, " mail_server ")!=NULL );
+		assert( strstr(keys, " mail_user ")!=NULL );
+		assert( strstr(keys, " mail_pw ")!=NULL );
+		assert( strstr(keys, " mail_port ")!=NULL );
+		assert( strstr(keys, " send_server ")!=NULL );
+		assert( strstr(keys, " send_user ")!=NULL );
+		assert( strstr(keys, " send_pw ")!=NULL );
+		assert( strstr(keys, " send_port ")!=NULL );
+		assert( strstr(keys, " server_flags ")!=NULL );
+		assert( strstr(keys, " imap_folder ")!=NULL );
+		assert( strstr(keys, " displayname ")!=NULL );
+		assert( strstr(keys, " selfstatus ")!=NULL );
+		assert( strstr(keys, " selfavatar ")!=NULL );
+		assert( strstr(keys, " e2ee_enabled ")!=NULL );
+		assert( strstr(keys, " mdns_enabled ")!=NULL );
+		assert( strstr(keys, " save_mime_headers ")!=NULL );
+		assert( strstr(keys, " configured_addr ")!=NULL );
+		assert( strstr(keys, " configured_mail_server ")!=NULL );
+		assert( strstr(keys, " configured_mail_user ")!=NULL );
+		assert( strstr(keys, " configured_mail_pw ")!=NULL );
+		assert( strstr(keys, " configured_mail_port ")!=NULL );
+		assert( strstr(keys, " configured_send_server ")!=NULL );
+		assert( strstr(keys, " configured_send_user ")!=NULL );
+		assert( strstr(keys, " configured_send_pw ")!=NULL );
+		assert( strstr(keys, " configured_send_port ")!=NULL );
+		assert( strstr(keys, " configured_server_flags ")!=NULL );
+
+		free(keys);
+	}
+
 	/* test Autocrypt header parsing functions
 	 **************************************************************************/
 
