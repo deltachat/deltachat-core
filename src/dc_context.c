@@ -20,14 +20,14 @@ static const char* config_keys[] = {
 	"mail_server",
 	"mail_user",
 	"mail_pw",
-	"mail_port"
+	"mail_port",
 	"send_server",
 	"send_user",
 	"send_pw",
-	"send_port"
+	"send_port",
 	"server_flags",
 	"imap_folder",
-	"displayname"
+	"displayname",
 	"selfstatus",
 	"selfavatar",
 	"e2ee_enabled",
