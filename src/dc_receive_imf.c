@@ -264,7 +264,7 @@ static void calc_timestamps(dc_context_t* context, uint32_t chat_id, uint32_t fr
 		*sent_timestamp = *rcvd_timestamp;
 	}
 	
-	*sort_timestamp = message_timestamp; /* truncated below to smeared time (not to _now_ to keep the order) */
+	*sort_timestamp = message_timestamp; /* truncated below  */
 
 	/* get last_msg_time from all other messages (including SELF) as the MINIMUM ;
 	used to force fresh messages popping up at the end of the list:
@@ -297,12 +297,13 @@ static void calc_timestamps(dc_context_t* context, uint32_t chat_id, uint32_t fr
 	}
 
 	/* ensure correct sorting of simultaneous messages and truncate false future message timestamps ;
-	   truncating to the (smeared) current time as the MAXIMUM */
+	   using the (smeared) current time as the MAXIMUM */
 	if (*sort_timestamp >= dc_smeared_time(context)) {
 		*sort_timestamp = dc_create_smeared_timestamp(context);
 	}
 	
-	/* at least ensure better overall sorting if system time has been turned back, and thus the last step truncated too much */
+	/* in case system time has been turned back and the last step truncated too much,
+	   at least ensure better overall sorting */
 	if (*rcvt_timestamp < last_msg_time) {
 		*sort_timestamp = last_msg_time+1; /* this may result in several messages having the same
 				                                     one-second-after-the-last-other-message-timestamp.
