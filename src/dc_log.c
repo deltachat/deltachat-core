@@ -95,6 +95,7 @@ void dc_log_error_if(int* condition, dc_context_t* context, int code, const char
 		if (*condition) {
 			/* pop-up error, if we're offline, force a "not connected" error (the function is not used for other cases) */
 			if (context->cb(context, DC_EVENT_IS_OFFLINE, 0, 0)!=0) {
+				log_vprintf(context, DC_EVENT_WARNING, code, msg, va);
 				log_vprintf(context, DC_EVENT_ERROR, DC_ERROR_NO_NETWORK, NULL, va);
 			}
 			else {

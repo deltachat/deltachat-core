@@ -82,11 +82,6 @@ int dc_smtp_connect(dc_smtp_t* smtp, const dc_loginparam_t* lp)
 		return 0;
 	}
 
-	if (smtp->context->cb(smtp->context, DC_EVENT_IS_OFFLINE, 0, 0)!=0) {
-		dc_log_error_if(&smtp->log_connect_errors, smtp->context, DC_ERROR_NO_NETWORK, NULL);
-		goto cleanup;
-	}
-
 	if (smtp->etpan) {
 		dc_log_warning(smtp->context, 0, "SMTP already connected.");
 		success = 1; /* otherwise, the handle would get deleted */

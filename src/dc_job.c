@@ -732,8 +732,7 @@ void dc_perform_imap_fetch(dc_context_t* context)
 
 	dc_imap_fetch(context->imap);
 
-	if (context->imap->should_reconnect
-	 && context->cb(context, DC_EVENT_IS_OFFLINE, 0, 0)==0)
+	if (context->imap->should_reconnect)
 	{
 		dc_log_info(context, 0, "IMAP-fetch aborted, starting over...");
 		dc_imap_fetch(context->imap);

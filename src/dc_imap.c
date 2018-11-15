@@ -712,11 +712,6 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 		goto cleanup;
     }
 
-	if (imap->context->cb(imap->context, DC_EVENT_IS_OFFLINE, 0, 0)!=0) {
-		dc_log_error_if(&imap->log_connect_errors, imap->context, DC_ERROR_NO_NETWORK, NULL);
-		goto cleanup;
-	}
-
 	imap->etpan = mailimap_new(0, NULL);
 
 	mailimap_set_timeout(imap->etpan, DC_IMAP_TIMEOUT_SEC);

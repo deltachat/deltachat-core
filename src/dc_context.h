@@ -136,9 +136,6 @@ extern int      dc_shall_stop_ongoing;
 int             dc_alloc_ongoing     (dc_context_t*);
 void            dc_free_ongoing      (dc_context_t*);
 
-#define         dc_is_online(m)             ((m)->cb((m), DC_EVENT_IS_OFFLINE, 0, 0)==0)
-#define         dc_is_offline(m)            ((m)->cb((m), DC_EVENT_IS_OFFLINE, 0, 0)!=0)
-
 
 /* library private: secure-join */
 #define         DC_HANDSHAKE_CONTINUE_NORMAL_PROCESSING 0x01
