@@ -384,7 +384,7 @@ class EventLogger:
 
     def _log_event(self, evt_name, data1, data2):
         # don't show events that are anyway empty impls now
-        if evt_name in ("DC_EVENT_GET_STRING", "DC_EVENT_IS_OFFLINE"):
+        if evt_name in ("DC_EVENT_GET_STRING"):
             return
         if self._debug:
             evpart = "{}({!r},{!r})".format(evt_name, data1, data2)
