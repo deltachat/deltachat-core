@@ -12,7 +12,7 @@ are usually logged by dc_log_warning(). */
 #include "dc_context.h"
 
 
-static void log_vprintf(dc_context_t* context, int event, int code, const char* msg_format, va_list va)
+static void log_vprintf(dc_context_t* context, int event, int data1, const char* msg_format, va_list va)
 {
 	char* msg = NULL;
 
@@ -32,23 +32,23 @@ static void log_vprintf(dc_context_t* context, int event, int code, const char* 
 		msg = dc_mprintf("event #%i", (int)event);
 	}
 
-	context->cb(context, event, (uintptr_t)code, (uintptr_t)msg);
+	context->cb(context, event, (uintptr_t)data1, (uintptr_t)msg);
 }
 
 
-void dc_log_info(dc_context_t* context, int code, const char* msg, ...)
+void dc_log_info(dc_context_t* context, int data1, const char* msg, ...)
 {
 	va_list va;
 	va_start(va, msg); /* va_start() expects the last non-variable argument as the second parameter */
-		log_vprintf(context, DC_EVENT_INFO, code, msg, va);
+		log_vprintf(context, DC_EVENT_INFO, data1, msg, va);
 	va_end(va);
 }
 
-void dc_log_event(dc_context_t* context, int event_code, int code, const char* msg, ...)
+void dc_log_event(dc_context_t* context, int event_code, int data1, const char* msg, ...)
 {
 	va_list va;
 	va_start(va, msg); /* va_start() expects the last non-variable argument as the second parameter */
-		log_vprintf(context, event_code, code, msg, va);
+		log_vprintf(context, event_code, data1, msg, va);
 	va_end(va);
 }
 
@@ -70,21 +70,19 @@ void dc_log_event_seq(dc_context_t* context, int event_code, int* sequence_start
 }
 
 
-void dc_log_warning(dc_context_t* context, int code, const char* msg, ...)
+void dc_log_warning(dc_context_t* context, int data1, const char* msg, ...)
 {
 	va_list va;
 	va_start(va, msg); /* va_start() expects the last non-variable argument as the second parameter */
-		log_vprintf(context, DC_EVENT_WARNING, code, msg, va);
+		log_vprintf(context, DC_EVENT_WARNING, data1, msg, va);
 	va_end(va);
 }
 
 
-void dc_log_error(dc_context_t* context, int code, const char* msg, ...)
+void dc_log_error(dc_context_t* context, int data1, const char* msg, ...)
 {
 	va_list va;
 	va_start(va, msg);
-		log_vprintf(context, DC_EVENT_ERROR, code, msg, va);
+		log_vprintf(context, DC_EVENT_ERROR, data1, msg, va);
 	va_end(va);
 }
-
-
