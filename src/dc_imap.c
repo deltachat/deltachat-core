@@ -712,11 +712,6 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 		goto cleanup;
     }
 
-	if (imap->context->cb(imap->context, DC_EVENT_IS_OFFLINE, 0, 0)!=0) {
-		dc_log_error_if(&imap->log_connect_errors, imap->context, DC_ERROR_NO_NETWORK, NULL);
-		goto cleanup;
-	}
-
 	imap->etpan = mailimap_new(0, NULL);
 
 	mailimap_set_timeout(imap->etpan, DC_IMAP_TIMEOUT_SEC);
@@ -725,7 +720,8 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 	{
 		r = mailimap_socket_connect(imap->etpan, imap->imap_server, imap->imap_port);
 		if (is_error(imap, r)) {
-			dc_log_error_if(&imap->log_connect_errors, imap->context, 0, "Could not connect to IMAP-server %s:%i. (Error #%i)", imap->imap_server, (int)imap->imap_port, (int)r);
+			dc_log_event_seq(imap->context, DC_EVENT_ERROR_NETWORK, &imap->log_connect_errors,
+				"Could not connect to IMAP-server %s:%i. (Error #%i)", imap->imap_server, (int)imap->imap_port, (int)r);
 			goto cleanup;
 		}
 
@@ -733,7 +729,8 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 		{
 			r = mailimap_socket_starttls(imap->etpan);
 			if (is_error(imap, r)) {
-				dc_log_error_if(&imap->log_connect_errors, imap->context, 0, "Could not connect to IMAP-server %s:%i using STARTTLS. (Error #%i)", imap->imap_server, (int)imap->imap_port, (int)r);
+				dc_log_event_seq(imap->context, DC_EVENT_ERROR_NETWORK, &imap->log_connect_errors,
+					"Could not connect to IMAP-server %s:%i using STARTTLS. (Error #%i)", imap->imap_server, (int)imap->imap_port, (int)r);
 				goto cleanup;
 			}
 			dc_log_info(imap->context, 0, "IMAP-server %s:%i STARTTLS-connected.", imap->imap_server, (int)imap->imap_port);
@@ -747,7 +744,8 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 	{
 		r = mailimap_ssl_connect(imap->etpan, imap->imap_server, imap->imap_port);
 		if (is_error(imap, r)) {
-			dc_log_error_if(&imap->log_connect_errors, imap->context, 0, "Could not connect to IMAP-server %s:%i using SSL. (Error #%i)", imap->imap_server, (int)imap->imap_port, (int)r);
+			dc_log_event_seq(imap->context, DC_EVENT_ERROR_NETWORK, &imap->log_connect_errors,
+				"Could not connect to IMAP-server %s:%i using SSL. (Error #%i)", imap->imap_server, (int)imap->imap_port, (int)r);
 			goto cleanup;
 		}
 		dc_log_info(imap->context, 0, "IMAP-server %s:%i SSL-connected.", imap->imap_server, (int)imap->imap_port);
@@ -773,7 +771,8 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 
 	if (is_error(imap, r)) {
 		char* msg = get_error_msg(imap, "Cannot login", r);
-		dc_log_error_if(&imap->log_connect_errors, imap->context, 0, "%s", msg);
+		dc_log_event_seq(imap->context, DC_EVENT_ERROR_NETWORK, &imap->log_connect_errors,
+			"%s", msg);
 		free(msg);
 		goto cleanup;
 	}

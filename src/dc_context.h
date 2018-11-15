@@ -89,10 +89,10 @@ struct _dc_context
 };
 
 void            dc_log_error         (dc_context_t*, int code, const char* msg, ...);
-void            dc_log_error_if      (int* condition, dc_context_t*, int code, const char* msg, ...);
 void            dc_log_warning       (dc_context_t*, int code, const char* msg, ...);
 void            dc_log_info          (dc_context_t*, int code, const char* msg, ...);
-void            dc_log_event         (dc_context_t* context, int event_code, int code, const char* msg, ...);
+void            dc_log_event         (dc_context_t*, int event_code, int code, const char* msg, ...);
+void            dc_log_event_seq     (dc_context_t*, int event_code, int* sequence_start, const char* msg, ...);
 void            dc_receive_imf       (dc_context_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags);
 
 #define         DC_BAK_PREFIX                "delta-chat"
@@ -135,9 +135,6 @@ char*           dc_decrypt_setup_file(dc_context_t*, const char* passphrase, con
 extern int      dc_shall_stop_ongoing;
 int             dc_alloc_ongoing     (dc_context_t*);
 void            dc_free_ongoing      (dc_context_t*);
-
-#define         dc_is_online(m)             ((m)->cb((m), DC_EVENT_IS_OFFLINE, 0, 0)==0)
-#define         dc_is_offline(m)            ((m)->cb((m), DC_EVENT_IS_OFFLINE, 0, 0)!=0)
 
 
 /* library private: secure-join */

@@ -426,13 +426,6 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 
 	PROGRESS(0)
 
-	if (context->cb(context, DC_EVENT_IS_OFFLINE, 0, 0)!=0) {
-		dc_log_error(context, DC_ERROR_NO_NETWORK, NULL);
-		goto cleanup;
-	}
-
-	PROGRESS(100)
-
 	/* 1.  Load the parameters and check email-address and password
 	 **************************************************************************/
 

@@ -82,11 +82,6 @@ int dc_smtp_connect(dc_smtp_t* smtp, const dc_loginparam_t* lp)
 		return 0;
 	}
 
-	if (smtp->context->cb(smtp->context, DC_EVENT_IS_OFFLINE, 0, 0)!=0) {
-		dc_log_error_if(&smtp->log_connect_errors, smtp->context, DC_ERROR_NO_NETWORK, NULL);
-		goto cleanup;
-	}
-
 	if (smtp->etpan) {
 		dc_log_warning(smtp->context, 0, "SMTP already connected.");
 		success = 1; /* otherwise, the handle would get deleted */
@@ -94,7 +89,8 @@ int dc_smtp_connect(dc_smtp_t* smtp, const dc_loginparam_t* lp)
 	}
 
 	if (lp->addr==NULL || lp->send_server==NULL || lp->send_port==0) {
-		dc_log_error_if(&smtp->log_connect_errors, smtp->context, 0, "SMTP bad parameters.");
+		dc_log_event_seq(smtp->context, DC_EVENT_ERROR_NETWORK, &smtp->log_connect_errors,
+			"SMTP bad parameters.");
 		goto cleanup;
 	}
 
@@ -116,14 +112,18 @@ int dc_smtp_connect(dc_smtp_t* smtp, const dc_loginparam_t* lp)
 	if (lp->server_flags&(DC_LP_SMTP_SOCKET_STARTTLS|DC_LP_SMTP_SOCKET_PLAIN))
 	{
 		if ((r=mailsmtp_socket_connect(smtp->etpan, lp->send_server, lp->send_port)) != MAILSMTP_NO_ERROR) {
-			dc_log_error_if(&smtp->log_connect_errors, smtp->context, 0, "SMTP-Socket connection to %s:%i failed (%s)", lp->send_server, (int)lp->send_port, mailsmtp_strerror(r));
+			dc_log_event_seq(smtp->context, DC_EVENT_ERROR_NETWORK, &smtp->log_connect_errors,
+				"SMTP-Socket connection to %s:%i failed (%s)",
+				lp->send_server, (int)lp->send_port, mailsmtp_strerror(r));
 			goto cleanup;
 		}
 	}
 	else
 	{
 		if ((r=mailsmtp_ssl_connect(smtp->etpan, lp->send_server, lp->send_port)) != MAILSMTP_NO_ERROR) {
-			dc_log_error_if(&smtp->log_connect_errors, smtp->context, 0, "SMTP-SSL connection to %s:%i failed (%s)", lp->send_server, (int)lp->send_port, mailsmtp_strerror(r));
+			dc_log_event_seq(smtp->context, DC_EVENT_ERROR_NETWORK, &smtp->log_connect_errors,
+				"SMTP-SSL connection to %s:%i failed (%s)",
+				lp->send_server, (int)lp->send_port, mailsmtp_strerror(r));
 			goto cleanup;
 		}
 	}
@@ -138,14 +138,16 @@ int dc_smtp_connect(dc_smtp_t* smtp, const dc_loginparam_t* lp)
 	}
 
 	if (r != MAILSMTP_NO_ERROR) {
-		dc_log_error_if(&smtp->log_connect_errors, smtp->context, 0, "SMTP-helo failed (%s)", mailsmtp_strerror(r));
+		dc_log_event_seq(smtp->context, DC_EVENT_ERROR_NETWORK, &smtp->log_connect_errors,
+			"SMTP-helo failed (%s)", mailsmtp_strerror(r));
 		goto cleanup;
 	}
 
 	if (lp->server_flags&DC_LP_SMTP_SOCKET_STARTTLS)
 	{
 		if ((r=mailsmtp_socket_starttls(smtp->etpan)) != MAILSMTP_NO_ERROR) {
-			dc_log_error_if(&smtp->log_connect_errors, smtp->context, 0, "SMTP-STARTTLS failed (%s)", mailsmtp_strerror(r));
+			dc_log_event_seq(smtp->context, DC_EVENT_ERROR_NETWORK, &smtp->log_connect_errors,
+				"SMTP-STARTTLS failed (%s)", mailsmtp_strerror(r));
 			goto cleanup;
 		}
 
@@ -158,7 +160,8 @@ int dc_smtp_connect(dc_smtp_t* smtp, const dc_loginparam_t* lp)
 		}
 
 		if (r != MAILSMTP_NO_ERROR) {
-			dc_log_error_if(&smtp->log_connect_errors, smtp->context, 0, "SMTP-helo failed (%s)", mailsmtp_strerror(r));
+			dc_log_event_seq(smtp->context, DC_EVENT_ERROR_NETWORK, &smtp->log_connect_errors,
+				"SMTP-helo failed (%s)", mailsmtp_strerror(r));
 			goto cleanup;
 		}
 		dc_log_info(smtp->context, 0, "SMTP-server %s:%i STARTTLS-connected.", lp->send_server, (int)lp->send_port);
@@ -193,7 +196,8 @@ int dc_smtp_connect(dc_smtp_t* smtp, const dc_loginparam_t* lp)
 			}
 			if (r != MAILSMTP_NO_ERROR)
 			{
-				dc_log_error_if(&smtp->log_connect_errors, smtp->context, 0, "SMTP-login failed for user %s (%s)", lp->send_user, mailsmtp_strerror(r));
+				dc_log_event_seq(smtp->context, DC_EVENT_ERROR_NETWORK, &smtp->log_connect_errors,
+					"SMTP-login failed for user %s (%s)", lp->send_user, mailsmtp_strerror(r));
 				goto cleanup;
 			}
 		}

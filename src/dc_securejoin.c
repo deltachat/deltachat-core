@@ -438,13 +438,6 @@ uint32_t dc_join_securejoin(dc_context_t* context, const char* qr)
 
 	CHECK_EXIT
 
-	if (context->cb(context, DC_EVENT_IS_OFFLINE, 0, 0)!=0) {
-		dc_log_error(context, DC_ERROR_NO_NETWORK, NULL);
-		goto cleanup;
-	}
-
-	CHECK_EXIT
-
 	join_vg = (qr_scan->state==DC_QR_ASK_VERIFYGROUP);
 
 	context->bobs_status = 0;
