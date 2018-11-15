@@ -1630,7 +1630,8 @@ int dc_set_chat_name(dc_context_t* context, uint32_t chat_id, const char* new_na
 	}
 
 	if (!IS_SELF_IN_GROUP) {
-		dc_log_error(context, DC_ERROR_SELF_NOT_IN_GROUP, NULL);
+		dc_log_event(context, DC_EVENT_ERROR_SELF_NOT_IN_GROUP, 0,
+		             "Cannot set chat name; self not in group");
 		goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
 	}
 
@@ -1694,7 +1695,8 @@ int dc_set_chat_profile_image(dc_context_t* context, uint32_t chat_id, const cha
 	}
 
 	if (!IS_SELF_IN_GROUP) {
-		dc_log_error(context, DC_ERROR_SELF_NOT_IN_GROUP, NULL);
+		dc_log_event(context, DC_EVENT_ERROR_SELF_NOT_IN_GROUP, 0,
+		             "Cannot set chat profile image; self not in group.");
 		goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
 	}
 
@@ -1798,7 +1800,8 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 	}
 
 	if (!IS_SELF_IN_GROUP) {
-		dc_log_error(context, DC_ERROR_SELF_NOT_IN_GROUP, NULL);
+		dc_log_event(context, DC_EVENT_ERROR_SELF_NOT_IN_GROUP, 0,
+		             "Cannot add contact to group; self not in group.");
 		goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
 	}
 
@@ -1914,7 +1917,8 @@ int dc_remove_contact_from_chat(dc_context_t* context, uint32_t chat_id, uint32_
 	}
 
 	if (!IS_SELF_IN_GROUP) {
-		dc_log_error(context, DC_ERROR_SELF_NOT_IN_GROUP, NULL);
+		dc_log_event(context, DC_EVENT_ERROR_SELF_NOT_IN_GROUP, 0,
+		             "Cannot remove contact from chat; self not in group.");
 		goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
 	}
 
@@ -2053,7 +2057,8 @@ static uint32_t send_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc_ms
 	}
 
 	if (DC_CHAT_TYPE_IS_MULTI(chat->type) && !dc_is_contact_in_chat(context, chat->id, DC_CONTACT_ID_SELF)) {
-		dc_log_error(context, DC_ERROR_SELF_NOT_IN_GROUP, NULL);
+		dc_log_event(context, DC_EVENT_ERROR_SELF_NOT_IN_GROUP, 0,
+		             "Cannot send message; self not in group.");
 		goto cleanup;
 	}
 

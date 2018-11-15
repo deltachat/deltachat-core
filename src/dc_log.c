@@ -20,11 +20,7 @@ static void log_vprintf(dc_context_t* context, int event, int code, const char* 
 		return;
 	}
 
-	if (code==DC_ERROR_SELF_NOT_IN_GROUP) // TODO: this should also be better a separate event
-	{
-		msg = dc_stock_str(context, DC_STR_SELFNOTINGRP);
-	}
-	else if (msg_format)
+	if (msg_format)
 	{
 		#define BUFSIZE 1024
 		char tempbuf[BUFSIZE+1];

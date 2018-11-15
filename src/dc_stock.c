@@ -29,7 +29,6 @@ static char* default_string(int id)
 		case DC_STR_MSGADDMEMBER:          return dc_strdup("Member %1$s added.");
 		case DC_STR_MSGDELMEMBER:          return dc_strdup("Member %1$s removed.");
 		case DC_STR_MSGGROUPLEFT:          return dc_strdup("Left group.");
-		case DC_STR_SELFNOTINGRP:          return dc_strdup("You must be a member of the group to perform this action.");
 		case DC_STR_E2E_AVAILABLE:         return dc_strdup("End-to-end encryption available.");
 		case DC_STR_ENCR_TRANSP:           return dc_strdup("Transport-encryption.");
 		case DC_STR_ENCR_NONE:             return dc_strdup("No encryption.");
