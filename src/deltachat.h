@@ -159,7 +159,7 @@ extern "C" {
  *
  * Please keep in mind, that your derived work must respect the Mozilla
  * Public License 2.0 of libdeltachat and the respective licenses of
- * the libraries libdeltachat links with. 
+ * the libraries libdeltachat links with.
  *
  * See you.
  */
@@ -802,6 +802,30 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 
 
 /**
+ * An action cannot be performed because there is no network available.
+ *
+ * The library will typically try over after a some time
+ * and when dc_maybe_network() is called.
+ *
+ * Network errors should be reported to users in a non-disturbing way,
+ * however, as network errors may come in a sequence,
+ * it is not useful to raise each an every error to the user.
+ * For this purpose, data1 is set to 1 if the error is probably worth reporting.
+ *
+ * Moreover, if the UI detects that the device is offline,
+ * it is probably more useful to report this to the user
+ * instread of the string from data2.
+ *
+ * @param data1 (int) 1=first/new network error, should be reported the user;
+ *     0=subsequent network error, should be logged only
+ * @param data2 (const char*) Error string, always set, never NULL.
+ *     Must not be free()'d or modified and is valid only until the callback returns.
+ * @return 0
+ */
+#define DC_EVENT_ERROR_NETWORK            401
+
+
+/**
  * Messages or chats changed.  One or more messages or chats changed for various
  * reasons in the database:
  * - Messages sent, received or removed
@@ -955,17 +979,6 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 
 // the following events are functions that should be provided by the frontends
 
-/**
- * Ask the frontend about the offline state.
- * This function may be provided by the frontend. If we already know, that we're
- * offline, eg. there is no need to try to connect and things will speed up.
- *
- * @param data1 0
- * @param data2 0
- * @return 0=online, 1=offline
- */
-#define DC_EVENT_IS_OFFLINE               2081
-
 
 /**
  * Requeste a localized string from the frontend.
@@ -1002,6 +1015,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  */
 
 #define DC_EVENT_FILE_COPIED         2055 // deprecated
+#define DC_EVENT_IS_OFFLINE          2081 // deprecated
 #define DC_EVENT_DATA1_IS_STRING(e)  ((e)==DC_EVENT_HTTP_GET || (e)==DC_EVENT_IMEX_FILE_WRITTEN || (e)==DC_EVENT_FILE_COPIED)
 #define DC_EVENT_DATA2_IS_STRING(e)  ((e)==DC_EVENT_INFO || (e) == DC_EVENT_WARNING || (e) == DC_EVENT_ERROR || (e) == DC_EVENT_SMTP_CONNECTED || (e) == DC_EVENT_SMTP_MESSAGE_SENT || (e) == DC_EVENT_IMAP_CONNECTED)
 #define DC_EVENT_RETURNS_INT(e)      ((e)==DC_EVENT_IS_OFFLINE)
@@ -1034,18 +1048,6 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  */
 #define DC_ERROR_SELF_NOT_IN_GROUP          1
 
-
-/**
- * An action cannot be performed because there is no network available.
- * Reported by #DC_EVENT_ERROR eg. after a network function fails and #DC_EVENT_IS_OFFLINE reports being offline.
- *
- * The library will typically try over when dc_perform_smtp_jobs() or dc_perform_imap_jobs() is called again by the UI -
- * eg. in a loop or if the network situation changes.
- *
- * The library tries to issue this error only once the network becomes unavailable so that the UI can
- * show this error to the user unconditionally.
- */
-#define DC_ERROR_NO_NETWORK                 2
 
 /**
  * @}
@@ -1081,7 +1083,6 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 #define DC_STR_MSGDELMEMBER               18
 #define DC_STR_MSGGROUPLEFT               19
 #define DC_STR_SELFNOTINGRP               21
-#define DC_STR_NONETWORK                  22
 #define DC_STR_GIF                        23
 #define DC_STR_ENCRYPTEDMSG               24
 #define DC_STR_E2E_AVAILABLE              25
