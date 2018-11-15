@@ -1035,7 +1035,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 #define DC_ERROR_SELF_NOT_IN_GROUP   1    // deprecated
 #define DC_STR_SELFNOTINGRP          21   // deprecated
 #define DC_EVENT_DATA1_IS_STRING(e)  ((e)==DC_EVENT_HTTP_GET || (e)==DC_EVENT_IMEX_FILE_WRITTEN || (e)==DC_EVENT_FILE_COPIED)
-#define DC_EVENT_DATA2_IS_STRING(e)  ((e)==DC_EVENT_INFO || (e) == DC_EVENT_WARNING || (e) == DC_EVENT_ERROR || (e) == DC_EVENT_SMTP_CONNECTED || (e) == DC_EVENT_SMTP_MESSAGE_SENT || (e) == DC_EVENT_IMAP_CONNECTED)
+#define DC_EVENT_DATA2_IS_STRING(e)  ((e)>=100 && (e)<=499)
 #define DC_EVENT_RETURNS_INT(e)      ((e)==DC_EVENT_IS_OFFLINE)
 #define DC_EVENT_RETURNS_STRING(e)   ((e)==DC_EVENT_GET_STRING || (e)==DC_EVENT_HTTP_GET)
 
