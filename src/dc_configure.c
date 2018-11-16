@@ -762,7 +762,7 @@ cleanup:
  * @param context The context object as created by dc_context_new().
  * @return None.
  *
- * There is no need to call dc_configure() every program start,
+ * There is no need to call dc_configure() on every program start,
  * the configuration result is saved in the database
  * and you can use the connection directly:
  *
