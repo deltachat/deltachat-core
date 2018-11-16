@@ -775,6 +775,11 @@ cleanup:
  */
 void dc_configure(dc_context_t* context)
 {
+	if (dc_has_ongoing(context)) {
+		dc_log_warning(context, 0, "There is already another ongoing process running.");
+		return;
+	}
+
 	dc_job_kill_actions(context, DC_JOB_CONFIGURE_IMAP, 0);
 	dc_job_add(context, DC_JOB_CONFIGURE_IMAP, 0, NULL, 0); // results in a call to dc_configure_job()
 }
@@ -802,6 +807,19 @@ int dc_is_configured(const dc_context_t* context)
 
 
 /*
+ * Check if there is an ongoing process.
+ */
+int dc_has_ongoing(dc_context_t* context)
+{
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		return 0;
+	}
+
+	return (context->ongoing_running || context->shall_stop_ongoing==0)? 1 : 0;
+}
+
+
+/*
  * Request an ongoing process to start.
  * Returns 0=process started, 1=not started, there is running another process
  */
@@ -811,7 +829,7 @@ int dc_alloc_ongoing(dc_context_t* context)
 		return 0;
 	}
 
-	if (context->ongoing_running || context->shall_stop_ongoing==0) {
+	if (dc_has_ongoing(context)) {
 		dc_log_warning(context, 0, "There is already another ongoing process running.");
 		return 0;
 	}
