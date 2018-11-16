@@ -17,19 +17,22 @@ extern "C" {
 /**
  * @mainpage Getting started
  *
- * This document describes how to handle the Delta Chat core library. For general
- * information about Delta Chat itself, see <https://delta.chat> and <https://github.com/deltachat>.
+ * This document describes how to handle the Delta Chat core library.
+ * For general information about Delta Chat itself,
+ * see <https://delta.chat> and <https://github.com/deltachat>.
  *
  * Let's start.
  *
- * First of all, you have to **define an event-handler-function** that is called by the library on
- * specific events (eg. when the configuration is done or when fresh messages arrive).
+ * First of all, you have to **define an event-handler-function**
+ * that is called by the library on specific events
+ * (eg. when the configuration is done or when fresh messages arrive).
  * With this function you can create a Delta Chat context then:
  *
  * ~~~
  * #include <deltachat.h>
  *
- * uintptr_t event_handler_func(dc_context_t* context, int event, uintptr_t data1, uintptr_t data2)
+ * uintptr_t event_handler_func(dc_context_t* context, int event,
+ *                              uintptr_t data1, uintptr_t data2)
  * {
  *     return 0; // for unhandled events, it is always safe to return 0
  * }
@@ -37,7 +40,8 @@ extern "C" {
  * dc_context_t* context = dc_context_new(event_handler_func, NULL, NULL);
  * ~~~
  *
- * After that, you should make sure, sending and receiving jobs are processed as needed.
+ * After that, you should make sure,
+ * sending and receiving jobs are processed as needed.
  * For this purpose, you have to **create two threads:**
  *
  * ~~~
@@ -65,12 +69,13 @@ extern "C" {
  * pthread_create(&smtp_thread, NULL, smtp_thread_func, context);
  * ~~~
  *
- * The example above uses "pthreads", however, you can also use anything else for thread handling.
- * NB: The deltachat-core library itself does not create any threads on its own, however, functions,
- * unless stated otherwise, are thread-safe.
+ * The example above uses "pthreads",
+ * however, you can also use anything else for thread handling.
+ * NB: The deltachat-core library itself does not create any threads on its own,
+ * however, functions, unless stated otherwise, are thread-safe.
  *
- * After that you can  **define and open a database.** The database is a normal
- * sqlite-file and is created as needed:
+ * After that you can  **define and open a database.**
+ * The database is a normal sqlite-file and is created as needed:
  *
  * ~~~
  * dc_open(context, "example.db", NULL);
@@ -79,29 +84,37 @@ extern "C" {
  * Now you can **configure the context:**
  *
  * ~~~
- * dc_set_config(context, "addr", "alice@example.org"); // use some real test credentials here
+ * // use some real test credentials here
+ * dc_set_config(context, "addr", "alice@example.org");
  * dc_set_config(context, "mail_pw", "***");
  * dc_configure(context);
  * ~~~
  *
- * dc_configure() returns immediately, the configuration itself may take a while and is done by a job
- * in the imap-thread you've defined above. Once done, the #DC_EVENT_CONFIGURE_PROGRESS reports
- * success to the event_handler_func() that is also defined above.
- * NB: The configuration result is saved in the database, on subsequent starts
- * it is not needed to call dc_configure() (you can check this using dc_is_configured()).
+ * dc_configure() returns immediately, the configuration itself may take a while
+ * and is done by a job in the imap-thread you've defined above.
+ * Once done, the #DC_EVENT_CONFIGURE_PROGRESS reports success
+ * to the event_handler_func() that is also defined above.
+ *
+ * The configuration result is saved in the database,
+ * on subsequent starts it is not needed to call dc_configure()
+ * (you can check this using dc_is_configured()).
  *
  * Now you can **send the first message:**
  *
  * ~~~
- * uint32_t contact_id = dc_create_contact(context, NULL, "bob@example.org"); // use a real testing address here
+ * // use a real testing address here
+ * uint32_t contact_id = dc_create_contact(context, NULL, "bob@example.org");
  * uint32_t chat_id    = dc_create_chat_by_contact_id(context, contact_id);
  *
  * dc_send_text_msg(context, chat_id, "Hi, here is my first message!");
  * ~~~
  *
- * dc_send_text_msg() returns immediately and the sending itself is done by a job
- * in the smtp-thread you've defined above. If you check the testing address (bob) and you should have received a normal email.
- * Answer this email in any email program with "Got it!" and the imap-thread you've create above will **receive the message**.
+ * dc_send_text_msg() returns immediately;
+ * the sending itself is done by a job in the smtp-thread you've defined above.
+ * If you check the testing address (bob)
+ * and you should have received a normal email.
+ * Answer this email in any email program with "Got it!"
+ * and the imap-thread you've create above will **receive the message**.
  *
  * You can then **list all messages** of a chat as follow:
  *
@@ -142,24 +155,29 @@ extern "C" {
  *
  * - Strings in function arguments or return values are usually UTF-8 encoded.
  *
- * - The issue-tracker for the core library is here: <https://github.com/deltachat/deltachat-core/issues>
+ * - The issue-tracker for the core library is here:
+ *   <https://github.com/deltachat/deltachat-core/issues>
  *
- * The following points are important mainly for the authors of the library itself:
+ * The following points are important mainly
+ * for the authors of the library itself:
  *
- * - For indentation, use tabs.  Alignments that are not placed at the beginning
- *   of a line should be done with spaces.
+ * - For indentation, use tabs.
+ *   Alignments that are not placed at the beginning of a line
+ *   should be done with spaces.
  *
- * - For padding between functions, classes etc. use 2 empty lines
+ * - For padding between functions,
+ *   classes etc. use 2 empty lines
  *
  * - Source files are encoded as UTF-8 with Unix line endings
  *   (a simple `LF`, `0x0A` or `\n`)
  *
- * If you need any further assistance, please do not hesitate to contact us
+ * If you need further assistance,
+ * please do not hesitate to contact us
  * through the channels shown at https://delta.chat/en/contribute
  *
- * Please keep in mind, that your derived work must respect the Mozilla
- * Public License 2.0 of libdeltachat and the respective licenses of
- * the libraries libdeltachat links with.
+ * Please keep in mind, that your derived work
+ * must respect the Mozilla Public License 2.0 of libdeltachat
+ * and the respective licenses of the libraries libdeltachat links with.
  *
  * See you.
  */
@@ -363,22 +381,39 @@ const uintptr_t* dc_array_get_raw            (const dc_array_t*);
  * @class dc_chatlist_t
  *
  * An object representing a single chatlist in memory.
- * Chatlist objects contain chat IDs and, if possible, message IDs belonging to them.
- * The chatlist object is not updated; if you want an update, you have to recreate the object.
+ * Chatlist objects contain chat IDs
+ * and, if possible, message IDs belonging to them.
+ * The chatlist object is not updated;
+ * if you want an update, you have to recreate the object.
  *
- * For a **typical chat overview**, the idea is to get the list of all chats via dc_get_chatlist() - without any listflags, see below -
- * and to implement a "virtual list" or so (the count of chats is known by dc_chatlist_get_cnt()).
- * Only for the items that are in view (the list may have several hundreds chats), the UI should call dc_chatlist_get_summary() then.
+ * For a **typical chat overview**,
+ * the idea is to get the list of all chats via dc_get_chatlist()
+ * without any listflags (see below)
+ * and to implement a "virtual list" or so
+ * (the count of chats is known by dc_chatlist_get_cnt()).
+ *
+ * Only for the items that are in view
+ * (the list may have several hundreds chats),
+ * the UI should call dc_chatlist_get_summary() then.
  * dc_chatlist_get_summary() provides all elements needed for painting the item.
  *
- * On a click of such an item, the UI should change to the chat view and get all messages from this view via dc_get_chat_msgs().
- * Again, a "virtual list" is created (the count of messages is known) and for each messages that is scrolled into view, dc_get_msg() is called then.
+ * On a click of such an item,
+ * the UI should change to the chat view
+ * and get all messages from this view via dc_get_chat_msgs().
+ * Again, a "virtual list" is created
+ * (the count of messages is known)
+ * and for each messages that is scrolled into view, dc_get_msg() is called then.
  *
- * Why no listflags? Without listflags, dc_get_chatlist() adds the deaddrop and the archive "link" automatically as needed.
+ * Why no listflags?
+ * Without listflags, dc_get_chatlist() adds the deaddrop
+ * and the archive "link" automatically as needed.
  * The UI can just render these items differently then.
- * Although the deaddrop link is currently always the first entry and only present on new messages,
- * there is the rough idea that it can be optionally always present and sorted into the list by date.
- * Rendering the deaddrop in the described way would not add extra work in the UI then.
+ * Although the deaddrop link is currently always the first entry
+ * and only present on new messages,
+ * there is the rough idea that it can be optionally always present
+ * and sorted into the list by date.
+ * Rendering the deaddrop in the described way
+ * would not add extra work in the UI then.
  */
 typedef struct _dc_chatlist dc_chatlist_t;
 
@@ -396,9 +431,10 @@ dc_context_t*    dc_chatlist_get_context     (dc_chatlist_t*);
 /**
  * @class dc_chat_t
  *
- * An object representing a single chat in memory. Chat objects are created using eg. dc_get_chat() and
- * are not updated on database changes;  if you want an update, you have to recreate the
- * object.
+ * An object representing a single chat in memory.
+ * Chat objects are created using eg. dc_get_chat()
+ * and are not updated on database changes;
+ * if you want an update, you have to recreate the object.
  */
 typedef struct _dc_chat dc_chat_t;
 
@@ -438,9 +474,9 @@ int             dc_chat_is_verified          (const dc_chat_t*);
 /**
  * @class dc_msg_t
  *
- * An object representing a single message in memory.  The message
- * object is not updated.  If you want an update, you have to recreate the
- * object.
+ * An object representing a single message in memory.
+ * The message object is not updated.
+ * If you want an update, you have to recreate the object.
  */
 typedef struct _dc_msg dc_msg_t;
 
@@ -503,14 +539,20 @@ void            dc_msg_latefiling_mediasize  (dc_msg_t*, int width, int height, 
  * @class dc_contact_t
  *
  * An object representing a single contact in memory.
- * The contact object is not updated. If you want an update, you have to recreate the object.
+ * The contact object is not updated.
+ * If you want an update, you have to recreate the object.
  *
- * The library makes sure only to use names _authorized_ by the contact in `To:` or `Cc:`.
- * Given-names as "Daddy" or "Honey" are not used there.
- * For this purpose, internally, two names are tracked - authorized-name and given-name.
- * By default, these names are equal, but functions working with contact names
- * (eg. dc_contact_get_name(), dc_contact_get_display_name(), dc_contact_get_name_n_addr(),
- * dc_contact_get_first_name(), dc_create_contact() or dc_add_address_book()) only affect the given-name.
+ * The library makes sure
+ * only to use names _authorized_ by the contact in `To:` or `Cc:`.
+ * _Given-names _as "Daddy" or "Honey" are not used there.
+ * For this purpose, internally, two names are tracked -
+ * authorized-name and given-name.
+ * By default, these names are equal,
+ * but functions working with contact names
+ * (eg. dc_contact_get_name(), dc_contact_get_display_name(),
+ * dc_contact_get_name_n_addr(), dc_contact_get_first_name(),
+ * dc_create_contact() or dc_add_address_book())
+ * only affect the given-name.
  */
 typedef struct _dc_contact dc_contact_t;
 
@@ -519,7 +561,7 @@ typedef struct _dc_contact dc_contact_t;
 #define         DC_CONTACT_ID_LAST_SPECIAL   9
 
 
-dc_contact_t*   dc_contact_new               (dc_context_t*); /* the returned pointer is ref'd and must be unref'd after usage */
+dc_contact_t*   dc_contact_new               (dc_context_t*);
 void            dc_contact_empty             (dc_contact_t*);
 void            dc_contact_unref             (dc_contact_t*);
 uint32_t        dc_contact_get_id            (const dc_contact_t*);
@@ -535,8 +577,10 @@ int             dc_contact_is_verified       (dc_contact_t*);
 /**
  * @class dc_lot_t
  *
- * An object containing a set of values.  The meaning of the values is defined by the function returning the set object.
- * Set objects are created eg. by dc_chatlist_get_summary() or dc_msg_get_summary().
+ * An object containing a set of values.
+ * The meaning of the values is defined by the function returning the object.
+ * Lot objects are created
+ * eg. by dc_chatlist_get_summary() or dc_msg_get_summary().
  *
  * NB: _Lot_ is used in the meaning _heap_ here.
  */
@@ -563,12 +607,15 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * @defgroup DC_MSG DC_MSG
  *
  * With these constants the type of a message is defined.
- * From the view of the library, all types are all primary types of the same level,
- * so the library does not regard eg. #DC_MSG_GIF as a subtype for #DC_MSG_IMAGE and
- * it's up to the UI to decide whether a GIF is shown eg. in an IMAGE or in a VIDEO
- * container.
  *
- * If you want to define the type of a dc_msg_t object for sending, use dc_msg_new().
+ * From the view of the library,
+ * all types are primary types of the same level,
+ * eg. the library does not regard #DC_MSG_GIF as a subtype for #DC_MSG_IMAGE
+ * and it's up to the UI to decide whether a GIF is shown
+ * eg. in an IMAGE or in a VIDEO container.
+ *
+ * If you want to define the type of a dc_msg_t object for sending,
+ * use dc_msg_new().
  *
  * To get the types of dc_msg_t objects received, use dc_msg_get_viewtype().
  *
@@ -621,14 +668,17 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 
 /**
  * Video messages.
- * File, width, height and durarion are set via dc_msg_set_file(), dc_msg_set_dimension(), dc_msg_set_duration()
- * and retrieved via dc_msg_get_file(), dc_msg_get_width(), dc_msg_get_height(), dc_msg_get_duration().
+ * File, width, height and durarion
+ * are set via dc_msg_set_file(), dc_msg_set_dimension(), dc_msg_set_duration()
+ * and retrieved via
+ * dc_msg_get_file(), dc_msg_get_width(),
+ * dc_msg_get_height(), dc_msg_get_duration().
  */
 #define DC_MSG_VIDEO     50
 
 
 /**
- * Message containing any other file, eg. a PDF.
+ * Message containing any file, eg. a PDF.
  * The file is set via dc_msg_set_file()
  * and retrieved via dc_msg_get_file().
  */
@@ -643,8 +693,9 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * @defgroup DC_LP DC_LP
  *
  * Flags for configuring IMAP and SMTP servers.
- * These flags are optional and may be set together with the username, password etc. via
- * dc_set_config() using the key "server_flags".
+ * These flags are optional
+ * and may be set together with the username, password etc.
+ * via dc_set_config() using the key "server_flags".
  *
  * @addtogroup DC_LP
  * @{
@@ -693,7 +744,8 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 
 
 /**
- * Connect to SMTP unencrypted, this should not be used. If this, or any other flag is set, automatic configuration is skipped.
+ * Connect to SMTP unencrypted, this should not be used.
+ * If this, or any other flag is set, automatic configuration is skipped.
  */
 #define DC_LP_SMTP_SOCKET_PLAIN      0x40000 ///<
 
@@ -711,8 +763,10 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 /**
  * @defgroup DC_EVENT DC_EVENT
  *
- * These constants are used as events reported to the callback given to dc_context_new().
- * If you do not want to handle an event, it is always safe to return 0, so there is no need to add a "case" for every event.
+ * These constants are used as events
+ * reported to the callback given to dc_context_new().
+ * If you do not want to handle an event, it is always safe to return 0,
+ * so there is no need to add a "case" for every event.
  *
  * @addtogroup DC_EVENT
  * @{
