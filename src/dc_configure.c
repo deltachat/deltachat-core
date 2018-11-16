@@ -726,6 +726,8 @@ cleanup:
  * For this purpose, the function creates a job
  * that is executed in the IMAP-thread then;
  * this requires to call dc_perform_imap_jobs() regularly.
+ * If the context is already configured,
+ * this function will try to change the configuration.
  *
  * - Before you call this function,
  *   you must set at least `addr` and `mail_pw` using dc_set_config().
@@ -743,10 +745,14 @@ cleanup:
  *
  * While dc_configure() returns immediately,
  * the started configuration-job may take a while.
- * You can stop it using dc_stop_ongoing_process().
  *
  * During configuration, #DC_EVENT_CONFIGURE_PROGRESS events are emmited;
- * they may be used to create a progress bar.
+ * they indicate a successful configuration as well as errors
+ * and may be used to create a progress bar.
+ *
+ * Additional calls to dc_configure() while a config-job is running are ignored.
+ * To interrupt a configuration prematurely, use dc_stop_ongoing_process();
+ * this is not needed if #DC_EVENT_CONFIGURE_PROGRESS reports success.
  *
  * On a successfull configuration,
  * the core makes a copy of the parameters mentioned above:
