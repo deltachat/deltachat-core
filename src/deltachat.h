@@ -846,7 +846,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * failed (returned false). It should be sufficient to report only the _last_ error
  * in a messasge box then.
  *
- * @param data1 (int) Error code, see @ref DC_ERROR for a list of constants.
+ * @param data1 0
  * @param data2 (const char*) Error string, always set, never NULL. Frequent error strings are
  *     localized using #DC_EVENT_GET_STRING, however, most error strings will be in english language.
  *     Must not be free()'d or modified and is valid only until the callback returns.
@@ -877,6 +877,22 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * @return 0
  */
 #define DC_EVENT_ERROR_NETWORK            401
+
+
+/**
+ * An action cannot be performed because the user is not in the group.
+ * Reported eg. after a call to
+ * dc_set_chat_name(), dc_set_chat_profile_image(),
+ * dc_add_contact_to_chat(), dc_remove_contact_from_chat(),
+ * dc_send_text_msg() or another sending function.
+ *
+ * @param data1 0
+ * @param data2 (const char*) Info string in english language.
+ *     Must not be free()'d or modified
+ *     and is valid only until the callback returns.
+ * @return 0
+ */
+#define DC_EVENT_ERROR_SELF_NOT_IN_GROUP  410
 
 
 /**
@@ -1070,42 +1086,13 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 
 #define DC_EVENT_FILE_COPIED         2055 // deprecated
 #define DC_EVENT_IS_OFFLINE          2081 // deprecated
+#define DC_ERROR_SEE_STRING          0    // deprecated
+#define DC_ERROR_SELF_NOT_IN_GROUP   1    // deprecated
+#define DC_STR_SELFNOTINGRP          21   // deprecated
 #define DC_EVENT_DATA1_IS_STRING(e)  ((e)==DC_EVENT_HTTP_GET || (e)==DC_EVENT_IMEX_FILE_WRITTEN || (e)==DC_EVENT_FILE_COPIED)
-#define DC_EVENT_DATA2_IS_STRING(e)  ((e)==DC_EVENT_INFO || (e) == DC_EVENT_WARNING || (e) == DC_EVENT_ERROR || (e) == DC_EVENT_SMTP_CONNECTED || (e) == DC_EVENT_SMTP_MESSAGE_SENT || (e) == DC_EVENT_IMAP_CONNECTED)
+#define DC_EVENT_DATA2_IS_STRING(e)  ((e)>=100 && (e)<=499)
 #define DC_EVENT_RETURNS_INT(e)      ((e)==DC_EVENT_IS_OFFLINE)
 #define DC_EVENT_RETURNS_STRING(e)   ((e)==DC_EVENT_GET_STRING || (e)==DC_EVENT_HTTP_GET)
-
-
-/**
- * @defgroup DC_ERROR DC_ERROR
- *
- * These constants are used as error in the event
- * #DC_EVENT_ERROR and reported to the callback given to
- * dc_context_new().
- *
- * @addtogroup DC_ERROR
- * @{
- */
-
-/**
- * Unclassified error.
- * Reported by #DC_EVENT_ERROR eg. for forwarding errors from other instances.
- * Details about the error can be found as a string in data2 that should be shown to the user by the UI.
- */
-#define DC_ERROR_SEE_STRING                 0
-
-
-/**
- * The action cannot be performed because the user is not in the group.
- * Reported by #DC_EVENT_ERROR eg. after a call to dc_set_chat_name(), dc_set_chat_profile_image(),
- * dc_add_contact_to_chat(), dc_remove_contact_from_chat(), dc_send_text_msg() or another sending function.
- */
-#define DC_ERROR_SELF_NOT_IN_GROUP          1
-
-
-/**
- * @}
- */
 
 
 /*
@@ -1136,7 +1123,6 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 #define DC_STR_MSGADDMEMBER               17
 #define DC_STR_MSGDELMEMBER               18
 #define DC_STR_MSGGROUPLEFT               19
-#define DC_STR_SELFNOTINGRP               21
 #define DC_STR_GIF                        23
 #define DC_STR_ENCRYPTEDMSG               24
 #define DC_STR_E2E_AVAILABLE              25
