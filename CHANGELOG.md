@@ -8,6 +8,17 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes anywhere in the Delta Chat ecosystem,
 see https://delta.chat/en/changelog
 
+## v0.26.0
+2018-11-18
+
+* remove DC_EVENT_IS_OFFLINE
+* remove error code from DC_EVENT_ERROR
+* add DC_EVENT_ERROR_SELF_NOT_IN_GROUP
+* add flag to DC_EVENT_ERROR_NETWORK to differ between first/subsequent errors
+* block concurrent calls to dc_configure()
+
+The changes have been done by Björn Petersen, Holger Krekel, Lars-Magnus Skog
+
 ## v0.25.1
 2018-11-14
 
