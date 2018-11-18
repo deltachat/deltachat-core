@@ -133,6 +133,7 @@ char*           dc_render_setup_file (dc_context_t*, const char* passphrase);
 char*           dc_decrypt_setup_file(dc_context_t*, const char* passphrase, const char* filecontent);
 
 extern int      dc_shall_stop_ongoing;
+int             dc_has_ongoing       (dc_context_t*);
 int             dc_alloc_ongoing     (dc_context_t*);
 void            dc_free_ongoing      (dc_context_t*);
 

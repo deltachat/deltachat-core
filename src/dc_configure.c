@@ -722,34 +722,55 @@ cleanup:
 
 
 /**
- * Configure and connect a context.
- * For this, the function creates a job that is executed in the IMAP-thread then;
+ * Configure a context.
+ * For this purpose, the function creates a job
+ * that is executed in the IMAP-thread then;
  * this requires to call dc_perform_imap_jobs() regularly.
+ * If the context is already configured,
+ * this function will try to change the configuration.
  *
- * - Before you call this function, you should set at least `addr` and `mail_pw`
- *   using dc_set_config().
+ * - Before you call this function,
+ *   you must set at least `addr` and `mail_pw` using dc_set_config().
  *
- * - Use `mail_user` to use a different user name than `addr` and `send_pw` to
- *   use a different password for the SMTP server (otherwise `mail_pw` is used)
+ * - Use `mail_user` to use a different user name than `addr`
+ *   and `send_pw` to use a different password for the SMTP server.
  *
- *     - If _no_ more options are specified, the function tries to get these
- *       **using autoconfigure/autodiscover**.
+ *     - If _no_ more options are specified,
+ *       the function **uses autoconfigure/autodiscover**
+ *       to get the full configuration from well-known URLs.
  *
- *     - If _more_ options as `mail_server`, `mail_port`, `send_server`, `send_port`, `send_user` or `server_flags`
- *       are specified, **autoconfigure/autodiscover is skipped**.
+ *     - If _more_ options as `mail_server`, `mail_port`, `send_server`,
+ *       `send_port`, `send_user` or `server_flags` are specified,
+ *       **autoconfigure/autodiscover is skipped**.
  *
- * - While dc_configure() returns immediately, the started configuration-job may take a while,
- *   you can stop it using dc_stop_ongoing_process().
+ * While dc_configure() returns immediately,
+ * the started configuration-job may take a while.
  *
- * - The function sends out a number of #DC_EVENT_CONFIGURE_PROGRESS events that may be used to create
- *   a progress bar or stuff like that.
+ * During configuration, #DC_EVENT_CONFIGURE_PROGRESS events are emmited;
+ * they indicate a successful configuration as well as errors
+ * and may be used to create a progress bar.
+ *
+ * Additional calls to dc_configure() while a config-job is running are ignored.
+ * To interrupt a configuration prematurely, use dc_stop_ongoing_process();
+ * this is not needed if #DC_EVENT_CONFIGURE_PROGRESS reports success.
+ *
+ * On a successfull configuration,
+ * the core makes a copy of the parameters mentioned above:
+ * the original parameters as are never modified by the core.
+ *
+ * UI-implementors should keep this in mind -
+ * eg. if the UI wants to prefill a configure-edit-dialog with these parameters,
+ * the UI should reset them if the user cancels the dialog
+ * after a configure-attempts has failed.
+ * Otherwise the parameters may not reflect the current configuation.
  *
  * @memberof dc_context_t
  * @param context The context object as created by dc_context_new().
  * @return None.
  *
- * There is no need to call this every program start, the result is saved in the
- * database and you can use the connection directly:
+ * There is no need to call dc_configure() on every program start,
+ * the configuration result is saved in the database
+ * and you can use the connection directly:
  *
  * ~~~
  * if (!dc_is_configured(context)) {
@@ -760,6 +781,11 @@ cleanup:
  */
 void dc_configure(dc_context_t* context)
 {
+	if (dc_has_ongoing(context)) {
+		dc_log_warning(context, 0, "There is already another ongoing process running.");
+		return;
+	}
+
 	dc_job_kill_actions(context, DC_JOB_CONFIGURE_IMAP, 0);
 	dc_job_add(context, DC_JOB_CONFIGURE_IMAP, 0, NULL, 0); // results in a call to dc_configure_job()
 }
@@ -787,6 +813,19 @@ int dc_is_configured(const dc_context_t* context)
 
 
 /*
+ * Check if there is an ongoing process.
+ */
+int dc_has_ongoing(dc_context_t* context)
+{
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		return 0;
+	}
+
+	return (context->ongoing_running || context->shall_stop_ongoing==0)? 1 : 0;
+}
+
+
+/*
  * Request an ongoing process to start.
  * Returns 0=process started, 1=not started, there is running another process
  */
@@ -796,7 +835,7 @@ int dc_alloc_ongoing(dc_context_t* context)
 		return 0;
 	}
 
-	if (context->ongoing_running || context->shall_stop_ongoing==0) {
+	if (dc_has_ongoing(context)) {
 		dc_log_warning(context, 0, "There is already another ongoing process running.");
 		return 0;
 	}
