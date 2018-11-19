@@ -64,7 +64,7 @@ void dc_log_event_seq(dc_context_t* context, int event_code, int* sequence_start
 
 	va_list va;
 	va_start(va, msg);
-		log_vprintf(context, event_code, *sequence_start, NULL, va);
+		log_vprintf(context, event_code, *sequence_start, msg, va);
 		*sequence_start = 0;
 	va_end(va);
 }
