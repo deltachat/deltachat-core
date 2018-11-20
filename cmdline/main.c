@@ -38,12 +38,32 @@ static uintptr_t receive_event(dc_context_t* context, int event, uintptr_t data1
 			}
 			break;
 
+		case DC_EVENT_SMTP_CONNECTED:
+			printf("[DC_EVENT_SMTP_CONNECTED] %s\n", (char*)data2);
+			break;
+
+		case DC_EVENT_IMAP_CONNECTED:
+			printf("[DC_EVENT_IMAP_CONNECTED] %s\n", (char*)data2);
+			break;
+
+		case DC_EVENT_SMTP_MESSAGE_SENT:
+			printf("[DC_EVENT_SMTP_MESSAGE_SENT] %s\n", (char*)data2);
+			break;
+
 		case DC_EVENT_WARNING:
 			printf("[Warning] %s\n", (char*)data2);
 			break;
 
 		case DC_EVENT_ERROR:
-			printf(ANSI_RED "[ERROR #%i] %s" ANSI_NORMAL "\n", (int)data1, (char*)data2);
+			printf(ANSI_RED "[DC_EVENT_ERROR] %s" ANSI_NORMAL "\n", (char*)data2);
+			break;
+
+		case DC_EVENT_ERROR_NETWORK:
+			printf(ANSI_RED "[DC_EVENT_ERROR_NETWORK] first=%i, msg=%s" ANSI_NORMAL "\n", (int)data1, (char*)data2);
+			break;
+
+		case DC_EVENT_ERROR_SELF_NOT_IN_GROUP:
+			printf(ANSI_RED "[DC_EVENT_ERROR_SELF_NOT_IN_GROUP] %s" ANSI_NORMAL "\n", (char*)data2);
 			break;
 
 		case DC_EVENT_HTTP_GET:
