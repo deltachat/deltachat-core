@@ -85,6 +85,8 @@
  */
 char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 {
+#ifndef DC_USE_LIBRNP
+
 	sqlite3_stmt*          stmt = NULL;
 	char*                  self_addr = NULL;
 	dc_key_t*              curr_private_key = dc_key_new();
@@ -268,6 +270,13 @@ cleanup:
 	free(key);
 
 	return ret_setupfilecontent;
+
+#else
+
+	// TODO
+	return NULL;
+
+#endif
 }
 
 
@@ -287,6 +296,8 @@ cleanup:
  */
 char* dc_decrypt_setup_file(dc_context_t* context, const char* passphrase, const char* filecontent)
 {
+#ifndef DC_USE_LIBRNP
+
 	char*         fc_buf = NULL;
 	const char*   fc_headerline = NULL;
 	const char*   fc_base64 = NULL;
@@ -325,6 +336,13 @@ cleanup:
 	if (binary) { mmap_string_unref(binary); }
 	if (outmem) { pgp_memory_free(outmem); }
 	return payload;
+
+#else
+
+	// TODO
+	return NULL;
+
+#endif
 }
 
 

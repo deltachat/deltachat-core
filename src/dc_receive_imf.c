@@ -1,5 +1,7 @@
 #include <assert.h>
+#ifndef DC_USE_LIBRNP
 #include <netpgp-extra.h>
+#endif
 #include "dc_context.h"
 #include "dc_mimeparser.h"
 #include "dc_mimefactory.h"
@@ -423,6 +425,7 @@ static char* create_adhoc_grp_id(dc_context_t* context, dc_array_t* member_ids /
 	}
 
 	/* make sha-256 from the string */
+	#ifndef DC_USE_LIBRNP
 	{
 		pgp_hash_t hasher;
 		pgp_hash_sha256(&hasher);
@@ -431,6 +434,12 @@ static char* create_adhoc_grp_id(dc_context_t* context, dc_array_t* member_ids /
 		binary_hash = malloc(hasher.size);
 		hasher.finish(&hasher, binary_hash);
 	}
+	#else
+
+		// TODO
+		binary_hash = calloc(1, 256);
+
+	#endif
 
 	/* output the first 8 bytes as 16 hex-characters - CAVE: if the lenght changes here, also adapt dc_extract_grpid_from_rfc724_mid() */
 	ret = calloc(1, 256);

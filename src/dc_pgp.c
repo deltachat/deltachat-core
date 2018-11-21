@@ -14,7 +14,11 @@ So, we do not see a simple alternative - but everyone is welcome to implement
 one :-) */
 
 
+#ifndef DC_USE_LIBRNP
 #include <netpgp-extra.h>
+#else
+#include <rnp/rnp.h>
+#endif
 #include <openssl/rand.h>
 #include "dc_context.h"
 #include "dc_key.h"
@@ -23,12 +27,15 @@ one :-) */
 #include "dc_hash.h"
 
 
+#ifndef DC_USE_LIBRNP
 static int      s_io_initialized = 0;
 static pgp_io_t s_io;
+#endif
 
 
 void dc_pgp_init(void)
 {
+#ifndef DC_USE_LIBRNP
 	if (s_io_initialized) {
 		return;
 	}
@@ -39,6 +46,7 @@ void dc_pgp_init(void)
 	s_io.res  = stderr;
 
 	s_io_initialized = 1;
+#endif
 }
 
 
@@ -167,6 +175,7 @@ cleanup:
  ******************************************************************************/
 
 
+#ifndef DC_USE_LIBRNP
 static unsigned add_key_prefs(pgp_create_sig_t *sig)
 {
     /* similar to pgp_add_key_prefs(), Mimic of GPG default settings, limited to supported algos */
@@ -267,10 +276,13 @@ static void add_subkey_binding_signature(pgp_subkeysig_t* p, pgp_key_t* primaryk
 	pgp_output_delete(sigoutput);
 	free(mem_sig); /* do not use pgp_memory_free() as this would also free mem_sig->buf which is owned by the packet */
 }
+#endif
 
 
 int dc_pgp_create_keypair(dc_context_t* context, const char* addr, dc_key_t* ret_public_key, dc_key_t* ret_private_key)
 {
+#ifndef DC_USE_LIBRNP
+
 	int              success = 0;
 	pgp_key_t        seckey;
 	pgp_key_t        pubkey;
@@ -380,6 +392,13 @@ cleanup:
 	pgp_key_free(&subkey);
 	free(user_id);
 	return success;
+
+#else
+
+	// TODO
+	return 0;
+
+#endif
 }
 
 
@@ -390,6 +409,8 @@ cleanup:
 
 int dc_pgp_is_valid_key(dc_context_t* context, const dc_key_t* raw_key)
 {
+#ifndef DC_USE_LIBRNP
+
 	int             key_is_valid = 0;
 	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t));
 	pgp_keyring_t*  private_keys = calloc(1, sizeof(pgp_keyring_t));
@@ -416,11 +437,20 @@ cleanup:
 	if (public_keys)  { pgp_keyring_purge(public_keys); free(public_keys); } /*pgp_keyring_free() frees the content, not the pointer itself*/
 	if (private_keys) { pgp_keyring_purge(private_keys); free(private_keys); }
 	return key_is_valid;
+
+#else
+
+	// TODO
+	return 0;
+
+#endif
 }
 
 
 int dc_pgp_calc_fingerprint(const dc_key_t* raw_key, uint8_t** ret_fingerprint, size_t* ret_fingerprint_bytes)
 {
+#ifndef DC_USE_LIBRNP
+
 	int             success = 0;
 	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t));
 	pgp_keyring_t*  private_keys = calloc(1, sizeof(pgp_keyring_t));
@@ -456,11 +486,20 @@ cleanup:
 	if (public_keys)  { pgp_keyring_purge(public_keys); free(public_keys); } /*pgp_keyring_free() frees the content, not the pointer itself*/
 	if (private_keys) { pgp_keyring_purge(private_keys); free(private_keys); }
 	return success;
+
+#else
+
+	// TODO
+	return 0;
+
+#endif
 }
 
 
 int dc_pgp_split_key(dc_context_t* context, const dc_key_t* private_in, dc_key_t* ret_public_key)
 {
+#ifndef DC_USE_LIBRNP
+
 	int             success = 0;
 	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t));
 	pgp_keyring_t*  private_keys = calloc(1, sizeof(pgp_keyring_t));
@@ -503,6 +542,13 @@ cleanup:
 	if (public_keys)  { pgp_keyring_purge(public_keys); free(public_keys); } /*pgp_keyring_free() frees the content, not the pointer itself*/
 	if (private_keys) { pgp_keyring_purge(private_keys); free(private_keys); }
 	return success;
+
+#else
+
+	// TODO
+	return 0;
+
+#endif
 }
 
 
@@ -520,6 +566,8 @@ int dc_pgp_pk_encrypt( dc_context_t*       context,
                        void**              ret_ctext,
                        size_t*             ret_ctext_bytes)
 {
+#ifndef DC_USE_LIBRNP
+
 	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t));
 	pgp_keyring_t*  private_keys = calloc(1, sizeof(pgp_keyring_t));
 	pgp_keyring_t*  dummy_keys = calloc(1, sizeof(pgp_keyring_t));
@@ -614,6 +662,13 @@ cleanup:
 	if (private_keys) { pgp_keyring_purge(private_keys); free(private_keys); }
 	if (dummy_keys)   { pgp_keyring_purge(dummy_keys); free(dummy_keys); }
 	return success;
+
+#else
+
+	// TODO
+	return 0;
+
+#endif
 }
 
 
@@ -627,6 +682,8 @@ int dc_pgp_pk_decrypt( dc_context_t*       context,
                        size_t*             ret_plain_bytes,
                        dc_hash_t*          ret_signature_fingerprints)
 {
+#ifndef DC_USE_LIBRNP
+
 	pgp_keyring_t*    public_keys = calloc(1, sizeof(pgp_keyring_t)); /*should be 0 after parsing*/
 	pgp_keyring_t*    private_keys = calloc(1, sizeof(pgp_keyring_t));
 	pgp_keyring_t*    dummy_keys = calloc(1, sizeof(pgp_keyring_t));
@@ -711,4 +768,11 @@ cleanup:
 	if (vresult)            { pgp_validate_result_free(vresult); }
 	free(recipients_key_ids);
 	return success;
+
+#else
+
+	// TODO
+	return 0;
+
+#endif
 }

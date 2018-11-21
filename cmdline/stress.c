@@ -839,6 +839,7 @@ void stress_functions(dc_context_t* context)
 		free(norm);
 	}
 
+	#ifndef DC_USE_LIBRNP // TODO
 	{
 		char* buf = NULL;
 		const char *headerline = NULL, *setupcodebegin = NULL, *preferencrypt = NULL;
@@ -889,10 +890,13 @@ void stress_functions(dc_context_t* context)
 		free(setupfile);
 		free(setupcode);
 	}
+	#endif
+
 
 	/* test end-to-end-encryption
 	 **************************************************************************/
 
+	#ifndef DC_USE_LIBRNP // TODO
 	{
 		dc_key_t *bad_key = dc_key_new();
 			#define BAD_DATA_BYTES 4096
@@ -1029,6 +1033,7 @@ void stress_functions(dc_context_t* context)
 		dc_key_unref(public_key);
 		dc_key_unref(private_key);
 	}
+	#endif
 
 
 	/* test out-of-band verification
@@ -1041,6 +1046,7 @@ void stress_functions(dc_context_t* context)
 		free(fingerprint);
 	}
 
+	#ifndef DC_USE_LIBRNP // TODO
 	if (dc_is_configured(context))
 	{
 		char* qr = dc_get_securejoin_qr(context, 0);
@@ -1059,4 +1065,5 @@ void stress_functions(dc_context_t* context)
 		assert( res->id != 0 );
 		dc_lot_unref(res);
 	}
+	#endif
 }
