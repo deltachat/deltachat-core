@@ -413,13 +413,13 @@ static void dc_suspend_smtp_thread(dc_context_t* context, int suspend)
 static time_t get_backoff_time_offset(int c_tries)
 {
 	#define MULTIPLY 60
-	#define JOB_RETRIES 16 // results in ~3 weeks for the last backoff timespan
+	#define JOB_RETRIES 17 // results in ~3 weeks for the last backoff timespan
 
-	int N = (int)pow((double)2, c_tries) - 1;
+	time_t N = (time_t)pow((double)2, c_tries - 1);
 
-	int r = rand() % (N+1);
+	N = N * MULTIPLY;
 
-	time_t seconds = r * MULTIPLY;
+	time_t seconds = rand() % (N+1);
 
 	if (seconds<1) {
 		seconds = 1;
