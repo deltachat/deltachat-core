@@ -3,7 +3,7 @@
 #include <unistd.h> /* for sleep() */
 #include <openssl/rand.h>
 #include <libetpan/mmapstring.h>
-#include <netpgp-extra.h>
+#include <rnp/rnp.h>
 #include "dc_context.h"
 #include "dc_mimeparser.h"
 #include "dc_loginparam.h"
