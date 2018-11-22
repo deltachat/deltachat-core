@@ -39,6 +39,7 @@
 			<Add option="-DDC_USE_MIME_DEBUG" />
 			<Add option="-DHAVE_ICONV" />
 			<Add option="-DSQLITE_OMIT_LOAD_EXTENSION" />
+			<Add option="-DDC_USE_LIBRNP" />
 			<Add directory="libs/libetpan/src" />
 			<Add directory="libs/libetpan/src/data-types" />
 			<Add directory="libs/libetpan/src/low-level" />
