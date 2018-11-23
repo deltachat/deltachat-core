@@ -8,6 +8,11 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes anywhere in the Delta Chat ecosystem,
 see https://delta.chat/en/changelog
 
+## v0.26.1
+2018-11-23
+
+* bugfix release
+
 ## v0.26.0
 2018-11-18
 
