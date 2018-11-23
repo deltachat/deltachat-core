@@ -9,8 +9,23 @@ cp_sources()
 	cp $SRCDIR/$CDIR/*.h   rnp/$CDIR/ 2>/dev/null
 	cp $SRCDIR/$CDIR/TODO* rnp/$CDIR/ 2>/dev/null
 
-	echo "// generated file" > rnp/$CDIR/config.h
-	echo "#error" >> rnp/$CDIR/config.h
+	# write config.h to each source directory;
+	# this way it should be guaranteed
+	# that the correct file is picked up.
+	echo "// generated file"              >  rnp/$CDIR/config.h
+	echo "#undef  HAVE_BZLIB_H"           >> rnp/$CDIR/config.h
+	echo "#define HAVE_ZLIB_H          1" >> rnp/$CDIR/config.h
+	echo "#define HAVE_FCNTL_H         1" >> rnp/$CDIR/config.h
+	echo "#define HAVE_INTTYPES_H      1" >> rnp/$CDIR/config.h
+	echo "#define HAVE_LIMITS_H        1" >> rnp/$CDIR/config.h
+	echo "#define HAVE_STDINT_H        1" >> rnp/$CDIR/config.h
+	echo "#define HAVE_STRING_H        1" >> rnp/$CDIR/config.h
+	echo "#define HAVE_SYS_CDEFS_H     1" >> rnp/$CDIR/config.h
+	echo "#define HAVE_SYS_MMAN_H      1" >> rnp/$CDIR/config.h
+	echo "#define HAVE_SYS_RESOURCE_H  1" >> rnp/$CDIR/config.h
+	echo "#define HAVE_SYS_STAT_H      1" >> rnp/$CDIR/config.h
+	echo "#define HAVE_SYS_TYPES_H     1" >> rnp/$CDIR/config.h
+	echo "#define HAVE_UNISTD_H        1" >> rnp/$CDIR/config.h
 }
 
 update_rnp() {
@@ -18,7 +33,7 @@ update_rnp() {
 	
 	# copy misc.
 
-	cp $SRCDIR/LICENSE rnp/
+	cp $SRCDIR/LICENSE* rnp/
 
 	# copy source
 	
