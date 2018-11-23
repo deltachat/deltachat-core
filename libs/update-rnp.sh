@@ -5,9 +5,12 @@ cp_sources()
 	SRCDIR=$1
 	CDIR=$2
 	mkdir -p               rnp/$CDIR/
-	cp $SRCDIR/$CDIR/*.c   rnp/$CDIR/ 2>/dev/null
+	cp $SRCDIR/$CDIR/*.cpp rnp/$CDIR/ 2>/dev/null
 	cp $SRCDIR/$CDIR/*.h   rnp/$CDIR/ 2>/dev/null
 	cp $SRCDIR/$CDIR/TODO* rnp/$CDIR/ 2>/dev/null
+
+	echo "// generated file" > rnp/$CDIR/config.h
+	echo "#error" >> rnp/$CDIR/config.h
 }
 
 update_rnp() {
@@ -22,6 +25,7 @@ update_rnp() {
 	rm -r rnp/src/*
 	
 	cp_sources $SRCDIR "src/lib"
+	cp_sources $SRCDIR "src/lib/crypto"
 	cp_sources $SRCDIR "src/librekey"
 	cp_sources $SRCDIR "src/librepgp"
 	cp_sources $SRCDIR "src/rnp"
