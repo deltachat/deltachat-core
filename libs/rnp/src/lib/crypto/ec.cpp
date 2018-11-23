@@ -25,6 +25,7 @@
  */
 
 #include <botan/ffi.h>
+#include <string.h>
 #include "ec.h"
 #include "types.h"
 #include "utils.h"

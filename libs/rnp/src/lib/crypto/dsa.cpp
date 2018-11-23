@@ -76,6 +76,7 @@
 /** \file
  */
 #include <stdlib.h>
+#include <string.h>
 #include <botan/ffi.h>
 #include <rnp/rnp_def.h>
 #include "dsa.h"

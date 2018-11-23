@@ -36,7 +36,6 @@
 #include "stream-armor.h"
 #include "stream-packet.h"
 #include "stream-parse.h"
-#include "defs.h"
 #include "types.h"
 #include "ctype.h"
 #include "crypto/symmetric.h"

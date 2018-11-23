@@ -372,27 +372,25 @@ rnp_key_store_get_first_ring(rnp_key_store_t *ring, char *id, size_t len, int la
 void
 rnp_key_store_clear(rnp_key_store_t *keyring)
 {
-    unsigned i;
-
     for (list_item *key = list_front(keyring->keys); key; key = list_next(key)) {
         pgp_key_free_data((pgp_key_t *) key);
     }
     list_destroy(&keyring->keys);
 
-    if (keyring->blobs != NULL) {
-        for (i = 0; i < keyring->blobc; i++) {
-            if (keyring->blobs[i]->type == KBX_PGP_BLOB) {
-                FREE_ARRAY(((kbx_pgp_blob_t *) (keyring->blobs[i])), key);
-                if (((kbx_pgp_blob_t *) (keyring->blobs[i]))->sn_size > 0) {
-                    free(((kbx_pgp_blob_t *) (keyring->blobs[i]))->sn);
-                }
-                FREE_ARRAY(((kbx_pgp_blob_t *) (keyring->blobs[i])), uid);
-                FREE_ARRAY(((kbx_pgp_blob_t *) (keyring->blobs[i])), sig);
+    for (list_item *item = list_front(keyring->blobs); item; item = list_next(item)) {
+        kbx_blob_t *blob = *((kbx_blob_t **) item);
+        if (blob->type == KBX_PGP_BLOB) {
+            kbx_pgp_blob_t *pgpblob = (kbx_pgp_blob_t *) blob;
+            list_destroy(&pgpblob->keys);
+            if (pgpblob->sn_size > 0) {
+                free(pgpblob->sn);
             }
-            free(keyring->blobs[i]);
+            list_destroy(&pgpblob->uids);
+            list_destroy(&pgpblob->sigs);
         }
-        keyring->blobc = 0;
+        free(blob);
     }
+    list_destroy(&keyring->blobs);
 }
 
 void
@@ -403,12 +401,8 @@ rnp_key_store_free(rnp_key_store_t *keyring)
     }
 
     rnp_key_store_clear(keyring);
-
-    FREE_ARRAY(keyring, blob);
-
     free((void *) keyring->path);
     free((void *) keyring->format_label);
-
     free(keyring);
 }
 
@@ -597,8 +591,8 @@ rnp_key_store_refresh_subkey_grips(rnp_key_store_t *keyring, pgp_key_t *key)
             continue;
         }
 
-        for (unsigned i = 0; i < skey->subsigc; i++) {
-            pgp_subsig_t *subsig = &skey->subsigs[i];
+        for (unsigned i = 0; i < pgp_key_get_subsig_count(skey); i++) {
+            pgp_subsig_t *subsig = pgp_key_get_subsig(skey, i);
 
             if (subsig->sig.type != PGP_SIG_SUBKEY) {
                 continue;
@@ -787,15 +781,11 @@ rnp_key_store_get_key_by_userid(const rnp_key_store_t *keyring,
 
     // if after is provided, make sure it is a member of the appropriate list
     assert(!after || list_is_member(keyring->keys, (list_item *) after));
-    for (list_item *key_item = after ? list_next((list_item *) after) :
-                                       list_front(keyring->keys);
-         key_item;
-         key_item = list_next(key_item)) {
+    list_item *start = after ? list_next((list_item *) after) : list_front(keyring->keys);
+    for (list_item *key_item = start; key_item; key_item = list_next(key_item)) {
         pgp_key_t *key = (pgp_key_t *) key_item;
-        for (size_t i = 0; i < key->uidc; i++) {
-            if (!strcmp(userid, (char *) key->uids[i])) {
-                return key;
-            }
+        if (pgp_key_has_userid(key, userid)) {
+            return key;
         }
     }
     return NULL;
@@ -851,8 +841,8 @@ rnp_key_store_get_primary_key(const rnp_key_store_t *keyring, const pgp_key_t *s
         return rnp_key_store_get_key_by_grip(keyring, subkey->primary_grip);
     }
 
-    for (unsigned i = 0; i < subkey->subsigc; i++) {
-        pgp_subsig_t *subsig = &subkey->subsigs[i];
+    for (unsigned i = 0; i < pgp_key_get_subsig_count(subkey); i++) {
+        pgp_subsig_t *subsig = pgp_key_get_subsig(subkey, i);
         if (subsig->sig.type != PGP_SIG_SUBKEY) {
             continue;
         }
@@ -877,7 +867,6 @@ get_key_by_name(const rnp_key_store_t *keyring,
                 pgp_key_t **           key)
 {
     pgp_key_t *kp;
-    uint8_t ** uidp;
     unsigned   i = 0;
     pgp_key_t *keyp;
     regex_t    r;
@@ -928,10 +917,12 @@ get_key_by_name(const rnp_key_store_t *keyring,
          key_item;
          key_item = list_next(key_item)) {
         keyp = (pgp_key_t *) key_item;
-        uidp = keyp->uids;
-        for (i = 0; i < keyp->uidc; i++, uidp++) {
-            if (regexec(&r, (char *) *uidp, 0, NULL, 0) == 0) {
-                RNP_DLOG("MATCHED keyid \"%s\" len %" PRIsize "u", (char *) *uidp, len);
+
+        for (i = 0; i < pgp_get_userid_count(keyp); i++) {
+            if (regexec(&r, (char *) pgp_get_userid(keyp, i), 0, NULL, 0) == 0) {
+                RNP_DLOG("MATCHED keyid \"%s\" len %" PRIsize "u",
+                         (char *) pgp_get_userid(keyp, i),
+                         len);
                 regfree(&r);
                 *key = keyp;
                 return true;

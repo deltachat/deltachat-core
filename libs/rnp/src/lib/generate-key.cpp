@@ -25,6 +25,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <assert.h>
+#include <string.h>
 
 #include <rekey/rnp_key_store.h>
 #include <librekey/key_store_pgp.h>
@@ -38,11 +39,11 @@
 #include "defaults.h"
 #include "utils.h"
 
-static const pgp_symm_alg_t DEFAULT_SYMMETRIC_ALGS[] = {
+static const uint8_t DEFAULT_SYMMETRIC_ALGS[] = {
   PGP_SA_AES_256, PGP_SA_AES_192, PGP_SA_AES_128, PGP_SA_TRIPLEDES};
-static const pgp_hash_alg_t DEFAULT_HASH_ALGS[] = {
+static const uint8_t DEFAULT_HASH_ALGS[] = {
   PGP_HASH_SHA256, PGP_HASH_SHA384, PGP_HASH_SHA512, PGP_HASH_SHA224, PGP_HASH_SHA1};
-static const pgp_compression_type_t DEFAULT_COMPRESS_ALGS[] = {
+static const uint8_t DEFAULT_COMPRESS_ALGS[] = {
   PGP_C_ZLIB, PGP_C_BZIP2, PGP_C_ZIP, PGP_C_NONE};
 
 static bool
@@ -130,7 +131,7 @@ static void
 adjust_hash_alg(rnp_keygen_crypto_params_t *crypto)
 {
     if (!crypto->hash_alg) {
-        crypto->hash_alg = DEFAULT_HASH_ALGS[0];
+        crypto->hash_alg = (pgp_hash_alg_t) DEFAULT_HASH_ALGS[0];
     }
 
     if ((crypto->key_alg != PGP_PKA_DSA) && (crypto->key_alg != PGP_PKA_ECDSA)) {
@@ -173,7 +174,7 @@ keygen_merge_crypto_defaults(rnp_keygen_crypto_params_t *crypto)
     case PGP_PKA_ECDH:
     case PGP_PKA_ECDSA: {
         if (!crypto->hash_alg) {
-            crypto->hash_alg = DEFAULT_HASH_ALGS[0];
+            crypto->hash_alg = (pgp_hash_alg_t) DEFAULT_HASH_ALGS[0];
         }
         break;
     }
@@ -259,35 +260,19 @@ get_numbits(const rnp_keygen_crypto_params_t *crypto)
 static bool
 set_default_user_prefs(pgp_user_prefs_t *prefs)
 {
-    if (!prefs->symm_algs) {
-        for (size_t i = 0; i < ARRAY_SIZE(DEFAULT_SYMMETRIC_ALGS); i++) {
-            EXPAND_ARRAY(prefs, symm_alg);
-            if (!prefs->symm_algs) {
-                return false;
-            }
-            prefs->symm_algs[i] = DEFAULT_SYMMETRIC_ALGS[i];
-            prefs->symm_algc++;
-        }
+    if (!prefs->symm_algs &&
+        !pgp_user_prefs_set_symm_algs(
+          prefs, &DEFAULT_SYMMETRIC_ALGS[0], ARRAY_SIZE(DEFAULT_SYMMETRIC_ALGS))) {
+        return false;
     }
-    if (!prefs->hash_algs) {
-        for (size_t i = 0; i < ARRAY_SIZE(DEFAULT_HASH_ALGS); i++) {
-            EXPAND_ARRAY(prefs, hash_alg);
-            if (!prefs->hash_algs) {
-                return false;
-            }
-            prefs->hash_algs[i] = DEFAULT_HASH_ALGS[i];
-            prefs->hash_algc++;
-        }
+    if (!prefs->hash_algs && !pgp_user_prefs_set_hash_algs(
+                               prefs, &DEFAULT_HASH_ALGS[0], ARRAY_SIZE(DEFAULT_HASH_ALGS))) {
+        return false;
     }
-    if (!prefs->compress_algs) {
-        for (size_t i = 0; i < ARRAY_SIZE(DEFAULT_COMPRESS_ALGS); i++) {
-            EXPAND_ARRAY(prefs, compress_alg);
-            if (!prefs->compress_algs) {
-                return false;
-            }
-            prefs->compress_algs[i] = DEFAULT_COMPRESS_ALGS[i];
-            prefs->compress_algc++;
-        }
+    if (!prefs->z_algs && !pgp_user_prefs_set_z_algs(prefs,
+                                                     &DEFAULT_COMPRESS_ALGS[0],
+                                                     ARRAY_SIZE(DEFAULT_COMPRESS_ALGS))) {
+        return false;
     }
     return true;
 }

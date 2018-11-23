@@ -24,6 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <string.h>
 #include "crypto/signatures.h"
 #include "utils.h"
 
@@ -75,11 +76,10 @@ signature_init(const pgp_key_material_t *key, pgp_hash_alg_t hash_alg, pgp_hash_
 
     if (key->alg == PGP_PKA_SM2) {
         rnp_result_t r = sm2_compute_za(&key->ec, hash);
-        if(r != RNP_SUCCESS)
-           {
-           RNP_LOG("failed to compute SM2 ZA field");
-           return r;
-           }
+        if (r != RNP_SUCCESS) {
+            RNP_LOG("failed to compute SM2 ZA field");
+            return r;
+        }
     }
 
     return RNP_SUCCESS;

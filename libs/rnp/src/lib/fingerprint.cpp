@@ -29,6 +29,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <string.h>
 #include "fingerprint.h"
 #include "crypto/hash.h"
 #include "packet-create.h"

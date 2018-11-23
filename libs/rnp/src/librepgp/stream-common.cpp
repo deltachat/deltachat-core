@@ -40,7 +40,6 @@
 #endif
 #include <rnp/rnp_def.h>
 #include "stream-common.h"
-#include "defs.h"
 #include "types.h"
 #include "utils.h"
 

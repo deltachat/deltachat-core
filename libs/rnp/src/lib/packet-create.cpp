@@ -111,8 +111,8 @@ write_matching_packets(pgp_dest_t *           dst,
                        const pgp_content_enum tags[],
                        size_t                 tag_count)
 {
-    for (unsigned i = 0; i < key->packetc; i++) {
-        pgp_rawpacket_t *pkt = &key->packets[i];
+    for (size_t i = 0; i < pgp_key_get_rawpacket_count(key); i++) {
+        pgp_rawpacket_t *pkt = pgp_key_get_rawpacket(key, i);
 
         if (!packet_matches(pkt, tags, tag_count)) {
             RNP_LOG("skipping packet with tag: %d", pkt->tag);
@@ -158,7 +158,7 @@ pgp_write_xfer_pubkey(pgp_dest_t *dst, const pgp_key_t *key, const rnp_key_store
 
     bool res = false;
 
-    if (!key->packetc || !key->packets) {
+    if (!pgp_key_get_rawpacket_count(key)) {
         return false;
     }
     res = write_matching_packets(dst, key, keyring, perm_tags, ARRAY_SIZE(perm_tags));
@@ -188,7 +188,7 @@ pgp_write_xfer_seckey(pgp_dest_t *dst, const pgp_key_t *key, const rnp_key_store
 
     bool res = false;
 
-    if (!key->packetc || !key->packets) {
+    if (!pgp_key_get_rawpacket_count(key)) {
         return false;
     }
 

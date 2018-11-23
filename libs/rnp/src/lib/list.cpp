@@ -221,6 +221,23 @@ list_prev(list_item *item)
     return get_data_ptr(item);
 }
 
+list_item *
+list_at(list lst, size_t index)
+{
+    list_item *res = NULL;
+    if (index >= list_length(lst)) {
+        return NULL;
+    }
+
+    res = list_front(lst);
+    while (res && index) {
+        index--;
+        res = list_next(res);
+    }
+
+    return res;
+}
+
 void
 list_remove(list_item *item)
 {

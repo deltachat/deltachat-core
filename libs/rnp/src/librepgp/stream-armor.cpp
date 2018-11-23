@@ -34,7 +34,6 @@
 #include "stream-armor.h"
 #include "stream-packet.h"
 #include "crypto/hash.h"
-#include "defs.h"
 #include "types.h"
 #include "utils.h"
 

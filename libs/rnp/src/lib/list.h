@@ -227,4 +227,13 @@ list_item *list_next(list_item *item);
  **/
 list_item *list_prev(list_item *item);
 
+/** @private
+ *  get the list item at specified index
+ *
+ *  @param lst the list
+ *  @param index index of the element, 0 is list head
+ *  @return pointer to the item at specified index, if any, otherwise NULL
+ **/
+list_item *list_at(list lst, size_t index);
+
 #endif

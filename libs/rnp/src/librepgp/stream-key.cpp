@@ -36,7 +36,6 @@
 #include "stream-armor.h"
 #include "stream-packet.h"
 #include "stream-sig.h"
-#include "defs.h"
 #include "types.h"
 #include "fingerprint.h"
 #include "pgp-key.h"
@@ -458,23 +457,25 @@ transferable_userid_certify(const pgp_key_pkt_t *          key,
         goto end;
     }
     prefs = &cert->prefs;
-    if (!DYNARRAY_IS_EMPTY(prefs, symm_alg) &&
-        !signature_set_preferred_symm_algs(&sig, prefs->symm_algs, prefs->symm_algc)) {
+    if (prefs->symm_alg_count &&
+        !signature_set_preferred_symm_algs(
+          &sig, (uint8_t *) prefs->symm_algs, prefs->symm_alg_count)) {
         RNP_LOG("failed to set symm alg prefs");
         goto end;
     }
-    if (!DYNARRAY_IS_EMPTY(prefs, hash_alg) &&
-        !signature_set_preferred_hash_algs(&sig, prefs->hash_algs, prefs->hash_algc)) {
+    if (prefs->hash_alg_count &&
+        !signature_set_preferred_hash_algs(
+          &sig, (uint8_t *) prefs->hash_algs, prefs->hash_alg_count)) {
         RNP_LOG("failed to set hash alg prefs");
         goto end;
     }
-    if (!DYNARRAY_IS_EMPTY(prefs, compress_alg) &&
-        !signature_set_preferred_z_algs(&sig, prefs->compress_algs, prefs->compress_algc)) {
+    if (prefs->z_alg_count &&
+        !signature_set_preferred_z_algs(&sig, (uint8_t *) prefs->z_algs, prefs->z_alg_count)) {
         RNP_LOG("failed to set compress alg prefs");
         goto end;
     }
-    if (!DYNARRAY_IS_EMPTY(prefs, key_server_pref) &&
-        !signature_set_key_server_prefs(&sig, prefs->key_server_prefs[0])) {
+    if (prefs->ks_pref_count &&
+        !signature_set_key_server_prefs(&sig, (uint8_t) prefs->ks_prefs[0])) {
         RNP_LOG("failed to set key server prefs");
         goto end;
     }

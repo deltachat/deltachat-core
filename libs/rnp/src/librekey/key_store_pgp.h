@@ -89,8 +89,6 @@ bool rnp_key_write_packets_stream(const pgp_key_t *key, pgp_dest_t *dst);
 
 bool rnp_key_add_key_rawpacket(pgp_key_t *key, pgp_key_pkt_t *pkt);
 
-bool rnp_key_add_rawpacket(pgp_key_t *key, const pgp_rawpacket_t *packet);
-
 bool rnp_key_to_src(const pgp_key_t *key, pgp_source_t *src);
 
 bool rnp_key_add_subkey_grip(pgp_key_t *key, uint8_t *grip);

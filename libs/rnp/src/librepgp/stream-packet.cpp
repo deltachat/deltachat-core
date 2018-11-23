@@ -31,7 +31,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <rnp/rnp_def.h>
-#include "defs.h"
 #include "types.h"
 #include "crypto.h"
 #include "stream-packet.h"

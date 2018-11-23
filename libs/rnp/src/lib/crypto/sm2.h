@@ -42,7 +42,7 @@ rnp_result_t sm2_validate_key(rng_t *rng, const pgp_ec_key_t *key, bool secret);
 */
 rnp_result_t sm2_compute_za(const pgp_ec_key_t * key,
                             pgp_hash_t * hash,
-                            const char* ident_field);
+                            const char* ident_field = NULL);
 
 rnp_result_t sm2_sign(rng_t *             rng,
                       pgp_ec_signature_t *sig,

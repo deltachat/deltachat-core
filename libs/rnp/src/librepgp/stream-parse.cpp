@@ -36,7 +36,6 @@
 #include "stream-armor.h"
 #include "stream-packet.h"
 #include "stream-sig.h"
-#include "defs.h"
 #include "types.h"
 #include "crypto/s2k.h"
 #include "crypto.h"

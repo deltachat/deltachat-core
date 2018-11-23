@@ -60,20 +60,19 @@
 #include "crypto/symmetric.h"
 #include "memory.h"
 #include "types.h"
-#include "defs.h"
 
 /* describes a user's key */
 struct pgp_key_t {
-    DYNARRAY(uint8_t *, uid);          /* array of user ids */
-    DYNARRAY(pgp_rawpacket_t, packet); /* array of raw packets */
-    DYNARRAY(pgp_subsig_t, subsig);    /* array of signatures */
-    DYNARRAY(pgp_revoke_t, revoke);    /* array of signature revocations */
-    list               subkey_grips;   /* list of subkey grips (for primary keys) */
-    uint8_t *          primary_grip;   /* grip of primary key (for subkeys) */
-    time_t             expiration;     /* key expiration time, if available */
-    pgp_key_pkt_t      pkt;            /* pubkey/seckey data packet */
-    uint8_t            key_flags;      /* key flags */
-    uint8_t            keyid[PGP_KEY_ID_SIZE];
+    list          uids;         /* list of user ids as (char*) */
+    list          packets;      /* list of raw packets as pgp_rawpacket_t */
+    list          subsigs;      /* list of signatures as pgp_subsig_t */
+    list          revokes;      /* list of signature revocations pgp_revoke_t */
+    list          subkey_grips; /* list of subkey grips (for primary keys) as uint8_t[20] */
+    uint8_t *     primary_grip; /* grip of primary key (for subkeys) */
+    time_t        expiration;   /* key expiration time, if available */
+    pgp_key_pkt_t pkt;          /* pubkey/seckey data packet */
+    uint8_t       key_flags;    /* key flags */
+    uint8_t       keyid[PGP_KEY_ID_SIZE];
     pgp_fingerprint_t  fingerprint;
     uint8_t            grip[PGP_FINGERPRINT_SIZE];
     uint32_t           uid0;         /* primary uid index in uids array */
@@ -130,6 +129,22 @@ rnp_result_t pgp_key_copy_fields(pgp_key_t *dst, const pgp_key_t *src);
 
 void pgp_free_user_prefs(pgp_user_prefs_t *prefs);
 
+bool pgp_user_prefs_set_symm_algs(pgp_user_prefs_t *prefs, const uint8_t *algs, size_t len);
+
+bool pgp_user_prefs_add_symm_alg(pgp_user_prefs_t *prefs, pgp_symm_alg_t alg);
+
+bool pgp_user_prefs_set_hash_algs(pgp_user_prefs_t *prefs, const uint8_t *algs, size_t len);
+
+bool pgp_user_prefs_add_hash_alg(pgp_user_prefs_t *prefs, pgp_hash_alg_t alg);
+
+bool pgp_user_prefs_set_z_algs(pgp_user_prefs_t *prefs, const uint8_t *algs, size_t len);
+
+bool pgp_user_prefs_add_z_alg(pgp_user_prefs_t *prefs, pgp_compression_type_t alg);
+
+bool pgp_user_prefs_set_ks_prefs(pgp_user_prefs_t *prefs, const uint8_t *vals, size_t len);
+
+bool pgp_user_prefs_add_ks_pref(pgp_user_prefs_t *prefs, pgp_key_server_prefs_t val);
+
 const pgp_key_pkt_t *pgp_get_key_pkt(const pgp_key_t *);
 
 const pgp_key_material_t *pgp_get_key_material(const pgp_key_t *key);
@@ -167,11 +182,33 @@ pgp_key_pkt_t *pgp_decrypt_seckey(const pgp_key_t *,
 
 const unsigned char *pgp_get_key_id(const pgp_key_t *);
 
-unsigned pgp_get_userid_count(const pgp_key_t *);
+size_t pgp_get_userid_count(const pgp_key_t *);
 
-const unsigned char *pgp_get_userid(const pgp_key_t *, unsigned);
+const char *pgp_get_userid(const pgp_key_t *, size_t);
+
+const char *pgp_get_primary_userid(const pgp_key_t *);
+
+bool pgp_key_has_userid(const pgp_key_t *, const char *);
 
 unsigned char *pgp_add_userid(pgp_key_t *, const unsigned char *);
+
+pgp_revoke_t *pgp_key_add_revoke(pgp_key_t *);
+
+size_t pgp_key_get_revoke_count(const pgp_key_t *);
+
+pgp_revoke_t *pgp_key_get_revoke(const pgp_key_t *, size_t);
+
+pgp_subsig_t *pgp_key_add_subsig(pgp_key_t *);
+
+size_t pgp_key_get_subsig_count(const pgp_key_t *);
+
+pgp_subsig_t *pgp_key_get_subsig(const pgp_key_t *, size_t);
+
+pgp_rawpacket_t *pgp_key_add_rawpacket(pgp_key_t *, void *, size_t, pgp_content_enum);
+
+size_t pgp_key_get_rawpacket_count(const pgp_key_t *);
+
+pgp_rawpacket_t *pgp_key_get_rawpacket(const pgp_key_t *, size_t);
 
 pgp_key_flags_t pgp_pk_alg_capabilities(pgp_pubkey_alg_t alg);
 

@@ -90,18 +90,18 @@ typedef struct {
 
     uint16_t nkeys;
     uint16_t keys_len;
-    DYNARRAY(kbx_pgp_key_t, key);
+    list     keys; // list of kbx_pgp_key_t
 
     uint16_t sn_size;
     uint8_t *sn;
 
     uint16_t nuids;
     uint16_t uids_len;
-    DYNARRAY(kbx_pgp_uid_t, uid);
+    list     uids; // list of kbx_pgp_uid_t
 
     uint16_t nsigs;
     uint16_t sigs_len;
-    DYNARRAY(kbx_pgp_sig_t, sig);
+    list     sigs; // list of kbx_pgp_sig_t
 
     uint8_t ownertrust;
     uint8_t all_Validity;
@@ -131,8 +131,8 @@ typedef struct rnp_key_store_t {
     enum key_store_format_t format;
     bool disable_validation; /* do not automatically validate keys, added to this key store */
 
-    list keys;
-    DYNARRAY(kbx_blob_t *, blob);
+    list keys;  // list of pgp_key_t
+    list blobs; // list of kbx_blob_t
 } rnp_key_store_t;
 
 rnp_key_store_t *rnp_key_store_new(const char *format, const char *path);
@@ -171,6 +171,8 @@ bool rnp_key_store_get_key_grip(const pgp_key_material_t *, uint8_t *);
 pgp_key_t *rnp_key_store_get_key_by_grip(const rnp_key_store_t *, const uint8_t *);
 pgp_key_t *rnp_key_store_get_key_by_fpr(const rnp_key_store_t *, const pgp_fingerprint_t *fpr);
 pgp_key_t *rnp_key_store_get_primary_key(const rnp_key_store_t *, const pgp_key_t *);
-pgp_key_t *rnp_key_store_search(const rnp_key_store_t *, const pgp_key_search_t *, pgp_key_t *);
+pgp_key_t *rnp_key_store_search(const rnp_key_store_t *,
+                                const pgp_key_search_t *,
+                                pgp_key_t *);
 
 #endif /* KEY_STORE_H_ */

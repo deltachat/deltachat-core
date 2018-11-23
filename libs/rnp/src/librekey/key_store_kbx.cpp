@@ -166,19 +166,16 @@ rnp_key_store_kbx_parse_pgp_blob(kbx_pgp_blob_t *pgp_blob)
     }
 
     for (i = 0; i < pgp_blob->nkeys; i++) {
-        EXPAND_ARRAY(pgp_blob, key);
-        if (pgp_blob->keys == NULL) {
-            return false;
-        }
+        kbx_pgp_key_t nkey = {};
 
         // copy fingerprint
-        memcpy(pgp_blob->keys[pgp_blob->keyc].fp, image, 20);
+        memcpy(nkey.fp, image, 20);
         image += 20;
 
-        pgp_blob->keys[pgp_blob->keyc].keyid_offset = ru32(image);
+        nkey.keyid_offset = ru32(image);
         image += 4;
 
-        pgp_blob->keys[pgp_blob->keyc].flags = ru16(image);
+        nkey.flags = ru16(image);
         image += 2;
 
         // RFU
@@ -186,6 +183,11 @@ rnp_key_store_kbx_parse_pgp_blob(kbx_pgp_blob_t *pgp_blob)
 
         // skip padding bytes if it existed
         image += (pgp_blob->keys_len - 28);
+
+        if (!list_append(&pgp_blob->keys, &nkey, sizeof(nkey))) {
+            RNP_LOG("alloc failed");
+            return false;
+        }
     }
 
     pgp_blob->sn_size = ru16(image);
@@ -223,21 +225,18 @@ rnp_key_store_kbx_parse_pgp_blob(kbx_pgp_blob_t *pgp_blob)
     }
 
     for (i = 0; i < pgp_blob->nuids; i++) {
-        EXPAND_ARRAY(pgp_blob, uid);
-        if (pgp_blob->uids == NULL) {
-            return false;
-        }
+        kbx_pgp_uid_t nuid = {};
 
-        pgp_blob->uids[pgp_blob->uidc].offset = ru32(image);
+        nuid.offset = ru32(image);
         image += 4;
 
-        pgp_blob->uids[pgp_blob->uidc].length = ru32(image);
+        nuid.length = ru32(image);
         image += 4;
 
-        pgp_blob->uids[pgp_blob->uidc].flags = ru16(image);
+        nuid.flags = ru16(image);
         image += 2;
 
-        pgp_blob->uids[pgp_blob->uidc].validity = ru8(image);
+        nuid.validity = ru8(image);
         image += 1;
 
         // RFU
@@ -245,6 +244,11 @@ rnp_key_store_kbx_parse_pgp_blob(kbx_pgp_blob_t *pgp_blob)
 
         // skip padding bytes if it existed
         image += (pgp_blob->uids_len - 12);
+
+        if (!list_append(&pgp_blob->uids, &nuid, sizeof(nuid))) {
+            RNP_LOG("alloc failed");
+            return false;
+        }
     }
 
     pgp_blob->nsigs = ru16(image);
@@ -261,16 +265,18 @@ rnp_key_store_kbx_parse_pgp_blob(kbx_pgp_blob_t *pgp_blob)
     }
 
     for (i = 0; i < pgp_blob->nsigs; i++) {
-        EXPAND_ARRAY(pgp_blob, sig);
-        if (pgp_blob->sigs == NULL) {
-            return false;
-        }
+        kbx_pgp_sig_t nsig = {};
 
-        pgp_blob->sigs[pgp_blob->sigc].expired = ru32(image);
+        nsig.expired = ru32(image);
         image += 4;
 
         // skip padding bytes if it existed
         image += (pgp_blob->sigs_len - 4);
+
+        if (!list_append(&pgp_blob->sigs, &nsig, sizeof(nsig))) {
+            RNP_LOG("alloc failed");
+            return false;
+        }
     }
 
     pgp_blob->ownertrust = ru8(image);
@@ -383,6 +389,7 @@ rnp_key_store_kbx_from_mem(rnp_key_store_t *         key_store,
 
     pgp_memory_t    mem;
     kbx_pgp_blob_t *pgp_blob;
+    kbx_blob_t **   blob;
 
     has_bytes = memory->length;
     buf = memory->buf;
@@ -399,20 +406,22 @@ rnp_key_store_kbx_from_mem(rnp_key_store_t *         key_store,
                     has_bytes);
             return false;
         }
-        EXPAND_ARRAY(key_store, blob);
-        if (key_store->blobs == NULL) {
-            return false;
-        }
-        key_store->blobs[key_store->blobc] = rnp_key_store_kbx_parse_blob(buf, blob_length);
-        if (key_store->blobs[key_store->blobc] == NULL) {
+        blob = (kbx_blob_t **) list_append(&key_store->blobs, NULL, sizeof(*blob));
+        if (!blob) {
+            RNP_LOG("alloc failed");
             return false;
         }
 
-        if (key_store->blobs[key_store->blobc]->type == KBX_PGP_BLOB) {
+        *blob = rnp_key_store_kbx_parse_blob(buf, blob_length);
+        if (*blob == NULL) {
+            return false;
+        }
+
+        if ((*blob)->type == KBX_PGP_BLOB) {
             // parse keyblock if it existed
-            pgp_blob = ((kbx_pgp_blob_t *) key_store->blobs[key_store->blobc]);
+            pgp_blob = (kbx_pgp_blob_t *) *blob;
 
-            mem.buf = key_store->blobs[key_store->blobc]->image + pgp_blob->keyblock_offset;
+            mem.buf = (*blob)->image + pgp_blob->keyblock_offset;
             mem.length = pgp_blob->keyblock_length;
             mem.mmapped = 0;
             mem.allocated = 0;
@@ -427,7 +436,6 @@ rnp_key_store_kbx_from_mem(rnp_key_store_t *         key_store,
             }
         }
 
-        key_store->blobc++;
         has_bytes -= blob_length;
         buf += blob_length;
     }
@@ -463,11 +471,12 @@ pu32(pgp_memory_t *mem, uint32_t f)
 static bool
 rnp_key_store_kbx_write_header(rnp_key_store_t *key_store, pgp_memory_t *m)
 {
-    uint16_t flags = 0;
-    uint32_t file_created_at = time(NULL);
+    uint16_t    flags = 0;
+    uint32_t    file_created_at = time(NULL);
+    kbx_blob_t *blob = (kbx_blob_t *) list_front(key_store->blobs);
 
-    if (key_store->blobc > 0 && key_store->blobs[0]->type == KBX_HEADER_BLOB) {
-        file_created_at = ((kbx_header_blob_t *) key_store->blobs[0])->file_created_at;
+    if (blob && (blob->type == KBX_HEADER_BLOB)) {
+        file_created_at = ((kbx_header_blob_t *) blob)->file_created_at;
     }
 
     return !(!pu32(m, BLOB_FIRST_SIZE) || !pu8(m, KBX_HEADER_BLOB) || !pu8(m, 1) // version
@@ -539,13 +548,13 @@ rnp_key_store_kbx_write_pgp(rnp_key_store_t *key_store, pgp_key_t *key, pgp_memo
 
     // skip serial number
 
-    if (!pu16(m, key->uidc) || !pu16(m, 12)) {
+    if (!pu16(m, pgp_get_userid_count(key)) || !pu16(m, 12)) {
         return false;
     }
 
     uid_start = m->length;
 
-    for (i = 0; i < key->uidc; i++) {
+    for (i = 0; i < pgp_get_userid_count(key); i++) {
         if (!pu32(m, 0) || !pu32(m, 0)) { // UID offset and length, update when blob has done
             return false;
         }
@@ -561,12 +570,12 @@ rnp_key_store_kbx_write_pgp(rnp_key_store_t *key_store, pgp_key_t *key, pgp_memo
 
     // TODO: add subkey subsigc too, or leave this field zero
     // since it seems to be deprecated in GnuPG
-    if (!pu16(m, key->subsigc) || !pu16(m, 4)) {
+    if (!pu16(m, pgp_key_get_subsig_count(key)) || !pu16(m, 4)) {
         return false;
     }
 
-    for (i = 0; i < key->subsigc; i++) {
-        if (!pu32(m, signature_get_key_expiration(&key->subsigs[i].sig))) {
+    for (i = 0; i < pgp_key_get_subsig_count(key); i++) {
+        if (!pu32(m, signature_get_key_expiration(&pgp_key_get_subsig(key, i)->sig))) {
             return false;
         }
     }
@@ -588,13 +597,14 @@ rnp_key_store_kbx_write_pgp(rnp_key_store_t *key_store, pgp_key_t *key, pgp_memo
     }
 
     // wrtite UID, we might redesign PGP write and use this information from keyblob
-    for (i = 0; i < key->uidc; i++) {
+    for (i = 0; i < pgp_get_userid_count(key); i++) {
+        const char *uid = (const char *) pgp_get_userid(key, i);
         p = m->buf + uid_start + (12 * i);
         pt = m->length - start;
         STORE32BE(p, pt);
 
-        pt = strlen((const char *) key->uids[i]);
-        if (!pgp_memory_add(m, key->uids[i], pt)) {
+        pt = strlen(uid);
+        if (!pgp_memory_add(m, (const uint8_t *) uid, pt)) {
             return false;
         }
 
@@ -659,9 +669,10 @@ rnp_key_store_kbx_write_pgp(rnp_key_store_t *key_store, pgp_key_t *key, pgp_memo
 static bool
 rnp_key_store_kbx_write_x509(rnp_key_store_t *key_store, pgp_memory_t *m)
 {
-    for (unsigned i = 0; i < key_store->blobc; i++) {
-        if (key_store->blobs[i]->type == KBX_X509_BLOB) {
-            if (!pgp_memory_add(m, key_store->blobs[i]->image, key_store->blobs[i]->length)) {
+    for (list_item *item = list_front(key_store->blobs); item; item = list_next(item)) {
+        kbx_blob_t *blob = *((kbx_blob_t **) item);
+        if (blob->type == KBX_X509_BLOB) {
+            if (!pgp_memory_add(m, blob->image, blob->length)) {
                 return false;
             }
         }

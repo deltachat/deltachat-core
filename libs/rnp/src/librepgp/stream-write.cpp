@@ -26,6 +26,7 @@
 
 #include "config.h"
 #include <sys/stat.h>
+#include <sys/param.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -46,7 +47,6 @@
 #include "utils.h"
 #include "pgp-key.h"
 #include "fingerprint.h"
-#include "defs.h"
 #include "types.h"
 #include "crypto/signatures.h"
 #include <time.h>

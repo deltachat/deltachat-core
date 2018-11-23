@@ -54,7 +54,6 @@
 #ifndef MEMORY_H_
 #define MEMORY_H_
 
-#include <inttypes.h>
 #include <sys/types.h>
 #include <stdbool.h>
 #include <repgp/repgp_def.h>

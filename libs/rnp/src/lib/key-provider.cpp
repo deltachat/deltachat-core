@@ -25,7 +25,7 @@
  */
 
 #include <assert.h>
-
+#include <string.h>
 #include "key-provider.h"
 #include "pgp-key.h"
 #include "fingerprint.h"
@@ -49,13 +49,11 @@ rnp_key_matches_search(const pgp_key_t *key, const pgp_key_search_t *search)
                        key->fingerprint.length);
     case PGP_KEY_SEARCH_GRIP:
         return !memcmp(key->grip, search->by.grip, PGP_FINGERPRINT_SIZE);
-    case PGP_KEY_SEARCH_USERID: {
-        for (unsigned i = 0; i < key->uidc; i++) {
-            if (!strcmp((char *) key->uids[i], search->by.userid)) {
-                return true;
-            }
+    case PGP_KEY_SEARCH_USERID:
+        if (pgp_key_has_userid(key, search->by.userid)) {
+            return true;
         }
-    } break;
+        break;
     default:
         assert(false);
         break;

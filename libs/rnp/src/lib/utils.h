@@ -28,6 +28,7 @@
 
 #include <stdio.h>
 #include "types.h"
+#include <limits.h>
 
 #define RNP_MSG(msg) (void) fprintf(stdout, msg);
 #define RNP_LOG_FD(fd, ...)                                                  \
@@ -129,35 +130,36 @@ size_t key_bitlength(const pgp_key_material_t *key);
 
 /* Load little-endian 32-bit from y to x in portable fashion */
 
-inline void LOAD32LE(uint32_t& x, uint8_t y[4])
-   {
-   x = (static_cast<uint32_t>(y[3]) << 24) |
-      (static_cast<uint32_t>(y[2]) << 16) |
-      (static_cast<uint32_t>(y[1]) << 8) |
-      (static_cast<uint32_t>(y[0]) << 0);
-   }
+inline void
+LOAD32LE(uint32_t &x, uint8_t y[4])
+{
+    x = (static_cast<uint32_t>(y[3]) << 24) | (static_cast<uint32_t>(y[2]) << 16) |
+        (static_cast<uint32_t>(y[1]) << 8) | (static_cast<uint32_t>(y[0]) << 0);
+}
 
 /* Store big-endian 32-bit value x in y */
-inline void STORE32BE(uint8_t x[4], uint32_t y)
-   {
-   x[0] = (uint8_t)(y >> 24) & 0xff;
-   x[1] = (uint8_t)(y >> 16) & 0xff;
-   x[2] = (uint8_t)(y >> 8) & 0xff;
-   x[3] = (uint8_t)(y >> 0) & 0xff;
-   }
+inline void
+STORE32BE(uint8_t x[4], uint32_t y)
+{
+    x[0] = (uint8_t)(y >> 24) & 0xff;
+    x[1] = (uint8_t)(y >> 16) & 0xff;
+    x[2] = (uint8_t)(y >> 8) & 0xff;
+    x[3] = (uint8_t)(y >> 0) & 0xff;
+}
 
 /* Store big-endian 64-bit value x in y */
-inline void STORE64BE(uint8_t x[8], uint64_t y)
-   {
-   x[0] = (uint8_t)(y >> 56) & 0xff;
-   x[1] = (uint8_t)(y >> 48) & 0xff;
-   x[2] = (uint8_t)(y >> 40) & 0xff;
-   x[3] = (uint8_t)(y >> 32) & 0xff;
-   x[4] = (uint8_t)(y >> 24) & 0xff;
-   x[5] = (uint8_t)(y >> 16) & 0xff;
-   x[6] = (uint8_t)(y >> 8) & 0xff;
-   x[7] = (uint8_t)(y >> 0) & 0xff;
-   }
+inline void
+STORE64BE(uint8_t x[8], uint64_t y)
+{
+    x[0] = (uint8_t)(y >> 56) & 0xff;
+    x[1] = (uint8_t)(y >> 48) & 0xff;
+    x[2] = (uint8_t)(y >> 40) & 0xff;
+    x[3] = (uint8_t)(y >> 32) & 0xff;
+    x[4] = (uint8_t)(y >> 24) & 0xff;
+    x[5] = (uint8_t)(y >> 16) & 0xff;
+    x[6] = (uint8_t)(y >> 8) & 0xff;
+    x[7] = (uint8_t)(y >> 0) & 0xff;
+}
 
 #ifndef MAX
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))

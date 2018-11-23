@@ -73,45 +73,15 @@ __RCSID("$NetBSD: keyring.c,v 1.50 2011/06/25 00:37:44 agc Exp $");
 void print_packet_hex(const pgp_rawpacket_t *pkt);
 
 static bool
-rnp_key_add_stream_rawpacket(pgp_key_t *key, int tag, pgp_dest_t *memdst)
+rnp_key_add_stream_rawpacket(pgp_key_t *key, pgp_content_enum tag, pgp_dest_t *memdst)
 {
-    pgp_rawpacket_t rawpkt = {};
-    EXPAND_ARRAY(key, packet);
-    if (!key->packets) {
-        RNP_LOG("Failed to expand packet array.");
+    if (!pgp_key_add_rawpacket(key, mem_dest_get_memory(memdst), memdst->writeb, tag)) {
+        RNP_LOG("Failed to add packet");
         dst_close(memdst, true);
         return false;
     }
 
-    rawpkt.tag = (pgp_content_enum) tag;
-    rawpkt.length = memdst->writeb;
-    rawpkt.raw = (uint8_t *) mem_dest_own_memory(memdst);
-    key->packets[key->packetc++] = rawpkt;
-
     dst_close(memdst, false);
-    return true;
-}
-
-bool
-rnp_key_add_rawpacket(pgp_key_t *key, const pgp_rawpacket_t *packet)
-{
-    pgp_rawpacket_t rawpkt = {};
-    EXPAND_ARRAY(key, packet);
-    if (!key->packets) {
-        RNP_LOG("Failed to expand packet array.");
-        return false;
-    }
-
-    rawpkt.tag = packet->tag;
-    rawpkt.length = packet->length;
-    rawpkt.raw = (uint8_t *) malloc(packet->length);
-    if (!rawpkt.raw) {
-        RNP_LOG("alloc failed");
-        return false;
-    }
-    memcpy(rawpkt.raw, packet->raw, packet->length);
-    key->packets[key->packetc++] = rawpkt;
-
     return true;
 }
 
@@ -129,7 +99,7 @@ rnp_key_add_key_rawpacket(pgp_key_t *key, pgp_key_pkt_t *pkt)
         return false;
     }
 
-    return rnp_key_add_stream_rawpacket(key, pkt->tag, &dst);
+    return rnp_key_add_stream_rawpacket(key, (pgp_content_enum) pkt->tag, &dst);
 }
 
 static bool
@@ -163,7 +133,7 @@ rnp_key_add_uid_rawpacket(pgp_key_t *key, pgp_userid_pkt_t *pkt)
         return false;
     }
 
-    return rnp_key_add_stream_rawpacket(key, pkt->tag, &dst);
+    return rnp_key_add_stream_rawpacket(key, (pgp_content_enum) pkt->tag, &dst);
 }
 
 static bool
@@ -210,10 +180,11 @@ static bool
 rnp_key_add_signature(pgp_key_t *key, pgp_signature_t *sig)
 {
     pgp_subsig_t *subsig = NULL;
+    uint8_t *     algs = NULL;
+    size_t        count = 0;
 
-    EXPAND_ARRAY(key, subsig);
-    if (key->subsigs == NULL) {
-        RNP_LOG("Failed to expand signature array.");
+    if (!(subsig = pgp_key_add_subsig(key))) {
+        RNP_LOG("Failed to add subsig");
         return false;
     }
 
@@ -222,8 +193,7 @@ rnp_key_add_signature(pgp_key_t *key, pgp_signature_t *sig)
         return false;
     }
 
-    subsig = &key->subsigs[key->subsigc++];
-    subsig->uid = key->uidc - 1;
+    subsig->uid = pgp_get_userid_count(key) - 1;
     if (!copy_signature_packet(&subsig->sig, sig)) {
         return false;
     }
@@ -235,59 +205,35 @@ rnp_key_add_signature(pgp_key_t *key, pgp_signature_t *sig)
         signature_get_trust(&subsig->sig, &subsig->trustlevel, &subsig->trustamount);
     }
     if (signature_get_primary_uid(&subsig->sig)) {
-        key->uid0 = key->uidc - 1;
+        key->uid0 = pgp_get_userid_count(key) - 1;
         key->uid0_set = 1;
     }
 
-    uint8_t *         algs = NULL;
-    size_t            count = 0;
-    pgp_user_prefs_t *prefs = &subsig->prefs;
-
-    if (signature_get_preferred_symm_algs(&subsig->sig, &algs, &count)) {
-        for (size_t i = 0; i < count; i++) {
-            EXPAND_ARRAY(prefs, symm_alg);
-            if (!prefs->symm_algs) {
-                RNP_LOG("Failed to expand symm array.");
-                return false;
-            }
-            prefs->symm_algs[i] = algs[i];
-            prefs->symm_algc++;
-        }
+    if (signature_get_preferred_symm_algs(&subsig->sig, &algs, &count) &&
+        !pgp_user_prefs_set_symm_algs(&subsig->prefs, algs, count)) {
+        RNP_LOG("failed to alloc symm algs");
+        return false;
     }
-    if (signature_get_preferred_hash_algs(&subsig->sig, &algs, &count)) {
-        for (size_t i = 0; i < count; i++) {
-            EXPAND_ARRAY(prefs, hash_alg);
-            if (!prefs->hash_algs) {
-                RNP_LOG("Failed to expand hash array.");
-                return false;
-            }
-            prefs->hash_algs[i] = algs[i];
-            prefs->hash_algc++;
-        }
+    if (signature_get_preferred_hash_algs(&subsig->sig, &algs, &count) &&
+        !pgp_user_prefs_set_hash_algs(&subsig->prefs, algs, count)) {
+        RNP_LOG("failed to alloc hash algs");
+        return false;
     }
-    if (signature_get_preferred_z_algs(&subsig->sig, &algs, &count)) {
-        for (size_t i = 0; i < count; i++) {
-            EXPAND_ARRAY(prefs, compress_alg);
-            if (!prefs->compress_algs) {
-                RNP_LOG("Failed to expand z array.");
-                return false;
-            }
-            prefs->compress_algs[i] = algs[i];
-            prefs->compress_algc++;
-        }
+    if (signature_get_preferred_z_algs(&subsig->sig, &algs, &count) &&
+        !pgp_user_prefs_set_z_algs(&subsig->prefs, algs, count)) {
+        RNP_LOG("failed to alloc z algs");
+        return false;
     }
     if (signature_has_key_flags(&subsig->sig)) {
         subsig->key_flags = signature_get_key_flags(&subsig->sig);
         key->key_flags = subsig->key_flags;
     }
     if (signature_has_key_server_prefs(&subsig->sig)) {
-        EXPAND_ARRAY(prefs, key_server_pref);
-        if (!prefs->key_server_prefs) {
-            RNP_LOG("Failed to expand key serv prefs array.");
+        uint8_t ks_pref = signature_get_key_server_prefs(&subsig->sig);
+        if (!pgp_user_prefs_set_ks_prefs(&subsig->prefs, &ks_pref, 1)) {
+            RNP_LOG("failed to alloc ks prefs");
             return false;
         }
-        subsig->prefs.key_server_prefs[0] = signature_get_key_server_prefs(&subsig->sig);
-        subsig->prefs.key_server_prefc++;
     }
     if (signature_has_key_server(&subsig->sig)) {
         subsig->prefs.key_server = (uint8_t *) signature_get_key_server(&subsig->sig);
@@ -295,20 +241,17 @@ rnp_key_add_signature(pgp_key_t *key, pgp_signature_t *sig)
     if (signature_has_revocation_reason(&subsig->sig)) {
         /* not sure whether this logic is correct - we should check signature type? */
         pgp_revoke_t *revocation = NULL;
-        if (key->uidc == 0) {
+        if (!pgp_get_userid_count(key)) {
             /* revoke whole key */
             key->revoked = 1;
             revocation = &key->revocation;
         } else {
             /* revoke the user id */
-            EXPAND_ARRAY(key, revoke);
-            if (key->revokes == NULL) {
-                RNP_LOG("Failed to expand revoke array.");
+            if (!(revocation = pgp_key_add_revoke(key))) {
+                RNP_LOG("failed to add revoke");
                 return false;
             }
-            revocation = &key->revokes[key->revokec];
-            key->revokes[key->revokec].uid = key->uidc - 1;
-            key->revokec += 1;
+            revocation->uid = pgp_get_userid_count(key) - 1;
         }
         signature_get_revocation_reason(&subsig->sig, &revocation->code, &revocation->reason);
         if (!strlen(revocation->reason)) {
@@ -558,11 +501,11 @@ rnp_key_store_pgp_read_from_mem(rnp_key_store_t *         keyring,
 bool
 rnp_key_write_packets_stream(const pgp_key_t *key, pgp_dest_t *dst)
 {
-    if (DYNARRAY_IS_EMPTY(key, packet)) {
+    if (!pgp_key_get_rawpacket_count(key)) {
         return false;
     }
-    for (unsigned i = 0; i < key->packetc; i++) {
-        pgp_rawpacket_t *pkt = &key->packets[i];
+    for (size_t i = 0; i < pgp_key_get_rawpacket_count(key); i++) {
+        pgp_rawpacket_t *pkt = pgp_key_get_rawpacket(key, i);
         if (!pkt->raw || !pkt->length) {
             return false;
         }

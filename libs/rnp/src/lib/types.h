@@ -54,8 +54,6 @@
 #include <stdint.h>
 #include <rnp/rnp_def.h>
 #include "memory.h"
-#include "defs.h"
-#include "memory.h"
 #include "list.h"
 #include "crypto/common.h"
 
@@ -347,13 +345,17 @@ typedef struct pgp_revoke_t {
 
 typedef struct pgp_user_prefs_t {
     // preferred symmetric algs (pgp_symm_alg_t)
-    DYNARRAY(uint8_t, symm_alg);
+    uint8_t *symm_algs;
+    size_t   symm_alg_count;
     // preferred hash algs (pgp_hash_alg_t)
-    DYNARRAY(uint8_t, hash_alg);
+    uint8_t *hash_algs;
+    size_t   hash_alg_count;
     // preferred compression algs (pgp_compression_type_t)
-    DYNARRAY(uint8_t, compress_alg);
+    uint8_t *z_algs;
+    size_t   z_alg_count;
     // key server preferences (pgp_key_server_prefs_t)
-    DYNARRAY(uint8_t, key_server_pref);
+    uint8_t *ks_prefs;
+    size_t   ks_pref_count;
     // preferred key server
     uint8_t *key_server;
 } pgp_user_prefs_t;

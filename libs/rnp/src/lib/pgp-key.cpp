@@ -69,18 +69,96 @@
 #include <assert.h>
 #include "defaults.h"
 
+static bool
+pgp_user_prefs_set_arr(uint8_t **arr, size_t *arrlen, const uint8_t *val, size_t len)
+{
+    uint8_t *newarr = (uint8_t *) malloc(len);
+
+    if (len && !newarr) {
+        return false;
+    }
+
+    free(*arr);
+    memcpy(newarr, val, len);
+    *arrlen = len;
+    *arr = newarr;
+    return true;
+}
+
+static bool
+pgp_user_prefs_add_val(uint8_t **arr, size_t *arrlen, uint8_t val)
+{
+    uint8_t *newarr = (uint8_t *) realloc(*arr, *arrlen + 1);
+
+    if (!newarr) {
+        return false;
+    }
+
+    newarr[*arrlen++] = val;
+    *arr = newarr;
+    return true;
+}
+
+bool
+pgp_user_prefs_set_symm_algs(pgp_user_prefs_t *prefs, const uint8_t *algs, size_t len)
+{
+    return pgp_user_prefs_set_arr(&prefs->symm_algs, &prefs->symm_alg_count, algs, len);
+}
+
+bool
+pgp_user_prefs_set_hash_algs(pgp_user_prefs_t *prefs, const uint8_t *algs, size_t len)
+{
+    return pgp_user_prefs_set_arr(&prefs->hash_algs, &prefs->hash_alg_count, algs, len);
+}
+
+bool
+pgp_user_prefs_set_z_algs(pgp_user_prefs_t *prefs, const uint8_t *algs, size_t len)
+{
+    return pgp_user_prefs_set_arr(&prefs->z_algs, &prefs->z_alg_count, algs, len);
+}
+
+bool
+pgp_user_prefs_set_ks_prefs(pgp_user_prefs_t *prefs, const uint8_t *vals, size_t len)
+{
+    return pgp_user_prefs_set_arr(&prefs->ks_prefs, &prefs->ks_pref_count, vals, len);
+}
+
+bool
+pgp_user_prefs_add_symm_alg(pgp_user_prefs_t *prefs, pgp_symm_alg_t alg)
+{
+    return pgp_user_prefs_add_val(&prefs->symm_algs, &prefs->symm_alg_count, alg);
+}
+
+bool
+pgp_user_prefs_add_hash_alg(pgp_user_prefs_t *prefs, pgp_hash_alg_t alg)
+{
+    return pgp_user_prefs_add_val(&prefs->hash_algs, &prefs->hash_alg_count, alg);
+}
+
+bool
+pgp_user_prefs_add_z_alg(pgp_user_prefs_t *prefs, pgp_compression_type_t alg)
+{
+    return pgp_user_prefs_add_val(&prefs->z_algs, &prefs->z_alg_count, alg);
+}
+
+bool
+pgp_user_prefs_add_ks_pref(pgp_user_prefs_t *prefs, pgp_key_server_prefs_t val)
+{
+    return pgp_user_prefs_add_val(&prefs->ks_prefs, &prefs->ks_pref_count, val);
+}
+
 void
 pgp_free_user_prefs(pgp_user_prefs_t *prefs)
 {
     if (!prefs) {
         return;
     }
-    FREE_ARRAY(prefs, symm_alg);
-    FREE_ARRAY(prefs, hash_alg);
-    FREE_ARRAY(prefs, compress_alg);
-    FREE_ARRAY(prefs, key_server_pref);
+    free(prefs->symm_algs);
+    free(prefs->hash_algs);
+    free(prefs->z_algs);
+    free(prefs->ks_prefs);
     free(prefs->key_server);
-    prefs->key_server = NULL;
+    memset(prefs, 0, sizeof(*prefs));
 }
 
 static void
@@ -129,16 +207,6 @@ pgp_rawpacket_free(pgp_rawpacket_t *packet)
     packet->raw = NULL;
 }
 
-static void
-pgp_userid_free(uint8_t **id)
-{
-    if (!id) {
-        return;
-    }
-    free(*id);
-    *id = NULL;
-}
-
 bool
 pgp_key_from_keypkt(pgp_key_t *key, const pgp_key_pkt_t *pkt, const pgp_content_enum tag)
 {
@@ -165,48 +233,26 @@ pgp_key_free_data(pgp_key_t *key)
         return;
     }
 
-    if (key->uids != NULL) {
-        for (n = 0; n < key->uidc; ++n) {
-            pgp_userid_free(&key->uids[n]);
-        }
-        free(key->uids);
-        key->uids = NULL;
-        key->uidc = 0;
+    for (n = 0; n < pgp_get_userid_count(key); ++n) {
+        free((void *) pgp_get_userid(key, n));
     }
+    list_destroy(&key->uids);
 
-    if (key->packets != NULL) {
-        for (n = 0; n < key->packetc; ++n) {
-            pgp_rawpacket_free(&key->packets[n]);
-        }
-        free(key->packets);
-        key->packets = NULL;
-        key->packetc = 0;
+    for (n = 0; n < pgp_key_get_rawpacket_count(key); ++n) {
+        pgp_rawpacket_free(pgp_key_get_rawpacket(key, n));
     }
+    list_destroy(&key->packets);
 
-    if (key->subsigs) {
-        for (n = 0; n < key->subsigc; ++n) {
-            subsig_free(&key->subsigs[n]);
-        }
-        free(key->subsigs);
-        key->subsigs = NULL;
-        key->subsigc = 0;
+    for (n = 0; n < pgp_key_get_subsig_count(key); n++) {
+        subsig_free(pgp_key_get_subsig(key, n));
     }
+    list_destroy(&key->subsigs);
 
-    if (key->revokes) {
-        for (n = 0; n < key->revokec; ++n) {
-            revoke_free(&key->revokes[n]);
-        }
-        free(key->revokes);
-        key->revokes = NULL;
-        key->revokec = 0;
-    }
+    list_destroy(&key->revokes);
     revoke_free(&key->revocation);
-
     free(key->primary_grip);
     key->primary_grip = NULL;
-
     list_destroy(&key->subkey_grips);
-
     free_key_pkt(&key->pkt);
 }
 
@@ -232,8 +278,9 @@ pgp_key_copy_raw_packets(pgp_key_t *dst, const pgp_key_t *src, bool pubonly)
         start = 1;
     }
 
-    for (size_t i = start; i < src->packetc; i++) {
-        if (!rnp_key_add_rawpacket(dst, &src->packets[i])) {
+    for (size_t i = start; i < pgp_key_get_rawpacket_count(src); i++) {
+        pgp_rawpacket_t *pkt = pgp_key_get_rawpacket(src, i);
+        if (!pgp_key_add_rawpacket(dst, pkt->raw, pkt->length, pkt->tag)) {
             return RNP_ERROR_OUT_OF_MEMORY;
         }
     }
@@ -244,7 +291,7 @@ pgp_key_copy_raw_packets(pgp_key_t *dst, const pgp_key_t *src, bool pubonly)
 static rnp_result_t
 pgp_key_copy_g10(pgp_key_t *dst, const pgp_key_t *src, bool pubonly)
 {
-    rnp_result_t  ret = RNP_ERROR_GENERIC;
+    rnp_result_t ret = RNP_ERROR_GENERIC;
 
     if (pubonly) {
         RNP_LOG("attempt to copy public part from g10 key");
@@ -253,7 +300,7 @@ pgp_key_copy_g10(pgp_key_t *dst, const pgp_key_t *src, bool pubonly)
 
     memset(dst, 0, sizeof(*dst));
 
-    if (src->packetc != 1) {
+    if (pgp_key_get_rawpacket_count(src) != 1) {
         RNP_LOG("wrong g10 key packets");
         return RNP_ERROR_BAD_PARAMETERS;
     }
@@ -320,40 +367,23 @@ pgp_userprefs_copy(pgp_user_prefs_t *dst, const pgp_user_prefs_t *src)
     rnp_result_t ret = RNP_ERROR_OUT_OF_MEMORY;
 
     memset(dst, 0, sizeof(*dst));
-    if (src->symm_algc) {
-        EXPAND_ARRAY_EX(dst, symm_alg, src->symm_algc);
-        if (!dst->symm_algs) {
-            return ret;
-        }
-        memcpy(dst->symm_algs, src->symm_algs, src->symm_algc);
-        dst->symm_algc = src->symm_algc;
+    if (src->symm_alg_count &&
+        !pgp_user_prefs_set_symm_algs(dst, src->symm_algs, src->symm_alg_count)) {
+        return ret;
     }
 
-    if (src->hash_algc) {
-        EXPAND_ARRAY_EX(dst, hash_alg, src->hash_algc);
-        if (!dst->hash_algs) {
-            goto error;
-        }
-        memcpy(dst->hash_algs, src->hash_algs, src->hash_algc);
-        dst->hash_algc = src->hash_algc;
+    if (src->hash_alg_count &&
+        !pgp_user_prefs_set_hash_algs(dst, src->hash_algs, src->hash_alg_count)) {
+        goto error;
     }
 
-    if (src->compress_algc) {
-        EXPAND_ARRAY_EX(dst, compress_alg, src->compress_algc);
-        if (!dst->compress_algs) {
-            goto error;
-        }
-        memcpy(dst->compress_algs, src->compress_algs, src->compress_algc);
-        dst->compress_algc = src->compress_algc;
+    if (src->z_alg_count && !pgp_user_prefs_set_z_algs(dst, src->z_algs, src->z_alg_count)) {
+        goto error;
     }
 
-    if (src->key_server_prefc) {
-        EXPAND_ARRAY_EX(dst, key_server_pref, src->key_server_prefc);
-        if (!dst->key_server_prefs) {
-            goto error;
-        }
-        memcpy(dst->key_server_prefs, src->key_server_prefs, src->key_server_prefc);
-        dst->key_server_prefc = src->key_server_prefc;
+    if (src->ks_pref_count &&
+        !pgp_user_prefs_set_ks_prefs(dst, src->ks_prefs, src->ks_pref_count)) {
+        goto error;
     }
 
     if (src->key_server) {
@@ -412,51 +442,33 @@ pgp_key_copy_fields(pgp_key_t *dst, const pgp_key_t *src)
     rnp_result_t tmpret;
 
     /* uids */
-    if (src->uidc) {
-        EXPAND_ARRAY_EX(dst, uid, src->uidc);
-        if (!dst->uids) {
+    for (size_t i = 0; i < pgp_get_userid_count(src); i++) {
+        if (!pgp_add_userid(dst, (const uint8_t *) pgp_get_userid(src, i))) {
             goto error;
-        }
-        for (size_t i = 0; i < src->uidc; i++) {
-            size_t len = strlen((char *) src->uids[i]) + 1;
-            dst->uids[i] = (uint8_t *) malloc(len);
-            if (!dst->uids[i]) {
-                goto error;
-            }
-            memcpy(dst->uids[i], src->uids[i], len);
-            dst->uidc++;
         }
     }
 
     /* signatures */
-    if (src->subsigs) {
-        EXPAND_ARRAY_EX(dst, subsig, src->subsigc);
-        if (!dst->subsigs) {
+    for (size_t i = 0; i < pgp_key_get_subsig_count(src); i++) {
+        pgp_subsig_t *subsig = pgp_key_add_subsig(dst);
+        if (!subsig) {
             goto error;
         }
-        for (size_t i = 0; i < src->subsigc; i++) {
-            tmpret = pgp_subsig_copy(&dst->subsigs[i], &src->subsigs[i]);
-            if (tmpret) {
-                ret = tmpret;
-                goto error;
-            }
-            dst->subsigc++;
+        if ((tmpret = pgp_subsig_copy(subsig, pgp_key_get_subsig(src, i)))) {
+            ret = tmpret;
+            goto error;
         }
     }
 
     /* revocations */
-    if (src->revokes) {
-        EXPAND_ARRAY_EX(dst, revoke, src->revokec);
-        if (!dst->revokes) {
+    for (size_t i = 0; i < pgp_key_get_revoke_count(src); i++) {
+        pgp_revoke_t *revoke = pgp_key_add_revoke(dst);
+        if (!revoke) {
             goto error;
         }
-        for (size_t i = 0; i < src->revokec; i++) {
-            tmpret = pgp_revoke_copy(&dst->revokes[i], &src->revokes[i]);
-            if (tmpret) {
-                ret = tmpret;
-                goto error;
-            }
-            dst->revokec++;
+        if ((tmpret = pgp_revoke_copy(revoke, pgp_key_get_revoke(src, i)))) {
+            ret = tmpret;
+            goto error;
         }
     }
 
@@ -696,6 +708,7 @@ pgp_decrypt_seckey(const pgp_key_t *              key,
     typedef struct pgp_key_pkt_t *pgp_seckey_decrypt_t(
       const uint8_t *data, size_t data_len, const pgp_key_pkt_t *pubkey, const char *password);
     pgp_seckey_decrypt_t *decryptor = NULL;
+    pgp_rawpacket_t *     packet = NULL;
     char                  password[MAX_PASSWORD_LENGTH] = {0};
 
     // sanity checks
@@ -728,8 +741,8 @@ pgp_decrypt_seckey(const pgp_key_t *              key,
         }
     }
     // attempt to decrypt with the provided password
-    decrypted_seckey =
-      decryptor(key->packets[0].raw, key->packets[0].length, pgp_get_key_pkt(key), password);
+    packet = pgp_key_get_rawpacket(key, 0);
+    decrypted_seckey = decryptor(packet->raw, packet->length, pgp_get_key_pkt(key), password);
 
 done:
     pgp_forget(password, sizeof(password));
@@ -754,10 +767,10 @@ pgp_get_key_id(const pgp_key_t *key)
 \param key Key to check
 \return Num of user ids
 */
-unsigned
+size_t
 pgp_get_userid_count(const pgp_key_t *key)
 {
-    return key->uidc;
+    return list_length(key->uids);
 }
 
 /**
@@ -767,10 +780,35 @@ pgp_get_userid_count(const pgp_key_t *key)
 \param index Which key to get
 \return Pointer to requested user id
 */
-const uint8_t *
-pgp_get_userid(const pgp_key_t *key, unsigned subscript)
+const char *
+pgp_get_userid(const pgp_key_t *key, size_t idx)
 {
-    return key->uids[subscript];
+    list_item *uid = list_at(key->uids, idx);
+    return uid ? *((char **) uid) : NULL;
+}
+
+const char *
+pgp_get_primary_userid(const pgp_key_t *key)
+{
+    if (key->uid0_set) {
+        return pgp_get_userid(key, key->uid0);
+    }
+    if (list_length(key->uids)) {
+        return pgp_get_userid(key, 0);
+    }
+    return NULL;
+}
+
+bool
+pgp_key_has_userid(const pgp_key_t *key, const char *uid)
+{
+    for (list_item *li = list_front(key->uids); li; li = list_next(li)) {
+        if (!strcmp(uid, *((char **) li))) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 /* \todo check where userid pointers are copied */
@@ -809,17 +847,79 @@ copy_userid(uint8_t **dst, const uint8_t *src)
 uint8_t *
 pgp_add_userid(pgp_key_t *key, const uint8_t *userid)
 {
-    uint8_t **uidp;
-
-    EXPAND_ARRAY(key, uid);
-    if (key->uids == NULL) {
+    list_item *uidp = list_append(&key->uids, NULL, sizeof(userid));
+    if (!(uidp)) {
         return NULL;
     }
-    /* initialise new entry in array */
-    uidp = &key->uids[key->uidc++];
-    *uidp = NULL;
     /* now copy it */
-    return copy_userid(uidp, userid);
+    return copy_userid((uint8_t **) uidp, userid);
+}
+
+pgp_revoke_t *
+pgp_key_add_revoke(pgp_key_t *key)
+{
+    return (pgp_revoke_t *) list_append(&key->revokes, NULL, sizeof(pgp_revoke_t));
+}
+
+size_t
+pgp_key_get_revoke_count(const pgp_key_t *key)
+{
+    return list_length(key->revokes);
+}
+
+pgp_revoke_t *
+pgp_key_get_revoke(const pgp_key_t *key, size_t idx)
+{
+    return (pgp_revoke_t *) list_at(key->revokes, idx);
+}
+
+pgp_subsig_t *
+pgp_key_add_subsig(pgp_key_t *key)
+{
+    return (pgp_subsig_t *) list_append(&key->subsigs, NULL, sizeof(pgp_subsig_t));
+}
+
+size_t
+pgp_key_get_subsig_count(const pgp_key_t *key)
+{
+    return list_length(key->subsigs);
+}
+
+pgp_subsig_t *
+pgp_key_get_subsig(const pgp_key_t *key, size_t idx)
+{
+    return (pgp_subsig_t *) list_at(key->subsigs, idx);
+}
+
+pgp_rawpacket_t *
+pgp_key_add_rawpacket(pgp_key_t *key, void *data, size_t len, pgp_content_enum tag)
+{
+    pgp_rawpacket_t *packet;
+    if (!(packet = (pgp_rawpacket_t *) list_append(&key->packets, NULL, sizeof(*packet)))) {
+        return NULL;
+    }
+    if (data) {
+        if (!(packet->raw = (uint8_t *) malloc(len))) {
+            list_remove((list_item *) packet);
+            return NULL;
+        }
+        memcpy(packet->raw, data, len);
+    }
+    packet->length = len;
+    packet->tag = tag;
+    return packet;
+}
+
+size_t
+pgp_key_get_rawpacket_count(const pgp_key_t *key)
+{
+    return list_length(key->packets);
+}
+
+pgp_rawpacket_t *
+pgp_key_get_rawpacket(const pgp_key_t *key, size_t idx)
+{
+    return (pgp_rawpacket_t *) list_at(key->packets, idx);
 }
 
 char *
@@ -1090,7 +1190,7 @@ pgp_key_protect(pgp_key_t *                  key,
 
     // write the protected key to packets[0]
     if (!write_key_to_rawpacket(decrypted_seckey,
-                                &key->packets[0],
+                                pgp_key_get_rawpacket(key, 0),
                                 (pgp_content_enum) pgp_get_key_type(key),
                                 format,
                                 new_password)) {
@@ -1137,7 +1237,7 @@ pgp_key_unprotect(pgp_key_t *key, const pgp_password_provider_t *password_provid
     }
     seckey->sec_protection.s2k.usage = PGP_S2KU_NONE;
     if (!write_key_to_rawpacket(seckey,
-                                &key->packets[0],
+                                pgp_key_get_rawpacket(key, 0),
                                 (pgp_content_enum) pgp_get_key_type(key),
                                 key->format,
                                 NULL)) {
@@ -1167,17 +1267,6 @@ pgp_key_is_protected(const pgp_key_t *key)
     return key->pkt.sec_protection.s2k.usage != PGP_S2KU_NONE;
 }
 
-static bool
-key_has_userid(const pgp_key_t *key, const uint8_t *userid)
-{
-    for (unsigned i = 0; i < key->uidc; i++) {
-        if (strcmp((char *) key->uids[i], (char *) userid) == 0) {
-            return true;
-        }
-    }
-    return false;
-}
-
 bool
 pgp_key_add_userid(pgp_key_t *              key,
                    const pgp_key_pkt_t *    seckey,
@@ -1198,7 +1287,7 @@ pgp_key_add_userid(pgp_key_t *              key,
         goto done;
     }
     // see if the key already has this userid
-    if (key_has_userid(key, cert->userid)) {
+    if (pgp_key_has_userid(key, (const char *) cert->userid)) {
         RNP_LOG("key already has this userid");
         goto done;
     }
@@ -1242,11 +1331,11 @@ done:
 bool
 pgp_key_write_packets(const pgp_key_t *key, pgp_memory_t *mem)
 {
-    if (DYNARRAY_IS_EMPTY(key, packet)) {
+    if (!pgp_key_get_rawpacket_count(key)) {
         return false;
     }
-    for (unsigned i = 0; i < key->packetc; i++) {
-        pgp_rawpacket_t *pkt = &key->packets[i];
+    for (size_t i = 0; i < pgp_key_get_rawpacket_count(key); i++) {
+        pgp_rawpacket_t *pkt = pgp_key_get_rawpacket(key, i);
         if (!pkt->raw || !pkt->length) {
             return false;
         }
@@ -1289,9 +1378,8 @@ static const pgp_signature_t *
 get_subkey_binding(const pgp_key_t *subkey)
 {
     // find the subkey binding signature
-    for (unsigned i = 0; i < subkey->subsigc; i++) {
-        const pgp_signature_t *sig = &subkey->subsigs[i].sig;
-
+    for (size_t i = 0; i < pgp_key_get_subsig_count(subkey); i++) {
+        const pgp_signature_t *sig = &pgp_key_get_subsig(subkey, i)->sig;
         if (sig->type == PGP_SIG_SUBKEY) {
             return sig;
         }

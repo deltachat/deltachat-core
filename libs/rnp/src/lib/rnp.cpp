@@ -67,7 +67,6 @@
 #include "utils.h"
 #include "crypto.h"
 #include "crypto/common.h"
-#include "defs.h"
 #include <rnp/rnp_def.h>
 #include "pgp-key.h"
 #include "list.h"
@@ -551,8 +550,6 @@ rnp_list_keys_json(rnp_t *rnp, char **json, const int psigs)
     return *json != NULL;
 }
 
-DEFINE_ARRAY(strings_t, char *);
-
 #ifndef HKP_VERSION
 #define HKP_VERSION 1
 #endif
@@ -562,41 +559,41 @@ int
 rnp_match_keys(rnp_t *rnp, char *name, const char *fmt, void *vp, const int psigs)
 {
     pgp_key_t *key = NULL;
-    strings_t  pubs;
+    list       pubs = NULL;
     FILE *     fp = (FILE *) vp;
+    int        res = 0;
 
     if (name[0] == '0' && name[1] == 'x') {
         name += 2;
     }
-    (void) memset(&pubs, 0x0, sizeof(pubs));
     do {
-        key = rnp_key_store_get_key_by_name(rnp->pubring, name, NULL);
-        if (!key) {
+        char *st = NULL;
+        if (!(key = rnp_key_store_get_key_by_name(rnp->pubring, name, NULL))) {
             return 0;
         }
-        if (key != NULL) {
-            ALLOC(char *, pubs.v, pubs.size, pubs.c, 10, 10, "rnp_match_keys", return 0);
-            if (strcmp(fmt, "mr") == 0) {
-                pgp_hkp_sprint_key(rnp->pubring, key, &pubs.v[pubs.c], psigs);
-            } else {
-                pgp_sprint_key(rnp->pubring, key, &pubs.v[pubs.c], "signature ", psigs);
-            }
-            if (pubs.v[pubs.c] != NULL) {
-                pubs.c += 1;
-            }
+        if (strcmp(fmt, "mr") == 0) {
+            pgp_hkp_sprint_key(rnp->pubring, key, &st, psigs);
+        } else {
+            pgp_sprint_key(rnp->pubring, key, &st, "signature ", psigs);
+        }
+        if (st && !list_append(&pubs, &st, sizeof(st))) {
+            RNP_LOG("alloc failed");
         }
     } while (key != NULL);
+
+    res = list_length(pubs);
+
     if (strcmp(fmt, "mr") == 0) {
-        (void) fprintf(fp, "info:%d:%d\n", HKP_VERSION, pubs.c);
+        fprintf(fp, "info:%d:%d\n", HKP_VERSION, res);
     } else {
-        (void) fprintf(fp, "%d key%s found\n", pubs.c, (pubs.c == 1) ? "" : "s");
+        fprintf(fp, "%d key%s found\n", res, (res == 1) ? "" : "s");
     }
-    for (unsigned k = 0; k < pubs.c; k++) {
-        (void) fprintf(fp, "%s%s", pubs.v[k], (k < pubs.c - 1) ? "\n" : "");
-        free(pubs.v[k]);
+    for (list_item *item = list_front(pubs); item; item = list_next(item)) {
+        (void) fprintf(fp, "%s%s", *((char **) item), list_next(item) ? "\n" : "");
+        free(*((char **) item));
     }
-    free(pubs.v);
-    return pubs.c;
+    list_destroy(&pubs);
+    return res;
 }
 
 /* find and list some keys in a keyring - return JSON string */
@@ -776,13 +773,13 @@ rnp_add_key(rnp_t *rnp, const char *path, bool print)
             continue;
         }
         exkey = rnp_key_store_get_key_by_grip(rnp->pubring, imported->grip);
-        expackets = exkey ? exkey->packetc : 0;
+        expackets = exkey ? pgp_key_get_rawpacket_count(exkey) : 0;
         if (!(exkey = rnp_key_store_add_key(rnp->pubring, &keycp))) {
             RNP_LOG("failed to add key to the keyring");
             pgp_key_free_data(&keycp);
             continue;
         }
-        changed = exkey->packetc > expackets;
+        changed = pgp_key_get_rawpacket_count(exkey) > expackets;
 
         /* add secret key if there is one */
         if (!pgp_is_key_secret(imported)) {
@@ -797,14 +794,14 @@ rnp_add_key(rnp_t *rnp, const char *path, bool print)
             continue;
         }
         exkey = rnp_key_store_get_key_by_grip(rnp->secring, imported->grip);
-        expackets = exkey ? exkey->packetc : 0;
+        expackets = exkey ? pgp_key_get_rawpacket_count(exkey) : 0;
         if (!(exkey = rnp_key_store_add_key(rnp->secring, &keycp))) {
             RNP_LOG("failed to add key to the keyring");
             pgp_key_free_data(&keycp);
             continue;
         }
 
-        if (print && (changed || (exkey->packetc > expackets))) {
+        if (print && (changed || (pgp_key_get_rawpacket_count(exkey) > expackets))) {
             repgp_print_key(rnp->resfp, rnp->pubring, exkey, "sec", 0);
         }
     }
