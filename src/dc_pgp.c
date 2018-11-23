@@ -17,7 +17,7 @@ one :-) */
 #ifndef DC_USE_LIBRNP
 #include <netpgp-extra.h>
 #else
-#include <rnp/rnp.h>
+#include <rnp/rnp2.h>
 #endif
 #include <openssl/rand.h>
 #include "dc_context.h"
