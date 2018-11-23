@@ -423,10 +423,8 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 			}
 		}
 
-		char* e = dc_stock_str(context, DC_STR_ENCRYPTEDMSG); char* subject_str = dc_mprintf(DC_CHAT_PREFIX " %s", e); free(e);
-		struct mailimf_subject* subject = mailimf_subject_new(dc_encode_header_words(subject_str));
+		struct mailimf_subject* subject = mailimf_subject_new(dc_strdup("..."));
 		mailimf_fields_add(imffields_unprotected, mailimf_field_new(MAILIMF_FIELD_SUBJECT, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, subject, NULL, NULL, NULL));
-		free(subject_str);
 
 		clist_append(part_to_encrypt->mm_content_type->ct_parameters, mailmime_param_new_with_data("protected-headers", "v1"));
 
