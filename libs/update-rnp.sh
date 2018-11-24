@@ -52,7 +52,17 @@ update_rnp() {
 	cp_sources $SRCDIR "include"	
 	cp_sources $SRCDIR "include/rekey"	
 	cp_sources $SRCDIR "include/repgp"	
-	cp_sources $SRCDIR "include/rnp"	
+	cp_sources $SRCDIR "include/rnp"
+
+	# generate version file
+
+	VERSIONFILE=rnp/src/lib/version.h
+	cp $SRCDIR/src/lib/version.h.in $VERSIONFILE
+	sed -i 's/@RNP_VERSION_MAJOR@/0/g' $VERSIONFILE
+	sed -i 's/@RNP_VERSION_MINOR@/0/g' $VERSIONFILE
+	sed -i 's/@RNP_VERSION_PATCH@/0/g' $VERSIONFILE
+	sed -i 's/@RNP_VERSION@/0.0.0-embedded/g' $VERSIONFILE
+	sed -i 's/@RNP_VERSION_FULL@/0.0.0-embedded/g' $VERSIONFILE
 }
 
 if [ -n "$1" ]; then 
