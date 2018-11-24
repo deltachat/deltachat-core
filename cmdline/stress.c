@@ -6,6 +6,7 @@ $ valgrind --leak-check=full --tool=memcheck ./deltachat-core <db>
 
 #include <ctype.h>
 #include <assert.h>
+#include <rnp/rnp2.h>
 #include "../src/dc_context.h"
 #include "../src/dc_simplify.h"
 #include "../src/dc_mimeparser.h"
@@ -153,6 +154,15 @@ static const char* s_em_setupfile =
 
 void stress_functions(dc_context_t* context)
 {
+	/* text rnp pgp library
+	 **************************************************************************/
+
+	{
+		const char* ver = rnp_version_string();
+		printf("%s", ver);
+	}
+
+
 	/* test dc_saxparser_t
 	 **************************************************************************/
 
@@ -161,6 +171,8 @@ void stress_functions(dc_context_t* context)
 		dc_saxparser_init(&saxparser, NULL);
 		dc_saxparser_parse(&saxparser, "<tag attr=val="); // should not crash or cause a deadlock
 		dc_saxparser_parse(&saxparser, "<tag attr=\"val\"="); // should not crash or cause a deadlock
+		dc_saxparser_parse(&saxparser, s_em_setupcode); // non-xml data
+		dc_saxparser_parse(&saxparser, s_em_setupfile); // non-xml data
 	}
 
 	/* test dc_simplify_t and dc_saxparser_t (indirectly used by dc_simplify_t)
