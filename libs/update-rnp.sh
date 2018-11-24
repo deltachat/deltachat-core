@@ -63,6 +63,14 @@ update_rnp() {
 	sed -i 's/@RNP_VERSION_PATCH@/0/g' $VERSIONFILE
 	sed -i 's/@RNP_VERSION@/0.0.0-embedded/g' $VERSIONFILE
 	sed -i 's/@RNP_VERSION_FULL@/0.0.0-embedded/g' $VERSIONFILE
+
+
+	DEFAULTSFILE=rnp/src/lib/defaults.h
+	echo "// added by update-rnp.sh" >> $DEFAULTSFILE
+	echo "#ifndef TRUE" >> $DEFAULTSFILE
+	echo "#define TRUE 1" >> $DEFAULTSFILE
+	echo "#define FALSE 0" >> $DEFAULTSFILE
+	echo "#endif" >> $DEFAULTSFILE
 }
 
 if [ -n "$1" ]; then 

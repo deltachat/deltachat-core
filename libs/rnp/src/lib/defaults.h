@@ -72,3 +72,8 @@
 #define DEFAULT_RSA_NUMBITS 2048
 
 #endif
+// added by update-rnp.sh
+#ifndef TRUE
+#define TRUE 1
+#define FALSE 0
+#endif
