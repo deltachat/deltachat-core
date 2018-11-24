@@ -56,6 +56,7 @@
 			<Add directory="libs/sqlite" />
 			<Add directory="libs/rnp/include" />
 			<Add directory="libs/rnp/src/lib" />
+			<Add directory="libs/rnp/src" />
 		</Compiler>
 		<Unit filename="README.md" />
 		<Unit filename="cmdline/cmdline.c">
@@ -382,6 +383,7 @@
 		<Unit filename="libs/libetpan/src/main/libetpan_version.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="libs/rnp/src/lib/rnp2.cpp" />
 		<Unit filename="libs/sqlite/sqlite3.c">
 			<Option compilerVar="CC" />
 		</Unit>
