@@ -895,6 +895,20 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 			ret = dc_strdup("No chat selected.");
 		}
 	}
+	else if (strcmp(cmd, "sendempty")==0)
+	{
+		if (sel_chat) {
+			if (dc_send_text_msg(context, dc_chat_get_id(sel_chat), "")) {
+				ret = dc_strdup("Message sent.");
+			}
+			else {
+				ret = dc_strdup("ERROR: Sending failed.");
+			}
+		}
+		else {
+			ret = dc_strdup("No chat selected.");
+		}
+	}
 	else if (strcmp(cmd, "sendimage")==0 || strcmp(cmd, "sendfile")==0)
 	{
 		if (sel_chat) {
