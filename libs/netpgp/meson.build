@@ -1,6 +1,7 @@
 project('netpgp', 'c',
         version: '20140220',
-        license: '2-part BSD')
+        license: '2-part BSD',
+        default_options: ['c_std=gnu99'])
 
 cc = meson.get_compiler('c')
 

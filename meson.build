@@ -4,6 +4,7 @@ project(
   version: '0.0.0',             # Dummy, see below.
   subproject_dir: 'libs',
   meson_version: '>=0.47.2',
+  default_options: ['c_std=gnu99'],
 )
 
 
