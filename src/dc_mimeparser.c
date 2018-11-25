@@ -1625,7 +1625,12 @@ cleanup:
 	if (!dc_mimeparser_has_nonmeta(mimeparser) && carray_count(mimeparser->reports)==0) {
 		dc_mimepart_t* part = dc_mimepart_new();
 		part->type = DC_MSG_TEXT;
-		part->msg = dc_strdup(mimeparser->subject? mimeparser->subject : "Empty message");
+		if (mimeparser->subject && !mimeparser->is_send_by_messenger) {
+			part->msg = dc_strdup(mimeparser->subject);
+		}
+		else {
+			part->msg = dc_strdup("");
+		}
 		carray_add(mimeparser->parts, (void*)part, NULL);
 	}
 }
