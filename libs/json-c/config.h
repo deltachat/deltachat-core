@@ -1,0 +1,11 @@
+// generated file
+#define STDC_HEADERS       1
+#define HAVE_STDLIB_H      1
+#define HAVE_STDINT_H      1
+#define HAVE_INTTYPES_H    1
+#define HAVE_STDARG_H      1
+#define HAVE_FCNTL_H       1
+#define HAVE_STRDUP        1
+#define HAVE_SNPRINTF      1
+#define HAVE_DECL_INFINITY 1
+#define HAVE_STRNCASECMP   1

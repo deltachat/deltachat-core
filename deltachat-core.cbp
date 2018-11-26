@@ -71,6 +71,30 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="libs/botan/android-armv7/botan/botan_all.cpp" />
+		<Unit filename="libs/json-c/arraylist.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/json-c/json_object.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/json-c/json_tokener.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/json-c/json_util.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/json-c/linkhash.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/json-c/printbuf.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/json-c/random_seed.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/json-c/strerror_override.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="libs/libetpan/src/data-types/base64.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -395,6 +419,7 @@
 		<Unit filename="libs/rnp/src/lib/crypto/rng.cpp" />
 		<Unit filename="libs/rnp/src/lib/crypto/s2k.cpp" />
 		<Unit filename="libs/rnp/src/lib/fingerprint.cpp" />
+		<Unit filename="libs/rnp/src/lib/generate-key.cpp" />
 		<Unit filename="libs/rnp/src/lib/key-provider.cpp" />
 		<Unit filename="libs/rnp/src/lib/list.cpp" />
 		<Unit filename="libs/rnp/src/lib/misc.cpp" />
@@ -406,6 +431,8 @@
 		<Unit filename="libs/rnp/src/librekey/key_store_g10.cpp" />
 		<Unit filename="libs/rnp/src/librekey/key_store_pgp.cpp" />
 		<Unit filename="libs/rnp/src/librekey/rnp_key_store.cpp" />
+		<Unit filename="libs/rnp/src/librepgp/packet-print.cpp" />
+		<Unit filename="libs/rnp/src/librepgp/packet-show.cpp" />
 		<Unit filename="libs/rnp/src/librepgp/stream-armor.cpp" />
 		<Unit filename="libs/rnp/src/librepgp/stream-common.cpp" />
 		<Unit filename="libs/rnp/src/librepgp/stream-key.cpp" />
