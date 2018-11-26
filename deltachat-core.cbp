@@ -410,14 +410,22 @@
 		<Unit filename="libs/libetpan/src/main/libetpan_version.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="libs/rnp/src/lib/crypto.cpp" />
 		<Unit filename="libs/rnp/src/lib/crypto/bn.cpp" />
 		<Unit filename="libs/rnp/src/lib/crypto/dsa.cpp" />
 		<Unit filename="libs/rnp/src/lib/crypto/ec.cpp" />
+		<Unit filename="libs/rnp/src/lib/crypto/ecdh.cpp" />
 		<Unit filename="libs/rnp/src/lib/crypto/ecdsa.cpp" />
+		<Unit filename="libs/rnp/src/lib/crypto/eddsa.cpp" />
+		<Unit filename="libs/rnp/src/lib/crypto/elgamal.cpp" />
 		<Unit filename="libs/rnp/src/lib/crypto/hash.cpp" />
 		<Unit filename="libs/rnp/src/lib/crypto/mpi.cpp" />
 		<Unit filename="libs/rnp/src/lib/crypto/rng.cpp" />
+		<Unit filename="libs/rnp/src/lib/crypto/rsa.cpp" />
 		<Unit filename="libs/rnp/src/lib/crypto/s2k.cpp" />
+		<Unit filename="libs/rnp/src/lib/crypto/signatures.cpp" />
+		<Unit filename="libs/rnp/src/lib/crypto/sm2.cpp" />
+		<Unit filename="libs/rnp/src/lib/crypto/symmetric.cpp" />
 		<Unit filename="libs/rnp/src/lib/fingerprint.cpp" />
 		<Unit filename="libs/rnp/src/lib/generate-key.cpp" />
 		<Unit filename="libs/rnp/src/lib/key-provider.cpp" />
@@ -429,15 +437,19 @@
 		<Unit filename="libs/rnp/src/lib/rnp.cpp" />
 		<Unit filename="libs/rnp/src/lib/rnp2.cpp" />
 		<Unit filename="libs/rnp/src/librekey/key_store_g10.cpp" />
+		<Unit filename="libs/rnp/src/librekey/key_store_kbx.cpp" />
 		<Unit filename="libs/rnp/src/librekey/key_store_pgp.cpp" />
 		<Unit filename="libs/rnp/src/librekey/rnp_key_store.cpp" />
 		<Unit filename="libs/rnp/src/librepgp/packet-print.cpp" />
 		<Unit filename="libs/rnp/src/librepgp/packet-show.cpp" />
 		<Unit filename="libs/rnp/src/librepgp/stream-armor.cpp" />
 		<Unit filename="libs/rnp/src/librepgp/stream-common.cpp" />
+		<Unit filename="libs/rnp/src/librepgp/stream-dump.cpp" />
 		<Unit filename="libs/rnp/src/librepgp/stream-key.cpp" />
 		<Unit filename="libs/rnp/src/librepgp/stream-packet.cpp" />
+		<Unit filename="libs/rnp/src/librepgp/stream-parse.cpp" />
 		<Unit filename="libs/rnp/src/librepgp/stream-sig.cpp" />
+		<Unit filename="libs/rnp/src/librepgp/stream-write.cpp" />
 		<Unit filename="libs/sqlite/sqlite3.c">
 			<Option compilerVar="CC" />
 		</Unit>
