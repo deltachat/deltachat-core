@@ -12,3 +12,5 @@
 #define HAVE_SYS_STAT_H      1
 #define HAVE_SYS_TYPES_H     1
 #define HAVE_UNISTD_H        1
+#define PACKAGE_STRING "pkg"
+#define PACKAGE_BUGREPORT "bugreport"

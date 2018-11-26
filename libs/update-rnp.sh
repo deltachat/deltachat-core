@@ -27,6 +27,7 @@ cp_sources()
 	echo "#define HAVE_SYS_TYPES_H     1" >> rnp/$CDIR/config.h
 	echo "#define HAVE_UNISTD_H        1" >> rnp/$CDIR/config.h
 	echo "#define PACKAGE_STRING \"pkg\"" >> rnp/$CDIR/config.h
+	echo "#define PACKAGE_BUGREPORT \"bugreport\"" >> rnp/$CDIR/config.h
 }
 
 update_rnp() {

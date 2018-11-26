@@ -386,8 +386,11 @@
 		<Unit filename="libs/libetpan/src/main/libetpan_version.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="libs/rnp/src/lib/crypto/bn.cpp" />
 		<Unit filename="libs/rnp/src/lib/crypto/ec.cpp" />
+		<Unit filename="libs/rnp/src/lib/crypto/mpi.cpp" />
 		<Unit filename="libs/rnp/src/lib/crypto/rng.cpp" />
+		<Unit filename="libs/rnp/src/lib/misc.cpp" />
 		<Unit filename="libs/rnp/src/lib/rnp2.cpp" />
 		<Unit filename="libs/rnp/src/librekey/rnp_key_store.cpp" />
 		<Unit filename="libs/sqlite/sqlite3.c">
