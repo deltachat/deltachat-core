@@ -16,7 +16,7 @@
 					<Add option="-g" />
 				</Compiler>
 				<Linker>
-					<Add option="-lz -lssl -lcrypto -pthread -lsasl2" />
+					<Add option="-lz -lssl -lcrypto -pthread -lsasl2 -ldl" />
 				</Linker>
 			</Target>
 			<Target title="Release">
@@ -58,6 +58,7 @@
 			<Add directory="libs/rnp/src/lib" />
 			<Add directory="libs/rnp/src" />
 			<Add directory="libs/json-c" />
+			<Add directory="libs/botan/android-armv7" />
 		</Compiler>
 		<Unit filename="README.md" />
 		<Unit filename="cmdline/cmdline.c">
@@ -69,6 +70,7 @@
 		<Unit filename="cmdline/stress.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="libs/botan/android-armv7/botan/botan_all.cpp" />
 		<Unit filename="libs/libetpan/src/data-types/base64.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -385,6 +387,7 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="libs/rnp/src/lib/crypto/ec.cpp" />
+		<Unit filename="libs/rnp/src/lib/crypto/rng.cpp" />
 		<Unit filename="libs/rnp/src/lib/rnp2.cpp" />
 		<Unit filename="libs/rnp/src/librekey/rnp_key_store.cpp" />
 		<Unit filename="libs/sqlite/sqlite3.c">
