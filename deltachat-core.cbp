@@ -387,12 +387,30 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="libs/rnp/src/lib/crypto/bn.cpp" />
+		<Unit filename="libs/rnp/src/lib/crypto/dsa.cpp" />
 		<Unit filename="libs/rnp/src/lib/crypto/ec.cpp" />
+		<Unit filename="libs/rnp/src/lib/crypto/ecdsa.cpp" />
+		<Unit filename="libs/rnp/src/lib/crypto/hash.cpp" />
 		<Unit filename="libs/rnp/src/lib/crypto/mpi.cpp" />
 		<Unit filename="libs/rnp/src/lib/crypto/rng.cpp" />
+		<Unit filename="libs/rnp/src/lib/crypto/s2k.cpp" />
+		<Unit filename="libs/rnp/src/lib/fingerprint.cpp" />
+		<Unit filename="libs/rnp/src/lib/key-provider.cpp" />
+		<Unit filename="libs/rnp/src/lib/list.cpp" />
 		<Unit filename="libs/rnp/src/lib/misc.cpp" />
+		<Unit filename="libs/rnp/src/lib/packet-create.cpp" />
+		<Unit filename="libs/rnp/src/lib/pass-provider.cpp" />
+		<Unit filename="libs/rnp/src/lib/pgp-key.cpp" />
+		<Unit filename="libs/rnp/src/lib/rnp.cpp" />
 		<Unit filename="libs/rnp/src/lib/rnp2.cpp" />
+		<Unit filename="libs/rnp/src/librekey/key_store_g10.cpp" />
+		<Unit filename="libs/rnp/src/librekey/key_store_pgp.cpp" />
 		<Unit filename="libs/rnp/src/librekey/rnp_key_store.cpp" />
+		<Unit filename="libs/rnp/src/librepgp/stream-armor.cpp" />
+		<Unit filename="libs/rnp/src/librepgp/stream-common.cpp" />
+		<Unit filename="libs/rnp/src/librepgp/stream-key.cpp" />
+		<Unit filename="libs/rnp/src/librepgp/stream-packet.cpp" />
+		<Unit filename="libs/rnp/src/librepgp/stream-sig.cpp" />
 		<Unit filename="libs/sqlite/sqlite3.c">
 			<Option compilerVar="CC" />
 		</Unit>
