@@ -677,7 +677,7 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 	char*         X_MrRemoveFromGrp = NULL; /* pointer somewhere into mime_parser, must not be freed */
 	char*         X_MrAddToGrp = NULL; /* pointer somewhere into mime_parser, must not be freed */
 	int           X_MrGrpNameChanged = 0;
-	int           X_MrGrpImageChanged = 0;
+	const char*   X_MrGrpImageChanged = NULL;
 
 	/* search the grpid in the header */
 	{
@@ -741,7 +741,7 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 			mime_parser->is_system_message = DC_CMD_GROUPNAME_CHANGED;
 		}
 		else if ((optional_field=dc_mimeparser_lookup_optional_field(mime_parser, "Chat-Group-Image"))!=NULL) {
-			X_MrGrpImageChanged = 1;
+			X_MrGrpImageChanged = optional_field->fld_value;
 			mime_parser->is_system_message = DC_CMD_GROUPIMAGE_CHANGED;
 		}
 	}
@@ -824,18 +824,15 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 	{
 		int   ok = 0;
 		char* grpimage = NULL;
-		if (carray_count(mime_parser->parts)>=1) {
-			dc_mimepart_t* textpart = (dc_mimepart_t*)carray_get(mime_parser->parts, 0);
-			if (textpart->type==DC_MSG_TEXT) {
-				if (carray_count(mime_parser->parts)>=2) {
-					dc_mimepart_t* imgpart = (dc_mimepart_t*)carray_get(mime_parser->parts, 1);
-					if (imgpart->type==DC_MSG_IMAGE) {
-						grpimage = dc_param_get(imgpart->param, DC_PARAM_FILE, NULL);
-						ok = 1;
-					}
-				}
-				else {
-					ok = 1;
+		if( strcmp(X_MrGrpImageChanged, "0")==0 ) {
+			ok = 1; // group image deleted
+		}
+		else {
+			for (int i = 0; i < carray_count(mime_parser->parts); i++) {
+				dc_mimepart_t* part = (dc_mimepart_t*)carray_get(mime_parser->parts, i);
+				if (part->type==DC_MSG_IMAGE) {
+					grpimage = dc_param_get(part->param, DC_PARAM_FILE, NULL);
+					ok = 1; // new group image set
 				}
 			}
 		}
