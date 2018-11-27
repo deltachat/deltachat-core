@@ -16,12 +16,9 @@ for PYBIN in /opt/python/*/bin; do
 done
 
 ## Bundle external shared libraries into the wheels
-for whl in wheelhouse/*.whl; do
+for whl in wheelhouse/deltachat*.whl; do
     auditwheel repair "$whl" -w /io/python/wheelhouse/
 done
-
-# Clean up the cffi wheels which end up in the wheelhouse
-rm -rf /io/python/wheelhouse/cffi*.whl
 
 ## Install packages (and test)
 for PYBIN in /opt/python/*/bin/; do
