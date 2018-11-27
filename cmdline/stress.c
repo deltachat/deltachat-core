@@ -151,6 +151,25 @@ static const char* s_em_setupfile =
 "=9sJE\n"
 "-----END PGP MESSAGE-----\n";
 
+static void
+unused_getkeycb(rnp_ffi_t   ffi,
+                void *      app_ctx,
+                const char *identifier_type,
+                const char *identifier,
+                bool        secret)
+{
+}
+
+static bool
+unused_getpasscb(rnp_ffi_t        ffi,
+                 void *           app_ctx,
+                 rnp_key_handle_t key,
+                 const char *     pgp_context,
+                 char *           buf,
+                 size_t           buf_len)
+{
+    return false;
+}
 
 void stress_functions(dc_context_t* context)
 {
@@ -158,8 +177,56 @@ void stress_functions(dc_context_t* context)
 	 **************************************************************************/
 
 	{
-		const char* ver = rnp_version_string();
-		printf("%s", ver);
+		// create rnp interface
+		rnp_ffi_t ffi = NULL;
+		rnp_ffi_create(&ffi, "GPG", "GPG");
+		rnp_ffi_set_key_provider(ffi, unused_getkeycb, NULL);
+		rnp_ffi_set_pass_provider(ffi, unused_getpasscb, NULL);
+
+		// create a keypair
+		char* results = NULL;
+		rnp_generate_key_json(ffi,
+								"{\n"
+								"  \"primary\": {\n"
+								"      \"type\": \"ECDSA\",\n"
+								"      \"curve\": \"NIST P-256\",\n"
+								"      \"userid\": \"test0\",\n"
+								"      \"usage\": \"sign\",\n"
+								"      \"expiration\": 0,\n"
+								"      \"hash\": \"SHA256\",\n"
+								"      \"preferences\" : { \n"
+								"        \"hashes\": [\"SHA512\", \"SHA256\"],\n"
+								"        \"ciphers\": [\"AES256\", \"AES128\"],\n"
+								"        \"compression\": [\"Zlib\"],\n"
+								"        \"key server\": \"hkp://pgp.mit.edu\"\n"
+								"      },  \n"
+								"      \"protection\" : { \n"
+								"          \"password\": \"abc\",\n"
+								"          \"cipher\": \"AES256\",\n"
+								"          \"hash\": \"SHA256\",\n"
+								"          \"iterations\": 65536\n"
+								"      }   \n"
+								"   },  \n"
+								"   \"sub\": {\n"
+								"      \"type\": \"RSA\",\n"
+								"      \"length\": 1024\n"
+								"   }   \n"
+								"}\n", &results);
+
+		rnp_buffer_destroy(results);
+		results = NULL;
+
+		// encrypt
+		rnp_op_encrypt_t op = NULL;
+		rnp_input_t      input = NULL;
+		rnp_output_t     output = NULL;
+		rnp_op_encrypt_create(&op, ffi, input, output);
+		rnp_op_encrypt_add_recipient(op, NULL);
+		rnp_op_encrypt_execute(op);
+		rnp_op_encrypt_destroy(op);
+
+		// done with rnp
+		rnp_ffi_destroy(ffi);
 	}
 
 
