@@ -243,6 +243,42 @@ cleanup:
 }
 
 
+static void log_msg(dc_context_t* context, const char* prefix, dc_msg_t* msg)
+{
+	dc_contact_t* contact = dc_get_contact(context, dc_msg_get_from_id(msg));
+	char* contact_name = dc_contact_get_name(contact);
+	int contact_id = dc_contact_get_id(contact);
+
+	const char* statestr = "";
+	switch (dc_msg_get_state(msg)) {
+		case DC_STATE_OUT_PENDING:   statestr = " o";   break;
+		case DC_STATE_OUT_DELIVERED: statestr = " √";   break;
+		case DC_STATE_OUT_MDN_RCVD:  statestr = " √√";  break;
+		case DC_STATE_OUT_FAILED:    statestr = " !!";  break;
+	}
+
+	char* temp2 = dc_timestamp_to_str(dc_msg_get_timestamp(msg));
+	char* msgtext = dc_msg_get_text(msg);
+		dc_log_info(context, 0, "%s#%i%s: %s (Contact#%i): %s %s%s%s%s [%s]",
+			prefix,
+			(int)dc_msg_get_id(msg),
+			dc_msg_get_showpadlock(msg)? "\xF0\x9F\x94\x92" : "",
+			contact_name,
+			contact_id,
+			msgtext,
+			dc_msg_is_starred(msg)? " \xE2\x98\x85" : "",
+			dc_msg_get_from_id(msg)==1? "" : (dc_msg_get_state(msg)==DC_STATE_IN_SEEN? "[SEEN]" : (dc_msg_get_state(msg)==DC_STATE_IN_NOTICED? "[NOTICED]":"[FRESH]")),
+			dc_msg_is_info(msg)? "[INFO]" : "",
+			statestr,
+			temp2);
+	free(msgtext);
+	free(temp2);
+	free(contact_name);
+
+	dc_contact_unref(contact);
+}
+
+
 static void log_msglist(dc_context_t* context, dc_array_t* msglist)
 {
 	int i, cnt = dc_array_get_cnt(msglist), lines_out = 0;
@@ -256,36 +292,7 @@ static void log_msglist(dc_context_t* context, dc_array_t* msglist)
 			if (lines_out==0) { dc_log_info(context, 0, "--------------------------------------------------------------------------------"); lines_out++; }
 
 			dc_msg_t* msg = dc_get_msg(context, msg_id);
-			dc_contact_t* contact = dc_get_contact(context, dc_msg_get_from_id(msg));
-			char* contact_name = dc_contact_get_name(contact);
-			int contact_id = dc_contact_get_id(contact);
-
-			const char* statestr = "";
-			switch (dc_msg_get_state(msg)) {
-				case DC_STATE_OUT_PENDING:   statestr = " o";   break;
-				case DC_STATE_OUT_DELIVERED: statestr = " √";   break;
-				case DC_STATE_OUT_MDN_RCVD:  statestr = " √√";  break;
-				case DC_STATE_OUT_FAILED:    statestr = " !!";  break;
-			}
-
-			char* temp2 = dc_timestamp_to_str(dc_msg_get_timestamp(msg));
-			char* msgtext = dc_msg_get_text(msg);
-				dc_log_info(context, 0, "Msg#%i%s: %s (Contact#%i): %s %s%s%s%s [%s]",
-					(int)dc_msg_get_id(msg),
-					dc_msg_get_showpadlock(msg)? "\xF0\x9F\x94\x92" : "",
-					contact_name,
-					contact_id,
-					msgtext,
-					dc_msg_is_starred(msg)? " \xE2\x98\x85" : "",
-					dc_msg_get_from_id(msg)==1? "" : (dc_msg_get_state(msg)==DC_STATE_IN_SEEN? "[SEEN]" : (dc_msg_get_state(msg)==DC_STATE_IN_NOTICED? "[NOTICED]":"[FRESH]")),
-					dc_msg_is_info(msg)? "[INFO]" : "",
-					statestr,
-					temp2);
-			free(msgtext);
-			free(temp2);
-			free(contact_name);
-
-			dc_contact_unref(contact);
+			log_msg(context, "Msg", msg);
 			dc_msg_unref(msg);
 		}
 	}
@@ -733,12 +740,10 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 				log_msglist(context, msglist);
 				dc_array_unref(msglist);
 			}
-			if (dc_chat_get_draft_timestamp(sel_chat)) {
-				char* timestr = dc_timestamp_to_str(dc_chat_get_draft_timestamp(sel_chat));
-				char* drafttext = dc_chat_get_text_draft(sel_chat);
-					dc_log_info(context, 0, "Draft: %s [%s]", drafttext, timestr);
-				free(drafttext);
-				free(timestr);
+			dc_msg_t* draft = dc_get_draft(context, dc_chat_get_id(sel_chat));
+			if (draft) {
+				log_msg(context, "Draft", draft);
+				dc_msg_unref(draft);
 			}
 			ret = dc_mprintf("%i messages.", dc_get_msg_cnt(context, dc_chat_get_id(sel_chat)));
 			dc_marknoticed_chat(context, dc_chat_get_id(sel_chat));
@@ -950,11 +955,14 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 	{
 		if (sel_chat) {
 			if (arg1 && arg1[0]) {
-				dc_set_text_draft(context, dc_chat_get_id(sel_chat), arg1);
+				dc_msg_t* draft = dc_msg_new(context, DC_MSG_TEXT);
+				dc_msg_set_text(draft, arg1);
+				dc_set_draft(context, dc_chat_get_id(sel_chat), draft);
+				dc_msg_unref(draft);
 				ret = dc_strdup("Draft saved.");
 			}
 			else {
-				dc_set_text_draft(context, dc_chat_get_id(sel_chat), NULL);
+				dc_set_draft(context, dc_chat_get_id(sel_chat), NULL);
 				ret = dc_strdup("Draft deleted.");
 			}
 		}
