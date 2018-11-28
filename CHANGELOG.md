@@ -8,6 +8,15 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes anywhere in the Delta Chat ecosystem,
 see https://delta.chat/en/changelog
 
+## v0.27.0
+
+* use '...' as the subject-fallback-text
+* empty messages are returned as such
+* build improvements, bug fixes
+
+The changes have been done by Björn Petersen, Floris Bruynooghe,
+Holger Krekel, Lars-Magnus Skog
+
 ## v0.26.1
 2018-11-23
 
