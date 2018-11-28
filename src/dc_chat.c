@@ -244,45 +244,6 @@ char* dc_chat_get_profile_image(const dc_chat_t* chat)
 
 
 /**
- * Get draft for the chat, if any. A draft is a message that the user started to
- * compose but that is not sent yet. You can save a draft for a chat using dc_set_text_draft().
- *
- * Drafts are considered when sorting messages and are also returned eg.
- * by dc_chatlist_get_summary().
- *
- * @memberof dc_chat_t
- * @param chat The chat object.
- * @return Draft text, must be free()'d. Returns NULL if there is no draft.
- */
-char* dc_chat_get_text_draft(const dc_chat_t* chat)
-{
-	if (chat==NULL || chat->magic!=DC_CHAT_MAGIC) {
-		return NULL;
-	}
-	return dc_strdup_keep_null(chat->draft_text); /* may be NULL */
-}
-
-
-
-/**
- * Get timestamp of the draft.
- * The timestamp is returned as a unix timestamp in seconds.
- * The draft itself can be get using dc_chat_get_text_draft().
- *
- * @memberof dc_chat_t
- * @param chat The chat object.
- * @return Timestamp of the draft. 0 if there is no draft.
- */
-time_t dc_chat_get_draft_timestamp(const dc_chat_t* chat)
-{
-	if (chat==NULL || chat->magic!=DC_CHAT_MAGIC) {
-		return 0;
-	}
-	return chat->draft_timestamp;
-}
-
-
-/**
  * Get archived state.
  *
  * - 0 = normal chat, not archived, not sticky.
@@ -1077,19 +1038,35 @@ cleanup:
 
 /**
  * Save a draft for a chat in the database.
- * If the draft was modified, an #DC_EVENT_MSGS_CHANGED will be sent that you
- * can use to update your dc_chat_t-objects.
+ *
+ * The UI should call this function if the user has prepared a message
+ * and exits the compose window without clicking the "send" button before.
+ * When the user later opens the same chat again,
+ * the UI can load the draft using dc_get_draft()
+ * allowing the user to continue editing and sending.
+ *
+ * Drafts are considered when sorting messages
+ * and are also returned eg. by dc_chatlist_get_summary().
+ *
+ * Each chat can have its own draft but only one draft per chat is possible.
+ *
+ * If the draft is modified, an #DC_EVENT_MSGS_CHANGED will be sent.
  *
  * @memberof dc_context_t
  * @param context The context as created by dc_context_new().
  * @param chat_id The chat ID to save the draft for.
- * @param msg The message text to save as a draft.
+ * @param msg The message to save as a draft.
+ *     Existing draft will be overwritten.
+ *     NULL deletes the existing draft, if any, without sending it.
+ *     Currently, also non-text-messages
+ *     will delete the existing drafts.
  * @return None.
  */
-void dc_set_text_draft(dc_context_t* context, uint32_t chat_id, const char* msg)
+void dc_set_draft(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 {
 	sqlite3_stmt* stmt = NULL;
 	dc_chat_t*    chat = NULL;
+	const char*   text = NULL;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
 		goto cleanup;
@@ -1099,23 +1076,23 @@ void dc_set_text_draft(dc_context_t* context, uint32_t chat_id, const char* msg)
 		goto cleanup;
 	}
 
-	if (msg && msg[0]==0) {
-		msg = NULL; // an empty draft is no draft
+	if (msg && msg->type==DC_MSG_TEXT && msg->text && msg->text[0]) {
+		text = msg->text;
 	}
 
-	if (chat->draft_text==NULL && msg==NULL
+	if (chat->draft_text==NULL && text==NULL
 	 && chat->draft_timestamp==0) {
 		goto cleanup; // nothing to do - there is no old and no new draft
 	}
 
-	if (chat->draft_timestamp && chat->draft_text && msg && strcmp(chat->draft_text, msg)==0) {
+	if (chat->draft_timestamp && chat->draft_text && text && strcmp(chat->draft_text, text)==0) {
 		goto cleanup; // for equal texts, we do not update the timestamp
 	}
 
 	// save draft in object - NULL or empty: clear draft
 	free(chat->draft_text);
-	chat->draft_text      = msg? dc_strdup(msg) : NULL;
-	chat->draft_timestamp = msg? time(NULL) : 0;
+	chat->draft_text      = text? dc_strdup(text) : NULL;
+	chat->draft_timestamp = text? time(NULL) : 0;
 
 	// save draft in database
 	stmt = dc_sqlite3_prepare(context->sql,
@@ -1130,6 +1107,43 @@ void dc_set_text_draft(dc_context_t* context, uint32_t chat_id, const char* msg)
 cleanup:
 	sqlite3_finalize(stmt);
 	dc_chat_unref(chat);
+}
+
+
+/**
+ * Get draft for a chat, if any.
+ * See dc_set_draft() for more details about drafts.
+ *
+ * @memberof dc_chat_t
+ * @param context The context as created by dc_context_new().
+ * @param chat_id The chat ID to get the draft for.
+ * @return Message object.
+ *     Can be passed directly to dc_send_msg().
+ *     Must be freed using dc_msg_unref() after usage.
+ *     If there is no draft, NULL is returned.
+ */
+dc_msg_t* dc_get_draft(dc_context_t* context, uint32_t chat_id)
+{
+	dc_chat_t* chat = NULL;
+	dc_msg_t*  msg = NULL;
+
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		goto cleanup;
+	}
+
+	if ((chat=dc_get_chat(context, chat_id))==NULL) {
+		goto cleanup;
+	}
+
+	if (chat->draft_text && chat->draft_text[0]) {
+		msg = dc_msg_new(context, DC_MSG_TEXT);
+		msg->text = dc_strdup(chat->draft_text);
+		msg->timestamp = chat->draft_timestamp;
+	}
+
+cleanup:
+	dc_chat_unref(chat);
+	return msg;
 }
 
 
