@@ -1114,7 +1114,7 @@ cleanup:
  * Get draft for a chat, if any.
  * See dc_set_draft() for more details about drafts.
  *
- * @memberof dc_chat_t
+ * @memberof dc_context_t
  * @param context The context as created by dc_context_new().
  * @param chat_id The chat ID to get the draft for.
  * @return Message object.
