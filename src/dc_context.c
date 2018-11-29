@@ -430,6 +430,8 @@ static char* get_sys_config_str(const char* key)
  * - `selfstatus`   = Own status to display eg. in email footers, defaults to a standard text
  * - `selfavatar`   = File containing avatar. Will be copied to blob directory.
  *                    NULL to remove the avatar.
+ *                    It is planned for future versions
+ *                    to send this image together with the next messages.
  * - `e2ee_enabled` = 0=no end-to-end-encryption, 1=prefer end-to-end-encryption (default)
  * - `mdns_enabled` = 0=do not send or request read receipts,
  *                    1=send and request read receipts (default)

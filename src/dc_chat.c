@@ -222,24 +222,45 @@ char* dc_chat_get_subtitle(const dc_chat_t* chat)
 
 /**
  * Get the chat's profile image.
- * The profile image is set using dc_set_chat_profile_image() for groups.
- * For normal chats, the profile image is set using dc_set_contact_profile_image() (not yet implemented).
+ * For groups, this is the image set by any group member
+ * using dc_set_chat_profile_image().
+ * For normal chats, this is the image set by each remote user on their own
+ * using dc_set_config(context, "selfavatar", image).
  *
  * @memberof dc_chat_t
  * @param chat The chat object.
- * @return Path and file if the profile image, if any.  NULL otherwise.
+ * @return Path and file if the profile image, if any.
+ *     NULL otherwise.
  *     Must be free()'d after usage.
  */
 char* dc_chat_get_profile_image(const dc_chat_t* chat)
 {
+	char*         image_rel = NULL;
+	char*         image_abs = NULL;
+	dc_array_t*   contacts = NULL;
+	dc_contact_t* contact = NULL;
+
 	if (chat==NULL || chat->magic!=DC_CHAT_MAGIC) {
-		return NULL;
+		goto cleanup;
 	}
 
-	char* profile_image_rel = dc_param_get(chat->param, DC_PARAM_PROFILE_IMAGE, NULL);
-	char* profile_image_abs = dc_get_abs_path(chat->context, profile_image_rel);
-	free(profile_image_rel);
-	return profile_image_abs;
+	image_rel = dc_param_get(chat->param, DC_PARAM_PROFILE_IMAGE, NULL);
+	if (image_rel && image_rel[0]) {
+		image_abs = dc_get_abs_path(chat->context, image_rel);
+	}
+	else if(chat->type==DC_CHAT_TYPE_SINGLE) {
+		contacts = dc_get_chat_contacts(chat->context, chat->id);
+		if (contacts->count >= 1) {
+			contact = dc_get_contact(chat->context, contacts->array[0]);
+			image_abs = dc_contact_get_profile_image(contact);
+		}
+	}
+
+cleanup:
+	free(image_rel);
+	dc_array_unref(contacts);
+	dc_contact_unref(contact);
+	return image_abs;
 }
 
 

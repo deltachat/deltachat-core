@@ -212,6 +212,40 @@ char* dc_contact_get_first_name(const dc_contact_t* contact)
 
 
 /**
+ * Get the contact's profile image.
+ * This is the image set by each remote user on their own
+ * using dc_set_config(context, "selfavatar", image).
+ *
+ * @memberof dc_contact_t
+ * @param chat The contact object.
+ * @return Path and file if the profile image, if any.
+ *     NULL otherwise.
+ *     Must be free()'d after usage.
+ */
+char* dc_contact_get_profile_image(const dc_contact_t* contact)
+{
+	char* selfavatar = NULL;
+	char* image_abs = NULL;
+
+	if (contact==NULL || contact->magic!=DC_CONTACT_MAGIC) {
+		goto cleanup;
+	}
+
+	if (contact->id==DC_CONTACT_ID_SELF) {
+		selfavatar = dc_get_config(contact->context, "selfavatar");
+		if (selfavatar && selfavatar[0]) {
+			image_abs = dc_strdup(selfavatar);
+		}
+	}
+	// TODO: else get image_abs from contact param
+
+cleanup:
+	free(selfavatar);
+	return image_abs;
+}
+
+
+/**
  * Check if a contact is blocked.
  *
  * To block or unblock a contact, use dc_block_contact().
