@@ -1562,21 +1562,26 @@ static int real_group_exists(dc_context_t* context, uint32_t chat_id)
 /**
  * Create a new group chat.
  *
- * After creation, the group has one member with the
- * ID DC_CONTACT_ID_SELF and is in _unpromoted_ state.  This means, you can
- * add or remove members, change the name, the group image and so on without
- * messages being sent to all group members.
+ * After creation,
+ * the draft of the chat is set to a default text,
+ * the group has one member with the ID DC_CONTACT_ID_SELF
+ * and is in _unpromoted_ state.
+ * This means, you can add or remove members, change the name,
+ * the group image and so on without messages being sent to all group members.
  *
- * This changes as soon as the first message is sent to the group members and
- * the group becomes _promoted_.  After that, all changes are synced with all
- * group members by sending status message.
+ * This changes as soon as the first message is sent to the group members
+ * and the group becomes _promoted_.
+ * After that, all changes are synced with all group members
+ * by sending status message.
  *
- * To check, if a chat is still unpromoted, you dc_chat_is_unpromoted()
+ * To check, if a chat is still unpromoted, you dc_chat_is_unpromoted().
+ * This may be useful if you want to show some help for just created groups.
  *
  * @memberof dc_context_t
  * @param context The context as created by dc_context_new().
  * @param verified If set to 1 the function creates a secure verified group.
- *     Only secure-verified members are allowed in these groups and end-to-end-encryption is always enabled.
+ *     Only secure-verified members are allowed in these groups
+ *     and end-to-end-encryption is always enabled.
  * @param chat_name The name of the group chat to create.
  *     The name may be changed later using dc_set_chat_name().
  *     To find out the name of a group later, see dc_chat_get_name()
