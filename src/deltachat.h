@@ -569,6 +569,7 @@ char*           dc_contact_get_name          (const dc_contact_t*);
 char*           dc_contact_get_display_name  (const dc_contact_t*);
 char*           dc_contact_get_name_n_addr   (const dc_contact_t*);
 char*           dc_contact_get_first_name    (const dc_contact_t*);
+char*           dc_contact_get_profile_image (const dc_contact_t*);
 int             dc_contact_is_blocked        (const dc_contact_t*);
 int             dc_contact_is_verified       (dc_contact_t*);
 
