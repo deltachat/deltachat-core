@@ -877,7 +877,7 @@ cleanup:
  * Get contact IDs belonging to a chat.
  *
  * - for normal chats, the function always returns exactly one contact,
- *   DC_CONTACT_ID_SELF is _not_ returned.
+ *   DC_CONTACT_ID_SELF is returned only for SELF-chats.
  *
  * - for group chats all members are returned, DC_CONTACT_ID_SELF is returned
  *   explicitly as it may happen that oneself gets removed from a still existing
