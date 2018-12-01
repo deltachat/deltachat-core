@@ -56,7 +56,6 @@ static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(dc_context_t* context, dc_job_t*
 {
 	int           delete_from_server = 1;
 	dc_msg_t*     msg = dc_msg_new_untyped(context);
-	sqlite3_stmt* stmt = NULL;
 
 	if (!dc_msg_load_from_db(msg, context, job->foreign_id)
 	 || msg->rfc724_mid==NULL || msg->rfc724_mid[0]==0 /* eg. device messages have no Message-ID */) {
@@ -90,61 +89,9 @@ static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(dc_context_t* context, dc_job_t*
 	- if the message is successfully removed from the server
 	- or if there are other parts of the message in the database (in this case we have not deleted if from the server)
 	(As long as the message is not removed from the IMAP-server, we need at least one database entry to avoid a re-download) */
-	stmt = dc_sqlite3_prepare(context->sql,
-		"DELETE FROM msgs WHERE id=?;");
-	sqlite3_bind_int(stmt, 1, msg->id);
-	sqlite3_step(stmt);
-	sqlite3_finalize(stmt);
-	stmt = NULL;
-
-	stmt = dc_sqlite3_prepare(context->sql,
-		"DELETE FROM msgs_mdns WHERE msg_id=?;");
-	sqlite3_bind_int(stmt, 1, msg->id);
-	sqlite3_step(stmt);
-	sqlite3_finalize(stmt);
-	stmt = NULL;
-
-	char* pathNfilename = dc_param_get(msg->param, DC_PARAM_FILE, NULL);
-	if (pathNfilename) {
-		if (strncmp("$BLOBDIR", pathNfilename, 8)==0)
-		{
-			char* strLikeFilename = dc_mprintf("%%f=%s%%", pathNfilename);
-			stmt = dc_sqlite3_prepare(context->sql,
-				"SELECT id FROM msgs WHERE type!=? AND param LIKE ?;"); /* if this gets too slow, an index over "type" should help. */
-			sqlite3_bind_int (stmt, 1, DC_MSG_TEXT);
-			sqlite3_bind_text(stmt, 2, strLikeFilename, -1, SQLITE_STATIC);
-			int file_used_by_other_msgs = (sqlite3_step(stmt)==SQLITE_ROW)? 1 : 0;
-			free(strLikeFilename);
-			sqlite3_finalize(stmt);
-			stmt = NULL;
-
-			if (!file_used_by_other_msgs)
-			{
-				dc_delete_file(context, pathNfilename);
-
-				char* increation_file = dc_mprintf("%s.increation", pathNfilename);
-				dc_delete_file(context, increation_file);
-				free(increation_file);
-
-				char* filenameOnly = dc_get_filename(pathNfilename);
-				if (msg->type==DC_MSG_VOICE) {
-					char* waveform_file = dc_mprintf("%s/%s.waveform", context->blobdir, filenameOnly);
-					dc_delete_file(context, waveform_file);
-					free(waveform_file);
-				}
-				else if (msg->type==DC_MSG_VIDEO) {
-					char* preview_file = dc_mprintf("%s/%s-preview.jpg", context->blobdir, filenameOnly);
-					dc_delete_file(context, preview_file);
-					free(preview_file);
-				}
-				free(filenameOnly);
-			}
-		}
-		free(pathNfilename);
-	}
+	dc_delete_msg_from_db(context, msg->id);
 
 cleanup:
-	sqlite3_finalize(stmt);
 	dc_msg_unref(msg);
 }
 

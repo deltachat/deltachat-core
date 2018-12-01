@@ -73,6 +73,8 @@ char*           dc_msg_get_summarytext_by_raw         (int type, const char* tex
 void            dc_msg_save_param_to_disk             (dc_msg_t*);
 void            dc_msg_guess_msgtype_from_suffix      (const char* pathNfilename, int* ret_msgtype, char** ret_mime);
 
+void            dc_delete_msg_from_db                 (dc_context_t*, uint32_t);
+
 #define DC_MSG_NEEDS_ATTACHMENT(a)         ((a)==DC_MSG_IMAGE || (a)==DC_MSG_GIF || (a)==DC_MSG_AUDIO || (a)==DC_MSG_VOICE || (a)==DC_MSG_VIDEO || (a)==DC_MSG_FILE)
 
 
