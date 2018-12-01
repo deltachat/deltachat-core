@@ -1616,7 +1616,7 @@ uint32_t dc_create_group_chat(dc_context_t* context, int verified, const char* c
 		goto cleanup;
 	}
 
-	if (dc_add_to_chat_contacts_table(context, chat_id, DC_CONTACT_ID_SELF)) {
+	if (!dc_add_to_chat_contacts_table(context, chat_id, DC_CONTACT_ID_SELF)) {
 		goto cleanup;
 	}
 
