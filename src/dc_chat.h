@@ -19,8 +19,6 @@ struct _dc_chat
 	uint32_t        id;
 	int             type;             /**< Chat type. Use dc_chat_get_type() to access this field. */
 	char*           name;             /**< Name of the chat. Use dc_chat_get_name() to access this field. NULL if unset. */
-	char*           draft_text;	    /**< Draft text. NULL if there is no draft. */
-	time_t          draft_timestamp;  /**< Timestamp of the draft. 0 if there is no draft. */
 	int             archived;         /**< Archived state. Better use dc_chat_get_archived() to access this object. */
 	dc_context_t*   context;          /**< The context object the chat belongs to. */
 	char*           grpid;            /**< Group ID that is used by all clients. Only used if the chat is a group. NULL if unset */
