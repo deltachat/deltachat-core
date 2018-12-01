@@ -199,19 +199,6 @@ dc_lot_t* dc_chatlist_get_summary(const dc_chatlist_t* chatlist, size_t index, d
 	{
 		ret->text2 = dc_strdup(NULL);
 	}
-	else if (chat->draft_timestamp
-	      && chat->draft_text
-	      && (lastmsg==NULL || chat->draft_timestamp>lastmsg->timestamp))
-	{
-		/* show the draft as the last message */
-		ret->text1 = dc_stock_str(chatlist->context, DC_STR_DRAFT);
-		ret->text1_meaning = DC_TEXT1_DRAFT;
-
-		ret->text2 = dc_strdup(chat->draft_text);
-		dc_truncate_n_unwrap_str(ret->text2, DC_SUMMARY_CHARACTERS, 1/*unwrap*/);
-
-		ret->timestamp = chat->draft_timestamp;
-	}
 	else if (lastmsg==NULL || lastmsg->from_id==0)
 	{
 		/* no messages */
@@ -299,7 +286,7 @@ static int dc_chatlist_load_from_db(dc_chatlist_t* chatlist, int listflags, cons
 	                " LEFT JOIN msgs m ON (c.id=m.chat_id AND m.hidden=0 AND m.timestamp=(SELECT MAX(timestamp) FROM msgs WHERE chat_id=c.id AND hidden=0)) " /* not: `m.hidden` which would refer the outer select and takes lot of time*/ \
 	                " WHERE c.id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL) " AND c.blocked=0"
 	#define QUR2    " GROUP BY c.id " /* GROUP BY is needed as there may be several messages with the same timestamp */ \
-	                " ORDER BY MAX(c.draft_timestamp, IFNULL(m.timestamp,0)) DESC,m.id DESC;" /* the list starts with the newest chats */
+	                " ORDER BY IFNULL(m.timestamp,0) DESC,m.id DESC;" /* the list starts with the newest chats */
 
 	// nb: the query currently shows messages from blocked contacts in groups.
 	// however, for normal-groups, this is okay as the message is also returned by dc_get_chat_msgs()
