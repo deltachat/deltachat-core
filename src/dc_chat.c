@@ -1059,7 +1059,7 @@ static uint32_t get_draft_msg_id(dc_context_t* context, uint32_t chat_id)
 
 static int set_draft_raw(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 {
-	// similar to as dc_set_draft() but does not send a message
+	// similar to as dc_set_draft() but does not emit an event
 	sqlite3_stmt* stmt = NULL;
 	char*         pathNfilename = NULL;
 	uint32_t      prev_draft_msg_id = 0;
