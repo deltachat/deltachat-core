@@ -71,11 +71,6 @@ void dc_chat_empty(dc_chat_t* chat)
 	free(chat->name);
 	chat->name = NULL;
 
-	chat->draft_timestamp = 0;
-
-	free(chat->draft_text);
-	chat->draft_text = NULL;
-
 	chat->type = DC_CHAT_TYPE_UNDEFINED;
 	chat->id   = 0;
 
@@ -368,7 +363,6 @@ int dc_chat_update_param(dc_chat_t* chat)
 static int set_from_stmt(dc_chat_t* chat, sqlite3_stmt* row)
 {
 	int         row_offset = 0;
-	const char* draft_text = NULL;
 
 	if (chat==NULL || chat->magic!=DC_CHAT_MAGIC || row==NULL) {
 		return 0;
@@ -376,25 +370,14 @@ static int set_from_stmt(dc_chat_t* chat, sqlite3_stmt* row)
 
 	dc_chat_empty(chat);
 
-	#define CHAT_FIELDS " c.id,c.type,c.name, c.draft_timestamp,c.draft_txt,c.grpid,c.param,c.archived, c.blocked "
+	#define CHAT_FIELDS " c.id,c.type,c.name, c.grpid,c.param,c.archived, c.blocked "
 	chat->id              =                    sqlite3_column_int  (row, row_offset++); /* the columns are defined in CHAT_FIELDS */
 	chat->type            =                    sqlite3_column_int  (row, row_offset++);
 	chat->name            =   dc_strdup((char*)sqlite3_column_text (row, row_offset++));
-	chat->draft_timestamp =                    sqlite3_column_int64(row, row_offset++);
-	draft_text            =       (const char*)sqlite3_column_text (row, row_offset++);
 	chat->grpid           =   dc_strdup((char*)sqlite3_column_text (row, row_offset++));
 	dc_param_set_packed(chat->param,    (char*)sqlite3_column_text (row, row_offset++));
 	chat->archived        =                    sqlite3_column_int  (row, row_offset++);
 	chat->blocked         =                    sqlite3_column_int  (row, row_offset++);
-
-	/* We leave a NULL-pointer for the very usual situation of "no draft".
-	Also make sure, draft_text and draft_timestamp are set together */
-	if (chat->draft_timestamp && draft_text && draft_text[0]) {
-		chat->draft_text = dc_strdup(draft_text);
-	}
-	else {
-		chat->draft_timestamp = 0;
-	}
 
 	/* correct the title of some special groups */
 	if (chat->id==DC_CHAT_ID_DEADDROP) {
@@ -1057,6 +1040,96 @@ cleanup:
 }
 
 
+static uint32_t get_draft_msg_id(dc_context_t* context, uint32_t chat_id)
+{
+	uint32_t draft_msg_id = 0;
+
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->sql,
+		"SELECT id FROM msgs WHERE chat_id=? AND state=?;");
+	sqlite3_bind_int(stmt, 1, chat_id);
+	sqlite3_bind_int(stmt, 2, DC_STATE_OUT_DRAFT);
+	if (sqlite3_step(stmt)==SQLITE_ROW) {
+		draft_msg_id = sqlite3_column_int(stmt, 0);
+	}
+	sqlite3_finalize(stmt);
+
+	return draft_msg_id;
+}
+
+
+static int set_draft_raw(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
+{
+	// similar to as dc_set_draft() but does not emit an event
+	sqlite3_stmt* stmt = NULL;
+	char*         pathNfilename = NULL;
+	uint32_t      prev_draft_msg_id = 0;
+	int           sth_changed = 0;
+
+	// delete old draft
+	prev_draft_msg_id = get_draft_msg_id(context, chat_id);
+	if (prev_draft_msg_id) {
+		dc_delete_msg_from_db(context, prev_draft_msg_id);
+		sth_changed = 1;
+	}
+
+	// save new draft
+	if (msg==NULL)
+	{
+		goto cleanup;
+	}
+	else if (msg->type==DC_MSG_TEXT)
+	{
+		if (msg->text==NULL || msg->text[0]==0) {
+			goto cleanup;
+		}
+	}
+	else if (DC_MSG_NEEDS_ATTACHMENT(msg->type))
+	{
+		pathNfilename = dc_param_get(msg->param, DC_PARAM_FILE, NULL);
+		if (pathNfilename==NULL) {
+			goto cleanup;
+		}
+
+		if (dc_msg_is_increation(msg) && !dc_is_blobdir_path(context, pathNfilename)) {
+			goto cleanup;
+		}
+
+		if (!dc_make_rel_and_copy(context, &pathNfilename)) {
+			goto cleanup;
+		}
+		dc_param_set(msg->param, DC_PARAM_FILE, pathNfilename);
+	}
+	else
+	{
+		goto cleanup;
+	}
+
+	stmt = dc_sqlite3_prepare(context->sql,
+		"INSERT INTO msgs (chat_id, from_id, timestamp,"
+		" type, state, txt, param, hidden)"
+		" VALUES (?,?,?, ?,?,?,?,?);");
+	sqlite3_bind_int  (stmt,  1, chat_id);
+	sqlite3_bind_int  (stmt,  2, DC_CONTACT_ID_SELF);
+	sqlite3_bind_int64(stmt,  3, time(NULL));
+	sqlite3_bind_int  (stmt,  4, msg->type);
+	sqlite3_bind_int  (stmt,  5, DC_STATE_OUT_DRAFT);
+	sqlite3_bind_text (stmt,  6, msg->text? msg->text : "",  -1, SQLITE_STATIC);
+	sqlite3_bind_text (stmt,  7, msg->param->packed, -1, SQLITE_STATIC);
+	sqlite3_bind_int  (stmt,  8, 1);
+	if (sqlite3_step(stmt)!=SQLITE_DONE) {
+		goto cleanup;
+	}
+
+	sth_changed = 1;
+
+
+cleanup:
+	sqlite3_finalize(stmt);
+	free(pathNfilename);
+	return sth_changed;
+}
+
+
 /**
  * Save a draft for a chat in the database.
  *
@@ -1085,49 +1158,13 @@ cleanup:
  */
 void dc_set_draft(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 {
-	sqlite3_stmt* stmt = NULL;
-	dc_chat_t*    chat = NULL;
-	const char*   text = NULL;
-
-	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
-		goto cleanup;
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || chat_id<=DC_CHAT_ID_LAST_SPECIAL) {
+		return;
 	}
 
-	if ((chat=dc_get_chat(context, chat_id))==NULL) {
-		goto cleanup;
+	if (set_draft_raw(context, chat_id, msg)) {
+		context->cb(context, DC_EVENT_MSGS_CHANGED, chat_id, 0);
 	}
-
-	if (msg && msg->type==DC_MSG_TEXT && msg->text && msg->text[0]) {
-		text = msg->text;
-	}
-
-	if (chat->draft_text==NULL && text==NULL
-	 && chat->draft_timestamp==0) {
-		goto cleanup; // nothing to do - there is no old and no new draft
-	}
-
-	if (chat->draft_timestamp && chat->draft_text && text && strcmp(chat->draft_text, text)==0) {
-		goto cleanup; // for equal texts, we do not update the timestamp
-	}
-
-	// save draft in object - NULL or empty: clear draft
-	free(chat->draft_text);
-	chat->draft_text      = text? dc_strdup(text) : NULL;
-	chat->draft_timestamp = text? time(NULL) : 0;
-
-	// save draft in database
-	stmt = dc_sqlite3_prepare(context->sql,
-		"UPDATE chats SET draft_timestamp=?, draft_txt=? WHERE id=?;");
-	sqlite3_bind_int64(stmt, 1, chat->draft_timestamp);
-	sqlite3_bind_text (stmt, 2, chat->draft_text? chat->draft_text : "", -1, SQLITE_STATIC);
-	sqlite3_bind_int  (stmt, 3, chat->id);
-	sqlite3_step(stmt);
-
-	context->cb(context, DC_EVENT_MSGS_CHANGED, chat_id, 0);
-
-cleanup:
-	sqlite3_finalize(stmt);
-	dc_chat_unref(chat);
 }
 
 
@@ -1145,26 +1182,26 @@ cleanup:
  */
 dc_msg_t* dc_get_draft(dc_context_t* context, uint32_t chat_id)
 {
-	dc_chat_t* chat = NULL;
-	dc_msg_t*  msg = NULL;
+	uint32_t  draft_msg_id = 0;
+	dc_msg_t* draft_msg = NULL;
 
-	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
-		goto cleanup;
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC
+	 || chat_id<=DC_CHAT_ID_LAST_SPECIAL) {
+		return NULL;
 	}
 
-	if ((chat=dc_get_chat(context, chat_id))==NULL) {
-		goto cleanup;
+	draft_msg_id = get_draft_msg_id(context, chat_id);
+	if (draft_msg_id==0) {
+		return NULL;
 	}
 
-	if (chat->draft_text && chat->draft_text[0]) {
-		msg = dc_msg_new(context, DC_MSG_TEXT);
-		msg->text = dc_strdup(chat->draft_text);
-		msg->timestamp = chat->draft_timestamp;
+	draft_msg = dc_msg_new_untyped(context);
+	if (!dc_msg_load_from_db(draft_msg, context, draft_msg_id)) {
+		dc_msg_unref(draft_msg);
+		return NULL;
 	}
 
-cleanup:
-	dc_chat_unref(chat);
-	return msg;
+	return draft_msg;
 }
 
 
@@ -1591,6 +1628,7 @@ uint32_t dc_create_group_chat(dc_context_t* context, int verified, const char* c
 {
 	uint32_t      chat_id = 0;
 	char*         draft_txt = NULL;
+	dc_msg_t*     draft_msg = NULL;
 	char*         grpid = NULL;
 	sqlite3_stmt* stmt = NULL;
 
@@ -1602,12 +1640,10 @@ uint32_t dc_create_group_chat(dc_context_t* context, int verified, const char* c
 	grpid = dc_create_id();
 
 	stmt = dc_sqlite3_prepare(context->sql,
-		"INSERT INTO chats (type, name, draft_timestamp, draft_txt, grpid, param) VALUES(?, ?, ?, ?, ?, 'U=1');" /*U=DC_PARAM_UNPROMOTED*/);
+		"INSERT INTO chats (type, name, grpid, param) VALUES(?, ?, ?, 'U=1');" /*U=DC_PARAM_UNPROMOTED*/);
 	sqlite3_bind_int  (stmt, 1, verified? DC_CHAT_TYPE_VERIFIED_GROUP : DC_CHAT_TYPE_GROUP);
 	sqlite3_bind_text (stmt, 2, chat_name, -1, SQLITE_STATIC);
-	sqlite3_bind_int64(stmt, 3, time(NULL));
-	sqlite3_bind_text (stmt, 4, draft_txt, -1, SQLITE_STATIC);
-	sqlite3_bind_text (stmt, 5, grpid, -1, SQLITE_STATIC);
+	sqlite3_bind_text (stmt, 3, grpid, -1, SQLITE_STATIC);
 	if ( sqlite3_step(stmt)!=SQLITE_DONE) {
 		goto cleanup;
 	}
@@ -1616,13 +1652,18 @@ uint32_t dc_create_group_chat(dc_context_t* context, int verified, const char* c
 		goto cleanup;
 	}
 
-	if (dc_add_to_chat_contacts_table(context, chat_id, DC_CONTACT_ID_SELF)) {
+	if (!dc_add_to_chat_contacts_table(context, chat_id, DC_CONTACT_ID_SELF)) {
 		goto cleanup;
 	}
+
+	draft_msg = dc_msg_new(context, DC_MSG_TEXT);
+	dc_msg_set_text(draft_msg, draft_txt);
+	set_draft_raw(context, chat_id, draft_msg);
 
 cleanup:
 	sqlite3_finalize(stmt);
 	free(draft_txt);
+	dc_msg_unref(draft_msg);
 	free(grpid);
 
 	if (chat_id) {

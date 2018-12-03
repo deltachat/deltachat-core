@@ -181,7 +181,12 @@ void dc_lot_fill(dc_lot_t* lot, const dc_msg_t* msg, const dc_chat_t* chat, cons
 		return;
 	}
 
-	if (msg->from_id==DC_CONTACT_ID_SELF)
+	if (msg->state==DC_STATE_OUT_DRAFT)
+	{
+		lot->text1 = dc_stock_str(context, DC_STR_DRAFT);
+		lot->text1_meaning = DC_TEXT1_DRAFT;
+	}
+	else if (msg->from_id==DC_CONTACT_ID_SELF)
 	{
 		if (dc_msg_is_info(msg)) {
 			lot->text1 = NULL;

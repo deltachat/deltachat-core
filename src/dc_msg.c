@@ -1594,6 +1594,80 @@ void dc_star_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt, i
  ******************************************************************************/
 
 
+ /**
+  * Low-level function to delete a message from the database.
+  * This does not delete the messages from the server.
+  *
+  * @private @memberof dc_context_t
+  */
+void dc_delete_msg_from_db(dc_context_t* context, uint32_t msg_id)
+{
+	dc_msg_t*     msg = dc_msg_new_untyped(context);
+	sqlite3_stmt* stmt = NULL;
+
+	if (!dc_msg_load_from_db(msg, context, msg_id)) {
+		goto cleanup;
+	}
+
+	stmt = dc_sqlite3_prepare(context->sql,
+		"DELETE FROM msgs WHERE id=?;");
+	sqlite3_bind_int(stmt, 1, msg->id);
+	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+	stmt = NULL;
+
+	stmt = dc_sqlite3_prepare(context->sql,
+		"DELETE FROM msgs_mdns WHERE msg_id=?;");
+	sqlite3_bind_int(stmt, 1, msg->id);
+	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+	stmt = NULL;
+
+	char* pathNfilename = dc_param_get(msg->param, DC_PARAM_FILE, NULL);
+	if (pathNfilename) {
+		if (strncmp("$BLOBDIR", pathNfilename, 8)==0)
+		{
+			char* strLikeFilename = dc_mprintf("%%f=%s%%", pathNfilename);
+			stmt = dc_sqlite3_prepare(context->sql,
+				"SELECT id FROM msgs WHERE type!=? AND param LIKE ?;"); /* if this gets too slow, an index over "type" should help. */
+			sqlite3_bind_int (stmt, 1, DC_MSG_TEXT);
+			sqlite3_bind_text(stmt, 2, strLikeFilename, -1, SQLITE_STATIC);
+			int file_used_by_other_msgs = (sqlite3_step(stmt)==SQLITE_ROW)? 1 : 0;
+			free(strLikeFilename);
+			sqlite3_finalize(stmt);
+			stmt = NULL;
+
+			if (!file_used_by_other_msgs)
+			{
+				dc_delete_file(context, pathNfilename);
+
+				char* increation_file = dc_mprintf("%s.increation", pathNfilename);
+				dc_delete_file(context, increation_file);
+				free(increation_file);
+
+				char* filenameOnly = dc_get_filename(pathNfilename);
+				if (msg->type==DC_MSG_VOICE) {
+					char* waveform_file = dc_mprintf("%s/%s.waveform", context->blobdir, filenameOnly);
+					dc_delete_file(context, waveform_file);
+					free(waveform_file);
+				}
+				else if (msg->type==DC_MSG_VIDEO) {
+					char* preview_file = dc_mprintf("%s/%s-preview.jpg", context->blobdir, filenameOnly);
+					dc_delete_file(context, preview_file);
+					free(preview_file);
+				}
+				free(filenameOnly);
+			}
+		}
+		free(pathNfilename);
+	}
+
+cleanup:
+	sqlite3_finalize(stmt);
+	dc_msg_unref(msg);
+}
+
+
 /**
  * Delete messages. The messages are deleted on the current device and
  * on the IMAP server.

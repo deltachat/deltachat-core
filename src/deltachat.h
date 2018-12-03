@@ -489,6 +489,7 @@ typedef struct _dc_msg dc_msg_t;
 #define         DC_STATE_IN_FRESH            10
 #define         DC_STATE_IN_NOTICED          13
 #define         DC_STATE_IN_SEEN             16
+#define         DC_STATE_OUT_DRAFT           19
 #define         DC_STATE_OUT_PENDING         20
 #define         DC_STATE_OUT_FAILED          24
 #define         DC_STATE_OUT_DELIVERED       26 // to check if a mail was sent, use dc_msg_is_sent()
