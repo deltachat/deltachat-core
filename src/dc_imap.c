@@ -718,7 +718,9 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 
 	if (imap->server_flags&(DC_LP_IMAP_SOCKET_STARTTLS|DC_LP_IMAP_SOCKET_PLAIN))
 	{
+          printf("dc_imap: before calling mailimap_socket_connect\n");
 		r = mailimap_socket_connect(imap->etpan, imap->imap_server, imap->imap_port);
+                printf("dc_imap: after calling mailimap_socket_connect %i\n", (int)r);
 		if (is_error(imap, r)) {
 			dc_log_event_seq(imap->context, DC_EVENT_ERROR_NETWORK, &imap->log_connect_errors,
 				"Could not connect to IMAP-server %s:%i. (Error #%i)", imap->imap_server, (int)imap->imap_port, (int)r);
@@ -742,7 +744,9 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 	}
 	else
 	{
+          printf("dc_imap: before calling mailimap_ssl_connect\n");
 		r = mailimap_ssl_connect(imap->etpan, imap->imap_server, imap->imap_port);
+                printf("dc_imap: after calling mailimap_ssl_connect %i\n", (int)r);
 		if (is_error(imap, r)) {
 			dc_log_event_seq(imap->context, DC_EVENT_ERROR_NETWORK, &imap->log_connect_errors,
 				"Could not connect to IMAP-server %s:%i using SSL. (Error #%i)", imap->imap_server, (int)imap->imap_port, (int)r);

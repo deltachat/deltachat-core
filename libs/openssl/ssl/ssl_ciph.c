@@ -1533,6 +1533,10 @@ STACK_OF(SSL_CIPHER) *ssl_create_cipher_list(const SSL_METHOD *ssl_method, STACK
         return (NULL);
     }
 
+    if (head == NULL) {
+      printf("head is NULL so we will not map over ciphers at all\n");
+    }
+
     /*
      * The cipher selection for the list is done. The ciphers are added
      * to the resulting precedence to the STACK_OF(SSL_CIPHER).
@@ -1545,10 +1549,13 @@ STACK_OF(SSL_CIPHER) *ssl_create_cipher_list(const SSL_METHOD *ssl_method, STACK
         if (curr->active)
 #endif
         {
+          printf("--- pushing active cipher on to cipherstack\n");
             sk_SSL_CIPHER_push(cipherstack, curr->cipher);
 #ifdef CIPHER_DEBUG
             fprintf(stderr, "<%s>\n", curr->cipher->name);
 #endif
+        } else {
+          printf("--- cipher inactive\n");
         }
     }
     OPENSSL_free(co_list);      /* Not needed any longer */
@@ -1568,6 +1575,7 @@ STACK_OF(SSL_CIPHER) *ssl_create_cipher_list(const SSL_METHOD *ssl_method, STACK
                                      ssl_cipher_ptr_id_cmp);
 
     sk_SSL_CIPHER_sort(*cipher_list_by_id);
+    printf("ssl_create_cipher_list returning at the END\n");
     return (cipherstack);
 }
 

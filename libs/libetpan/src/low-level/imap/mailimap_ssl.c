@@ -70,12 +70,14 @@ int mailimap_ssl_connect_with_callback(mailimap * f, const char * server, uint16
 int mailimap_ssl_connect_voip_with_callback(mailimap * f, const char * server, uint16_t port, int voip_enabled,
     void (* callback)(struct mailstream_ssl_context * ssl_context, void * data), void * data)
 {
+  printf("mailimap_ssl_connect_voip_with_callback\n");
   int s;
   mailstream * stream;
 
 #if HAVE_CFNETWORK
   if (mailstream_cfstream_enabled) {
     if (callback == NULL) {
+      printf("-> returning result from mailimap_cfssl_connect_voip\n");
       return mailimap_cfssl_connect_voip(f, server, port, voip_enabled);
     }
   }
@@ -90,8 +92,10 @@ int mailimap_ssl_connect_voip_with_callback(mailimap * f, const char * server, u
   /* Connection */
 
   s = mail_tcp_connect_timeout(server, port, f->imap_timeout);
-  if (s == -1)
+  if (s == -1) {
+    printf("-> returning MAILIMAP_ERROR_CONNECTION_REFUSED\n");
     return MAILIMAP_ERROR_CONNECTION_REFUSED;
+  }
 
   stream = mailstream_ssl_open_with_callback_timeout(s, f->imap_timeout, callback, data);
   if (stream == NULL) {
@@ -100,19 +104,23 @@ int mailimap_ssl_connect_voip_with_callback(mailimap * f, const char * server, u
 #else
     close(s);
 #endif
+    printf("-> returning MAILIMAP_ERROR_SSL\n");
     return MAILIMAP_ERROR_SSL;
   }
 
+  printf("-> calling mailimap_connect\n");
   return mailimap_connect(f, stream);
 }
 
 int mailimap_ssl_connect(mailimap * f, const char * server, uint16_t port)
 {
+  printf("mailimap_ssl_connect\n");
   return mailimap_ssl_connect_voip(f, server, port, mailstream_cfstream_voip_enabled);
 }
 
 int mailimap_ssl_connect_voip(mailimap * f, const char * server, uint16_t port, int voip_enabled)
 {
+  printf("mailimap_ssl_connect_voip\n");
   return mailimap_ssl_connect_voip_with_callback(f, server, port, voip_enabled,
       NULL, NULL);
 }

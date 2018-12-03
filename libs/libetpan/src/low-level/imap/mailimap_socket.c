@@ -69,6 +69,7 @@ int mailimap_socket_connect_voip(mailimap * f, const char * server, uint16_t por
 
   #if HAVE_CFNETWORK
     if (mailstream_cfstream_enabled) {
+      printf("returning from mailstream_cfstream_enabled\n");
       return mailimap_cfsocket_connect_voip(f, server, port, voip_enabled);
     }
   #endif
@@ -82,8 +83,10 @@ int mailimap_socket_connect_voip(mailimap * f, const char * server, uint16_t por
     /* Connection */
 
     s = mail_tcp_connect_timeout(server, port, f->imap_timeout);
-    if (s == -1)
+    if (s == -1) {
+      printf("mail_tcp_connect_timeout returning MAILIMAP_ERROR_CONNECTION_REFUSED\n");
       return MAILIMAP_ERROR_CONNECTION_REFUSED;
+    }
 
     stream = mailstream_socket_open_timeout(s, f->imap_timeout);
     if (stream == NULL) {
@@ -92,15 +95,18 @@ int mailimap_socket_connect_voip(mailimap * f, const char * server, uint16_t por
   #else
       close(s);
   #endif
+      printf("returning MAILIMAP_ERROR_MEMORY\n");
       return MAILIMAP_ERROR_MEMORY;
     }
 
+    printf("calling mailimap_connect and returning from there\n");
     return mailimap_connect(f, stream);
 }
 
 LIBETPAN_EXPORT
 int mailimap_socket_connect(mailimap * f, const char * server, uint16_t port)
 {
+  printf("int mailimap_socket_connect %s %d\n", server, port);
   return mailimap_socket_connect_voip(f, server, port, mailstream_cfstream_voip_enabled);
 }
 

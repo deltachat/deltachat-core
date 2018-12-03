@@ -431,6 +431,8 @@ static struct mailstream_ssl_data * ssl_data_new_full(int fd, time_t timeout,
 	const SSL_METHOD * method, void (* callback)(struct mailstream_ssl_context * ssl_context, void * cb_data),
 	void * cb_data)
 {
+  printf("ssl_data_new_full\n");
+
   struct mailstream_ssl_data * ssl_data;
   SSL * ssl_conn;
   int r;
@@ -444,8 +446,10 @@ static struct mailstream_ssl_data * ssl_data_new_full(int fd, time_t timeout,
   mailstream_ssl_init();
   
   tmp_ctx = SSL_CTX_new(method);
-  if (tmp_ctx == NULL)
+  if (tmp_ctx == NULL) {
+    printf("-> tmp_ctx is NULL\n");
     goto err;
+  }
   
   if (callback != NULL) {
     ssl_context = mailstream_ssl_context_new(tmp_ctx, fd);
@@ -461,45 +465,61 @@ static struct mailstream_ssl_data * ssl_data_new_full(int fd, time_t timeout,
   SSL_set_mode(ssl_conn, mode | SSL_MODE_RELEASE_BUFFERS);
 #endif
   
-  if (ssl_conn == NULL)
+  if (ssl_conn == NULL) {
+    printf("-> ssl_conn is NULL\n");
     goto free_ctx;
+  }
   
-  if (SSL_set_fd(ssl_conn, fd) == 0)
+  if (SSL_set_fd(ssl_conn, fd) == 0) {
+    printf("-> SSL_set_fs() returned 0\n");
     goto free_ssl_conn;
-  
+  }
 again:
   r = SSL_connect(ssl_conn);
 
   switch(SSL_get_error(ssl_conn, r)) {
   	case SSL_ERROR_WANT_READ:
           r = wait_SSL_connect(fd, 1, timeout);
-          if (r < 0)
+          if (r < 0) {
+            printf("-> SSL_ERROR_WANT_READ wait_SSL_connect()\n");
             goto free_ssl_conn;
+          }
 	  else
 	    goto again;
 	break;
 	case SSL_ERROR_WANT_WRITE:
           r = wait_SSL_connect(fd, 0, timeout);
-          if (r < 0)
+          if (r < 0) {
+            printf("-> SSL_ERROR_WANT_WRITE wait_SSL_connect()\n");
             goto free_ssl_conn;
+          }
 	  else
 	    goto again;
 	break;
   }
-  if (r <= 0)
+
+  if (r <= 0) {
+    printf("-> failed to connect in switch/again dance\n");
     goto free_ssl_conn;
+  }
   
   cancel = mailstream_cancel_new();
-  if (cancel == NULL)
+  if (cancel == NULL) {
+    printf("-> mailstream_cancel_new() returned NULL\n");
     goto free_ssl_conn;
+  }
   
   r = mailstream_prepare_fd(fd);
-  if (r < 0)
+  if (r < 0) {
+    printf("-> mailstream_prepare_fd() failed\n");
     goto free_cancel;
+  }
   
   ssl_data = malloc(sizeof(* ssl_data));
-  if (ssl_data == NULL)
+  if (ssl_data == NULL) {
+    printf("-> ssl_data malloc failed\n");
     goto free_cancel;
+  }
   
   ssl_data->fd = fd;
   ssl_data->ssl_conn = ssl_conn;
@@ -507,6 +527,7 @@ again:
   ssl_data->cancel = cancel;
   mailstream_ssl_context_free(ssl_context);
 
+  printf("SSL_DATA ok!\n");
   return ssl_data;
 
  free_cancel:
@@ -523,6 +544,12 @@ again:
 static struct mailstream_ssl_data * ssl_data_new(int fd, time_t timeout,
 	void (* callback)(struct mailstream_ssl_context * ssl_context, void * cb_data), void * cb_data)
 {
+#if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
+  printf("ssl_data_new TLS_client_method()\n");
+#else
+  printf("ssl_data_new SSLv23_client_method()\n");
+#endif
+
   return ssl_data_new_full(fd, timeout,
 #if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
 		TLS_client_method(),
@@ -717,18 +744,24 @@ static mailstream_low * mailstream_low_ssl_open_full(int fd, int starttls, time_
   void (* callback)(struct mailstream_ssl_context * ssl_context, void * cb_data), void * cb_data)
 {
 #ifdef USE_SSL
+  printf("mailstream_low_ssl_open_with_callback_timeout\n");
   mailstream_low * s;
   struct mailstream_ssl_data * ssl_data;
 
   ssl_data = ssl_data_new(fd, timeout, callback, cb_data);
 
-  if (ssl_data == NULL)
+  if (ssl_data == NULL) {
+    printf("-> ssl_data is NULL\n");
     goto err;
+  }
 
   s = mailstream_low_new(ssl_data, mailstream_ssl_driver);
-  if (s == NULL)
+  if (s == NULL) {
+    printf("-> mailstream_low_new returned NULL\n");
     goto free_ssl_data;
-	mailstream_low_set_timeout(s, timeout);
+  }
+
+  mailstream_low_set_timeout(s, timeout);
 
   return s;
 
@@ -1127,16 +1160,21 @@ mailstream * mailstream_ssl_open_with_callback_timeout(int fd, time_t timeout,
     void (* callback)(struct mailstream_ssl_context * ssl_context, void * data), void * data)
 {
 #ifdef USE_SSL
+  printf("mailstream_ssl_open_with_callback_timeout USE_SSL\n");
   mailstream_low * low;
   mailstream * s;
 
   low = mailstream_low_ssl_open_with_callback_timeout(fd, timeout, callback, data);
-  if (low == NULL)
+  if (low == NULL) {
+    printf("-> mailstream_low_ssl_open_with_callback_timeout returned NULL\n");
     goto err;
+  }
 
   s = mailstream_new(low, 8192);
-  if (s == NULL)
+  if (s == NULL) {
+    printf("-> mailstream_new returned NULL\n");
     goto free_low;
+  }
 
   return s;
 
@@ -1145,6 +1183,7 @@ mailstream * mailstream_ssl_open_with_callback_timeout(int fd, time_t timeout,
  err:
   return NULL;
 #else
+  printf("mailstream_ssl_open_with_callback_timeout ALWAYS returning NULL\n");
   return NULL;
 #endif
 }
@@ -1240,6 +1279,7 @@ mailstream_low * mailstream_low_ssl_open_with_callback(int fd,
 mailstream_low * mailstream_low_ssl_open_with_callback_timeout(int fd, time_t timeout,
     void (* callback)(struct mailstream_ssl_context * ssl_context, void * data), void * data)
 {
+  printf("mailstream_low_ssl_open_with_callback_timeout\n");
   return mailstream_low_ssl_open_full(fd, 0, timeout, callback, data);
 }
 

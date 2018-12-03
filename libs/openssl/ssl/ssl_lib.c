@@ -1709,26 +1709,32 @@ static IMPLEMENT_LHASH_COMP_FN(ssl_session, SSL_SESSION)
 
 SSL_CTX *SSL_CTX_new(const SSL_METHOD *meth)
 {
+  printf("SSL_CTX_new\n");
     SSL_CTX *ret = NULL;
 
     if (meth == NULL) {
+      printf("-> meth is NULL\n");
         SSLerr(SSL_F_SSL_CTX_NEW, SSL_R_NULL_SSL_METHOD_PASSED);
         return (NULL);
     }
 #ifdef OPENSSL_FIPS
     if (FIPS_mode() && (meth->version < TLS1_VERSION)) {
+      printf("-> FIPS_mode() ..\n");
         SSLerr(SSL_F_SSL_CTX_NEW, SSL_R_ONLY_TLS_ALLOWED_IN_FIPS_MODE);
         return NULL;
     }
 #endif
 
     if (SSL_get_ex_data_X509_STORE_CTX_idx() < 0) {
+      printf("-> SSL_get_ex_data_X509_STORE_CTX_idx() failed\n");
         SSLerr(SSL_F_SSL_CTX_NEW, SSL_R_X509_VERIFICATION_SETUP_PROBLEMS);
         goto err;
     }
     ret = (SSL_CTX *)OPENSSL_malloc(sizeof(SSL_CTX));
-    if (ret == NULL)
-        goto err;
+    if (ret == NULL) {
+      printf("-> OPENSSL_malloc() failed\n");
+      goto err;
+    }
 
     memset(ret, 0, sizeof(SSL_CTX));
 
@@ -1775,8 +1781,10 @@ SSL_CTX *SSL_CTX_new(const SSL_METHOD *meth)
 #endif
     ret->sid_ctx_length = 0;
     ret->default_verify_callback = NULL;
-    if ((ret->cert = ssl_cert_new()) == NULL)
+    if ((ret->cert = ssl_cert_new()) == NULL) {
+      printf("-> ssl_cert_new() returned NULL\n");
         goto err;
+    }
 
     ret->default_passwd_callback = 0;
     ret->default_passwd_callback_userdata = NULL;
@@ -1785,40 +1793,57 @@ SSL_CTX *SSL_CTX_new(const SSL_METHOD *meth)
     ret->app_verify_cookie_cb = 0;
 
     ret->sessions = lh_SSL_SESSION_new();
-    if (ret->sessions == NULL)
+    if (ret->sessions == NULL) {
+      printf("-> lh_SSL_SESSION_new() NULL\n");
         goto err;
+    }
     ret->cert_store = X509_STORE_new();
-    if (ret->cert_store == NULL)
+    if (ret->cert_store == NULL) {
+      printf("-> X509_STORE_new() NULL\n");
         goto err;
+    }
 
     ssl_create_cipher_list(ret->method,
                            &ret->cipher_list, &ret->cipher_list_by_id,
                            meth->version ==
                            SSL2_VERSION ? "SSLv2" : SSL_DEFAULT_CIPHER_LIST);
     if (ret->cipher_list == NULL || sk_SSL_CIPHER_num(ret->cipher_list) <= 0) {
-        SSLerr(SSL_F_SSL_CTX_NEW, SSL_R_LIBRARY_HAS_NO_CIPHERS);
-        goto err2;
+      printf("-> SSL_R_LIBRARY_HAS_NO_CIPHERS\n");
+      if (ret->cipher_list == NULL)
+        printf("--> because cipher_list is NULL\n");
+      else {
+        printf("--> because sk_SSL_CIPHER_num() returned %d\n", sk_SSL_CIPHER_num(ret->cipher_list));
+      }
+      SSLerr(SSL_F_SSL_CTX_NEW, SSL_R_LIBRARY_HAS_NO_CIPHERS);
+      goto err2;
     }
 
     ret->param = X509_VERIFY_PARAM_new();
-    if (!ret->param)
+    if (!ret->param) {
+      printf("-> X509_VERIFY_PARAM_new() returned NULL\n");
         goto err;
+    }
 
     if ((ret->rsa_md5 = EVP_get_digestbyname("ssl2-md5")) == NULL) {
+      printf("-> EVP_get_digestbyname(ssl2-md5) returned NULL\n");
         SSLerr(SSL_F_SSL_CTX_NEW, SSL_R_UNABLE_TO_LOAD_SSL2_MD5_ROUTINES);
         goto err2;
     }
     if ((ret->md5 = EVP_get_digestbyname("ssl3-md5")) == NULL) {
+      printf("-> EVP_get_digestbyname(ssl3-md5) returned NULL\n");
         SSLerr(SSL_F_SSL_CTX_NEW, SSL_R_UNABLE_TO_LOAD_SSL3_MD5_ROUTINES);
         goto err2;
     }
     if ((ret->sha1 = EVP_get_digestbyname("ssl3-sha1")) == NULL) {
+      printf("-> EVP_get_digestbyname(ssl3-sha1) returned NULL\n");
         SSLerr(SSL_F_SSL_CTX_NEW, SSL_R_UNABLE_TO_LOAD_SSL3_SHA1_ROUTINES);
         goto err2;
     }
 
-    if ((ret->client_CA = sk_X509_NAME_new_null()) == NULL)
+    if ((ret->client_CA = sk_X509_NAME_new_null()) == NULL) {
+      printf("-> sk_X509_NAME_new_null() returned NULL\n");
         goto err;
+    }
 
     CRYPTO_new_ex_data(CRYPTO_EX_INDEX_SSL_CTX, ret, &ret->ex_data);
 
@@ -1857,13 +1882,16 @@ SSL_CTX *SSL_CTX_new(const SSL_METHOD *meth)
 #ifndef OPENSSL_NO_BUF_FREELISTS
     ret->freelist_max_len = SSL_MAX_BUF_FREELIST_LEN_DEFAULT;
     ret->rbuf_freelist = OPENSSL_malloc(sizeof(SSL3_BUF_FREELIST));
-    if (!ret->rbuf_freelist)
+    if (!ret->rbuf_freelist) {
+      printf("-> OPENSSL_malloc() returned NULL to rbuf_freelist\n");
         goto err;
+    }
     ret->rbuf_freelist->chunklen = 0;
     ret->rbuf_freelist->len = 0;
     ret->rbuf_freelist->head = NULL;
     ret->wbuf_freelist = OPENSSL_malloc(sizeof(SSL3_BUF_FREELIST));
     if (!ret->wbuf_freelist) {
+      printf("-> OPENSSL_malloc() returned NULL to wbuf_freelist\n");
         OPENSSL_free(ret->rbuf_freelist);
         goto err;
     }
@@ -1903,12 +1931,14 @@ SSL_CTX *SSL_CTX_new(const SSL_METHOD *meth)
      */
     ret->options |= SSL_OP_NO_SSLv2;
 
+    printf("-> SSL_CTX_new() OK!\n");
     return (ret);
  err:
     SSLerr(SSL_F_SSL_CTX_NEW, ERR_R_MALLOC_FAILURE);
  err2:
     if (ret != NULL)
         SSL_CTX_free(ret);
+    printf("-> returning NULL at the end\n");
     return (NULL);
 }
 
