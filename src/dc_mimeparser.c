@@ -643,7 +643,18 @@ static int mailmime_is_attachment_disposition(struct mailmime* mime)
 }
 
 
-static int mailmime_get_mime_type(struct mailmime* mime, int* msg_type)
+static void reconcat_mime(char** raw_mime, const char* type, const char* subtype)
+{
+	if (raw_mime) {
+		*raw_mime = dc_mprintf("%s/%s",
+			type? type : "application",
+			subtype? subtype : "octet-stream");
+	}
+}
+
+
+static int mailmime_get_mime_type(struct mailmime* mime, int* msg_type,
+	char** raw_mime /*set only for discrete types with attachments*/)
 {
 	#define DC_MIMETYPE_MP_ALTERNATIVE      10
 	#define DC_MIMETYPE_MP_RELATED          20
@@ -686,6 +697,7 @@ static int mailmime_get_mime_type(struct mailmime* mime, int* msg_type)
 						return DC_MIMETYPE_TEXT_HTML;
                     }
 					*msg_type = DC_MSG_FILE;
+					reconcat_mime(raw_mime, "text", c->ct_subtype);
 					return DC_MIMETYPE_FILE;
 
 				case MAILMIME_DISCRETE_TYPE_IMAGE:
@@ -694,27 +706,33 @@ static int mailmime_get_mime_type(struct mailmime* mime, int* msg_type)
 					}
 					else if (strcmp(c->ct_subtype, "svg+xml")==0) {
 						*msg_type = DC_MSG_FILE;
+						reconcat_mime(raw_mime, "image", c->ct_subtype);
 						return DC_MIMETYPE_FILE;
 					}
 					else {
 						*msg_type = DC_MSG_IMAGE;
 					}
+					reconcat_mime(raw_mime, "image", c->ct_subtype);
 					return DC_MIMETYPE_IMAGE;
 
 				case MAILMIME_DISCRETE_TYPE_AUDIO:
 					*msg_type = DC_MSG_AUDIO; /* we correct this later to DC_MSG_VOICE, currently, this is not possible as we do not know the main header */
+					reconcat_mime(raw_mime, "audio", c->ct_subtype);
 					return DC_MIMETYPE_AUDIO;
 
 				case MAILMIME_DISCRETE_TYPE_VIDEO:
 					*msg_type = DC_MSG_VIDEO;
+					reconcat_mime(raw_mime, "video", c->ct_subtype);
 					return DC_MIMETYPE_VIDEO;
 
 				default:
 					*msg_type = DC_MSG_FILE;
 					if (c->ct_type->tp_data.tp_discrete_type->dt_type==MAILMIME_DISCRETE_TYPE_APPLICATION
 					 && strcmp(c->ct_subtype, "autocrypt-setup")==0) {
+						reconcat_mime(raw_mime, "application", c->ct_subtype);
 						return DC_MIMETYPE_AC_SETUP_FILE; /* application/autocrypt-setup */
 					}
+					reconcat_mime(raw_mime, c->ct_type->tp_data.tp_discrete_type->dt_extension, c->ct_subtype);
 					return DC_MIMETYPE_FILE;
 			}
 			break;
@@ -937,6 +955,7 @@ static void do_add_single_part(dc_mimeparser_t* parser, dc_mimepart_t* part)
 
 
 static void do_add_single_file_part(dc_mimeparser_t* parser, int msg_type, int mime_type,
+                                    const char* raw_mime,
                                     const char* decoded_data, size_t decoded_data_bytes,
                                     const char* desired_filename)
 {
@@ -958,6 +977,7 @@ static void do_add_single_file_part(dc_mimeparser_t* parser, int msg_type, int m
 	part->int_mimetype = mime_type;
 	part->bytes = decoded_data_bytes;
 	dc_param_set(part->param, DC_PARAM_FILE, pathNfilename);
+	dc_param_set(part->param, DC_PARAM_MIMETYPE, raw_mime);
 
 	if (mime_type==DC_MIMETYPE_IMAGE) {
 		uint32_t w = 0, h = 0;
@@ -986,6 +1006,7 @@ static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* mimeparser, s
 	char*                        file_suffix = NULL;
 	char*                        desired_filename = NULL;
 	int                          msg_type = 0;
+	char*                        raw_mime = NULL;
 
 	char*                        transfer_decoding_buffer = NULL; /* mmap_string_unref()'d if set */
 	char*                        charset_buffer = NULL; /* charconv_buffer_free()'d if set (just calls mmap_string_unref()) */
@@ -998,7 +1019,7 @@ static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* mimeparser, s
 	}
 
 	/* get mime type from `mime` */
-	mime_type = mailmime_get_mime_type(mime, &msg_type);
+	mime_type = mailmime_get_mime_type(mime, &msg_type, &raw_mime);
 
 	/* get data pointer from `mime` */
 	mime_data = mime->mm_data.mm_single;
@@ -1135,7 +1156,7 @@ static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* mimeparser, s
 
 				dc_replace_bad_utf8_chars(desired_filename);
 
-				do_add_single_file_part(mimeparser, msg_type, mime_type, decoded_data, decoded_data_bytes, desired_filename);
+				do_add_single_file_part(mimeparser, msg_type, mime_type, raw_mime, decoded_data, decoded_data_bytes, desired_filename);
 			}
 			break;
 
@@ -1151,6 +1172,7 @@ cleanup:
 	free(file_suffix);
 	free(desired_filename);
 	dc_mimepart_unref(part);
+	free(raw_mime);
 
 	return carray_count(mimeparser->parts)>old_part_count? 1 : 0; /* any part added? */
 }
@@ -1195,14 +1217,14 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* mimeparser, struc
 			break;
 
 		case MAILMIME_MULTIPLE:
-			switch (mailmime_get_mime_type(mime, NULL))
+			switch (mailmime_get_mime_type(mime, NULL, NULL))
 			{
 				case DC_MIMETYPE_MP_ALTERNATIVE: /* add "best" part */
 					/* Most times, mutlipart/alternative contains true alternatives as text/plain and text/html.
 					If we find a multipart/mixed inside mutlipart/alternative, we use this (happens eg in apple mail: "plaintext" as an alternative to "html+PDF attachment") */
 					for (cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
 						struct mailmime* childmime = (struct mailmime*)clist_content(cur);
-						if (mailmime_get_mime_type(childmime, NULL)==DC_MIMETYPE_MP_MIXED) {
+						if (mailmime_get_mime_type(childmime, NULL, NULL)==DC_MIMETYPE_MP_MIXED) {
 							any_part_added = dc_mimeparser_parse_mime_recursive(mimeparser, childmime);
 							break;
 						}
@@ -1213,7 +1235,7 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* mimeparser, struc
 						/* search for text/plain and add this */
 						for (cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
 							struct mailmime* childmime = (struct mailmime*)clist_content(cur);
-							if (mailmime_get_mime_type(childmime, NULL)==DC_MIMETYPE_TEXT_PLAIN) {
+							if (mailmime_get_mime_type(childmime, NULL, NULL)==DC_MIMETYPE_TEXT_PLAIN) {
 								any_part_added = dc_mimeparser_parse_mime_recursive(mimeparser, childmime);
 								break;
 							}
@@ -1294,10 +1316,10 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* mimeparser, struc
 							int plain_cnt = 0, html_cnt = 0;
 							for (cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
 								struct mailmime* childmime = (struct mailmime*)clist_content(cur);
-								if (mailmime_get_mime_type(childmime, NULL)==DC_MIMETYPE_TEXT_PLAIN) {
+								if (mailmime_get_mime_type(childmime, NULL, NULL)==DC_MIMETYPE_TEXT_PLAIN) {
 									plain_cnt++;
 								}
-								else if (mailmime_get_mime_type(childmime, NULL)==DC_MIMETYPE_TEXT_HTML) {
+								else if (mailmime_get_mime_type(childmime, NULL, NULL)==DC_MIMETYPE_TEXT_HTML) {
 									html_part = childmime;
 									html_cnt++;
 								}
