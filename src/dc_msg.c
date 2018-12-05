@@ -1480,6 +1480,10 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 		}
 		dc_strbuilder_catf(&ret, "Type: %s\n", p);
 		free(p);
+
+		p = dc_msg_get_filemime(msg);
+		dc_strbuilder_catf(&ret, "Mimetype: %s\n", p);
+		free(p);
 	}
 
 	int w = dc_param_get_int(msg->param, DC_PARAM_WIDTH, 0);
