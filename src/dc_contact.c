@@ -217,7 +217,7 @@ char* dc_contact_get_first_name(const dc_contact_t* contact)
  * using dc_set_config(context, "selfavatar", image).
  *
  * @memberof dc_contact_t
- * @param chat The contact object.
+ * @param contact The contact object.
  * @return Path and file if the profile image, if any.
  *     NULL otherwise.
  *     Must be free()'d after usage.
@@ -242,6 +242,27 @@ char* dc_contact_get_profile_image(const dc_contact_t* contact)
 cleanup:
 	free(selfavatar);
 	return image_abs;
+}
+
+
+/**
+ * Get a color for the contact.
+ * The color is calculated from the contact's email address
+ * and can be used for an fallback avatar with white initials
+ * as well as for headlines in bubbles of group chats.
+ *
+ * @memberof dc_contact_t
+ * @param chat The contact object.
+ * @return Color as 0x00rrggbb with rr=red, gg=green, bb=blue
+ *     each in the range 0-255.
+ */
+uint32_t dc_contact_get_color(const dc_contact_t* contact)
+{
+	if (contact==NULL || contact->magic!=DC_CONTACT_MAGIC) {
+		return 0x000000;
+	}
+
+	return dc_str_to_color(contact->addr);
 }
 
 

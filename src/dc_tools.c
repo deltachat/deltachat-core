@@ -604,6 +604,32 @@ clist* dc_str_to_clist(const char* str, const char* delimiter)
 }
 
 
+int dc_str_to_color(const char* str)
+{
+	static uint32_t colors[] = {
+		0xe56555,
+		0xf28c48,
+		0x8e85ee,
+		0x76c84d,
+		0x5bb6cc,
+		0x549cdd,
+		0xd25c99,
+		0xb37800
+	};
+
+	int checksum = 0;
+	int str_len = strlen(str);
+	for (int i = 0; i < str_len; i++) {
+		checksum += (i+1)*str[i];
+		checksum %= 0x00FFFFFF;
+	}
+
+	int color_index = checksum % (sizeof(colors)/sizeof(uint32_t));
+
+	return colors[color_index];
+}
+
+
 /*******************************************************************************
  * clist tools
  ******************************************************************************/
