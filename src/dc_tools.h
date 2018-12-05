@@ -44,6 +44,7 @@ void    dc_free_splitted_lines     (carray* lines);
 char*   dc_insert_breaks           (const char*, int break_every, const char* break_chars); /* insert a break every n characters, the return must be free()'d */
 char*   dc_str_from_clist          (const clist*, const char* delimiter);
 clist*  dc_str_to_clist            (const char*, const char* delimiter);
+int     dc_str_to_color            (const char*);
 
 // from libetpan/src/data-types/base64.h (which cannot be included without adding libetpan/src/... to the include-search-paths, which would result in double-file-name-errors, so, for now, we use this hack)
 char*   encode_base64              (const char * in, int len);

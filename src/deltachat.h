@@ -464,6 +464,7 @@ int             dc_chat_get_type             (const dc_chat_t*);
 char*           dc_chat_get_name             (const dc_chat_t*);
 char*           dc_chat_get_subtitle         (const dc_chat_t*);
 char*           dc_chat_get_profile_image    (const dc_chat_t*);
+uint32_t        dc_chat_get_color            (const dc_chat_t*);
 int             dc_chat_get_archived         (const dc_chat_t*);
 int             dc_chat_is_unpromoted        (const dc_chat_t*);
 int             dc_chat_is_self_talk         (const dc_chat_t*);
@@ -571,6 +572,7 @@ char*           dc_contact_get_display_name  (const dc_contact_t*);
 char*           dc_contact_get_name_n_addr   (const dc_contact_t*);
 char*           dc_contact_get_first_name    (const dc_contact_t*);
 char*           dc_contact_get_profile_image (const dc_contact_t*);
+uint32_t        dc_contact_get_color         (const dc_contact_t*);
 int             dc_contact_is_blocked        (const dc_contact_t*);
 int             dc_contact_is_verified       (dc_contact_t*);
 

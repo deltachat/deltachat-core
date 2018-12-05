@@ -260,6 +260,46 @@ cleanup:
 
 
 /**
+ * Get a color for the chat.
+ * For 1:1 chats, the color is calculated from the contact's email address.
+ * Otherwise, the chat name is used.
+ * The color can be used for an fallback avatar with white initials
+ * as well as for headlines in bubbles of group chats.
+ *
+ * @memberof dc_chat_t
+ * @param chat The chat object.
+ * @return Color as 0x00rrggbb with rr=red, gg=green, bb=blue
+ *     each in the range 0-255.
+ */
+uint32_t dc_chat_get_color(const dc_chat_t* chat)
+{
+	uint32_t      color = 0;
+	dc_array_t*   contacts = NULL;
+	dc_contact_t* contact = NULL;
+
+	if (chat==NULL || chat->magic!=DC_CHAT_MAGIC) {
+		goto cleanup;
+	}
+
+	if(chat->type==DC_CHAT_TYPE_SINGLE) {
+		contacts = dc_get_chat_contacts(chat->context, chat->id);
+		if (contacts->count >= 1) {
+			contact = dc_get_contact(chat->context, contacts->array[0]);
+			color = dc_str_to_color(contact->addr);
+		}
+	}
+	else {
+		color = dc_str_to_color(chat->name);
+	}
+
+cleanup:
+	dc_array_unref(contacts);
+	dc_contact_unref(contact);
+	return color;
+}
+
+
+/**
  * Get archived state.
  *
  * - 0 = normal chat, not archived, not sticky.
