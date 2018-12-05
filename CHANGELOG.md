@@ -8,6 +8,15 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes anywhere in the Delta Chat ecosystem,
 see https://delta.chat/en/changelog
 
+## v0.28.0
+
+* allow any messages as drafts
+* enhance profile image api, add dc_contact_get_profile_image()
+* dc_msg_get_filemime() returns the mimetype for incoming messages
+
+The changes have been done by Björn Petersen, Holger Krekel,
+Lars-Magnus Skog
+
 ## v0.27.0
 
 * use '...' as the subject-fallback-text
