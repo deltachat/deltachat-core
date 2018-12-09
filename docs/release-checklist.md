@@ -13,7 +13,7 @@
 
 1. "draft a new release" with v${VERSION} on github.com
 2. publish release
-3. down zip and tar.gz files
+3. download zip and tar.gz files
 4. verify content
 5. sign content (to get the key overview, use gpg --list-secret-keys)  
    $ gpg -a --detach-sign -u FINGERPRINT deltachat-core-${VERSION}.zip  
