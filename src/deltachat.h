@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 
-#define DC_VERSION_STR "0.28.0"
+#define DC_VERSION_STR "0.29.0"
 
 
 /**

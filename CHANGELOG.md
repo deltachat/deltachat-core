@@ -8,6 +8,12 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes anywhere in the Delta Chat ecosystem,
 see https://delta.chat/en/changelog
 
+## v0.29.0
+
+* add dc_chat_get_color() and dc_contact_get_color()
+
+The changes have been done by Björn Petersen
+
 ## v0.28.0
 
 * allow any messages as drafts
