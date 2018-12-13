@@ -22,12 +22,12 @@ static int connect_to_imap(dc_context_t* context, dc_job_t* job /*may be NULL if
 	int              ret_connected = NOT_CONNECTED;
 	dc_loginparam_t* param = dc_loginparam_new();
 
-	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || context->imap==NULL) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || context->inbox==NULL) {
 		dc_log_warning(context, 0, "Cannot connect to IMAP: Bad parameters.");
 		goto cleanup;
 	}
 
-	if (dc_imap_is_connected(context->imap)) {
+	if (dc_imap_is_connected(context->inbox)) {
 		ret_connected = ALREADY_CONNECTED;
 		goto cleanup;
 	}
@@ -39,7 +39,7 @@ static int connect_to_imap(dc_context_t* context, dc_job_t* job /*may be NULL if
 
 	dc_loginparam_read(param, context->sql, "configured_" /*the trailing underscore is correct*/);
 
-	if (!dc_imap_connect(context->imap, param)) {
+	if (!dc_imap_connect(context->inbox, param)) {
 		dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
 		goto cleanup;
 	}
@@ -70,15 +70,15 @@ static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(dc_context_t* context, dc_job_t*
 	/* if this is the last existing part of the message, we delete the message from the server */
 	if (delete_from_server)
 	{
-		if (!dc_imap_is_connected(context->imap)) {
+		if (!dc_imap_is_connected(context->inbox)) {
 			connect_to_imap(context, NULL);
-			if (!dc_imap_is_connected(context->imap)) {
+			if (!dc_imap_is_connected(context->inbox)) {
 				dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
 				goto cleanup;
 			}
 		}
 
-		if (!dc_imap_delete_msg(context->imap, msg->rfc724_mid, msg->server_folder, msg->server_uid))
+		if (!dc_imap_delete_msg(context->inbox, msg->rfc724_mid, msg->server_folder, msg->server_uid))
 		{
 			dc_job_try_again_later(job, DC_AT_ONCE, NULL);
 			goto cleanup;
@@ -104,9 +104,9 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* context, dc_job_
 	int       in_ms_flags = 0;
 	int       out_ms_flags = 0;
 
-	if (!dc_imap_is_connected(context->imap)) {
+	if (!dc_imap_is_connected(context->inbox)) {
 		connect_to_imap(context, NULL);
-		if (!dc_imap_is_connected(context->imap)) {
+		if (!dc_imap_is_connected(context->inbox)) {
 			dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
 			goto cleanup;
 		}
@@ -122,7 +122,7 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* context, dc_job_
 		in_ms_flags |= DC_MS_SET_MDNSent_FLAG;
 	}
 
-	if (dc_imap_markseen_msg(context->imap, msg->server_folder, msg->server_uid,
+	if (dc_imap_markseen_msg(context->inbox, msg->server_folder, msg->server_uid,
 		   in_ms_flags, &new_server_folder, &new_server_uid, &out_ms_flags)!=0)
 	{
 		if ((new_server_folder && new_server_uid) || out_ms_flags&DC_MS_MDNSent_JUST_SET)
@@ -157,15 +157,15 @@ static void dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP(dc_context_t* context, dc_job_
 	uint32_t new_server_uid = 0;
 	int      out_ms_flags = 0;
 
-	if (!dc_imap_is_connected(context->imap)) {
+	if (!dc_imap_is_connected(context->inbox)) {
 		connect_to_imap(context, NULL);
-		if (!dc_imap_is_connected(context->imap)) {
+		if (!dc_imap_is_connected(context->inbox)) {
 			dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
 			goto cleanup;
 		}
 	}
 
-	if (dc_imap_markseen_msg(context->imap, server_folder, server_uid, 0, &new_server_folder, &new_server_uid, &out_ms_flags)==0) {
+	if (dc_imap_markseen_msg(context->inbox, server_folder, server_uid, 0, &new_server_folder, &new_server_uid, &out_ms_flags)==0) {
 		dc_job_try_again_later(job, DC_AT_ONCE, NULL);
 	}
 
@@ -643,12 +643,12 @@ void dc_perform_imap_jobs(dc_context_t* context)
 {
 	dc_log_info(context, 0, "IMAP-jobs started...");
 
-	pthread_mutex_lock(&context->imapidle_condmutex);
+	pthread_mutex_lock(&context->inboxidle_condmutex);
 		int probe_imap_network = context->probe_imap_network;
 		context->probe_imap_network = 0;
 
-		context->perform_imap_jobs_needed = 0;
-	pthread_mutex_unlock(&context->imapidle_condmutex);
+		context->perform_inbox_jobs_needed = 0;
+	pthread_mutex_unlock(&context->inboxidle_condmutex);
 
 	dc_job_perform(context, DC_IMAP_THREAD, probe_imap_network);
 
@@ -677,12 +677,12 @@ void dc_perform_imap_fetch(dc_context_t* context)
 
 	dc_log_info(context, 0, "IMAP-fetch started...");
 
-	dc_imap_fetch(context->imap);
+	dc_imap_fetch(context->inbox);
 
-	if (context->imap->should_reconnect)
+	if (context->inbox->should_reconnect)
 	{
 		dc_log_info(context, 0, "IMAP-fetch aborted, starting over...");
-		dc_imap_fetch(context->imap);
+		dc_imap_fetch(context->inbox);
 	}
 
 	dc_log_info(context, 0, "IMAP-fetch done in %.0f ms.", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
@@ -710,17 +710,17 @@ void dc_perform_imap_idle(dc_context_t* context)
 		return;
 	}
 
-	pthread_mutex_lock(&context->imapidle_condmutex);
-		if (context->perform_imap_jobs_needed) {
+	pthread_mutex_lock(&context->inboxidle_condmutex);
+		if (context->perform_inbox_jobs_needed) {
 			dc_log_info(context, 0, "IMAP-IDLE will not be started because of waiting jobs.");
-			pthread_mutex_unlock(&context->imapidle_condmutex);
+			pthread_mutex_unlock(&context->inboxidle_condmutex);
 			return;
 		}
-	pthread_mutex_unlock(&context->imapidle_condmutex);
+	pthread_mutex_unlock(&context->inboxidle_condmutex);
 
 	dc_log_info(context, 0, "IMAP-IDLE started...");
 
-	dc_imap_idle(context->imap);
+	dc_imap_idle(context->inbox);
 
 	dc_log_info(context, 0, "IMAP-IDLE ended.");
 }
@@ -766,21 +766,21 @@ void dc_perform_imap_idle(dc_context_t* context)
  */
 void dc_interrupt_imap_idle(dc_context_t* context)
 {
-	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || context->imap==NULL) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || context->inbox==NULL) {
 		dc_log_warning(context, 0, "Interrupt IMAP-IDLE: Bad parameters.");
 		return;
 	}
 
 	dc_log_info(context, 0, "Interrupting IMAP-IDLE...");
 
-	pthread_mutex_lock(&context->imapidle_condmutex);
+	pthread_mutex_lock(&context->inboxidle_condmutex);
 		// when this function is called, it might be that the idle-thread is in
 		// perform_idle_jobs() instead of idle(). if so, added jobs will be performed after the _next_ idle-jobs loop.
 		// setting the flag perform_imap_jobs_needed makes sure, idle() returns immediately in this case.
-		context->perform_imap_jobs_needed = 1;
-	pthread_mutex_unlock(&context->imapidle_condmutex);
+		context->perform_inbox_jobs_needed = 1;
+	pthread_mutex_unlock(&context->inboxidle_condmutex);
 
-	dc_imap_interrupt_idle(context->imap);
+	dc_imap_interrupt_idle(context->inbox);
 }
 
 
@@ -947,9 +947,9 @@ void dc_maybe_network(dc_context_t* context)
 		context->probe_smtp_network = 1;
 	pthread_mutex_unlock(&context->smtpidle_condmutex);
 
-	pthread_mutex_lock(&context->imapidle_condmutex);
+	pthread_mutex_lock(&context->inboxidle_condmutex);
 		context->probe_imap_network = 1;
-	pthread_mutex_unlock(&context->imapidle_condmutex);
+	pthread_mutex_unlock(&context->inboxidle_condmutex);
 
 	dc_interrupt_smtp_idle(context);
 	dc_interrupt_imap_idle(context);

@@ -47,10 +47,13 @@ struct _dc_context
 
 	dc_sqlite3_t*    sql;                   /**< Internal SQL object, never NULL */
 
-	dc_imap_t*       imap;                  /**< Internal IMAP object, never NULL */
-	pthread_mutex_t  imapidle_condmutex;
-	int              perform_imap_jobs_needed;
+	dc_imap_t*       inbox;                 /**< primary IMAP object watching the inbox, never NULL */
+	pthread_mutex_t  inboxidle_condmutex;
+	int              perform_inbox_jobs_needed;
 	int              probe_imap_network;    /**< if this flag is set, the imap-job timeouts are bypassed and messages are sent until they fail */
+
+	dc_imap_t*       mvbox;                 /**< secondary IMAP object watching the delta chat folder, never NULL */
+	pthread_mutex_t  mvboxidle_condmutex;
 
 	dc_smtp_t*       smtp;                  /**< Internal SMTP object, never NULL */
 	pthread_cond_t   smtpidle_cond;

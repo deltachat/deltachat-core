@@ -415,12 +415,14 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 		goto cleanup;
 	}
 
-	dc_imap_disconnect(context->imap);
+	dc_imap_disconnect(context->inbox);
+	dc_imap_disconnect(context->mvbox);
 	dc_smtp_disconnect(context->smtp);
 
 	//dc_sqlite3_set_config_int(context->sql, "configured", 0); -- NO: we do _not_ reset this flag if it was set once; otherwise the user won't get back to his chats (as an alternative, we could change the UI).  Moreover, and not changeable in the UI, we use this flag to check if we shall search for backups.
 	context->smtp->log_connect_errors = 1;
-	context->imap->log_connect_errors = 1;
+	context->inbox->log_connect_errors = 1;
+	context->mvbox->log_connect_errors = 1;
 
 	dc_log_info(context, 0, "Configure ...");
 
@@ -634,7 +636,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	(the part before the '@') */
 	{ char* r = dc_loginparam_get_readable(param); dc_log_info(context, 0, "Trying: %s", r); free(r); }
 
-	if (!dc_imap_connect(context->imap, param)) {
+	if (!dc_imap_connect(context->inbox, param)) {
 		if (param_autoconfig) {
 			goto cleanup;
 		}
@@ -653,7 +655,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 
 		{ char* r = dc_loginparam_get_readable(param); dc_log_info(context, 0, "Trying: %s", r); free(r); }
 
-		if (!dc_imap_connect(context->imap, param)) {
+		if (!dc_imap_connect(context->inbox, param)) {
 			goto cleanup;
 		}
 	}
@@ -703,7 +705,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 
 cleanup:
 	if (imap_connected_here) {
-		dc_imap_disconnect(context->imap);
+		dc_imap_disconnect(context->inbox);
 	}
 
 	if (smtp_connected_here) {

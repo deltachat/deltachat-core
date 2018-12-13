@@ -130,7 +130,8 @@ dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_na
 
 	pthread_mutex_init(&context->smear_critical, NULL);
 	pthread_mutex_init(&context->bobs_qr_critical, NULL);
-	pthread_mutex_init(&context->imapidle_condmutex, NULL);
+	pthread_mutex_init(&context->inboxidle_condmutex, NULL);
+	pthread_mutex_init(&context->mvboxidle_condmutex, NULL);
 	pthread_mutex_init(&context->smtpidle_condmutex, NULL);
 	pthread_cond_init(&context->smtpidle_cond, NULL);
 
@@ -144,7 +145,8 @@ dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_na
 
 	dc_pgp_init();
 	context->sql      = dc_sqlite3_new(context);
-	context->imap     = dc_imap_new(cb_get_config, cb_set_config, cb_receive_imf, (void*)context, context);
+	context->inbox    = dc_imap_new(cb_get_config, cb_set_config, cb_receive_imf, (void*)context, context);
+	context->mvbox    = dc_imap_new(cb_get_config, cb_set_config, cb_receive_imf, (void*)context, context);
 	context->smtp     = dc_smtp_new(context);
 
 	/* Random-seed.  An additional seed with more random data is done just before key generation
@@ -187,7 +189,8 @@ void dc_context_unref(dc_context_t* context)
 		dc_close(context);
 	}
 
-	dc_imap_unref(context->imap);
+	dc_imap_unref(context->inbox);
+	dc_imap_unref(context->mvbox);
 	dc_smtp_unref(context->smtp);
 	dc_sqlite3_unref(context->sql);
 
@@ -195,7 +198,8 @@ void dc_context_unref(dc_context_t* context)
 
 	pthread_mutex_destroy(&context->smear_critical);
 	pthread_mutex_destroy(&context->bobs_qr_critical);
-	pthread_mutex_destroy(&context->imapidle_condmutex);
+	pthread_mutex_destroy(&context->inboxidle_condmutex);
+	pthread_mutex_destroy(&context->mvboxidle_condmutex);
 	pthread_cond_destroy(&context->smtpidle_cond);
 	pthread_mutex_destroy(&context->smtpidle_condmutex);
 
@@ -295,7 +299,8 @@ void dc_close(dc_context_t* context)
 		return;
 	}
 
-	dc_imap_disconnect(context->imap);
+	dc_imap_disconnect(context->inbox);
+	dc_imap_disconnect(context->mvbox);
 	dc_smtp_disconnect(context->smtp);
 
 	if (dc_sqlite3_is_open(context->sql)) {
