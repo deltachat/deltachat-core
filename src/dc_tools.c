@@ -606,6 +606,8 @@ clist* dc_str_to_clist(const char* str, const char* delimiter)
 
 int dc_str_to_color(const char* str)
 {
+	char* str_lower = dc_strlower(str);
+
 	static uint32_t colors[] = {
 		0xe56555,
 		0xf28c48,
@@ -618,14 +620,15 @@ int dc_str_to_color(const char* str)
 	};
 
 	int checksum = 0;
-	int str_len = strlen(str);
+	int str_len = strlen(str_lower);
 	for (int i = 0; i < str_len; i++) {
-		checksum += (i+1)*str[i];
+		checksum += (i+1)*str_lower[i];
 		checksum %= 0x00FFFFFF;
 	}
 
 	int color_index = checksum % (sizeof(colors)/sizeof(uint32_t));
 
+	free(str_lower);
 	return colors[color_index];
 }
 
