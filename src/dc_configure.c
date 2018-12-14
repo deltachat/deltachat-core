@@ -479,6 +479,7 @@ void dc_imap_configure_folders(dc_imap_t* imap)
 
 	clist*     folder_list = NULL;
 	clistiter* iter;
+	int        mvbox_enabled = 0;
 	char*      mvbox_folder = NULL;
 	char*      fallback_folder = NULL;
 
@@ -487,6 +488,8 @@ void dc_imap_configure_folders(dc_imap_t* imap)
 	}
 
 	dc_log_info(imap->context, 0, "Configuring IMAP-folders.");
+
+	mvbox_enabled = dc_sqlite3_get_config_int(imap->context->sql, "mvbox_enabled", 0);
 
 	// this sets imap->imap_delimiter as side-effect
 	folder_list = list_folders(imap);
@@ -499,12 +502,14 @@ void dc_imap_configure_folders(dc_imap_t* imap)
 		dc_imapfolder_t* folder = (struct dc_imapfolder_t*)clist_content(iter);
 		if (strcmp(folder->name_utf8, DC_DEF_MVBOX)==0
 		 || strcmp(folder->name_utf8, fallback_folder)==0) {
-			mvbox_folder = dc_strdup(folder->name_to_select);
+			if (mvbox_enabled) {
+				mvbox_folder = dc_strdup(folder->name_to_select);
+			}
 			break;
 		}
 	}
 
-	if (mvbox_folder==NULL)
+	if (mvbox_folder==NULL && mvbox_enabled)
 	{
 		dc_log_info(imap->context, 0, "Creating MVBOX-folder \"%s\"...", DC_DEF_MVBOX);
 		int r = mailimap_create(imap->etpan, DC_DEF_MVBOX);

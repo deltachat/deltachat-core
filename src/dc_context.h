@@ -111,10 +111,13 @@ void            dc_receive_imf       (dc_context_t*, const char* imf_raw_not_ter
 #define DC_MSGSIZE_UPPER_LIMIT      ((49*1024*1024)/4*3)
 
 
-/* library private: end-to-end-encryption */
-#define DC_E2EE_DEFAULT_ENABLED  1
-#define DC_MDNS_DEFAULT_ENABLED  1
+// some defaults
+#define DC_E2EE_DEFAULT_ENABLED   1
+#define DC_MDNS_DEFAULT_ENABLED   1
+#define DC_MVBOX_DEFAULT_ENABLED  1
 
+
+/* library private: end-to-end-encryption */
 typedef struct dc_e2ee_helper_t {
 	// encryption
 	int        encryption_successfull;
