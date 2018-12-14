@@ -646,7 +646,7 @@ char* dc_get_info(dc_context_t* context)
 	l_readable_str = dc_loginparam_get_readable(l);
 	l2_readable_str = dc_loginparam_get_readable(l2);
 
-	mvbox_enabled = dc_sqlite3_get_config_int(context->sql, "mvbox_enabled", 0);
+	mvbox_enabled = dc_sqlite3_get_config_int(context->sql, "mvbox_enabled", DC_MVBOX_DEFAULT_ENABLED);
 	configured_mvbox = dc_sqlite3_get_config_int(context->sql, "configured_mvbox", 0);
 	configured_mvbox_folder = dc_sqlite3_get_config(context->sql, "configured_mvbox_folder", "<unset>");
 
