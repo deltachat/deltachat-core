@@ -517,7 +517,6 @@ cleanup:
 int dc_imap_fetch(dc_imap_t* imap)
 {
 	int   success = 0;
-	char* imap_folder = NULL;
 
 	if (imap==NULL || !imap->connected) {
 		goto cleanup;
@@ -528,20 +527,18 @@ int dc_imap_fetch(dc_imap_t* imap)
 	// as during the fetch commands, new messages may arrive, we fetch until we do not
 	// get any more. if IDLE is called directly after, there is only a small chance that
 	// messages are missed and delayed until the next IDLE call
-	imap_folder = imap->get_config(imap, "imap_folder", "INBOX");
-	while (fetch_from_single_folder(imap, imap_folder) > 0) {
+	while (fetch_from_single_folder(imap, imap->watch_folder) > 0) {
 		;
 	}
 
 	success = 1;
 
 cleanup:
-	free(imap_folder);
 	return success;
 }
 
 
-static void fake_idle(dc_imap_t* imap, const char* imap_folder)
+static void fake_idle(dc_imap_t* imap)
 {
 	/* Idle using timeouts. This is also needed if we're not yet configured -
 	in this case, we're waiting for a configure job */
@@ -580,7 +577,7 @@ static void fake_idle(dc_imap_t* imap, const char* imap_folder)
 		// are also downloaded, however, typically this would take place in the FETCH command
 		// following IDLE otherwise, so this seems okay here.
 		if (setup_handle_if_needed(imap)) { // the handle may not be set up if configure is not yet done
-			if (fetch_from_single_folder(imap, imap_folder)) {
+			if (fetch_from_single_folder(imap, imap->watch_folder)) {
 				do_fake_idle = 0;
 			}
 		}
@@ -598,13 +595,10 @@ void dc_imap_idle(dc_imap_t* imap)
 {
 	int   r = 0;
 	int   r2 = 0;
-	char* imap_folder = NULL;
 
 	if (imap==NULL) {
 		goto cleanup;
 	}
-
-	imap_folder = imap->get_config(imap, "imap_folder", "INBOX");
 
 	if (imap->can_idle)
 	{
@@ -614,22 +608,22 @@ void dc_imap_idle(dc_imap_t* imap)
 			r = mailstream_setup_idle(imap->etpan->imap_stream);
 			if (is_error(imap, r)) {
 				dc_log_warning(imap->context, 0, "IMAP-IDLE: Cannot setup.");
-				fake_idle(imap, imap_folder);
+				fake_idle(imap);
 				goto cleanup;
 			}
 			imap->idle_set_up = 1;
 		}
 
-		if (!imap->idle_set_up || !select_folder(imap, imap_folder)) {
+		if (!imap->idle_set_up || !select_folder(imap, imap->watch_folder)) {
 			dc_log_warning(imap->context, 0, "IMAP-IDLE not setup.");
-			fake_idle(imap, imap_folder);
+			fake_idle(imap);
 			goto cleanup;
 		}
 
 		r = mailimap_idle(imap->etpan);
 		if (is_error(imap, r)) {
 			dc_log_warning(imap->context, 0, "IMAP-IDLE: Cannot start.");
-			fake_idle(imap, imap_folder);
+			fake_idle(imap);
 			goto cleanup;
 		}
 
@@ -660,11 +654,11 @@ void dc_imap_idle(dc_imap_t* imap)
 	}
 	else
 	{
-		fake_idle(imap, imap_folder);
+		fake_idle(imap);
 	}
 
 cleanup:
-	free(imap_folder);
+	;
 }
 
 
@@ -838,6 +832,8 @@ static void free_connect_param(dc_imap_t* imap)
 	free(imap->imap_pw);
 	imap->imap_pw = NULL;
 
+	imap->watch_folder[0] = 0;
+
 	imap->selected_folder[0] = 0;
 
 	imap->imap_port = 0;
@@ -845,11 +841,13 @@ static void free_connect_param(dc_imap_t* imap)
 }
 
 
-int dc_imap_connect(dc_imap_t* imap, const dc_loginparam_t* lp)
+int dc_imap_connect(dc_imap_t* imap, const dc_loginparam_t* lp,
+                    const char* watch_folder)
 {
 	int success = 0;
 
-	if (imap==NULL || lp==NULL || lp->mail_server==NULL || lp->mail_user==NULL || lp->mail_pw==NULL) {
+	if (imap==NULL || lp==NULL || watch_folder==NULL
+	 || lp->mail_server==NULL || lp->mail_user==NULL || lp->mail_pw==NULL) {
 		return 0;
 	}
 
@@ -863,6 +861,9 @@ int dc_imap_connect(dc_imap_t* imap, const dc_loginparam_t* lp)
 	imap->imap_user    = dc_strdup(lp->mail_user);
 	imap->imap_pw      = dc_strdup(lp->mail_pw);
 	imap->server_flags = lp->server_flags;
+
+	free(imap->watch_folder);
+	imap->watch_folder = dc_strdup(watch_folder);
 
 	if (!setup_handle_if_needed(imap)) {
 		goto cleanup;
@@ -957,6 +958,7 @@ dc_imap_t* dc_imap_new(dc_get_config_t get_config, dc_set_config_t set_config, d
 
 	//imap->enter_watch_wait_time = 0;
 
+	imap->watch_folder = calloc(1, 1);
 	imap->selected_folder = calloc(1, 1);
 
 	/* create some useful objects */
@@ -987,6 +989,7 @@ void dc_imap_unref(dc_imap_t* imap)
 
 	pthread_cond_destroy(&imap->watch_cond);
 	pthread_mutex_destroy(&imap->watch_condmutex);
+	free(imap->watch_folder);
 	free(imap->selected_folder);
 	if (imap->fetch_type_uid)        { mailimap_fetch_type_free(imap->fetch_type_uid); }
 	if (imap->fetch_type_message_id) { mailimap_fetch_type_free(imap->fetch_type_message_id); }

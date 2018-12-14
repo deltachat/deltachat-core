@@ -45,6 +45,7 @@ typedef struct dc_imap_t
 	int                   can_idle;
 	char                  imap_delimiter;/* IMAP Path separator. Set as a side-effect in list_folders__ */
 
+	char*                 watch_folder;
 	pthread_cond_t        watch_cond;
 	pthread_mutex_t       watch_condmutex;
 	int                   watch_condflag;
@@ -69,7 +70,7 @@ typedef struct dc_imap_t
 dc_imap_t* dc_imap_new               (dc_get_config_t, dc_set_config_t, dc_receive_imf_t, void* userData, dc_context_t*);
 void       dc_imap_unref             (dc_imap_t*);
 
-int        dc_imap_connect           (dc_imap_t*, const dc_loginparam_t*);
+int        dc_imap_connect           (dc_imap_t*, const dc_loginparam_t*, const char* watch_folder);
 void       dc_imap_disconnect        (dc_imap_t*);
 int        dc_imap_is_connected      (const dc_imap_t*);
 int        dc_imap_fetch             (dc_imap_t*);
