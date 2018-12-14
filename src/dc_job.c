@@ -14,7 +14,7 @@
  ******************************************************************************/
 
 
-static int connect_to_imap(dc_imap_t* imap, const char* watch_folder)
+static int connect_to_imap(dc_imap_t* imap)
 {
 	#define          NOT_CONNECTED     0
 	#define          ALREADY_CONNECTED 1
@@ -41,7 +41,7 @@ static int connect_to_imap(dc_imap_t* imap, const char* watch_folder)
 	dc_loginparam_read(param, imap->context->sql,
 		"configured_" /*the trailing underscore is correct*/);
 
-	if (!dc_imap_connect(imap, param, watch_folder)) {
+	if (!dc_imap_connect(imap, param)) {
 		goto cleanup;
 	}
 
@@ -55,19 +55,44 @@ cleanup:
 
 static int connect_to_inbox(dc_context_t* context)
 {
-	char* inbox = dc_sqlite3_get_config(context->sql, "imap_folder", "INBOX");
+	int   ret_connected = NOT_CONNECTED;
+	char* inbox_name = NULL;
 
-	int ret_connected = connect_to_imap(context->inbox, inbox);
+	ret_connected = connect_to_imap(context->inbox);
+	if (!ret_connected) {
+		goto cleanup;
+	}
 
-	free(inbox);
+	inbox_name = dc_sqlite3_get_config(context->sql, "imap_folder", "INBOX");
+	dc_imap_set_watch_folder(context->inbox, inbox_name);
+
+cleanup:
+	free(inbox_name);
 	return ret_connected;
 }
 
 
 static int connect_to_mvbox(dc_context_t* context)
 {
-	// TODO: use the configured folder
-	int ret_connected = connect_to_imap(context->mvbox, "DeltaChat");
+	int   ret_connected = NOT_CONNECTED;
+	char* mvbox_name = NULL;
+
+	ret_connected = connect_to_imap(context->mvbox);
+	if (!ret_connected) {
+		goto cleanup;
+	}
+
+	// a fallback to support upgrades from core 0.29.0 or older;
+	// newer core versions set configured_mvbox_folder during configure.
+	if (dc_sqlite3_get_config_int(context->sql, "configured_mvbox", 0)==0) {
+		dc_imap_configure_folders(context->mvbox);
+	}
+
+	mvbox_name = dc_sqlite3_get_config(context->sql, "configured_mvbox_folder", NULL);
+	dc_imap_set_watch_folder(context->mvbox, mvbox_name);
+
+cleanup:
+	free(mvbox_name);
 	return ret_connected;
 }
 
@@ -512,7 +537,7 @@ static void dc_job_perform(dc_context_t* context, int thread, int probe_network)
 {
 	sqlite3_stmt* select_stmt = NULL;
 	dc_job_t      job;
-	#define       THREAD_STR (thread==DC_IMAP_THREAD? "IMAP" : "SMTP")
+	#define       THREAD_STR (thread==DC_IMAP_THREAD? "INBOX" : "SMTP")
 	#define       IS_EXCLUSIVE_JOB (DC_JOB_CONFIGURE_IMAP==job.action || DC_JOB_IMEX_IMAP==job.action)
 
 	memset(&job, 0, sizeof(dc_job_t));
@@ -661,7 +686,7 @@ cleanup:
  */
 void dc_perform_imap_jobs(dc_context_t* context)
 {
-	dc_log_info(context, 0, "IMAP-jobs started...");
+	dc_log_info(context, 0, "INBOX-jobs started...");
 
 	pthread_mutex_lock(&context->inboxidle_condmutex);
 		int probe_imap_network = context->probe_imap_network;
@@ -672,7 +697,7 @@ void dc_perform_imap_jobs(dc_context_t* context)
 
 	dc_job_perform(context, DC_IMAP_THREAD, probe_imap_network);
 
-	dc_log_info(context, 0, "IMAP-jobs ended.");
+	dc_log_info(context, 0, "INBOX-jobs ended.");
 }
 
 
@@ -695,17 +720,17 @@ void dc_perform_imap_fetch(dc_context_t* context)
 		return;
 	}
 
-	dc_log_info(context, 0, "IMAP-fetch started...");
+	dc_log_info(context, 0, "INBOX-fetch started...");
 
 	dc_imap_fetch(context->inbox);
 
 	if (context->inbox->should_reconnect)
 	{
-		dc_log_info(context, 0, "IMAP-fetch aborted, starting over...");
+		dc_log_info(context, 0, "INBOX-fetch aborted, starting over...");
 		dc_imap_fetch(context->inbox);
 	}
 
-	dc_log_info(context, 0, "IMAP-fetch done in %.0f ms.", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
+	dc_log_info(context, 0, "INBOX-fetch done in %.0f ms.", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 }
 
 
@@ -734,17 +759,17 @@ void dc_perform_imap_idle(dc_context_t* context)
 
 	pthread_mutex_lock(&context->inboxidle_condmutex);
 		if (context->perform_inbox_jobs_needed) {
-			dc_log_info(context, 0, "IMAP-IDLE will not be started because of waiting jobs.");
+			dc_log_info(context, 0, "INBOX-IDLE will not be started because of waiting jobs.");
 			pthread_mutex_unlock(&context->inboxidle_condmutex);
 			return;
 		}
 	pthread_mutex_unlock(&context->inboxidle_condmutex);
 
-	dc_log_info(context, 0, "IMAP-IDLE started...");
+	dc_log_info(context, 0, "INBOX-IDLE started...");
 
 	dc_imap_idle(context->inbox);
 
-	dc_log_info(context, 0, "IMAP-IDLE ended.");
+	dc_log_info(context, 0, "INBOX-IDLE ended.");
 }
 
 

@@ -842,12 +842,11 @@ static void free_connect_param(dc_imap_t* imap)
 }
 
 
-int dc_imap_connect(dc_imap_t* imap, const dc_loginparam_t* lp,
-                    const char* watch_folder)
+int dc_imap_connect(dc_imap_t* imap, const dc_loginparam_t* lp)
 {
 	int success = 0;
 
-	if (imap==NULL || lp==NULL || watch_folder==NULL
+	if (imap==NULL || lp==NULL
 	 || lp->mail_server==NULL || lp->mail_user==NULL || lp->mail_pw==NULL) {
 		return 0;
 	}
@@ -862,9 +861,6 @@ int dc_imap_connect(dc_imap_t* imap, const dc_loginparam_t* lp,
 	imap->imap_user    = dc_strdup(lp->mail_user);
 	imap->imap_pw      = dc_strdup(lp->mail_pw);
 	imap->server_flags = lp->server_flags;
-
-	free(imap->watch_folder);
-	imap->watch_folder = dc_strdup(watch_folder);
 
 	if (!setup_handle_if_needed(imap)) {
 		goto cleanup;
@@ -931,6 +927,17 @@ void dc_imap_disconnect(dc_imap_t* imap)
 int dc_imap_is_connected(const dc_imap_t* imap)
 {
 	return (imap && imap->connected);
+}
+
+
+void dc_imap_set_watch_folder(dc_imap_t* imap, const char* watch_folder)
+{
+	if (imap==NULL || watch_folder==NULL) {
+		return;
+	}
+
+	free(imap->watch_folder);
+	imap->watch_folder = dc_strdup(watch_folder);
 }
 
 

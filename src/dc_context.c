@@ -579,6 +579,8 @@ char* dc_get_info(dc_context_t* context)
 	char*            fingerprint_str = NULL;
 	dc_loginparam_t* l = NULL;
 	dc_loginparam_t* l2 = NULL;
+	int              configured_mvbox = 0;
+	char*            configured_mvbox_folder = NULL;
 	int              contacts = 0;
 	int              chats = 0;
 	int              real_msgs = 0;
@@ -637,6 +639,12 @@ char* dc_get_info(dc_context_t* context)
 	l_readable_str = dc_loginparam_get_readable(l);
 	l2_readable_str = dc_loginparam_get_readable(l2);
 
+	configured_mvbox = dc_sqlite3_get_config_int(context->sql,
+		"configured_mvbox", 0);
+
+	configured_mvbox_folder = dc_sqlite3_get_config(context->sql,
+		"configured_mvbox_folder", "<unset>");
+
 	temp = dc_mprintf(
 		"deltachat_core_version=v%s\n"
 		"sqlite_version=%s\n"
@@ -656,6 +664,8 @@ char* dc_get_info(dc_context_t* context)
 		"is_configured=%i\n"
 		"entered_account_settings=%s\n"
 		"used_account_settings=%s\n"
+		"configured_mvbox=%i\n"
+		"configured_mvbox_folder=%s\n"
 		"mdns_enabled=%i\n"
 		"e2ee_enabled=%i\n"
 		"e2ee_default_enabled=%i\n"
@@ -680,6 +690,8 @@ char* dc_get_info(dc_context_t* context)
 		, is_configured
 		, l_readable_str
 		, l2_readable_str
+		, configured_mvbox
+		, configured_mvbox_folder
 		, mdns_enabled
 		, e2ee_enabled
 		, DC_E2EE_DEFAULT_ENABLED
@@ -696,6 +708,7 @@ char* dc_get_info(dc_context_t* context)
 	free(displayname);
 	free(l_readable_str);
 	free(l2_readable_str);
+	free(configured_mvbox_folder);
 	free(fingerprint_str);
 	dc_key_unref(self_public);
 	return ret.buf; /* must be freed by the caller */

@@ -486,6 +486,8 @@ void dc_imap_configure_folders(dc_imap_t* imap)
 		goto cleanup;
 	}
 
+	dc_log_info(imap->context, 0, "Configuring IMAP-folders.");
+
 	// this sets imap->imap_delimiter as side-effect
 	folder_list = list_folders(imap);
 
@@ -797,7 +799,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	(the part before the '@') */
 	{ char* r = dc_loginparam_get_readable(param); dc_log_info(context, 0, "Trying: %s", r); free(r); }
 
-	if (!dc_imap_connect(context->inbox, param, "INBOX")) {
+	if (!dc_imap_connect(context->inbox, param)) {
 		if (param_autoconfig) {
 			goto cleanup;
 		}
@@ -816,7 +818,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 
 		{ char* r = dc_loginparam_get_readable(param); dc_log_info(context, 0, "Trying: %s", r); free(r); }
 
-		if (!dc_imap_connect(context->inbox, param, "INBOX")) {
+		if (!dc_imap_connect(context->inbox, param)) {
 			goto cleanup;
 		}
 	}
