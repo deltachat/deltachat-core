@@ -43,7 +43,8 @@ typedef struct dc_imap_t
 	int                   should_reconnect;
 
 	int                   can_idle;
-	char                  imap_delimiter;/* IMAP Path separator. Set as a side-effect in list_folders__ */
+	int                   has_xlist;
+	char                  imap_delimiter;/* IMAP Path separator. Set as a side-effect during configure() */
 
 	char*                 watch_folder;
 	pthread_cond_t        watch_cond;
@@ -86,6 +87,8 @@ int        dc_imap_markseen_msg      (dc_imap_t*, const char* folder, uint32_t s
 
 int        dc_imap_delete_msg        (dc_imap_t*, const char* rfc724_mid, const char* folder, uint32_t server_uid); /* only returns 0 on connection problems; we should try later again in this case */
 
+void       dc_imap_configure_folders (dc_imap_t*);
+int        dc_imap_is_error          (dc_imap_t* imap, int code);
 
 #ifdef __cplusplus
 } /* /extern "C" */

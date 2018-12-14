@@ -381,6 +381,166 @@ cleanup:
 
 
 /*******************************************************************************
+ * Check IMAP-folders
+ ******************************************************************************/
+
+
+typedef struct dc_imapfolder_t
+{
+	char* name_to_select;
+	char* name_utf8;
+} dc_imapfolder_t;
+
+
+static clist* list_folders(dc_imap_t* imap)
+{
+	clist*     imap_list = NULL;
+	clistiter* iter1 = NULL;
+	clist *    ret_list = clist_new();
+	int        r = 0;
+
+	if (imap==NULL || imap->etpan==NULL) {
+		goto cleanup;
+	}
+
+	// the "*" also returns all subdirectories;
+	// so the resulting foldernames may contain
+	// foldernames with delimiters as "folder/subdir/subsubdir"
+	//
+	// when switching to XLIST: at least my server claims
+	// that it support XLIST but does not return folder flags.
+	// so, if we did not get a _single_ flag, sth. seems not to work.
+	r = mailimap_list(imap->etpan, "", "*", &imap_list);
+
+	if (dc_imap_is_error(imap, r) || imap_list==NULL) {
+		imap_list = NULL;
+		dc_log_warning(imap->context, 0, "Cannot get folder list.");
+		goto cleanup;
+	}
+
+	if (clist_count(imap_list)<=0) {
+		dc_log_warning(imap->context, 0, "Folder list is empty.");
+		goto cleanup;
+	}
+
+	// default IMAP delimiter if none is returned by the list command
+	imap->imap_delimiter = '.';
+	for (iter1 = clist_begin(imap_list); iter1!=NULL ; iter1 = clist_next(iter1))
+	{
+		struct mailimap_mailbox_list* imap_folder =
+			(struct mailimap_mailbox_list*)clist_content(iter1);
+
+		if (imap_folder->mb_delimiter) {
+			imap->imap_delimiter = imap_folder->mb_delimiter;
+		}
+
+		dc_imapfolder_t* ret_folder = calloc(1, sizeof(dc_imapfolder_t));
+
+		if (strcasecmp(imap_folder->mb_name, "INBOX")==0) {
+			// Force upper case INBOX. Servers may return any case, however,
+			// all variants MUST lead to the same INBOX, see RFC 3501 5.1
+			ret_folder->name_to_select = dc_strdup("INBOX");
+		}
+		else {
+			ret_folder->name_to_select = dc_strdup(imap_folder->mb_name);
+		}
+
+		ret_folder->name_utf8 = dc_decode_modified_utf7(imap_folder->mb_name, 0);
+
+		clist_append(ret_list, (void*)ret_folder);
+	}
+
+cleanup:
+	if (imap_list) {
+		mailimap_list_result_free(imap_list);
+	}
+	return ret_list;
+}
+
+
+static void free_folders(clist* folders)
+{
+	if (folders) {
+		clistiter* iter1;
+		for (iter1 = clist_begin(folders); iter1!=NULL ; iter1 = clist_next(iter1)) {
+			dc_imapfolder_t* ret_folder = (struct dc_imapfolder_t*)clist_content(iter1);
+			free(ret_folder->name_to_select);
+			free(ret_folder->name_utf8);
+			free(ret_folder);
+		}
+		clist_free(folders);
+	}
+}
+
+
+void dc_imap_configure_folders(dc_imap_t* imap)
+{
+	#define DC_DEF_MVBOX "DeltaChat"
+
+	clist*     folder_list = NULL;
+	clistiter* iter;
+	char*      mvbox_folder = NULL;
+	char*      fallback_folder = NULL;
+
+	if (imap==NULL || imap->etpan==NULL) {
+		goto cleanup;
+	}
+
+	// this sets imap->imap_delimiter as side-effect
+	folder_list = list_folders(imap);
+
+	// as a fallback, the mvbox_folder is created under INBOX
+	// as required e.g. for DomainFactory
+	fallback_folder = dc_mprintf("INBOX%c%s", imap->imap_delimiter, DC_DEF_MVBOX);
+	for (iter=clist_begin(folder_list); iter!=NULL; iter=clist_next(iter))
+	{
+		dc_imapfolder_t* folder = (struct dc_imapfolder_t*)clist_content(iter);
+		if (strcmp(folder->name_utf8, DC_DEF_MVBOX)==0
+		 || strcmp(folder->name_utf8, fallback_folder)==0) {
+			mvbox_folder = dc_strdup(folder->name_to_select);
+			break;
+		}
+	}
+
+	if (mvbox_folder==NULL)
+	{
+		dc_log_info(imap->context, 0, "Creating MVBOX-folder \"%s\"...", DC_DEF_MVBOX);
+		int r = mailimap_create(imap->etpan, DC_DEF_MVBOX);
+		if (dc_imap_is_error(imap, r)) {
+			dc_log_warning(imap->context, 0, "Cannot create MVBOX-folder, using trying INBOX subfolder.");
+			r = mailimap_create(imap->etpan, fallback_folder);
+			if (dc_imap_is_error(imap, r)) {
+				/* continue on errors, we'll just use a different folder then */
+				dc_log_warning(imap->context, 0, "Cannot create MVBOX-folder.");
+			}
+			else {
+				mvbox_folder = dc_strdup(fallback_folder);
+				dc_log_info(imap->context, 0, "MVBOX-folder created as INBOX subfolder.");
+			}
+		}
+		else {
+			mvbox_folder = dc_strdup(DC_DEF_MVBOX);
+			dc_log_info(imap->context, 0, "MVBOX-folder created.");
+		}
+
+		// SUBSCRIBE is needed to make the folder visible to the LSUB command
+		// that may be used by other MUAs to list folders.
+		// for the LIST command, the folder is always visible.
+		mailimap_subscribe(imap->etpan, mvbox_folder);
+	}
+
+	// remember the configuration, mvbox_folder may be NULL
+	dc_sqlite3_set_config_int(imap->context->sql, "configured_mvbox", 1);
+	dc_sqlite3_set_config(imap->context->sql, "configured_mvbox_folder", mvbox_folder);
+
+cleanup:
+	free_folders(folder_list);
+	free(mvbox_folder);
+	free(fallback_folder);
+}
+
+
+/*******************************************************************************
  * Main interface
  ******************************************************************************/
 
@@ -391,6 +551,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	int              imap_connected_here = 0;
 	int              smtp_connected_here = 0;
 	int              ongoing_allocated_here = 0;
+	char*            mvbox_folder = NULL;
 
 	dc_loginparam_t* param = NULL;
 	char*            param_domain = NULL; /* just a pointer inside param, must not be freed! */
@@ -689,10 +850,9 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	/* find out wheter `DeltaChat`, `INBOX/DeltaChat` or whatever
 	should be used as the MVBOX */
 
-	// TODO
+	dc_imap_configure_folders(context->inbox);
 
-	PROGRESS(910)
-
+	PROGRESS(910);
 
 	/* configuration success - write back the configured parameters with the "configured_" prefix; also write the "configured"-flag */
 
@@ -726,6 +886,7 @@ cleanup:
 	if (ongoing_allocated_here) {
 		dc_free_ongoing(context);
 	}
+	free(mvbox_folder);
 
 	context->cb(context, DC_EVENT_CONFIGURE_PROGRESS, success? 1000 : 0, 0);
 }

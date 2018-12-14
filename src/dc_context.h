@@ -141,7 +141,6 @@ int             dc_has_ongoing       (dc_context_t*);
 int             dc_alloc_ongoing     (dc_context_t*);
 void            dc_free_ongoing      (dc_context_t*);
 
-
 /* library private: secure-join */
 #define         DC_HANDSHAKE_CONTINUE_NORMAL_PROCESSING 0x01
 #define         DC_HANDSHAKE_STOP_NORMAL_PROCESSING     0x02
