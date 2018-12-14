@@ -126,7 +126,7 @@ static int select_folder(dc_imap_t* imap, const char* folder /*may be NULL*/)
 
 	/* if there is a new folder and the new folder is equal to the selected one, there's nothing to do.
 	if there is _no_ new folder, we continue as we might want to expunge below.  */
-	if (folder && strcmp(imap->selected_folder, folder)==0) {
+	if (folder && folder[0] && strcmp(imap->selected_folder, folder)==0) {
 		return 1;
 	}
 
