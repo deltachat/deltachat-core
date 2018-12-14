@@ -636,7 +636,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	(the part before the '@') */
 	{ char* r = dc_loginparam_get_readable(param); dc_log_info(context, 0, "Trying: %s", r); free(r); }
 
-	if (!dc_imap_connect(context->inbox, param)) {
+	if (!dc_imap_connect(context->inbox, param, "INBOX")) {
 		if (param_autoconfig) {
 			goto cleanup;
 		}
@@ -655,7 +655,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 
 		{ char* r = dc_loginparam_get_readable(param); dc_log_info(context, 0, "Trying: %s", r); free(r); }
 
-		if (!dc_imap_connect(context->inbox, param)) {
+		if (!dc_imap_connect(context->inbox, param, "INBOX")) {
 			goto cleanup;
 		}
 	}
@@ -685,6 +685,14 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	smtp_connected_here = 1;
 
 	PROGRESS(900)
+
+	/* find out wheter `DeltaChat`, `INBOX/DeltaChat` or whatever
+	should be used as the MVBOX */
+
+	// TODO
+
+	PROGRESS(910)
+
 
 	/* configuration success - write back the configured parameters with the "configured_" prefix; also write the "configured"-flag */
 

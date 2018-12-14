@@ -10,7 +10,7 @@ extern "C" {
 #define DC_SMTP_THREAD            5000
 
 
-// jobs in the IMAP-thread
+// jobs in the INBOX-thread
 #define DC_JOB_DELETE_MSG_ON_IMAP     110    // low priority ...
 #define DC_JOB_MARKSEEN_MDN_ON_IMAP   120
 #define DC_JOB_MARKSEEN_MSG_ON_IMAP   130

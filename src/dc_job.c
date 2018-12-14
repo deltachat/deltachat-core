@@ -14,7 +14,7 @@
  ******************************************************************************/
 
 
-static int connect_to_imap(dc_context_t* context, dc_job_t* job /*may be NULL if the function is called directly!*/)
+static int connect_to_imap(dc_imap_t* imap, const char* watch_folder)
 {
 	#define          NOT_CONNECTED     0
 	#define          ALREADY_CONNECTED 1
@@ -22,25 +22,26 @@ static int connect_to_imap(dc_context_t* context, dc_job_t* job /*may be NULL if
 	int              ret_connected = NOT_CONNECTED;
 	dc_loginparam_t* param = dc_loginparam_new();
 
-	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || context->inbox==NULL) {
-		dc_log_warning(context, 0, "Cannot connect to IMAP: Bad parameters.");
+	if (imap==NULL || imap->context==NULL
+	 || imap->context->magic!=DC_CONTEXT_MAGIC ) {
+		dc_log_warning(imap->context, 0, "Cannot connect to IMAP: Bad parameters.");
 		goto cleanup;
 	}
 
-	if (dc_imap_is_connected(context->inbox)) {
+	if (dc_imap_is_connected(imap)) {
 		ret_connected = ALREADY_CONNECTED;
 		goto cleanup;
 	}
 
-	if (dc_sqlite3_get_config_int(context->sql, "configured", 0)==0) {
-		dc_log_warning(context, 0, "Not configured, cannot connect."); // this is no error, connect() is called eg. when the screen is switched on, it's okay if the caller does not check all circumstances here
+	if (dc_sqlite3_get_config_int(imap->context->sql, "configured", 0)==0) {
+		dc_log_warning(imap->context, 0, "Not configured, cannot connect.");
 		goto cleanup;
 	}
 
-	dc_loginparam_read(param, context->sql, "configured_" /*the trailing underscore is correct*/);
+	dc_loginparam_read(param, imap->context->sql,
+		"configured_" /*the trailing underscore is correct*/);
 
-	if (!dc_imap_connect(context->inbox, param)) {
-		dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
+	if (!dc_imap_connect(imap, param, watch_folder)) {
 		goto cleanup;
 	}
 
@@ -48,6 +49,25 @@ static int connect_to_imap(dc_context_t* context, dc_job_t* job /*may be NULL if
 
 cleanup:
 	dc_loginparam_unref(param);
+	return ret_connected;
+}
+
+
+static int connect_to_inbox(dc_context_t* context)
+{
+	char* inbox = dc_sqlite3_get_config(context->sql, "imap_folder", "INBOX");
+
+	int ret_connected = connect_to_imap(context->inbox, inbox);
+
+	free(inbox);
+	return ret_connected;
+}
+
+
+static int connect_to_mvbox(dc_context_t* context)
+{
+	// TODO: use the configured folder
+	int ret_connected = connect_to_imap(context->mvbox, "DeltaChat");
 	return ret_connected;
 }
 
@@ -71,7 +91,7 @@ static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(dc_context_t* context, dc_job_t*
 	if (delete_from_server)
 	{
 		if (!dc_imap_is_connected(context->inbox)) {
-			connect_to_imap(context, NULL);
+			connect_to_inbox(context);
 			if (!dc_imap_is_connected(context->inbox)) {
 				dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
 				goto cleanup;
@@ -105,7 +125,7 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* context, dc_job_
 	int       out_ms_flags = 0;
 
 	if (!dc_imap_is_connected(context->inbox)) {
-		connect_to_imap(context, NULL);
+		connect_to_inbox(context);
 		if (!dc_imap_is_connected(context->inbox)) {
 			dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
 			goto cleanup;
@@ -158,7 +178,7 @@ static void dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP(dc_context_t* context, dc_job_
 	int      out_ms_flags = 0;
 
 	if (!dc_imap_is_connected(context->inbox)) {
-		connect_to_imap(context, NULL);
+		connect_to_inbox(context);
 		if (!dc_imap_is_connected(context->inbox)) {
 			dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
 			goto cleanup;
@@ -671,7 +691,7 @@ void dc_perform_imap_fetch(dc_context_t* context)
 {
 	clock_t start = clock();
 
-	if (!connect_to_imap(context, NULL)) {
+	if (!connect_to_inbox(context)) {
 		return;
 	}
 
@@ -704,11 +724,13 @@ void dc_perform_imap_fetch(dc_context_t* context)
  */
 void dc_perform_imap_idle(dc_context_t* context)
 {
-	connect_to_imap(context, NULL); // also idle if connection fails because of not-configured, no-network, whatever. dc_imap_idle() will handle this by the fake-idle and log a warning
-
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
 		return;
 	}
+
+	// also idle if connection fails because of not-configured,
+	// no-network, whatever. dc_imap_idle() will handle this by the fake-idle and log a warning
+	connect_to_inbox(context);
 
 	pthread_mutex_lock(&context->inboxidle_condmutex);
 		if (context->perform_inbox_jobs_needed) {
@@ -781,6 +803,62 @@ void dc_interrupt_imap_idle(dc_context_t* context)
 	pthread_mutex_unlock(&context->inboxidle_condmutex);
 
 	dc_imap_interrupt_idle(context->inbox);
+}
+
+
+/*******************************************************************************
+ * User-functions to handle IMAP-jobs in the secondary IMAP-thread
+ ******************************************************************************/
+
+
+void dc_perform_mvbox_fetch(dc_context_t* context)
+{
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		return;
+	}
+
+	clock_t start = clock();
+
+	if (!connect_to_mvbox(context)) {
+		return;
+	}
+
+	dc_log_info(context, 0, "MVBOX-fetch started...");
+	dc_imap_fetch(context->mvbox);
+
+	if (context->mvbox->should_reconnect)
+	{
+		dc_log_info(context, 0, "MVBOX-fetch aborted, starting over...");
+		dc_imap_fetch(context->mvbox);
+	}
+
+	dc_log_info(context, 0, "MVBOX-fetch done in %.0f ms.", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
+}
+
+
+void dc_perform_mvbox_idle(dc_context_t* context)
+{
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		return;
+	}
+
+	connect_to_mvbox(context);
+
+	dc_log_info(context, 0, "MVBOX-IDLE started...");
+	dc_imap_idle(context->mvbox);
+	dc_log_info(context, 0, "MVBOX-IDLE ended.");
+}
+
+
+void dc_interrupt_mvbox_idle(dc_context_t* context)
+{
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || context->mvbox==NULL) {
+		dc_log_warning(context, 0, "Interrupt MVBOX-IDLE: Bad parameters.");
+		return;
+	}
+
+	dc_log_info(context, 0, "Interrupting MVBOX-IDLE...");
+	dc_imap_interrupt_idle(context->mvbox);
 }
 
 
@@ -953,4 +1031,5 @@ void dc_maybe_network(dc_context_t* context)
 
 	dc_interrupt_smtp_idle(context);
 	dc_interrupt_imap_idle(context);
+	dc_interrupt_mvbox_idle(context);
 }

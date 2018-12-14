@@ -431,6 +431,9 @@ static char* get_sys_config_str(const char* key)
  * - `send_port`    = SMTP-port, guessed if left out
  * - `server_flags` = IMAP-/SMTP-flags as a combination of @ref DC_LP flags, guessed if left out
  * - `imap_folder`  = IMAP-folder to use, defaults to `INBOX`
+ * - `mvbox_folder` = IMAP-folder to use for moving messages
+ *                    out of the scope or normal MUAs,
+ *                    defaults to `DeltaChat` or `INBOX/DeltaChat`
  * - `displayname`  = Own name to use when sending messages.  MUAs are allowed to spread this way eg. using CC, defaults to empty
  * - `selfstatus`   = Own status to display eg. in email footers, defaults to a standard text
  * - `selfavatar`   = File containing avatar. Will be copied to blob directory.
