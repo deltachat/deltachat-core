@@ -53,7 +53,11 @@ struct _dc_context
 	int              probe_imap_network;    /**< if this flag is set, the imap-job timeouts are bypassed and messages are sent until they fail */
 
 	dc_imap_t*       mvbox;                 /**< secondary IMAP object watching the delta chat folder, never NULL */
+	pthread_cond_t   mvboxidle_cond;
 	pthread_mutex_t  mvboxidle_condmutex;
+	int              mvboxidle_condflag;
+	int              mvbox_suspended;
+	int              mvbox_using_handle;
 
 	dc_smtp_t*       smtp;                  /**< Internal SMTP object, never NULL */
 	pthread_cond_t   smtpidle_cond;

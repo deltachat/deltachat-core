@@ -72,23 +72,32 @@ cleanup:
 }
 
 
-static int connect_to_mvbox(dc_context_t* context)
+static int connect_to_mvbox(dc_context_t* context, int* mvbox_desired)
 {
 	int   ret_connected = NOT_CONNECTED;
 	char* mvbox_name = NULL;
 
-	ret_connected = connect_to_imap(context->mvbox);
-	if (!ret_connected) {
-		goto cleanup;
-	}
+	*mvbox_desired = 1;
 
 	// a fallback to support upgrades from core 0.29.0 or older;
 	// newer core versions set configured_mvbox_folder during configure.
 	if (dc_sqlite3_get_config_int(context->sql, "configured_mvbox", 0)==0) {
+		if (!(ret_connected=connect_to_imap(context->mvbox))) {
+			goto cleanup;
+		}
 		dc_imap_configure_folders(context->mvbox);
 	}
 
 	mvbox_name = dc_sqlite3_get_config(context->sql, "configured_mvbox_folder", NULL);
+	if (mvbox_name==NULL) {
+		*mvbox_desired = 0;
+		ret_connected = NOT_CONNECTED;
+		goto cleanup;
+	}
+
+	if (!(ret_connected=connect_to_imap(context->mvbox))) {
+		goto cleanup;
+	}
 	dc_imap_set_watch_folder(context->mvbox, mvbox_name);
 
 cleanup:
@@ -217,6 +226,41 @@ static void dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP(dc_context_t* context, dc_job_
 cleanup:
 	free(server_folder);
 	free(new_server_folder);
+}
+
+
+static void dc_suspend_mvbox_thread(dc_context_t* context, int suspend)
+{
+	if (suspend)
+	{
+		dc_log_info(context, 0, "Suspending MVBOX-thread.");
+		pthread_mutex_lock(&context->mvboxidle_condmutex);
+			context->mvbox_suspended = 1;
+		pthread_mutex_unlock(&context->mvboxidle_condmutex);
+
+		dc_interrupt_mvbox_idle(context);
+
+		// wait until we're out of idle,
+		// after that the handle won't be in use anymore
+		while (1) {
+			pthread_mutex_lock(&context->mvboxidle_condmutex);
+				if (context->mvbox_using_handle==0) {
+					pthread_mutex_unlock(&context->mvboxidle_condmutex);
+					return;
+				}
+			pthread_mutex_unlock(&context->mvboxidle_condmutex);
+			usleep(300*1000);
+		}
+	}
+	else
+	{
+		dc_log_info(context, 0, "Unsuspending MVBOX-thread.");
+		pthread_mutex_lock(&context->mvboxidle_condmutex);
+			context->mvbox_suspended = 0;
+			context->mvboxidle_condflag = 1;
+			pthread_cond_signal(&context->mvboxidle_cond);
+		pthread_mutex_unlock(&context->mvboxidle_condmutex);
+	}
 }
 
 
@@ -589,6 +633,7 @@ static void dc_job_perform(dc_context_t* context, int thread, int probe_network)
 			dc_job_kill_actions(context, job.action, 0);
 			sqlite3_finalize(select_stmt);
 			select_stmt = NULL;
+			dc_suspend_mvbox_thread(context, 1);
 			dc_suspend_smtp_thread(context, 1);
 		}
 
@@ -612,6 +657,7 @@ static void dc_job_perform(dc_context_t* context, int thread, int probe_network)
 		}
 
 		if (IS_EXCLUSIVE_JOB) {
+			dc_suspend_mvbox_thread(context, 0);
 			dc_suspend_smtp_thread(context, 0);
 			goto cleanup;
 		}
@@ -838,13 +884,24 @@ void dc_interrupt_imap_idle(dc_context_t* context)
 
 void dc_perform_mvbox_fetch(dc_context_t* context)
 {
+	int mvbox_desired = 0;
+
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
 		return;
 	}
 
+	pthread_mutex_lock(&context->mvboxidle_condmutex);
+		if (context->mvbox_suspended) {
+			pthread_mutex_unlock(&context->mvboxidle_condmutex);
+			return;
+		}
+
+		context->mvbox_using_handle = 1;
+	pthread_mutex_unlock(&context->mvboxidle_condmutex);
+
 	clock_t start = clock();
 
-	if (!connect_to_mvbox(context)) {
+	if (!connect_to_mvbox(context, &mvbox_desired)) {
 		return;
 	}
 
@@ -858,20 +915,55 @@ void dc_perform_mvbox_fetch(dc_context_t* context)
 	}
 
 	dc_log_info(context, 0, "MVBOX-fetch done in %.0f ms.", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
+
+	pthread_mutex_lock(&context->mvboxidle_condmutex);
+		context->mvbox_using_handle = 0;
+	pthread_mutex_unlock(&context->mvboxidle_condmutex);
 }
 
 
 void dc_perform_mvbox_idle(dc_context_t* context)
 {
+	int mvbox_desired = 0;
+
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
 		return;
 	}
 
-	connect_to_mvbox(context);
+	pthread_mutex_lock(&context->mvboxidle_condmutex);
+		if (context->mvbox_suspended) {
+			while (context->mvboxidle_condflag==0) {
+				// unlock mutex -> wait -> lock mutex
+				pthread_cond_wait(&context->mvboxidle_cond, &context->mvboxidle_condmutex);
+			}
+			context->mvboxidle_condflag = 0;
+			pthread_mutex_unlock(&context->mvboxidle_condmutex);
+			return;
+		}
+
+		context->mvbox_using_handle = 1;
+	pthread_mutex_unlock(&context->mvboxidle_condmutex);
+
+	connect_to_mvbox(context, &mvbox_desired);
+	if (!mvbox_desired) {
+		pthread_mutex_lock(&context->mvboxidle_condmutex);
+			context->mvbox_using_handle = 0;
+			while (context->mvboxidle_condflag==0) {
+				// unlock mutex -> wait -> lock mutex
+				pthread_cond_wait(&context->mvboxidle_cond, &context->mvboxidle_condmutex);
+			}
+			context->mvboxidle_condflag = 0;
+		pthread_mutex_unlock(&context->mvboxidle_condmutex);
+		return;
+	}
 
 	dc_log_info(context, 0, "MVBOX-IDLE started...");
 	dc_imap_idle(context->mvbox);
 	dc_log_info(context, 0, "MVBOX-IDLE ended.");
+
+	pthread_mutex_lock(&context->mvboxidle_condmutex);
+		context->mvbox_using_handle = 0;
+	pthread_mutex_unlock(&context->mvboxidle_condmutex);
 }
 
 

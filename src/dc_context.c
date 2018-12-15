@@ -133,6 +133,7 @@ dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_na
 	pthread_mutex_init(&context->bobs_qr_critical, NULL);
 	pthread_mutex_init(&context->inboxidle_condmutex, NULL);
 	pthread_mutex_init(&context->mvboxidle_condmutex, NULL);
+	pthread_cond_init(&context->mvboxidle_cond, NULL);
 	pthread_mutex_init(&context->smtpidle_condmutex, NULL);
 	pthread_cond_init(&context->smtpidle_cond, NULL);
 
@@ -200,6 +201,7 @@ void dc_context_unref(dc_context_t* context)
 	pthread_mutex_destroy(&context->smear_critical);
 	pthread_mutex_destroy(&context->bobs_qr_critical);
 	pthread_mutex_destroy(&context->inboxidle_condmutex);
+	pthread_cond_destroy(&context->mvboxidle_cond);
 	pthread_mutex_destroy(&context->mvboxidle_condmutex);
 	pthread_cond_destroy(&context->smtpidle_cond);
 	pthread_mutex_destroy(&context->smtpidle_condmutex);
