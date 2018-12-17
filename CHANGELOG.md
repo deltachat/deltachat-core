@@ -8,6 +8,15 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes anywhere in the Delta Chat ecosystem,
 see https://delta.chat/en/changelog
 
+## v0.30.0
+
+* the core can second folder simultanous to the INBOX now;
+  for this purposes, users shoud create a 3rd thread calling
+  the new functions dc_perform_mvbox_fetch() and dc_perform_mvbox_idle()
+* add config-option mvbox_enabled
+
+The changes have been done by Björn Petersen and Holger Krekel
+
 ## v0.29.0
 
 * add dc_chat_get_color() and dc_contact_get_color()
