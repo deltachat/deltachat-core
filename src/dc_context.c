@@ -90,6 +90,29 @@ static void cb_set_config(dc_imap_t* imap, const char* key, const char* value)
 }
 
 
+static int cb_precheck_imf(dc_imap_t* imap, const char* rfc724_mid,
+                           const char* server_folder, uint32_t server_uid)
+{
+	int      rfc724_mid_exists = 0;
+	char*    old_server_folder = NULL;
+	uint32_t old_server_uid = 0;
+
+	if (dc_rfc724_mid_exists(imap->context, rfc724_mid, &old_server_folder, &old_server_uid))
+	{
+		rfc724_mid_exists = 1;
+
+		if (strcmp(old_server_folder, server_folder)!=0
+		 || old_server_uid!=server_uid) {
+			dc_update_server_uid(imap->context, rfc724_mid, server_folder, server_uid);
+		}
+	}
+
+	free(old_server_folder);
+
+	return rfc724_mid_exists;
+}
+
+
 static void cb_receive_imf(dc_imap_t* imap, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags)
 {
 	dc_context_t* context = (dc_context_t*)imap->userData;
@@ -147,8 +170,8 @@ dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_na
 
 	dc_pgp_init();
 	context->sql      = dc_sqlite3_new(context);
-	context->inbox    = dc_imap_new(cb_get_config, cb_set_config, cb_receive_imf, (void*)context, context);
-	context->mvbox    = dc_imap_new(cb_get_config, cb_set_config, cb_receive_imf, (void*)context, context);
+	context->inbox    = dc_imap_new(cb_get_config, cb_set_config, cb_precheck_imf, cb_receive_imf, (void*)context, context);
+	context->mvbox    = dc_imap_new(cb_get_config, cb_set_config, cb_precheck_imf, cb_receive_imf, (void*)context, context);
 	context->smtp     = dc_smtp_new(context);
 
 	/* Random-seed.  An additional seed with more random data is done just before key generation
