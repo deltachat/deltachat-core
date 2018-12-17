@@ -425,7 +425,7 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 			dc_log_info(imap->context, 0, "EXISTS is missing for folder \"%s\", using fallback.", folder);
 			set = mailimap_set_new_single(0);
 		}
-		r = mailimap_fetch(imap->etpan, set, imap->fetch_type_uid, &fetch_result);
+		r = mailimap_fetch(imap->etpan, set, imap->fetch_type_prefetch, &fetch_result);
 		mailimap_set_free(set);
 
 		if (dc_imap_is_error(imap, r) || fetch_result==NULL || (cur=clist_begin(fetch_result))==NULL) {
@@ -454,7 +454,7 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 
 	/* fetch messages with larger UID than the last one seen (`UID FETCH lastseenuid+1:*)`, see RFC 4549 */
 	set = mailimap_set_new_interval(lastseenuid+1, 0);
-		r = mailimap_uid_fetch(imap->etpan, set, imap->fetch_type_uid, &fetch_result);
+		r = mailimap_uid_fetch(imap->etpan, set, imap->fetch_type_prefetch, &fetch_result);
 	mailimap_set_free(set);
 
 	if (dc_imap_is_error(imap, r) || fetch_result==NULL)
@@ -476,14 +476,20 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 		if (cur_uid > 0
 		 && cur_uid!=lastseenuid /* `UID FETCH <lastseenuid+1>:*` may include lastseenuid if "*"==lastseenuid */)
 		{
+			char* rfc724_mid = unquote_rfc724_mid(peek_rfc724_mid(msg_att));
+
 			read_cnt++;
-			if (fetch_single_msg(imap, folder, cur_uid)==0/* 0=try again later*/) {
-				read_errors++;
+			if (imap->precheck_imf(imap, rfc724_mid, folder, cur_uid)) {
+				if (fetch_single_msg(imap, folder, cur_uid)==0/* 0=try again later*/) {
+					read_errors++; // with read_errors, lastseenuid is not written
+				}
 			}
-			else if (cur_uid > new_lastseenuid) {
+
+			if (cur_uid > new_lastseenuid) {
 				new_lastseenuid = cur_uid;
 			}
 
+			free(rfc724_mid);
 		}
 	}
 
@@ -946,7 +952,9 @@ void dc_imap_set_watch_folder(dc_imap_t* imap, const char* watch_folder)
  ******************************************************************************/
 
 
-dc_imap_t* dc_imap_new(dc_get_config_t get_config, dc_set_config_t set_config, dc_receive_imf_t receive_imf, void* userData, dc_context_t* context)
+dc_imap_t* dc_imap_new(dc_get_config_t get_config, dc_set_config_t set_config,
+                       dc_precheck_imf_t precheck_imf, dc_receive_imf_t receive_imf,
+                       void* userData, dc_context_t* context)
 {
 	dc_imap_t* imap = NULL;
 
@@ -959,6 +967,7 @@ dc_imap_t* dc_imap_new(dc_get_config_t get_config, dc_set_config_t set_config, d
 	imap->context        = context;
 	imap->get_config     = get_config;
 	imap->set_config     = set_config;
+	imap->precheck_imf   = precheck_imf;
 	imap->receive_imf    = receive_imf;
 	imap->userData       = userData;
 
@@ -971,17 +980,25 @@ dc_imap_t* dc_imap_new(dc_get_config_t get_config, dc_set_config_t set_config, d
 	imap->selected_folder = calloc(1, 1);
 
 	/* create some useful objects */
-	imap->fetch_type_uid = mailimap_fetch_type_new_fetch_att_list_empty(); /* object to fetch the ID */
-	mailimap_fetch_type_new_fetch_att_list_add(imap->fetch_type_uid, mailimap_fetch_att_new_uid());
 
-	imap->fetch_type_message_id = mailimap_fetch_type_new_fetch_att_list_empty();
-	mailimap_fetch_type_new_fetch_att_list_add(imap->fetch_type_message_id, mailimap_fetch_att_new_envelope());
+	// object to fetch UID and Message-Id
+	//
+	// TODO: we're using `FETCH ... (... ENVELOPE)` currently,
+	//   mainly because peek_rfc724_mid() can handle this structure
+	//   and it is easier wrt to libEtPan.
+	//   however, if the other ENVELOPE fields are known to be not needed in the near future,
+	//   this could be changed to `FETCH ... (... BODY[HEADER.FIELDS (MESSAGE-ID)])`
+	imap->fetch_type_prefetch = mailimap_fetch_type_new_fetch_att_list_empty();
+	mailimap_fetch_type_new_fetch_att_list_add(imap->fetch_type_prefetch, mailimap_fetch_att_new_uid());
+	mailimap_fetch_type_new_fetch_att_list_add(imap->fetch_type_prefetch, mailimap_fetch_att_new_envelope());
 
-	imap->fetch_type_body = mailimap_fetch_type_new_fetch_att_list_empty(); /* object to fetch flags+body */
+	// object to fetch flags and body
+	imap->fetch_type_body = mailimap_fetch_type_new_fetch_att_list_empty();
 	mailimap_fetch_type_new_fetch_att_list_add(imap->fetch_type_body, mailimap_fetch_att_new_flags());
 	mailimap_fetch_type_new_fetch_att_list_add(imap->fetch_type_body, mailimap_fetch_att_new_body_peek_section(mailimap_section_new(NULL)));
 
-	imap->fetch_type_flags = mailimap_fetch_type_new_fetch_att_list_empty(); /* object to fetch flags only */
+	// object to fetch flags only
+	imap->fetch_type_flags = mailimap_fetch_type_new_fetch_att_list_empty();
 	mailimap_fetch_type_new_fetch_att_list_add(imap->fetch_type_flags, mailimap_fetch_att_new_flags());
 
     return imap;
@@ -1000,8 +1017,7 @@ void dc_imap_unref(dc_imap_t* imap)
 	pthread_mutex_destroy(&imap->watch_condmutex);
 	free(imap->watch_folder);
 	free(imap->selected_folder);
-	if (imap->fetch_type_uid)        { mailimap_fetch_type_free(imap->fetch_type_uid); }
-	if (imap->fetch_type_message_id) { mailimap_fetch_type_free(imap->fetch_type_message_id); }
+	if (imap->fetch_type_prefetch)   { mailimap_fetch_type_free(imap->fetch_type_prefetch); }
 	if (imap->fetch_type_body)       { mailimap_fetch_type_free(imap->fetch_type_body); }
 	if (imap->fetch_type_flags)      { mailimap_fetch_type_free(imap->fetch_type_flags); }
 	free(imap);
@@ -1160,7 +1176,7 @@ int dc_imap_delete_msg(dc_imap_t* imap, const char* rfc724_mid, const char* fold
 		const char* is_quoted_rfc724_mid = NULL;
 
 		struct mailimap_set* set = mailimap_set_new_single(server_uid);
-			r = mailimap_uid_fetch(imap->etpan, set, imap->fetch_type_message_id, &fetch_result);
+			r = mailimap_uid_fetch(imap->etpan, set, imap->fetch_type_prefetch, &fetch_result);
 		mailimap_set_free(set);
 
 		if (dc_imap_is_error(imap, r) || fetch_result==NULL

@@ -17,6 +17,10 @@ typedef struct dc_imap_t dc_imap_t;
 typedef char*    (*dc_get_config_t)    (dc_imap_t*, const char*, const char*);
 typedef void     (*dc_set_config_t)    (dc_imap_t*, const char*, const char*);
 
+typedef int      (*dc_precheck_imf_t)  (dc_imap_t*, const char* rfc724_mid,
+                                        const char* server_folder,
+                                        uint32_t server_uid);
+
 #define DC_IMAP_SEEN 0x0001L
 typedef void     (*dc_receive_imf_t)   (dc_imap_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags);
 
@@ -51,13 +55,13 @@ typedef struct dc_imap_t
 	pthread_mutex_t       watch_condmutex;
 	int                   watch_condflag;
 
-	struct mailimap_fetch_type* fetch_type_uid;
-	struct mailimap_fetch_type* fetch_type_message_id;
+	struct mailimap_fetch_type* fetch_type_prefetch;
 	struct mailimap_fetch_type* fetch_type_body;
 	struct mailimap_fetch_type* fetch_type_flags;
 
 	dc_get_config_t       get_config;
 	dc_set_config_t       set_config;
+	dc_precheck_imf_t     precheck_imf;
 	dc_receive_imf_t      receive_imf;
 	void*                 userData;
 	dc_context_t*         context;
@@ -68,7 +72,9 @@ typedef struct dc_imap_t
 } dc_imap_t;
 
 
-dc_imap_t* dc_imap_new               (dc_get_config_t, dc_set_config_t, dc_receive_imf_t, void* userData, dc_context_t*);
+dc_imap_t* dc_imap_new               (dc_get_config_t, dc_set_config_t,
+                                      dc_precheck_imf_t, dc_receive_imf_t,
+                                      void* userData, dc_context_t*);
 void       dc_imap_unref             (dc_imap_t*);
 
 int        dc_imap_connect           (dc_imap_t*, const dc_loginparam_t*);
