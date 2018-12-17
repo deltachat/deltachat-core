@@ -721,10 +721,30 @@ cleanup:
 
 /**
  * Execute pending imap-jobs.
- * This function and dc_perform_imap_fetch() and dc_perform_imap_idle() must be called from the same thread,
- * typically in a loop.
+ * This function and dc_perform_imap_fetch() and dc_perform_imap_idle()
+ * must be called from the same thread, typically in a loop.
  *
- * See dc_interrupt_imap_idle() for an example.
+ * Example:
+ *
+ *     void* imap_thread_func(void* context)
+ *     {
+ *         while (true) {
+ *             dc_perform_imap_jobs(context);
+ *             dc_perform_imap_fetch(context);
+ *             dc_perform_imap_idle(context);
+ *         }
+ *     }
+ *
+ *     // start imap-thread that runs forever
+ *     pthread_t imap_thread;
+ *     pthread_create(&imap_thread, NULL, imap_thread_func, context);
+ *
+ *     ... program runs ...
+ *
+ *     // network becomes available again -
+ *     // the interrupt causes dc_perform_imap_idle() in the thread above
+ *     // to return so that jobs are executed and messages are fetched.
+ *     dc_maybe_network(context);
  *
  * @memberof dc_context_t
  * @param context The context as created by dc_context_new().
@@ -752,7 +772,7 @@ void dc_perform_imap_jobs(dc_context_t* context)
  * This function and dc_perform_imap_jobs() and dc_perform_imap_idle() must be called from the same thread,
  * typically in a loop.
  *
- * See dc_interrupt_imap_idle() for an example.
+ * See dc_perform_imap_jobs() for an example.
  *
  * @memberof dc_context_t
  * @param context The context as created by dc_context_new().
@@ -787,7 +807,7 @@ void dc_perform_imap_fetch(dc_context_t* context)
  *
  * You should call this function directly after calling dc_perform_imap_fetch().
  *
- * See dc_interrupt_imap_idle() for an example.
+ * See dc_perform_imap_jobs() for an example.
  *
  * @memberof dc_context_t
  * @param context The context as created by dc_context_new().
@@ -828,30 +848,11 @@ void dc_perform_imap_idle(dc_context_t* context)
  * If the imap-thread is inside one of these functions when dc_interrupt_imap_idle() is called, however,
  * the next call of the imap-thread to dc_perform_imap_idle() is interrupted immediately.
  *
- * Internally, this function is called whenever a imap-jobs should be processed (delete message, markseen etc.),
- * for the UI view it may make sense to call the function eg. on network changes to fetch messages immediately.
+ * Internally, this function is called whenever a imap-jobs should be processed
+ * (delete message, markseen etc.).
  *
- * Example:
- *
- *     void* imap_thread_func(void* context)
- *     {
- *         while (true) {
- *             dc_perform_imap_jobs(context);
- *             dc_perform_imap_fetch(context);
- *             dc_perform_imap_idle(context);
- *         }
- *     }
- *
- *     // start imap-thread that runs forever
- *     pthread_t imap_thread;
- *     pthread_create(&imap_thread, NULL, imap_thread_func, context);
- *
- *     ... program runs ...
- *
- *     // network becomes available again - the interrupt causes
- *     // dc_perform_imap_idle() in the thread to return so that jobs are executed
- *     // and messages are fetched.
- *     dc_interrupt_imap_idle(context);
+ * When you need to call this function just because to get jobs done after network changes,
+ * use dc_maybe_network() instead.
  *
  * @memberof dc_context_t
  * @param context The context as created by dc_context_new().
@@ -882,6 +883,40 @@ void dc_interrupt_imap_idle(dc_context_t* context)
  ******************************************************************************/
 
 
+/**
+ * Fetch new messages from the MVBOX, if any.
+ * The MVBOX is a folder on the account where chat messages are moved to.
+ * The moving is done to not disturb shared accounts that are used by both,
+ * Delta Chat and a classical MUA.
+ *
+ * This function and dc_perform_mvbox_idle()
+ * must be called from the same thread, typically in a loop.
+ *
+ * Example:
+ *
+ *     void* mvbox_thread_func(void* context)
+ *     {
+ *         while (true) {
+ *             dc_perform_mvbox_fetch(context);
+ *             dc_perform_mvbox_idle(context);
+ *         }
+ *     }
+ *
+ *     // start mvbox-thread that runs forever
+ *     pthread_t mvbox_thread;
+ *     pthread_create(&mvbox_thread, NULL, mvbox_thread_func, context);
+ *
+ *     ... program runs ...
+ *
+ *     // network becomes available again -
+ *     // the interrupt causes dc_perform_mvbox_idle() in the thread above
+ *     // to return so that and messages are fetched.
+ *     dc_maybe_network(context);
+ *
+ * @memberof dc_context_t
+ * @param context The context as created by dc_context_new().
+ * @return None.
+ */
 void dc_perform_mvbox_fetch(dc_context_t* context)
 {
 	int mvbox_desired = 0;
@@ -922,6 +957,19 @@ void dc_perform_mvbox_fetch(dc_context_t* context)
 }
 
 
+/**
+ * Wait for messages or jobs in the MVBOX-thread.
+ * This function and dc_perform_mvbox_fetch().
+ * must be called from the same thread, typically in a loop.
+ *
+ * You should call this function directly after calling dc_perform_mvbox_fetch().
+ *
+ * See dc_perform_mvbox_fetch() for an example.
+ *
+ * @memberof dc_context_t
+ * @param context The context as created by dc_context_new().
+ * @return None.
+ */
 void dc_perform_mvbox_idle(dc_context_t* context)
 {
 	int mvbox_desired = 0;
@@ -967,6 +1015,21 @@ void dc_perform_mvbox_idle(dc_context_t* context)
 }
 
 
+/**
+ * Interrupt waiting for MVBOX-fetch.
+ * dc_interrupt_mvbox_idle() does _not_ interrupt dc_perform_mvbox_fetch().
+ * If the MVBOX-thread is inside this function when dc_interrupt_mvbox_idle() is called, however,
+ * the next call of the MVBOX-thread to dc_perform_mvbox_idle() is interrupted immediately.
+ *
+ * Internally, this function is called whenever a imap-jobs should be processed.
+ *
+ * When you need to call this function just because to get jobs done after network changes,
+ * use dc_maybe_network() instead.
+ *
+ * @memberof dc_context_t
+ * @param context The context as created by dc_context_new().
+ * @return None.
+ */
 void dc_interrupt_mvbox_idle(dc_context_t* context)
 {
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || context->mvbox==NULL) {
@@ -989,7 +1052,26 @@ void dc_interrupt_mvbox_idle(dc_context_t* context)
  * This function and dc_perform_smtp_idle() must be called from the same thread,
  * typically in a loop.
  *
- * See dc_interrupt_smtp_idle() for an example.
+ * Example:
+ *
+ *     void* smtp_thread_func(void* context)
+ *     {
+ *         while (true) {
+ *             dc_perform_smtp_jobs(context);
+ *             dc_perform_smtp_idle(context);
+ *         }
+ *     }
+ *
+ *     // start smtp-thread that runs forever
+ *     pthread_t smtp_thread;
+ *     pthread_create(&smtp_thread, NULL, smtp_thread_func, context);
+ *
+ *     ... program runs ...
+ *
+ *     // network becomes available again -
+ *     // the interrupt causes dc_perform_smtp_idle() in the thread above
+ *     // to return so that jobs are executed
+ *     dc_maybe_network(context);
  *
  * @memberof dc_context_t
  * @param context The context as created by dc_context_new().
@@ -1073,28 +1155,10 @@ void dc_perform_smtp_idle(dc_context_t* context)
  * If the smtp-thread is inside this function when dc_interrupt_smtp_idle() is called, however,
  * the next call of the smtp-thread to dc_perform_smtp_idle() is interrupted immediately.
  *
- * Internally, this function is called whenever a message is to be send,
- * for the UI view it may make sense to call the function eg. on network changes.
+ * Internally, this function is called whenever a message is to be sent.
  *
- * Example:
- *
- *     void* smtp_thread_func(void* context)
- *     {
- *         while (true) {
- *             dc_perform_smtp_jobs(context);
- *             dc_perform_smtp_idle(context);
- *         }
- *     }
- *
- *     // start smtp-thread that runs forever
- *     pthread_t smtp_thread;
- *     pthread_create(&smtp_thread, NULL, smtp_thread_func, context);
- *
- *     ... program runs ...
- *
- *     // network becomes available again - the interrupt causes
- *     // dc_perform_smtp_idle() in the thread to return so that jobs are executed
- *     dc_interrupt_smtp_idle(context);
+ * When you need to call this function just because to get jobs done after network changes,
+ * use dc_maybe_network() instead.
  *
  * @memberof dc_context_t
  * @param context The context as created by dc_context_new().

@@ -252,7 +252,7 @@ cleanup:
  * as well as for headlines in bubbles of group chats.
  *
  * @memberof dc_contact_t
- * @param chat The contact object.
+ * @param contact The contact object.
  * @return Color as 0x00rrggbb with rr=red, gg=green, bb=blue
  *     each in the range 0-255.
  */
