@@ -32,6 +32,7 @@ static const char* config_keys[] = {
 	,"selfavatar"
 	,"e2ee_enabled"
 	,"mdns_enabled"
+	,"mvbox_enabled"
 	,"save_mime_headers"
 	,"configured_addr"
 	,"configured_mail_server"
@@ -130,7 +131,9 @@ dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_na
 
 	pthread_mutex_init(&context->smear_critical, NULL);
 	pthread_mutex_init(&context->bobs_qr_critical, NULL);
-	pthread_mutex_init(&context->imapidle_condmutex, NULL);
+	pthread_mutex_init(&context->inboxidle_condmutex, NULL);
+	pthread_mutex_init(&context->mvboxidle_condmutex, NULL);
+	pthread_cond_init(&context->mvboxidle_cond, NULL);
 	pthread_mutex_init(&context->smtpidle_condmutex, NULL);
 	pthread_cond_init(&context->smtpidle_cond, NULL);
 
@@ -144,7 +147,8 @@ dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_na
 
 	dc_pgp_init();
 	context->sql      = dc_sqlite3_new(context);
-	context->imap     = dc_imap_new(cb_get_config, cb_set_config, cb_receive_imf, (void*)context, context);
+	context->inbox    = dc_imap_new(cb_get_config, cb_set_config, cb_receive_imf, (void*)context, context);
+	context->mvbox    = dc_imap_new(cb_get_config, cb_set_config, cb_receive_imf, (void*)context, context);
 	context->smtp     = dc_smtp_new(context);
 
 	/* Random-seed.  An additional seed with more random data is done just before key generation
@@ -187,7 +191,8 @@ void dc_context_unref(dc_context_t* context)
 		dc_close(context);
 	}
 
-	dc_imap_unref(context->imap);
+	dc_imap_unref(context->inbox);
+	dc_imap_unref(context->mvbox);
 	dc_smtp_unref(context->smtp);
 	dc_sqlite3_unref(context->sql);
 
@@ -195,7 +200,9 @@ void dc_context_unref(dc_context_t* context)
 
 	pthread_mutex_destroy(&context->smear_critical);
 	pthread_mutex_destroy(&context->bobs_qr_critical);
-	pthread_mutex_destroy(&context->imapidle_condmutex);
+	pthread_mutex_destroy(&context->inboxidle_condmutex);
+	pthread_cond_destroy(&context->mvboxidle_cond);
+	pthread_mutex_destroy(&context->mvboxidle_condmutex);
 	pthread_cond_destroy(&context->smtpidle_cond);
 	pthread_mutex_destroy(&context->smtpidle_condmutex);
 
@@ -295,7 +302,8 @@ void dc_close(dc_context_t* context)
 		return;
 	}
 
-	dc_imap_disconnect(context->imap);
+	dc_imap_disconnect(context->inbox);
+	dc_imap_disconnect(context->mvbox);
 	dc_smtp_disconnect(context->smtp);
 
 	if (dc_sqlite3_is_open(context->sql)) {
@@ -435,6 +443,11 @@ static char* get_sys_config_str(const char* key)
  * - `e2ee_enabled` = 0=no end-to-end-encryption, 1=prefer end-to-end-encryption (default)
  * - `mdns_enabled` = 0=do not send or request read receipts,
  *                    1=send and request read receipts (default)
+ * - `mvbox_enabled`= 1=move chat-messages to the `DeltaChat`-folder
+ *                    and also watch this folder for changes (default),
+ *                    0=do not move chat-messages
+ *                    and do not watch the `DeltaChat`-folder.
+ *                    Changing this value requires a reconfigure.
  * - `save_mime_headers` = 1=save mime headers and make dc_get_mime_headers() work for subsequent calls,
  *                    0=do not save mime headers (default)
  *
@@ -530,6 +543,9 @@ char* dc_get_config(dc_context_t* context, const char* key)
 		else if (strcmp(key, "imap_folder")==0) {
 			value = dc_strdup("INBOX");
 		}
+		else if (strcmp(key, "mvbox_enabled")==0) {
+			value = dc_mprintf("%i", DC_MVBOX_DEFAULT_ENABLED);
+		}
 		else {
 			value = dc_mprintf("");
 		}
@@ -571,6 +587,9 @@ char* dc_get_info(dc_context_t* context)
 	char*            fingerprint_str = NULL;
 	dc_loginparam_t* l = NULL;
 	dc_loginparam_t* l2 = NULL;
+	int              mvbox_enabled = 0;
+	int              configured_mvbox = 0;
+	char*            configured_mvbox_folder = NULL;
 	int              contacts = 0;
 	int              chats = 0;
 	int              real_msgs = 0;
@@ -629,6 +648,10 @@ char* dc_get_info(dc_context_t* context)
 	l_readable_str = dc_loginparam_get_readable(l);
 	l2_readable_str = dc_loginparam_get_readable(l2);
 
+	mvbox_enabled = dc_sqlite3_get_config_int(context->sql, "mvbox_enabled", DC_MVBOX_DEFAULT_ENABLED);
+	configured_mvbox = dc_sqlite3_get_config_int(context->sql, "configured_mvbox", 0);
+	configured_mvbox_folder = dc_sqlite3_get_config(context->sql, "configured_mvbox_folder", "<unset>");
+
 	temp = dc_mprintf(
 		"deltachat_core_version=v%s\n"
 		"sqlite_version=%s\n"
@@ -648,9 +671,11 @@ char* dc_get_info(dc_context_t* context)
 		"is_configured=%i\n"
 		"entered_account_settings=%s\n"
 		"used_account_settings=%s\n"
+		"mvbox_enabled=%i\n"
+		"configured_mvbox=%i\n"
+		"configured_mvbox_folder=%s\n"
 		"mdns_enabled=%i\n"
 		"e2ee_enabled=%i\n"
-		"e2ee_default_enabled=%i\n"
 		"private_key_count=%i\n"
 		"public_key_count=%i\n"
 		"fingerprint=%s\n"
@@ -672,9 +697,11 @@ char* dc_get_info(dc_context_t* context)
 		, is_configured
 		, l_readable_str
 		, l2_readable_str
+		, mvbox_enabled
+		, configured_mvbox
+		, configured_mvbox_folder
 		, mdns_enabled
 		, e2ee_enabled
-		, DC_E2EE_DEFAULT_ENABLED
 		, prv_key_cnt
 		, pub_key_cnt
 		, fingerprint_str
@@ -688,6 +715,7 @@ char* dc_get_info(dc_context_t* context)
 	free(displayname);
 	free(l_readable_str);
 	free(l2_readable_str);
+	free(configured_mvbox_folder);
 	free(fingerprint_str);
 	dc_key_unref(self_public);
 	return ret.buf; /* must be freed by the caller */

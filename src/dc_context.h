@@ -47,10 +47,17 @@ struct _dc_context
 
 	dc_sqlite3_t*    sql;                   /**< Internal SQL object, never NULL */
 
-	dc_imap_t*       imap;                  /**< Internal IMAP object, never NULL */
-	pthread_mutex_t  imapidle_condmutex;
-	int              perform_imap_jobs_needed;
+	dc_imap_t*       inbox;                 /**< primary IMAP object watching the inbox, never NULL */
+	pthread_mutex_t  inboxidle_condmutex;
+	int              perform_inbox_jobs_needed;
 	int              probe_imap_network;    /**< if this flag is set, the imap-job timeouts are bypassed and messages are sent until they fail */
+
+	dc_imap_t*       mvbox;                 /**< secondary IMAP object watching the delta chat folder, never NULL */
+	pthread_cond_t   mvboxidle_cond;
+	pthread_mutex_t  mvboxidle_condmutex;
+	int              mvboxidle_condflag;
+	int              mvbox_suspended;
+	int              mvbox_using_handle;
 
 	dc_smtp_t*       smtp;                  /**< Internal SMTP object, never NULL */
 	pthread_cond_t   smtpidle_cond;
@@ -108,10 +115,13 @@ void            dc_receive_imf       (dc_context_t*, const char* imf_raw_not_ter
 #define DC_MSGSIZE_UPPER_LIMIT      ((49*1024*1024)/4*3)
 
 
-/* library private: end-to-end-encryption */
-#define DC_E2EE_DEFAULT_ENABLED  1
-#define DC_MDNS_DEFAULT_ENABLED  1
+// some defaults
+#define DC_E2EE_DEFAULT_ENABLED   1
+#define DC_MDNS_DEFAULT_ENABLED   1
+#define DC_MVBOX_DEFAULT_ENABLED  1
 
+
+/* library private: end-to-end-encryption */
 typedef struct dc_e2ee_helper_t {
 	// encryption
 	int        encryption_successfull;
@@ -137,7 +147,6 @@ extern int      dc_shall_stop_ongoing;
 int             dc_has_ongoing       (dc_context_t*);
 int             dc_alloc_ongoing     (dc_context_t*);
 void            dc_free_ongoing      (dc_context_t*);
-
 
 /* library private: secure-join */
 #define         DC_HANDSHAKE_CONTINUE_NORMAL_PROCESSING 0x01

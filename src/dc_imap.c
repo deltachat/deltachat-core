@@ -18,7 +18,7 @@ static void unsetup_handle           (dc_imap_t*);
  ******************************************************************************/
 
 
-static int is_error(dc_imap_t* imap, int code)
+int dc_imap_is_error(dc_imap_t* imap, int code)
 {
 	if (code==MAILIMAP_NO_ERROR /*0*/
 	 || code==MAILIMAP_NO_ERROR_AUTHENTICATED /*1*/
@@ -126,7 +126,7 @@ static int select_folder(dc_imap_t* imap, const char* folder /*may be NULL*/)
 
 	/* if there is a new folder and the new folder is equal to the selected one, there's nothing to do.
 	if there is _no_ new folder, we continue as we might want to expunge below.  */
-	if (folder && strcmp(imap->selected_folder, folder)==0) {
+	if (folder && folder[0] && strcmp(imap->selected_folder, folder)==0) {
 		return 1;
 	}
 
@@ -142,7 +142,7 @@ static int select_folder(dc_imap_t* imap, const char* folder /*may be NULL*/)
 	/* select new folder */
 	if (folder) {
 		int r = mailimap_select(imap->etpan, folder);
-		if (is_error(imap, r) || imap->etpan->imap_selection_info==NULL) {
+		if (dc_imap_is_error(imap, r) || imap->etpan->imap_selection_info==NULL) {
 			imap->selected_folder[0] = 0;
 			return 0;
 		}
@@ -343,7 +343,7 @@ static int fetch_single_msg(dc_imap_t* imap, const char* folder, uint32_t server
 		mailimap_set_free(set);
 	}
 
-	if (is_error(imap, r) || fetch_result==NULL) {
+	if (dc_imap_is_error(imap, r) || fetch_result==NULL) {
 		fetch_result = NULL;
 		dc_log_warning(imap->context, 0, "Error #%i on fetching message #%i from folder \"%s\"; retry=%i.", (int)r, (int)server_uid, folder, (int)imap->should_reconnect);
 		if (imap->should_reconnect) {
@@ -428,7 +428,7 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 		r = mailimap_fetch(imap->etpan, set, imap->fetch_type_uid, &fetch_result);
 		mailimap_set_free(set);
 
-		if (is_error(imap, r) || fetch_result==NULL || (cur=clist_begin(fetch_result))==NULL) {
+		if (dc_imap_is_error(imap, r) || fetch_result==NULL || (cur=clist_begin(fetch_result))==NULL) {
 			dc_log_info(imap->context, 0, "Empty result returned for folder \"%s\".", folder);
 			goto cleanup; /* this might happen if the mailbox is empty an EXISTS does not work */
 		}
@@ -457,7 +457,7 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 		r = mailimap_uid_fetch(imap->etpan, set, imap->fetch_type_uid, &fetch_result);
 	mailimap_set_free(set);
 
-	if (is_error(imap, r) || fetch_result==NULL)
+	if (dc_imap_is_error(imap, r) || fetch_result==NULL)
 	{
 		fetch_result = NULL;
 		if (r==MAILIMAP_ERROR_PROTOCOL) {
@@ -517,7 +517,6 @@ cleanup:
 int dc_imap_fetch(dc_imap_t* imap)
 {
 	int   success = 0;
-	char* imap_folder = NULL;
 
 	if (imap==NULL || !imap->connected) {
 		goto cleanup;
@@ -528,20 +527,18 @@ int dc_imap_fetch(dc_imap_t* imap)
 	// as during the fetch commands, new messages may arrive, we fetch until we do not
 	// get any more. if IDLE is called directly after, there is only a small chance that
 	// messages are missed and delayed until the next IDLE call
-	imap_folder = imap->get_config(imap, "imap_folder", "INBOX");
-	while (fetch_from_single_folder(imap, imap_folder) > 0) {
+	while (fetch_from_single_folder(imap, imap->watch_folder) > 0) {
 		;
 	}
 
 	success = 1;
 
 cleanup:
-	free(imap_folder);
 	return success;
 }
 
 
-static void fake_idle(dc_imap_t* imap, const char* imap_folder)
+static void fake_idle(dc_imap_t* imap)
 {
 	/* Idle using timeouts. This is also needed if we're not yet configured -
 	in this case, we're waiting for a configure job */
@@ -580,7 +577,7 @@ static void fake_idle(dc_imap_t* imap, const char* imap_folder)
 		// are also downloaded, however, typically this would take place in the FETCH command
 		// following IDLE otherwise, so this seems okay here.
 		if (setup_handle_if_needed(imap)) { // the handle may not be set up if configure is not yet done
-			if (fetch_from_single_folder(imap, imap_folder)) {
+			if (fetch_from_single_folder(imap, imap->watch_folder)) {
 				do_fake_idle = 0;
 			}
 		}
@@ -598,13 +595,10 @@ void dc_imap_idle(dc_imap_t* imap)
 {
 	int   r = 0;
 	int   r2 = 0;
-	char* imap_folder = NULL;
 
 	if (imap==NULL) {
 		goto cleanup;
 	}
-
-	imap_folder = imap->get_config(imap, "imap_folder", "INBOX");
 
 	if (imap->can_idle)
 	{
@@ -612,24 +606,24 @@ void dc_imap_idle(dc_imap_t* imap)
 
 		if (imap->idle_set_up==0 && imap->etpan && imap->etpan->imap_stream) {
 			r = mailstream_setup_idle(imap->etpan->imap_stream);
-			if (is_error(imap, r)) {
+			if (dc_imap_is_error(imap, r)) {
 				dc_log_warning(imap->context, 0, "IMAP-IDLE: Cannot setup.");
-				fake_idle(imap, imap_folder);
+				fake_idle(imap);
 				goto cleanup;
 			}
 			imap->idle_set_up = 1;
 		}
 
-		if (!imap->idle_set_up || !select_folder(imap, imap_folder)) {
+		if (!imap->idle_set_up || !select_folder(imap, imap->watch_folder)) {
 			dc_log_warning(imap->context, 0, "IMAP-IDLE not setup.");
-			fake_idle(imap, imap_folder);
+			fake_idle(imap);
 			goto cleanup;
 		}
 
 		r = mailimap_idle(imap->etpan);
-		if (is_error(imap, r)) {
+		if (dc_imap_is_error(imap, r)) {
 			dc_log_warning(imap->context, 0, "IMAP-IDLE: Cannot start.");
-			fake_idle(imap, imap_folder);
+			fake_idle(imap);
 			goto cleanup;
 		}
 
@@ -660,11 +654,11 @@ void dc_imap_idle(dc_imap_t* imap)
 	}
 	else
 	{
-		fake_idle(imap, imap_folder);
+		fake_idle(imap);
 	}
 
 cleanup:
-	free(imap_folder);
+	;
 }
 
 
@@ -719,7 +713,7 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 	if (imap->server_flags&(DC_LP_IMAP_SOCKET_STARTTLS|DC_LP_IMAP_SOCKET_PLAIN))
 	{
 		r = mailimap_socket_connect(imap->etpan, imap->imap_server, imap->imap_port);
-		if (is_error(imap, r)) {
+		if (dc_imap_is_error(imap, r)) {
 			dc_log_event_seq(imap->context, DC_EVENT_ERROR_NETWORK, &imap->log_connect_errors,
 				"Could not connect to IMAP-server %s:%i. (Error #%i)", imap->imap_server, (int)imap->imap_port, (int)r);
 			goto cleanup;
@@ -728,7 +722,7 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 		if (imap->server_flags&DC_LP_IMAP_SOCKET_STARTTLS)
 		{
 			r = mailimap_socket_starttls(imap->etpan);
-			if (is_error(imap, r)) {
+			if (dc_imap_is_error(imap, r)) {
 				dc_log_event_seq(imap->context, DC_EVENT_ERROR_NETWORK, &imap->log_connect_errors,
 					"Could not connect to IMAP-server %s:%i using STARTTLS. (Error #%i)", imap->imap_server, (int)imap->imap_port, (int)r);
 				goto cleanup;
@@ -743,7 +737,7 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 	else
 	{
 		r = mailimap_ssl_connect(imap->etpan, imap->imap_server, imap->imap_port);
-		if (is_error(imap, r)) {
+		if (dc_imap_is_error(imap, r)) {
 			dc_log_event_seq(imap->context, DC_EVENT_ERROR_NETWORK, &imap->log_connect_errors,
 				"Could not connect to IMAP-server %s:%i using SSL. (Error #%i)", imap->imap_server, (int)imap->imap_port, (int)r);
 			goto cleanup;
@@ -769,7 +763,7 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 		r = mailimap_login(imap->etpan, imap->imap_user, imap->imap_pw);
 	}
 
-	if (is_error(imap, r)) {
+	if (dc_imap_is_error(imap, r)) {
 		char* msg = get_error_msg(imap, "Cannot login", r);
 		dc_log_event_seq(imap->context, DC_EVENT_ERROR_NETWORK, &imap->log_connect_errors,
 			"%s", msg);
@@ -838,10 +832,13 @@ static void free_connect_param(dc_imap_t* imap)
 	free(imap->imap_pw);
 	imap->imap_pw = NULL;
 
+	imap->watch_folder[0] = 0;
+
 	imap->selected_folder[0] = 0;
 
 	imap->imap_port = 0;
 	imap->can_idle  = 0;
+	imap->has_xlist = 0;
 }
 
 
@@ -849,7 +846,8 @@ int dc_imap_connect(dc_imap_t* imap, const dc_loginparam_t* lp)
 {
 	int success = 0;
 
-	if (imap==NULL || lp==NULL || lp->mail_server==NULL || lp->mail_user==NULL || lp->mail_pw==NULL) {
+	if (imap==NULL || lp==NULL
+	 || lp->mail_server==NULL || lp->mail_user==NULL || lp->mail_pw==NULL) {
 		return 0;
 	}
 
@@ -870,6 +868,7 @@ int dc_imap_connect(dc_imap_t* imap, const dc_loginparam_t* lp)
 
 	/* we set the following flags here and not in setup_handle_if_needed() as they must not change during connection */
 	imap->can_idle = mailimap_has_idle(imap->etpan);
+	imap->has_xlist = mailimap_has_xlist(imap->etpan);
 
 	#ifdef __APPLE__
 	imap->can_idle = 0; // HACK to force iOS not to work IMAP-IDLE which does not work for now, see also (*)
@@ -931,6 +930,17 @@ int dc_imap_is_connected(const dc_imap_t* imap)
 }
 
 
+void dc_imap_set_watch_folder(dc_imap_t* imap, const char* watch_folder)
+{
+	if (imap==NULL || watch_folder==NULL) {
+		return;
+	}
+
+	free(imap->watch_folder);
+	imap->watch_folder = dc_strdup(watch_folder);
+}
+
+
 /*******************************************************************************
  * Main interface
  ******************************************************************************/
@@ -957,6 +967,7 @@ dc_imap_t* dc_imap_new(dc_get_config_t get_config, dc_set_config_t set_config, d
 
 	//imap->enter_watch_wait_time = 0;
 
+	imap->watch_folder = calloc(1, 1);
 	imap->selected_folder = calloc(1, 1);
 
 	/* create some useful objects */
@@ -987,6 +998,7 @@ void dc_imap_unref(dc_imap_t* imap)
 
 	pthread_cond_destroy(&imap->watch_cond);
 	pthread_mutex_destroy(&imap->watch_condmutex);
+	free(imap->watch_folder);
 	free(imap->selected_folder);
 	if (imap->fetch_type_uid)        { mailimap_fetch_type_free(imap->fetch_type_uid); }
 	if (imap->fetch_type_message_id) { mailimap_fetch_type_free(imap->fetch_type_message_id); }
@@ -1013,7 +1025,7 @@ static int add_flag(dc_imap_t* imap, uint32_t server_uid, struct mailimap_flag* 
 	store_att_flags = mailimap_store_att_flags_new_add_flags(flag_list); /* FLAGS.SILENT does not return the new value */
 
 	r = mailimap_uid_store(imap->etpan, set, store_att_flags);
-	if (is_error(imap, r)) {
+	if (dc_imap_is_error(imap, r)) {
 		goto cleanup;
 	}
 
@@ -1092,7 +1104,7 @@ int dc_imap_markseen_msg(dc_imap_t* imap, const char* folder, uint32_t server_ui
 		{
 			clist* fetch_result = NULL;
 			r = mailimap_uid_fetch(imap->etpan, set, imap->fetch_type_flags, &fetch_result);
-			if (!is_error(imap, r) && fetch_result) {
+			if (!dc_imap_is_error(imap, r) && fetch_result) {
 				clistiter* cur=clist_begin(fetch_result);
 				if (cur) {
 					if (!peek_flag_keyword((struct mailimap_msg_att*)clist_content(cur), "$MDNSent")) {
@@ -1151,7 +1163,7 @@ int dc_imap_delete_msg(dc_imap_t* imap, const char* rfc724_mid, const char* fold
 			r = mailimap_uid_fetch(imap->etpan, set, imap->fetch_type_message_id, &fetch_result);
 		mailimap_set_free(set);
 
-		if (is_error(imap, r) || fetch_result==NULL
+		if (dc_imap_is_error(imap, r) || fetch_result==NULL
 		 || (cur=clist_begin(fetch_result))==NULL
 		 || (is_quoted_rfc724_mid=peek_rfc724_mid((struct mailimap_msg_att*)clist_content(cur)))==NULL
 		 || (is_rfc724_mid=unquote_rfc724_mid(is_quoted_rfc724_mid))==NULL

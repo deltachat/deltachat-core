@@ -241,6 +241,10 @@ void            dc_perform_imap_fetch        (dc_context_t*);
 void            dc_perform_imap_idle         (dc_context_t*);
 void            dc_interrupt_imap_idle       (dc_context_t*);
 
+void            dc_perform_mvbox_fetch       (dc_context_t*);
+void            dc_perform_mvbox_idle        (dc_context_t*);
+void            dc_interrupt_mvbox_idle      (dc_context_t*);
+
 void            dc_perform_smtp_jobs         (dc_context_t*);
 void            dc_perform_smtp_idle         (dc_context_t*);
 void            dc_interrupt_smtp_idle       (dc_context_t*);

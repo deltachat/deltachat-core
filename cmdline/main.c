@@ -126,21 +126,38 @@ static uintptr_t receive_event(dc_context_t* context, int event, uintptr_t data1
  ******************************************************************************/
 
 
-static pthread_t imap_thread = 0;
+static pthread_t inbox_thread = 0;
 static int       run_threads = 0;
-static void* imap_thread_entry_point (void* entry_arg)
+static void* inbox_thread_entry_point (void* entry_arg)
 {
 	dc_context_t* context = (dc_context_t*)entry_arg;
 
 	while (run_threads) {
-		// jobs(), fetch() and idle()
-		// MUST be called from the same single thread and MUST be called sequentially.
+		// jobs(), fetch() and idle() MUST be called from the same single thread
+		// and MUST be called sequentially.
 		dc_perform_imap_jobs(context);
 		dc_perform_imap_fetch(context);
 		dc_perform_imap_idle(context); // this may take hours ...
 	}
 
-	imap_thread = 0;
+	inbox_thread = 0;
+	return NULL;
+}
+
+
+static pthread_t mvbox_thread = 0;
+static void* mvbox_thread_entry_point (void* entry_arg)
+{
+	dc_context_t* context = (dc_context_t*)entry_arg;
+
+	while (run_threads) {
+		// fetch() and idle() MUST be called from the same single thread
+		// and MUST be called sequentially.
+		dc_perform_mvbox_fetch(context);
+		dc_perform_mvbox_idle(context); // this may take hours ...
+	}
+
+	mvbox_thread = 0;
 	return NULL;
 }
 
@@ -151,6 +168,8 @@ static void* smtp_thread_entry_point (void* entry_arg)
 	dc_context_t* context = (dc_context_t*)entry_arg;
 
 	while (run_threads) {
+		// jobs() and idle() MUST be called from the same single thread
+		// and MUST be called sequentially.
 		dc_perform_smtp_jobs(context);
 		dc_perform_smtp_idle(context); // this may take hours ...
 	}
@@ -163,8 +182,12 @@ static void* smtp_thread_entry_point (void* entry_arg)
 static void start_threads(dc_context_t* context)
 {
 	run_threads = 1;
-	if (!imap_thread) {
-		pthread_create(&imap_thread, NULL, imap_thread_entry_point, context);
+	if (!inbox_thread) {
+		pthread_create(&inbox_thread, NULL, inbox_thread_entry_point, context);
+	}
+
+	if (!mvbox_thread) {
+		pthread_create(&mvbox_thread, NULL, mvbox_thread_entry_point, context);
 	}
 
 	if (!smtp_thread) {
@@ -177,10 +200,11 @@ static void stop_threads(dc_context_t* context)
 {
 	run_threads = 0;
 	dc_interrupt_imap_idle(context);
+	dc_interrupt_mvbox_idle(context);
 	dc_interrupt_smtp_idle(context);
 
 	// wait until the threads are finished
-	while (imap_thread || smtp_thread) {
+	while (inbox_thread || mvbox_thread || smtp_thread) {
 		usleep(100*1000);
 	}
 }

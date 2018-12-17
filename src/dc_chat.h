@@ -33,7 +33,6 @@ int             dc_chat_update_param               (dc_chat_t*);
 #define         DC_CHAT_TYPE_CAN_SEND(a)   ((a)==DC_CHAT_TYPE_SINGLE || (a)==DC_CHAT_TYPE_GROUP || (a)==DC_CHAT_TYPE_VERIFIED_GROUP)
 
 #define         DC_CHAT_PREFIX              "Chat:"      /* you MUST NOT modify this or the following strings */
-#define         DC_CHATS_FOLDER             "DeltaChat"  // make sure not to use reserved words here, eg. "Chats" or "Chat" are reserved in gmail
 
 
 // Context functions to work with chats
