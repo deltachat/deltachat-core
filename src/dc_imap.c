@@ -479,10 +479,13 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 			char* rfc724_mid = unquote_rfc724_mid(peek_rfc724_mid(msg_att));
 
 			read_cnt++;
-			if (imap->precheck_imf(imap, rfc724_mid, folder, cur_uid)) {
+			if (!imap->precheck_imf(imap, rfc724_mid, folder, cur_uid)) {
 				if (fetch_single_msg(imap, folder, cur_uid)==0/* 0=try again later*/) {
 					read_errors++; // with read_errors, lastseenuid is not written
 				}
+			}
+			else {
+				dc_log_info(imap->context, 0, "Skipping message %s by precheck.", rfc724_mid);
 			}
 
 			if (cur_uid > new_lastseenuid) {
