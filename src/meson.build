@@ -13,6 +13,7 @@ lib_src = [
   'dc_keyring.c',
   'dc_loginparam.c',
   'dc_lot.c',
+  'dc_move.c',
   'dc_context.c',
   'dc_configure.c',
   'dc_e2ee.c',
