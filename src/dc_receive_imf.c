@@ -1370,7 +1370,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 
 			// insert_msg_id is the last msg_id
 			// if the mime-message splits into several delta-messages
-			if (dc_shall_move(context, insert_msg_id)) {
+			if (dc_shall_move(context, mime_parser, insert_msg_id)) {
 				dc_schedule_move(context, server_uid, 0);
 			}
 		}
@@ -1457,15 +1457,13 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 					- Consumed or not consumed MDNs from other messengers
 					- Consumed MDNs from normal MUAs
 					Unconsumed MDNs from normal MUAs are _not_ moved.
-					NB: we do not delete the MDN as it may be used by other clients
-
-					CAVE: we rely on dc_imap_markseen_msg() not to move messages that are already in the correct folder.
-					otherwise, the moved message get a new server_uid and is "fresh" again and we will be here again to move it away -
-					a classical deadlock, see also (***) in dc_imap.c */
+					NB: we do not delete the MDN as it may be used by other clients */
 					if (mime_parser->is_send_by_messenger || mdn_consumed) {
-						// TODO: use dc_schedule_move() instead
-						char* jobparam = dc_mprintf("%c=%s\n%c=%lu", DC_PARAM_SERVER_FOLDER, server_folder, DC_PARAM_SERVER_UID, server_uid);
-							dc_job_add(context, DC_JOB_MARKSEEN_MDN_ON_IMAP, 0, jobparam, 0);
+						char* jobparam = dc_mprintf("%c=%s\n%c=%lu\n%c=%i",
+							DC_PARAM_SERVER_FOLDER, server_folder,
+							DC_PARAM_SERVER_UID, server_uid,
+							DC_PARAM_ALSO_MOVE, mime_parser->is_send_by_messenger);
+						dc_job_add(context, DC_JOB_MARKSEEN_MDN_ON_IMAP, 0, jobparam, 0);
 						free(jobparam);
 					}
 				}

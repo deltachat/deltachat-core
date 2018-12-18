@@ -153,10 +153,6 @@ cleanup:
 static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* context, dc_job_t* job)
 {
 	dc_msg_t* msg = dc_msg_new_untyped(context);
-	char*     new_server_folder = NULL;
-	uint32_t  new_server_uid = 0;
-	int       in_ms_flags = 0;
-	int       out_ms_flags = 0;
 
 	if (!dc_imap_is_connected(context->inbox)) {
 		connect_to_inbox(context);
@@ -170,46 +166,50 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* context, dc_job_
 		goto cleanup;
 	}
 
-	/* add an additional job for sending the MDN (here in a thread for fast ui resonses) (an extra job as the MDN has a lower priority) */
-	if (dc_param_get_int(msg->param, DC_PARAM_WANTS_MDN, 0) /* DC_PARAM_WANTS_MDN is set only for one part of a multipart-message */
-	 && dc_sqlite3_get_config_int(context->sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED)) {
-		in_ms_flags |= DC_MS_SET_MDNSent_FLAG;
+	switch (dc_imap_set_seen(context->inbox, msg->server_folder, msg->server_uid)) {
+		case DC_FAILED:
+			goto cleanup;
+
+		case DC_RETRY_LATER:
+			dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
+			goto cleanup;
+
+		default:
+			break;
 	}
 
-	if (dc_imap_markseen_msg(context->inbox, msg->server_folder, msg->server_uid,
-		   in_ms_flags, &new_server_folder, &new_server_uid, &out_ms_flags)!=0)
+	if (dc_param_get_int(msg->param, DC_PARAM_WANTS_MDN, 0)
+	 && dc_sqlite3_get_config_int(context->sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED))
 	{
-		if ((new_server_folder && new_server_uid) || out_ms_flags&DC_MS_MDNSent_JUST_SET)
-		{
-			if (new_server_folder && new_server_uid)
-			{
-				dc_update_server_uid(context, msg->rfc724_mid, new_server_folder, new_server_uid);
-			}
+		switch (dc_imap_set_mdnsent(context->inbox, msg->server_folder, msg->server_uid)) {
+			case DC_FAILED:
+				goto cleanup;
 
-			if (out_ms_flags&DC_MS_MDNSent_JUST_SET)
-			{
+			case DC_RETRY_LATER:
+				dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
+				goto cleanup;
+
+			case DC_ALREADY_DONE:
+				break;
+
+			case DC_SUCCESS:
 				dc_job_add(context, DC_JOB_SEND_MDN, msg->id, NULL, 0);
-			}
+				break;
 		}
-	}
-	else
-	{
-		dc_job_try_again_later(job, DC_AT_ONCE, NULL);
 	}
 
 cleanup:
 	dc_msg_unref(msg);
-	free(new_server_folder);
 }
 
 
 static void dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP(dc_context_t* context, dc_job_t* job)
 {
-	char*    server_folder = dc_param_get(job->param, DC_PARAM_SERVER_FOLDER, NULL);
-	uint32_t server_uid = dc_param_get_int(job->param, DC_PARAM_SERVER_UID, 0);
-	char*    new_server_folder = NULL;
-	uint32_t new_server_uid = 0;
-	int      out_ms_flags = 0;
+	char*     folder = dc_param_get(job->param, DC_PARAM_SERVER_FOLDER, NULL);
+	uint32_t  uid = dc_param_get_int(job->param, DC_PARAM_SERVER_UID, 0);
+	int       also_move = dc_param_get_int(job->param, DC_PARAM_ALSO_MOVE, 0);
+	char*     dest_folder = NULL;
+	uint32_t  dest_uid = 0;
 
 	if (!dc_imap_is_connected(context->inbox)) {
 		connect_to_inbox(context);
@@ -219,13 +219,22 @@ static void dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP(dc_context_t* context, dc_job_
 		}
 	}
 
-	if (dc_imap_markseen_msg(context->inbox, server_folder, server_uid, 0, &new_server_folder, &new_server_uid, &out_ms_flags)==0) {
-		dc_job_try_again_later(job, DC_AT_ONCE, NULL);
+	if (dc_imap_set_seen(context->inbox, folder, uid)==0) {
+		dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
+	}
+
+	if (also_move) {
+		dest_folder = dc_sqlite3_get_config(context->sql, "configured_mvbox_folder", NULL);
+		if (dest_folder) {
+			if (dc_imap_move(context->inbox, folder, uid, dest_folder, &dest_uid)==0) {
+				dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
+			}
+		}
 	}
 
 cleanup:
-	free(server_folder);
-	free(new_server_folder);
+	free(folder);
+	free(dest_folder);
 }
 
 

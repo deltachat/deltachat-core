@@ -1,10 +1,10 @@
 #include "dc_context.h"
+#include "dc_mimeparser.h"
 
 
-int dc_shall_move(dc_context_t* context, uint32_t msg_id)
+int dc_shall_move(dc_context_t* context, const dc_mimeparser_t* parser, uint32_t msg_id)
 {
-	// TODO
-	return 0;
+	return parser->is_send_by_messenger;
 }
 
 
