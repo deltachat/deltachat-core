@@ -103,6 +103,9 @@ void            dc_log_info          (dc_context_t*, int data1, const char* msg,
 
 void            dc_receive_imf       (dc_context_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags);
 
+int             dc_shall_move        (dc_context_t*, uint32_t msg_id);
+void            dc_schedule_move     (dc_context_t*, uint32_t server_uid, int markread);
+
 #define         DC_BAK_PREFIX                "delta-chat"
 #define         DC_BAK_SUFFIX                "bak"
 

@@ -105,6 +105,10 @@ static int cb_precheck_imf(dc_imap_t* imap, const char* rfc724_mid,
 		 || old_server_uid!=server_uid) {
 			dc_update_server_uid(imap->context, rfc724_mid, server_folder, server_uid);
 		}
+
+		// TODO: for self-sent-messages (if old_server_folder is unset?),
+		// we should move the message away to the MVBOX and call
+		// dc_schedule_move() incl. markseen (see #448)
 	}
 
 	free(old_server_folder);
