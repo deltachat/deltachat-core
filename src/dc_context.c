@@ -651,7 +651,7 @@ char* dc_get_info(dc_context_t* context)
 	dc_loginparam_t* l2 = NULL;
 	int              mvbox_watch = 0;
 	int              mvbox_move = 0;
-	int              configured_mvbox = 0;
+	int              folders_configured = 0;
 	char*            configured_mvbox_folder = NULL;
 	int              contacts = 0;
 	int              chats = 0;
@@ -713,7 +713,7 @@ char* dc_get_info(dc_context_t* context)
 
 	mvbox_watch = dc_sqlite3_get_config_int(context->sql, "mvbox_watch", DC_MVBOX_WATCH_DEFAULT);
 	mvbox_move = dc_sqlite3_get_config_int(context->sql, "mvbox_move", DC_MVBOX_MOVE_DEFAULT);
-	configured_mvbox = dc_sqlite3_get_config_int(context->sql, "configured_mvbox", 0);
+	folders_configured = dc_sqlite3_get_config_int(context->sql, "folders_configured", 0);
 	configured_mvbox_folder = dc_sqlite3_get_config(context->sql, "configured_mvbox_folder", "<unset>");
 
 	temp = dc_mprintf(
@@ -737,7 +737,7 @@ char* dc_get_info(dc_context_t* context)
 		"used_account_settings=%s\n"
 		"mvbox_watch=%i\n"
 		"mvbox_move=%i\n"
-		"configured_mvbox=%i\n"
+		"folders_configured=%i\n"
 		"configured_mvbox_folder=%s\n"
 		"mdns_enabled=%i\n"
 		"e2ee_enabled=%i\n"
@@ -764,7 +764,7 @@ char* dc_get_info(dc_context_t* context)
 		, l2_readable_str
 		, mvbox_watch
 		, mvbox_move
-		, configured_mvbox
+		, folders_configured
 		, configured_mvbox_folder
 		, mdns_enabled
 		, e2ee_enabled

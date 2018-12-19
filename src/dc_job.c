@@ -79,9 +79,7 @@ static int connect_to_mvbox(dc_context_t* context, int* mvbox_desired)
 
 	*mvbox_desired = 1;
 
-	// a fallback to support upgrades from core 0.29.0 or older;
-	// newer core versions set configured_mvbox_folder during configure.
-	if (dc_sqlite3_get_config_int(context->sql, "configured_mvbox", 0)==0) {
+	if (dc_sqlite3_get_config_int(context->sql, "folders_configured", 0)==0) {
 		if (!(ret_connected=connect_to_imap(context->mvbox))) {
 			goto cleanup;
 		}

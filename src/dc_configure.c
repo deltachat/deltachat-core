@@ -538,7 +538,7 @@ void dc_imap_configure_folders(dc_imap_t* imap)
 	}
 
 	// remember the configuration, mvbox_folder may be NULL
-	dc_sqlite3_set_config_int(imap->context->sql, "configured_mvbox", 1);
+	dc_sqlite3_set_config_int(imap->context->sql, "folders_configured", 1);
 	dc_sqlite3_set_config(imap->context->sql, "configured_mvbox_folder", mvbox_folder);
 
 cleanup:
