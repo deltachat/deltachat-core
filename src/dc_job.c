@@ -1022,6 +1022,13 @@ void dc_perform_mvbox_idle(dc_context_t* context)
 	}
 
 	pthread_mutex_lock(&context->mvboxidle_condmutex);
+		if (context->perform_mvbox_jobs_needed) {
+			dc_log_info(context, 0, "MVBOX-IDLE will not be started as it was interrupted while not ideling.");
+			context->perform_mvbox_jobs_needed = 0;
+			pthread_mutex_unlock(&context->mvboxidle_condmutex);
+			return;
+		}
+
 		if (context->mvbox_suspended) {
 			while (context->mvboxidle_condflag==0) {
 				// unlock mutex -> wait -> lock mutex
@@ -1079,6 +1086,11 @@ void dc_interrupt_mvbox_idle(dc_context_t* context)
 		dc_log_warning(context, 0, "Interrupt MVBOX-IDLE: Bad parameters.");
 		return;
 	}
+
+	pthread_mutex_lock(&context->mvboxidle_condmutex);
+		// when we're not in idle, make sure not to enter it
+		context->perform_mvbox_jobs_needed = 1;
+	pthread_mutex_unlock(&context->mvboxidle_condmutex);
 
 	dc_log_info(context, 0, "Interrupting MVBOX-IDLE...");
 	dc_imap_interrupt_idle(context->mvbox);

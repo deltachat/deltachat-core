@@ -56,6 +56,7 @@ struct _dc_context
 	pthread_cond_t   mvboxidle_cond;
 	pthread_mutex_t  mvboxidle_condmutex;
 	int              mvboxidle_condflag;
+	int              perform_mvbox_jobs_needed;
 	int              mvbox_suspended;
 	int              mvbox_using_handle;
 
