@@ -1459,12 +1459,15 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 					Unconsumed MDNs from normal MUAs are _not_ moved.
 					NB: we do not delete the MDN as it may be used by other clients */
 					if (mime_parser->is_send_by_messenger || mdn_consumed) {
-						char* jobparam = dc_mprintf("%c=%s\n%c=%lu\n%c=%i",
-							DC_PARAM_SERVER_FOLDER, server_folder,
-							DC_PARAM_SERVER_UID, server_uid,
-							DC_PARAM_ALSO_MOVE, mime_parser->is_send_by_messenger);
-						dc_job_add(context, DC_JOB_MARKSEEN_MDN_ON_IMAP, 0, jobparam, 0);
-						free(jobparam);
+						dc_param_t* param = dc_param_new();
+						dc_param_set(param, DC_PARAM_SERVER_FOLDER, server_folder);
+						dc_param_set_int(param, DC_PARAM_SERVER_UID, server_uid);
+						if (mime_parser->is_send_by_messenger
+						 && dc_sqlite3_get_config_int(context->sql, "mvbox_move", DC_MVBOX_MOVE_DEFAULT)==0) {
+							dc_param_set_int(param, DC_PARAM_ALSO_MOVE, 1);
+						}
+						dc_job_add(context, DC_JOB_MARKSEEN_MDN_ON_IMAP, 0, param->packed, 0);
+						dc_param_unref(param);
 					}
 				}
 

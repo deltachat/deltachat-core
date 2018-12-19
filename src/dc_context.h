@@ -121,7 +121,8 @@ int             dc_is_inbox          (dc_context_t*, const char* folder);
 // some defaults
 #define DC_E2EE_DEFAULT_ENABLED   1
 #define DC_MDNS_DEFAULT_ENABLED   1
-#define DC_MVBOX_DEFAULT_ENABLED  1
+#define DC_MVBOX_WATCH_DEFAULT    1
+#define DC_MVBOX_MOVE_DEFAULT     1
 
 
 /* library private: end-to-end-encryption */

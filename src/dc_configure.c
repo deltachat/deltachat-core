@@ -489,8 +489,8 @@ void dc_imap_configure_folders(dc_imap_t* imap)
 
 	dc_log_info(imap->context, 0, "Configuring IMAP-folders.");
 
-	mvbox_enabled = dc_sqlite3_get_config_int(imap->context->sql,
-		"mvbox_enabled", DC_MVBOX_DEFAULT_ENABLED);
+	mvbox_enabled = dc_sqlite3_get_config_int(imap->context->sql, "mvbox_watch", DC_MVBOX_WATCH_DEFAULT)
+	             || dc_sqlite3_get_config_int(imap->context->sql, "mvbox_move", DC_MVBOX_MOVE_DEFAULT);
 
 	// this sets imap->imap_delimiter as side-effect
 	folder_list = list_folders(imap);

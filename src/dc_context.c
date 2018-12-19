@@ -32,7 +32,8 @@ static const char* config_keys[] = {
 	,"selfavatar"
 	,"e2ee_enabled"
 	,"mdns_enabled"
-	,"mvbox_enabled"
+	,"mvbox_watch"
+	,"mvbox_move"
 	,"save_mime_headers"
 	,"configured_addr"
 	,"configured_mail_server"
@@ -113,8 +114,9 @@ static int cb_precheck_imf(dc_imap_t* imap, const char* rfc724_mid,
 		if (old_server_folder[0]==0 && old_server_uid==0
 		 && dc_is_inbox(imap->context, server_folder)) {
 			// bcc-self message that should be marked as seen and moved away
+			// (every other messages have folder/uid set)
 			dc_param_t* param = dc_param_new();
-			if (dc_get_config(imap->context, "mvbox_enabled")) {
+			if (dc_sqlite3_get_config_int(imap->context->sql, "mvbox_move", DC_MVBOX_MOVE_DEFAULT)==0) {
 				dc_param_set_int(param, DC_PARAM_ALSO_MOVE, 1);
 			}
 			dc_job_add(imap->context, DC_JOB_MARKSEEN_MSG_ON_IMAP, msg_id,
@@ -487,11 +489,11 @@ static char* get_sys_config_str(const char* key)
  * - `e2ee_enabled` = 0=no end-to-end-encryption, 1=prefer end-to-end-encryption (default)
  * - `mdns_enabled` = 0=do not send or request read receipts,
  *                    1=send and request read receipts (default)
- * - `mvbox_enabled`= 1=move chat-messages to the `DeltaChat`-folder
- *                    and also watch this folder for changes (default),
+ * - `mvbox_watch`  = 1=watch `DeltaChat`-folder for changes (default),
+ *                    0=do not watch the `DeltaChat`-folder
+ * - `mvbox_move`   = 1=heuristically detect chat-messages
+ *                    and move them to the `DeltaChat`-folder,
  *                    0=do not move chat-messages
- *                    and do not watch the `DeltaChat`-folder.
- *                    Changing this value requires a reconfigure.
  * - `save_mime_headers` = 1=save mime headers and make dc_get_mime_headers() work for subsequent calls,
  *                    0=do not save mime headers (default)
  *
@@ -587,8 +589,11 @@ char* dc_get_config(dc_context_t* context, const char* key)
 		else if (strcmp(key, "imap_folder")==0) {
 			value = dc_strdup("INBOX");
 		}
-		else if (strcmp(key, "mvbox_enabled")==0) {
-			value = dc_mprintf("%i", DC_MVBOX_DEFAULT_ENABLED);
+		else if (strcmp(key, "mvbox_watch")==0) {
+			value = dc_mprintf("%i", DC_MVBOX_WATCH_DEFAULT);
+		}
+		else if (strcmp(key, "mvbox_move")==0) {
+			value = dc_mprintf("%i", DC_MVBOX_MOVE_DEFAULT);
 		}
 		else {
 			value = dc_mprintf("");
@@ -644,7 +649,8 @@ char* dc_get_info(dc_context_t* context)
 	char*            fingerprint_str = NULL;
 	dc_loginparam_t* l = NULL;
 	dc_loginparam_t* l2 = NULL;
-	int              mvbox_enabled = 0;
+	int              mvbox_watch = 0;
+	int              mvbox_move = 0;
 	int              configured_mvbox = 0;
 	char*            configured_mvbox_folder = NULL;
 	int              contacts = 0;
@@ -705,7 +711,8 @@ char* dc_get_info(dc_context_t* context)
 	l_readable_str = dc_loginparam_get_readable(l);
 	l2_readable_str = dc_loginparam_get_readable(l2);
 
-	mvbox_enabled = dc_sqlite3_get_config_int(context->sql, "mvbox_enabled", DC_MVBOX_DEFAULT_ENABLED);
+	mvbox_watch = dc_sqlite3_get_config_int(context->sql, "mvbox_watch", DC_MVBOX_WATCH_DEFAULT);
+	mvbox_move = dc_sqlite3_get_config_int(context->sql, "mvbox_move", DC_MVBOX_MOVE_DEFAULT);
 	configured_mvbox = dc_sqlite3_get_config_int(context->sql, "configured_mvbox", 0);
 	configured_mvbox_folder = dc_sqlite3_get_config(context->sql, "configured_mvbox_folder", "<unset>");
 
@@ -728,7 +735,8 @@ char* dc_get_info(dc_context_t* context)
 		"is_configured=%i\n"
 		"entered_account_settings=%s\n"
 		"used_account_settings=%s\n"
-		"mvbox_enabled=%i\n"
+		"mvbox_watch=%i\n"
+		"mvbox_move=%i\n"
 		"configured_mvbox=%i\n"
 		"configured_mvbox_folder=%s\n"
 		"mdns_enabled=%i\n"
@@ -754,7 +762,8 @@ char* dc_get_info(dc_context_t* context)
 		, is_configured
 		, l_readable_str
 		, l2_readable_str
-		, mvbox_enabled
+		, mvbox_watch
+		, mvbox_move
 		, configured_mvbox
 		, configured_mvbox_folder
 		, mdns_enabled

@@ -13,7 +13,7 @@ int dc_shall_move(dc_context_t*          context,
 		goto cleanup;
 	}
 
-	if (dc_get_config(context, "mvbox_enabled")==0) {
+	if (dc_sqlite3_get_config_int(context->sql, "mvbox_move", DC_MVBOX_MOVE_DEFAULT)==0) {
 		goto cleanup;
 	}
 
