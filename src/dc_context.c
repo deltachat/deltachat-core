@@ -94,10 +94,14 @@ static int cb_precheck_imf(dc_imap_t* imap, const char* rfc724_mid,
                            const char* server_folder, uint32_t server_uid)
 {
 	int      rfc724_mid_exists = 0;
+	uint32_t msg_id = 0;
 	char*    old_server_folder = NULL;
 	uint32_t old_server_uid = 0;
 
-	if (dc_rfc724_mid_exists(imap->context, rfc724_mid, &old_server_folder, &old_server_uid))
+	msg_id = dc_rfc724_mid_exists(imap->context, rfc724_mid,
+		&old_server_folder, &old_server_uid);
+
+	if (msg_id!=0)
 	{
 		rfc724_mid_exists = 1;
 
@@ -106,10 +110,23 @@ static int cb_precheck_imf(dc_imap_t* imap, const char* rfc724_mid,
 			dc_update_server_uid(imap->context, rfc724_mid, server_folder, server_uid);
 		}
 
-		// TODO: for self-sent-messages (if old_server_folder is unset?),
-		// we should move the message away to the MVBOX and call
-		// dc_schedule_move() incl. markseen (see #448)
+		if (old_server_folder[0]==0 && old_server_uid==0
+		 && dc_is_inbox(imap->context, server_folder)) {
+			// bcc-self message that should be marked as seen and moved away
+			dc_param_t* param = dc_param_new();
+			if (dc_get_config(imap->context, "mvbox_enabled")) {
+				dc_param_set_int(param, DC_PARAM_ALSO_MOVE, 1);
+			}
+			dc_job_add(imap->context, DC_JOB_MARKSEEN_MSG_ON_IMAP, msg_id,
+				param->packed, 0);
+			dc_param_unref(param);
+		}
 	}
+
+	// TODO: also optimize for already processed report/mdn Message-IDs.
+	// this happens regulary as eg. mdns are typically read from the INBOX,
+	// moved to MVBOX and popping up from there.
+	// when modifying tables for this purpose, maybe also target #112 (mdn cleanup)
 
 	free(old_server_folder);
 
@@ -579,6 +596,19 @@ char* dc_get_config(dc_context_t* context, const char* key)
 	}
 
 	return value;
+}
+
+
+/**
+ * Tool to check if a folder is equal to the configured INBOX.
+ * @private @memberof dc_context_t
+ */
+int dc_is_inbox(dc_context_t* context, const char* folder_name)
+{
+	char* inbox_name = dc_get_config(context, "imap_folder");
+	int is_inbox = strcasecmp(inbox_name, folder_name)==0? 1 : 0;
+	free(inbox_name);
+	return is_inbox;
 }
 
 

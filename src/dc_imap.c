@@ -1122,6 +1122,8 @@ dc_imap_res dc_imap_move(dc_imap_t* imap, const char* folder, uint32_t uid,
 		mailimap_set_free(res_setdest);
 	}
 
+	res = DC_SUCCESS;
+
 cleanup:
 	FREE_SET(set);
 	FREE_SET(res_setsrc);
@@ -1154,6 +1156,8 @@ dc_imap_res dc_imap_set_seen(dc_imap_t* imap, const char* folder, uint32_t uid)
 		dc_log_warning(imap->context, 0, "Cannot mark message as seen.");
 		goto cleanup;
 	}
+
+	res = DC_SUCCESS;
 
 cleanup:
 	return res==DC_RETRY_LATER?

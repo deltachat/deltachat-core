@@ -1370,8 +1370,8 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 
 			// insert_msg_id is the last msg_id
 			// if the mime-message splits into several delta-messages
-			if (dc_shall_move(context, mime_parser, insert_msg_id)) {
-				dc_schedule_move(context, server_uid, 0);
+			if (dc_shall_move(context, server_folder, mime_parser, insert_msg_id)) {
+				dc_job_add(context, DC_JOB_MOVE_MSG, insert_msg_id, NULL, 0);
 			}
 		}
 		else

@@ -1756,7 +1756,7 @@ void dc_markseen_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cn
 				if (curr_state==DC_STATE_IN_FRESH || curr_state==DC_STATE_IN_NOTICED) {
 					dc_update_msg_state(context, msg_ids[i], DC_STATE_IN_SEEN);
 					dc_log_info(context, 0, "Seen message #%i.", msg_ids[i]);
-					dc_job_add(context, DC_JOB_MARKSEEN_MSG_ON_IMAP, msg_ids[i], NULL, 0); /* results in a call to dc_markseen_msg_on_imap() */
+					dc_job_add(context, DC_JOB_MARKSEEN_MSG_ON_IMAP, msg_ids[i], NULL, 0);
 					send_event = 1;
 				}
 			}

@@ -2,18 +2,23 @@
 #include "dc_mimeparser.h"
 
 
-int dc_shall_move(dc_context_t* context, const dc_mimeparser_t* parser, uint32_t msg_id)
+int dc_shall_move(dc_context_t*          context,
+                  const char*            folder,
+                  const dc_mimeparser_t* parser,
+                  uint32_t               msg_id)
 {
-	return parser->is_send_by_messenger;
-}
+	int shall_move = 0;
 
+	if (!dc_is_inbox(context, folder)) {
+		goto cleanup;
+	}
 
-/*
- * Move a message identified by UID from INBOX to MVBOX.
- * Optionally, messages are also markes as read,
- * which is useful for self-sended messages and for MDNs.
- */
-void dc_schedule_move(dc_context_t* context, uint32_t server_uid, int markread)
-{
-	// TODO
+	if (dc_get_config(context, "mvbox_enabled")==0) {
+		goto cleanup;
+	}
+
+	shall_move = parser->is_send_by_messenger;
+
+cleanup:
+	return shall_move;
 }

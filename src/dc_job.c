@@ -150,9 +150,45 @@ cleanup:
 }
 
 
+static void dc_job_do_DC_JOB_MOVE_MSG(dc_context_t* context, dc_job_t* job)
+{
+	dc_msg_t* msg = dc_msg_new_untyped(context);
+	char*     dest_folder = NULL;
+	uint32_t  dest_uid = 0;
+
+	if (!dc_imap_is_connected(context->inbox)) {
+		connect_to_inbox(context);
+		if (!dc_imap_is_connected(context->inbox)) {
+			dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
+			goto cleanup;
+		}
+	}
+
+	if (!dc_msg_load_from_db(msg, context, job->foreign_id)) {
+		goto cleanup;
+	}
+
+	if ((dest_folder=dc_sqlite3_get_config(context->sql, "configured_mvbox_folder", NULL))!=NULL)
+	{
+		switch (dc_imap_move(context->inbox, msg->server_folder, msg->server_uid, dest_folder, &dest_uid)) {
+			case DC_FAILED:       goto cleanup;
+			case DC_RETRY_LATER:  dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL); break;
+			case DC_ALREADY_DONE: break;
+			case DC_SUCCESS:      dc_update_server_uid(context, msg->rfc724_mid, dest_folder, dest_uid); break;
+		}
+	}
+
+cleanup:
+	free(dest_folder);
+	dc_msg_unref(msg);
+}
+
+
 static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* context, dc_job_t* job)
 {
 	dc_msg_t* msg = dc_msg_new_untyped(context);
+	char*     dest_folder = NULL;
+	uint32_t  dest_uid = 0;
 
 	if (!dc_imap_is_connected(context->inbox)) {
 		connect_to_inbox(context);
@@ -167,38 +203,35 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* context, dc_job_
 	}
 
 	switch (dc_imap_set_seen(context->inbox, msg->server_folder, msg->server_uid)) {
-		case DC_FAILED:
-			goto cleanup;
-
-		case DC_RETRY_LATER:
-			dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
-			goto cleanup;
-
-		default:
-			break;
+		case DC_FAILED:      goto cleanup;
+		case DC_RETRY_LATER: dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL); goto cleanup;
+		default:             break;
 	}
 
 	if (dc_param_get_int(msg->param, DC_PARAM_WANTS_MDN, 0)
 	 && dc_sqlite3_get_config_int(context->sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED))
 	{
 		switch (dc_imap_set_mdnsent(context->inbox, msg->server_folder, msg->server_uid)) {
-			case DC_FAILED:
-				goto cleanup;
+			case DC_FAILED:       goto cleanup;
+			case DC_RETRY_LATER:  dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL); goto cleanup;
+			case DC_ALREADY_DONE: break;
+			case DC_SUCCESS:      dc_job_add(context, DC_JOB_SEND_MDN, msg->id, NULL, 0); break;
+		}
+	}
 
-			case DC_RETRY_LATER:
-				dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
-				goto cleanup;
-
-			case DC_ALREADY_DONE:
-				break;
-
-			case DC_SUCCESS:
-				dc_job_add(context, DC_JOB_SEND_MDN, msg->id, NULL, 0);
-				break;
+	if (dc_param_get_int(job->param, DC_PARAM_ALSO_MOVE, 0)
+	 && (dest_folder=dc_sqlite3_get_config(context->sql, "configured_mvbox_folder", NULL))!=NULL)
+	{
+		switch (dc_imap_move(context->inbox, msg->server_folder, msg->server_uid, dest_folder, &dest_uid)) {
+			case DC_FAILED:       goto cleanup;
+			case DC_RETRY_LATER:  dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL); break;
+			case DC_ALREADY_DONE: break;
+			case DC_SUCCESS:      dc_update_server_uid(context, msg->rfc724_mid, dest_folder, dest_uid); break;
 		}
 	}
 
 cleanup:
+	free(dest_folder);
 	dc_msg_unref(msg);
 }
 
@@ -207,7 +240,6 @@ static void dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP(dc_context_t* context, dc_job_
 {
 	char*     folder = dc_param_get(job->param, DC_PARAM_SERVER_FOLDER, NULL);
 	uint32_t  uid = dc_param_get_int(job->param, DC_PARAM_SERVER_UID, 0);
-	int       also_move = dc_param_get_int(job->param, DC_PARAM_ALSO_MOVE, 0);
 	char*     dest_folder = NULL;
 	uint32_t  dest_uid = 0;
 
@@ -223,12 +255,13 @@ static void dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP(dc_context_t* context, dc_job_
 		dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
 	}
 
-	if (also_move) {
-		dest_folder = dc_sqlite3_get_config(context->sql, "configured_mvbox_folder", NULL);
-		if (dest_folder) {
-			if (dc_imap_move(context->inbox, folder, uid, dest_folder, &dest_uid)==0) {
-				dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
-			}
+	if (dc_param_get_int(job->param, DC_PARAM_ALSO_MOVE, 0)
+	 && (dest_folder=dc_sqlite3_get_config(context->sql, "configured_mvbox_folder", NULL))!=NULL)
+	{
+		switch (dc_imap_move(context->inbox, folder, uid, dest_folder, &dest_uid)) {
+			case DC_FAILED:      goto cleanup;
+			case DC_RETRY_LATER: dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL); break;
+			default:             break;
 		}
 	}
 
@@ -655,6 +688,7 @@ static void dc_job_perform(dc_context_t* context, int thread, int probe_network)
 				case DC_JOB_DELETE_MSG_ON_IMAP:   dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP   (context, &job); break;
 				case DC_JOB_MARKSEEN_MSG_ON_IMAP: dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP (context, &job); break;
 				case DC_JOB_MARKSEEN_MDN_ON_IMAP: dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP (context, &job); break;
+				case DC_JOB_MOVE_MSG:             dc_job_do_DC_JOB_MOVE_MSG             (context, &job); break;
 				case DC_JOB_SEND_MDN:             dc_job_do_DC_JOB_SEND_MDN             (context, &job); break;
 				case DC_JOB_CONFIGURE_IMAP:       dc_job_do_DC_JOB_CONFIGURE_IMAP       (context, &job); break;
 				case DC_JOB_IMEX_IMAP:            dc_job_do_DC_JOB_IMEX_IMAP            (context, &job); break;
