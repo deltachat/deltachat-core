@@ -101,8 +101,8 @@ dc_imap_res dc_imap_set_mdnsent  (dc_imap_t*, const char* folder, uint32_t uid);
 
 int        dc_imap_delete_msg        (dc_imap_t*, const char* rfc724_mid, const char* folder, uint32_t server_uid); /* only returns 0 on connection problems; we should try later again in this case */
 
-void       dc_imap_configure_folders (dc_imap_t*);
 int        dc_imap_is_error          (dc_imap_t* imap, int code);
+
 
 #ifdef __cplusplus
 } /* /extern "C" */

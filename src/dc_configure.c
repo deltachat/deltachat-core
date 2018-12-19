@@ -9,24 +9,42 @@
 
 
 /*******************************************************************************
- * Tools
+ * Connect to configured account
  ******************************************************************************/
 
 
-static char* read_autoconf_file(dc_context_t* context, const char* url)
+int dc_connect_to_configured_imap(dc_context_t* context, dc_imap_t* imap)
 {
-	char* filecontent = NULL;
+	int              ret_connected = DC_NOT_CONNECTED;
+	dc_loginparam_t* param = dc_loginparam_new();
 
-	dc_log_info(context, 0, "Testing %s ...", url);
-
-	filecontent = (char*)context->cb(context, DC_EVENT_HTTP_GET, (uintptr_t)url, 0);
-	if (filecontent==NULL || filecontent[0]==0) {
-		free(filecontent);
-		dc_log_info(context, 0, "Can't read file."); /* this is not a warning or an error, we're just testing */
-		return NULL;
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || imap==NULL) {
+		dc_log_warning(imap->context, 0, "Cannot connect to IMAP: Bad parameters.");
+		goto cleanup;
 	}
 
-	return filecontent;
+	if (dc_imap_is_connected(imap)) {
+		ret_connected = DC_ALREADY_CONNECTED;
+		goto cleanup;
+	}
+
+	if (dc_sqlite3_get_config_int(imap->context->sql, "configured", 0)==0) {
+		dc_log_warning(imap->context, 0, "Not configured, cannot connect.");
+		goto cleanup;
+	}
+
+	dc_loginparam_read(param, imap->context->sql,
+		"configured_" /*the trailing underscore is correct*/);
+
+	if (!dc_imap_connect(imap, param)) {
+		goto cleanup;
+	}
+
+	ret_connected = DC_JUST_CONNECTED;
+
+cleanup:
+	dc_loginparam_unref(param);
+	return ret_connected;
 }
 
 
@@ -65,6 +83,23 @@ typedef struct moz_autoconfigure_t
 	int                    tag_config;
 
 } moz_autoconfigure_t;
+
+
+static char* read_autoconf_file(dc_context_t* context, const char* url)
+{
+	char* filecontent = NULL;
+
+	dc_log_info(context, 0, "Testing %s ...", url);
+
+	filecontent = (char*)context->cb(context, DC_EVENT_HTTP_GET, (uintptr_t)url, 0);
+	if (filecontent==NULL || filecontent[0]==0) {
+		free(filecontent);
+		dc_log_info(context, 0, "Can't read file."); /* this is not a warning or an error, we're just testing */
+		return NULL;
+	}
+
+	return filecontent;
+}
 
 
 static void moz_autoconfigure_starttag_cb(void* userdata, const char* tag, char** attr)
@@ -381,7 +416,7 @@ cleanup:
 
 
 /*******************************************************************************
- * Check IMAP-folders
+ * Configure folders
  ******************************************************************************/
 
 
@@ -473,13 +508,12 @@ static void free_folders(clist* folders)
 }
 
 
-void dc_imap_configure_folders(dc_imap_t* imap)
+void dc_configure_folders(dc_context_t* context, dc_imap_t* imap, int flags)
 {
 	#define DC_DEF_MVBOX "DeltaChat"
 
 	clist*     folder_list = NULL;
 	clistiter* iter;
-	int        mvbox_enabled = 0;
 	char*      mvbox_folder = NULL;
 	char*      fallback_folder = NULL;
 
@@ -487,48 +521,44 @@ void dc_imap_configure_folders(dc_imap_t* imap)
 		goto cleanup;
 	}
 
-	dc_log_info(imap->context, 0, "Configuring IMAP-folders.");
-
-	mvbox_enabled = dc_sqlite3_get_config_int(imap->context->sql, "mvbox_watch", DC_MVBOX_WATCH_DEFAULT)
-	             || dc_sqlite3_get_config_int(imap->context->sql, "mvbox_move", DC_MVBOX_MOVE_DEFAULT);
+	dc_log_info(context, 0, "Configuring IMAP-folders.");
 
 	// this sets imap->imap_delimiter as side-effect
 	folder_list = list_folders(imap);
 
-	// as a fallback, the mvbox_folder is created under INBOX
-	// as required e.g. for DomainFactory
+	// MVBOX-folder exists? maybe under INBOX?
 	fallback_folder = dc_mprintf("INBOX%c%s", imap->imap_delimiter, DC_DEF_MVBOX);
 	for (iter=clist_begin(folder_list); iter!=NULL; iter=clist_next(iter))
 	{
 		dc_imapfolder_t* folder = (struct dc_imapfolder_t*)clist_content(iter);
 		if (strcmp(folder->name_utf8, DC_DEF_MVBOX)==0
 		 || strcmp(folder->name_utf8, fallback_folder)==0) {
-			if (mvbox_enabled) {
+			if (mvbox_folder==NULL) {
 				mvbox_folder = dc_strdup(folder->name_to_select);
 			}
-			break;
 		}
 	}
 
-	if (mvbox_folder==NULL && mvbox_enabled)
+	// create folder if not exist
+	if (mvbox_folder==NULL && (flags&DC_CREATE_MVBOX))
 	{
-		dc_log_info(imap->context, 0, "Creating MVBOX-folder \"%s\"...", DC_DEF_MVBOX);
+		dc_log_info(context, 0, "Creating MVBOX-folder \"%s\"...", DC_DEF_MVBOX);
 		int r = mailimap_create(imap->etpan, DC_DEF_MVBOX);
 		if (dc_imap_is_error(imap, r)) {
-			dc_log_warning(imap->context, 0, "Cannot create MVBOX-folder, using trying INBOX subfolder.");
+			dc_log_warning(context, 0, "Cannot create MVBOX-folder, using trying INBOX subfolder.");
 			r = mailimap_create(imap->etpan, fallback_folder);
 			if (dc_imap_is_error(imap, r)) {
 				/* continue on errors, we'll just use a different folder then */
-				dc_log_warning(imap->context, 0, "Cannot create MVBOX-folder.");
+				dc_log_warning(context, 0, "Cannot create MVBOX-folder.");
 			}
 			else {
 				mvbox_folder = dc_strdup(fallback_folder);
-				dc_log_info(imap->context, 0, "MVBOX-folder created as INBOX subfolder.");
+				dc_log_info(context, 0, "MVBOX-folder created as INBOX subfolder.");
 			}
 		}
 		else {
 			mvbox_folder = dc_strdup(DC_DEF_MVBOX);
-			dc_log_info(imap->context, 0, "MVBOX-folder created.");
+			dc_log_info(context, 0, "MVBOX-folder created.");
 		}
 
 		// SUBSCRIBE is needed to make the folder visible to the LSUB command
@@ -538,8 +568,8 @@ void dc_imap_configure_folders(dc_imap_t* imap)
 	}
 
 	// remember the configuration, mvbox_folder may be NULL
-	dc_sqlite3_set_config_int(imap->context->sql, "folders_configured", 1);
-	dc_sqlite3_set_config(imap->context->sql, "configured_mvbox_folder", mvbox_folder);
+	dc_sqlite3_set_config_int(context->sql, "folders_configured", 1);
+	dc_sqlite3_set_config(context->sql, "configured_mvbox_folder", mvbox_folder);
 
 cleanup:
 	free_folders(folder_list);
@@ -549,7 +579,7 @@ cleanup:
 
 
 /*******************************************************************************
- * Main interface
+ * Configure
  ******************************************************************************/
 
 
@@ -855,10 +885,10 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 
 	PROGRESS(900)
 
-	/* find out wheter `DeltaChat`, `INBOX/DeltaChat` or whatever
-	should be used as the MVBOX */
-
-	dc_imap_configure_folders(context->inbox);
+	int flags =
+		 ( dc_sqlite3_get_config_int(context->sql, "mvbox_watch", DC_MVBOX_WATCH_DEFAULT)
+		|| dc_sqlite3_get_config_int(context->sql, "mvbox_move", DC_MVBOX_MOVE_DEFAULT) ) ? DC_CREATE_MVBOX : 0;
+	dc_configure_folders(context, context->inbox, flags);
 
 	PROGRESS(910);
 

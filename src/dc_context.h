@@ -104,6 +104,14 @@ void            dc_log_info          (dc_context_t*, int data1, const char* msg,
 
 void            dc_receive_imf       (dc_context_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags);
 
+#define         DC_NOT_CONNECTED     0
+#define         DC_ALREADY_CONNECTED 1
+#define         DC_JUST_CONNECTED    2
+int             dc_connect_to_configured_imap (dc_context_t*, dc_imap_t*);
+
+#define         DC_CREATE_MVBOX      0x01
+void            dc_configure_folders (dc_context_t*, dc_imap_t*, int flags);
+
 int             dc_shall_move        (dc_context_t*, const char* folder, const dc_mimeparser_t* parser, uint32_t msg_id);
 int             dc_is_inbox          (dc_context_t*, const char* folder);
 
