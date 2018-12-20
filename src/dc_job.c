@@ -1063,6 +1063,12 @@ void dc_interrupt_mvbox_idle(dc_context_t* context)
 
 	dc_log_info(context, 0, "Interrupting MVBOX-IDLE...");
 	dc_imap_interrupt_idle(context->mvbox);
+
+	// in case we're not IMAP-ideling, also raise the signal
+	pthread_mutex_lock(&context->mvboxidle_condmutex);
+		context->mvboxidle_condflag = 1;
+		pthread_cond_signal(&context->mvboxidle_cond);
+	pthread_mutex_unlock(&context->mvboxidle_condmutex);
 }
 
 
