@@ -8,6 +8,11 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes anywhere in the Delta Chat ecosystem,
 see https://delta.chat/en/changelog
 
+## v0.31.1
+2018-12-20
+
+* bugfix release
+
 ## v0.31.0
 
 * add config-options mvbox_watch and mvbox_move
