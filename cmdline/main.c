@@ -137,10 +137,11 @@ static void* inbox_thread_entry_point (void* entry_arg)
 		// and MUST be called sequentially.
 		dc_perform_imap_jobs(context);
 		dc_perform_imap_fetch(context);
-		dc_perform_imap_idle(context); // this may take hours ...
+		if (run_threads) {
+			dc_perform_imap_idle(context); // this may take hours ...
+		}
 	}
 
-	inbox_thread = 0;
 	return NULL;
 }
 
@@ -154,10 +155,11 @@ static void* mvbox_thread_entry_point (void* entry_arg)
 		// fetch() and idle() MUST be called from the same single thread
 		// and MUST be called sequentially.
 		dc_perform_mvbox_fetch(context);
-		dc_perform_mvbox_idle(context); // this may take hours ...
+		if (run_threads) {
+			dc_perform_mvbox_idle(context); // this may take hours ...
+		}
 	}
 
-	mvbox_thread = 0;
 	return NULL;
 }
 
@@ -171,10 +173,11 @@ static void* smtp_thread_entry_point (void* entry_arg)
 		// jobs() and idle() MUST be called from the same single thread
 		// and MUST be called sequentially.
 		dc_perform_smtp_jobs(context);
-		dc_perform_smtp_idle(context); // this may take hours ...
+		if (run_threads) {
+			dc_perform_smtp_idle(context); // this may take hours ...
+		}
 	}
 
-	smtp_thread = 0;
 	return NULL;
 }
 
@@ -203,10 +206,13 @@ static void stop_threads(dc_context_t* context)
 	dc_interrupt_mvbox_idle(context);
 	dc_interrupt_smtp_idle(context);
 
-	// wait until the threads are finished
-	while (inbox_thread || mvbox_thread || smtp_thread) {
-		usleep(100*1000);
-	}
+	pthread_join(inbox_thread, NULL);
+	pthread_join(mvbox_thread, NULL);
+	pthread_join(smtp_thread, NULL);
+
+	inbox_thread = 0;
+	mvbox_thread = 0;
+	smtp_thread = 0;
 }
 
 
@@ -251,6 +257,14 @@ int main(int argc, char ** argv)
 	s_do_log_info = 0;
 	stress_functions(context);
 	s_do_log_info = 1;
+
+	#if 0
+	for(int i=0; i<10000;i++) {
+		printf("--%i--\n", i);
+		start_threads(context);
+		stop_threads(context);
+	}
+	#endif
 
 	printf("Delta Chat Core is awaiting your commands.\n");
 
