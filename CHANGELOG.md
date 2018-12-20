@@ -8,6 +8,14 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes anywhere in the Delta Chat ecosystem,
 see https://delta.chat/en/changelog
 
+## v0.31.0
+
+* add config-options mvbox_watch and mvbox_move
+* remove config-options imap_folder, mvbox_enabled
+
+The changes have been done by Björn Petersen and Holger Krekel,
+Lars-Magnus Skog
+
 ## v0.30.0
 
 * the core can second folder simultanous to the INBOX now;
