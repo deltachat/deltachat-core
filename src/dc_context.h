@@ -112,8 +112,14 @@ int             dc_connect_to_configured_imap (dc_context_t*, dc_imap_t*);
 #define         DC_CREATE_MVBOX      0x01
 void            dc_configure_folders (dc_context_t*, dc_imap_t*, int flags);
 
-int             dc_shall_move        (dc_context_t*, const char* folder, const dc_mimeparser_t* parser, uint32_t msg_id);
+
+dc_move_state_t dc_resolve_move_state        (dc_context_t*, const dc_msg_t* msg);
+dc_move_state_t dc_determine_next_move_state (dc_context_t*, const dc_msg_t* msg);
+
+
 int             dc_is_inbox          (dc_context_t*, const char* folder);
+int             dc_is_sentbox        (dc_context_t*, const char* folder);
+int             dc_is_mvbox          (dc_context_t*, const char* folder);
 
 #define         DC_BAK_PREFIX                "delta-chat"
 #define         DC_BAK_SUFFIX                "bak"
@@ -130,6 +136,8 @@ int             dc_is_inbox          (dc_context_t*, const char* folder);
 // some defaults
 #define DC_E2EE_DEFAULT_ENABLED   1
 #define DC_MDNS_DEFAULT_ENABLED   1
+#define DC_INBOX_WATCH_DEFAULT    1
+#define DC_SENTBOX_WATCH_DEFAULT  1
 #define DC_MVBOX_WATCH_DEFAULT    1
 #define DC_MVBOX_MOVE_DEFAULT     1
 

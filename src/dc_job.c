@@ -17,18 +17,15 @@
 static int connect_to_inbox(dc_context_t* context)
 {
 	int   ret_connected = DC_NOT_CONNECTED;
-	char* inbox_name = NULL;
 
 	ret_connected = dc_connect_to_configured_imap(context, context->inbox);
 	if (!ret_connected) {
 		goto cleanup;
 	}
 
-	inbox_name = dc_sqlite3_get_config(context->sql, "imap_folder", "INBOX");
-	dc_imap_set_watch_folder(context->inbox, inbox_name);
+	dc_imap_set_watch_folder(context->inbox, "INBOX");
 
 cleanup:
-	free(inbox_name);
 	return ret_connected;
 }
 
@@ -1069,6 +1066,26 @@ void dc_interrupt_mvbox_idle(dc_context_t* context)
 		context->mvboxidle_condflag = 1;
 		pthread_cond_signal(&context->mvboxidle_cond);
 	pthread_mutex_unlock(&context->mvboxidle_condmutex);
+}
+
+
+/*******************************************************************************
+ * User-functions to handle IMAP-jobs in the Sendbox-IMAP-thread
+ ******************************************************************************/
+
+
+void dc_perform_sentbox_fetch(dc_context_t* context)
+{
+}
+
+
+void dc_perform_sentbox_idle(dc_context_t* context)
+{
+}
+
+
+void dc_interrupt_sentbox_idle(dc_context_t* context)
+{
 }
 
 

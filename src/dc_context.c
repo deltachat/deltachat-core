@@ -32,6 +32,8 @@ static const char* config_keys[] = {
 	,"selfavatar"
 	,"e2ee_enabled"
 	,"mdns_enabled"
+	,"inbox_watch"
+	,"sentbox_watch"
 	,"mvbox_watch"
 	,"mvbox_move"
 	,"save_mime_headers"
@@ -488,6 +490,10 @@ static char* get_sys_config_str(const char* key)
  * - `e2ee_enabled` = 0=no end-to-end-encryption, 1=prefer end-to-end-encryption (default)
  * - `mdns_enabled` = 0=do not send or request read receipts,
  *                    1=send and request read receipts (default)
+ * - `inbox_watch`  = 1=watch `INBOX`-folder for changes (default),
+ *                    0=do not watch the `INBOX`-folder
+ * - `sentbox_watch`= 1=watch `Sent`-folder for changes (default),
+ *                    0=do not watch the `Sent`-folder
  * - `mvbox_watch`  = 1=watch `DeltaChat`-folder for changes (default),
  *                    0=do not watch the `DeltaChat`-folder
  * - `mvbox_move`   = 1=heuristically detect chat-messages
@@ -588,6 +594,12 @@ char* dc_get_config(dc_context_t* context, const char* key)
 		else if (strcmp(key, "imap_folder")==0) {
 			value = dc_strdup("INBOX");
 		}
+		else if (strcmp(key, "inbox_watch")==0) {
+			value = dc_mprintf("%i", DC_INBOX_WATCH_DEFAULT);
+		}
+		else if (strcmp(key, "sentbox_watch")==0) {
+			value = dc_mprintf("%i", DC_SENTBOX_WATCH_DEFAULT);
+		}
 		else if (strcmp(key, "mvbox_watch")==0) {
 			value = dc_mprintf("%i", DC_MVBOX_WATCH_DEFAULT);
 		}
@@ -609,12 +621,40 @@ char* dc_get_config(dc_context_t* context, const char* key)
  */
 int dc_is_inbox(dc_context_t* context, const char* folder_name)
 {
-	char* inbox_name = dc_get_config(context, "imap_folder");
-	int is_inbox = strcasecmp(inbox_name, folder_name)==0? 1 : 0;
-	free(inbox_name);
-	return is_inbox;
+	return strcasecmp("INBOX", folder_name)==0? 1 : 0;
 }
 
+
+/**
+ * Tool to check if a folder is equal to the configured sent-folder.
+ * @private @memberof dc_context_t
+ */
+int dc_is_sentbox(dc_context_t* context, const char* folder_name)
+{
+	char* sentbox_name = dc_sqlite3_get_config(context->sql, "configured_sentbox_folder", NULL);
+	int is_sentbox = 0;
+	if (sentbox_name) {
+		is_sentbox = strcasecmp(sentbox_name, folder_name)==0? 1 : 0;
+	}
+	free(sentbox_name);
+	return is_sentbox;
+}
+
+
+/**
+ * Tool to check if a folder is equal to the configured sent-folder.
+ * @private @memberof dc_context_t
+ */
+int dc_is_mvbox(dc_context_t* context, const char* folder_name)
+{
+	char* mvbox_name = dc_sqlite3_get_config(context->sql, "configured_mvbox_folder", NULL);
+	int is_mvbox = 0;
+	if (mvbox_name) {
+		is_mvbox = strcasecmp(mvbox_name, folder_name)==0? 1 : 0;
+	}
+	free(mvbox_name);
+	return is_mvbox;
+}
 
 /**
  * Find out the version of the Delta Chat core library.
@@ -648,6 +688,8 @@ char* dc_get_info(dc_context_t* context)
 	char*            fingerprint_str = NULL;
 	dc_loginparam_t* l = NULL;
 	dc_loginparam_t* l2 = NULL;
+	int              inbox_watch = 0;
+	int              sentbox_watch = 0;
 	int              mvbox_watch = 0;
 	int              mvbox_move = 0;
 	int              folders_configured = 0;
@@ -710,6 +752,8 @@ char* dc_get_info(dc_context_t* context)
 	l_readable_str = dc_loginparam_get_readable(l);
 	l2_readable_str = dc_loginparam_get_readable(l2);
 
+	inbox_watch = dc_sqlite3_get_config_int(context->sql, "inbox_watch", DC_INBOX_WATCH_DEFAULT);
+	sentbox_watch = dc_sqlite3_get_config_int(context->sql, "sentbox_watch", DC_SENTBOX_WATCH_DEFAULT);
 	mvbox_watch = dc_sqlite3_get_config_int(context->sql, "mvbox_watch", DC_MVBOX_WATCH_DEFAULT);
 	mvbox_move = dc_sqlite3_get_config_int(context->sql, "mvbox_move", DC_MVBOX_MOVE_DEFAULT);
 	folders_configured = dc_sqlite3_get_config_int(context->sql, "folders_configured", 0);
@@ -734,6 +778,8 @@ char* dc_get_info(dc_context_t* context)
 		"is_configured=%i\n"
 		"entered_account_settings=%s\n"
 		"used_account_settings=%s\n"
+		"inbox_watch=%i\n"
+		"sentbox_watch=%i\n"
 		"mvbox_watch=%i\n"
 		"mvbox_move=%i\n"
 		"folders_configured=%i\n"
@@ -761,6 +807,8 @@ char* dc_get_info(dc_context_t* context)
 		, is_configured
 		, l_readable_str
 		, l2_readable_str
+		, inbox_watch
+		, sentbox_watch
 		, mvbox_watch
 		, mvbox_move
 		, folders_configured
