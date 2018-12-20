@@ -1463,7 +1463,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 						dc_param_set(param, DC_PARAM_SERVER_FOLDER, server_folder);
 						dc_param_set_int(param, DC_PARAM_SERVER_UID, server_uid);
 						if (mime_parser->is_send_by_messenger
-						 && dc_sqlite3_get_config_int(context->sql, "mvbox_move", DC_MVBOX_MOVE_DEFAULT)==0) {
+						 && dc_sqlite3_get_config_int(context->sql, "mvbox_move", DC_MVBOX_MOVE_DEFAULT)) {
 							dc_param_set_int(param, DC_PARAM_ALSO_MOVE, 1);
 						}
 						dc_job_add(context, DC_JOB_MARKSEEN_MDN_ON_IMAP, 0, param->packed, 0);

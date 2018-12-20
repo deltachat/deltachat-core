@@ -116,7 +116,7 @@ static int cb_precheck_imf(dc_imap_t* imap, const char* rfc724_mid,
 			// bcc-self message that should be marked as seen and moved away
 			// (every other messages have folder/uid set)
 			dc_param_t* param = dc_param_new();
-			if (dc_sqlite3_get_config_int(imap->context->sql, "mvbox_move", DC_MVBOX_MOVE_DEFAULT)==0) {
+			if (dc_sqlite3_get_config_int(imap->context->sql, "mvbox_move", DC_MVBOX_MOVE_DEFAULT)) {
 				dc_param_set_int(param, DC_PARAM_ALSO_MOVE, 1);
 			}
 			dc_job_add(imap->context, DC_JOB_MARKSEEN_MSG_ON_IMAP, msg_id,

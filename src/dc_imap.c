@@ -1079,7 +1079,7 @@ dc_imap_res dc_imap_move(dc_imap_t* imap, const char* folder, uint32_t uid,
 	}
 
     if (strcasecmp(folder, dest_folder)==0) {
-		dc_log_info(imap->context, 0, "Skip movin message; message %s/%i is already in %s...", folder, (int)uid, dest_folder);
+		dc_log_info(imap->context, 0, "Skip moving message; message %s/%i is already in %s...", folder, (int)uid, dest_folder);
 		res = DC_ALREADY_DONE;
 		goto cleanup;
     }
