@@ -945,11 +945,11 @@ void dc_perform_mvbox_fetch(dc_context_t* context)
 	clock_t start = clock();
 
 	if (dc_sqlite3_get_config_int(context->sql, "mvbox_watch", DC_MVBOX_WATCH_DEFAULT)==0) {
-		return;
+		goto cleanup;
 	}
 
 	if (!connect_to_mvbox(context)) {
-		return;
+		goto cleanup;
 	}
 
 	dc_log_info(context, 0, "MVBOX-fetch started...");
@@ -963,6 +963,7 @@ void dc_perform_mvbox_fetch(dc_context_t* context)
 
 	dc_log_info(context, 0, "MVBOX-fetch done in %.0f ms.", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 
+cleanup:
 	pthread_mutex_lock(&context->mvboxidle_condmutex);
 		context->mvbox_using_handle = 0;
 	pthread_mutex_unlock(&context->mvboxidle_condmutex);
