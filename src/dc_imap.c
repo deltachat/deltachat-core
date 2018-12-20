@@ -12,6 +12,9 @@
 static int  setup_handle_if_needed   (dc_imap_t*);
 static void unsetup_handle           (dc_imap_t*);
 
+#define FREE_SET(a)        if((a)) { mailimap_set_free((a)); }
+#define FREE_FETCH_LIST(a) if((a)) { mailimap_fetch_list_free((a)); }
+
 
 /*******************************************************************************
  * Tools
@@ -1059,20 +1062,82 @@ cleanup:
 }
 
 
-int dc_imap_markseen_msg(dc_imap_t* imap, const char* folder, uint32_t server_uid, int ms_flags,
-                        char** ret_server_folder, uint32_t* ret_server_uid, int* ret_ms_flags)
+dc_imap_res dc_imap_move(dc_imap_t* imap, const char* folder, uint32_t uid,
+                         const char* dest_folder, uint32_t* dest_uid)
 {
-	// when marking as seen, there is no real need to check against the rfc724_mid - in the worst case, when the UID validity or the mailbox has changed, we mark the wrong message as "seen" - as the very most messages are seen, this is no big thing.
-	// command would be "STORE 123,456,678 +FLAGS (\Seen)"
+	dc_imap_res          res = DC_RETRY_LATER;
 	int                  r = 0;
-	struct mailimap_set* set = NULL;
+	struct mailimap_set* set = mailimap_set_new_single(uid);
+	uint32_t             res_uid = 0;
+	struct mailimap_set* res_setsrc = NULL;
+	struct mailimap_set* res_setdest = NULL;
 
-	if (imap==NULL || folder==NULL || server_uid==0 || ret_server_folder==NULL || ret_server_uid==NULL || ret_ms_flags==NULL
-	 || *ret_server_folder!=NULL || *ret_server_uid!=0 || *ret_ms_flags!=0) {
-		return 1; /* job done */
+	if (imap==NULL || folder==NULL || uid==0
+	 || dest_folder==NULL || dest_uid==NULL || set==NULL) {
+		res = DC_FAILED;
+		goto cleanup;
 	}
 
-	if ((set=mailimap_set_new_single(server_uid))==NULL) {
+    if (strcasecmp(folder, dest_folder)==0) {
+		dc_log_info(imap->context, 0, "Skip moving message; message %s/%i is already in %s...", folder, (int)uid, dest_folder);
+		res = DC_ALREADY_DONE;
+		goto cleanup;
+    }
+
+	dc_log_info(imap->context, 0, "Moving message %s/%i to %s...", folder, (int)uid, dest_folder);
+
+	if (select_folder(imap, folder)==0) {
+		dc_log_warning(imap->context, 0, "Cannot select folder.");
+		goto cleanup;
+	}
+
+	/* TODO/TOCHECK: UIDPLUS extension may not be supported on servers;
+	if in doubt, we can find out the resulting UID using "imap_selection_info->sel_uidnext" then */
+
+	r = mailimap_uidplus_uid_move(imap->etpan, set, dest_folder, &res_uid, &res_setsrc, &res_setdest);
+	if (dc_imap_is_error(imap, r)) {
+		dc_log_info(imap->context, 0, "Cannot move message, fallback to COPY/DELETE %s/%i to %s...", folder, (int)uid, dest_folder);
+		r = mailimap_uidplus_uid_copy(imap->etpan, set, dest_folder, &res_uid, &res_setsrc, &res_setdest);
+		if (dc_imap_is_error(imap, r)) {
+			dc_log_info(imap->context, 0, "Cannot copy message.");
+			goto cleanup;
+		}
+		else {
+			if (add_flag(imap, uid, mailimap_flag_new_deleted())==0) {
+				dc_log_warning(imap->context, 0, "Cannot mark message as \"Deleted\".");
+			}
+
+			// force an EXPUNGE resp. CLOSE for the selected folder
+			imap->selected_folder_needs_expunge = 1;
+		}
+	}
+
+	if (res_setdest) {
+		clistiter* cur = clist_begin(res_setdest->set_list);
+		if (cur!=NULL) {
+			struct mailimap_set_item* item;
+			item = clist_content(cur);
+			*dest_uid = item->set_first;
+		}
+		mailimap_set_free(res_setdest);
+	}
+
+	res = DC_SUCCESS;
+
+cleanup:
+	FREE_SET(set);
+	FREE_SET(res_setsrc);
+	return res==DC_RETRY_LATER?
+		(imap->should_reconnect? DC_RETRY_LATER : DC_FAILED) : res;
+}
+
+
+dc_imap_res dc_imap_set_seen(dc_imap_t* imap, const char* folder, uint32_t uid)
+{
+	dc_imap_res res = DC_RETRY_LATER;
+
+	if (imap==NULL || folder==NULL || uid==0) {
+		res = DC_FAILED;
 		goto cleanup;
 	}
 
@@ -1080,26 +1145,55 @@ int dc_imap_markseen_msg(dc_imap_t* imap, const char* folder, uint32_t server_ui
 		goto cleanup;
 	}
 
-	dc_log_info(imap->context, 0, "Marking message %s/%i as seen...", folder, (int)server_uid);
+	dc_log_info(imap->context, 0, "Marking message %s/%i as seen...", folder, (int)uid);
 
 	if (select_folder(imap, folder)==0) {
 		dc_log_warning(imap->context, 0, "Cannot select folder.");
 		goto cleanup;
 	}
 
-	if (add_flag(imap, server_uid, mailimap_flag_new_seen())==0) {
+	if (add_flag(imap, uid, mailimap_flag_new_seen())==0) {
 		dc_log_warning(imap->context, 0, "Cannot mark message as seen.");
 		goto cleanup;
 	}
 
-	dc_log_info(imap->context, 0, "Message marked as seen.");
+	res = DC_SUCCESS;
 
-	if ((ms_flags&DC_MS_SET_MDNSent_FLAG)
-	 && imap->etpan->imap_selection_info!=NULL && imap->etpan->imap_selection_info->sel_perm_flags!=NULL)
+cleanup:
+	return res==DC_RETRY_LATER?
+		(imap->should_reconnect? DC_RETRY_LATER : DC_FAILED) : res;
+}
+
+
+dc_imap_res dc_imap_set_mdnsent(dc_imap_t* imap, const char* folder, uint32_t uid)
+{
+	// returns 0=job should be retried later, 1=job done, 2=job done and flag just set
+	dc_imap_res          res = DC_RETRY_LATER;
+	struct mailimap_set* set = mailimap_set_new_single(uid);
+	clist*               fetch_result = NULL;
+
+	if (imap==NULL || folder==NULL || uid==0 || set==NULL) {
+		res = DC_FAILED;
+		goto cleanup;
+	}
+
+	if (imap->etpan==NULL) {
+		goto cleanup;
+	}
+
+	dc_log_info(imap->context, 0, "Marking message %s/%i as $MDNSent...", folder, (int)uid);
+
+	if (select_folder(imap, folder)==0) {
+		dc_log_warning(imap->context, 0, "Cannot select folder for $MDNSent.");
+		goto cleanup;
+	}
+
+	/* Check if the folder can handle the `$MDNSent` flag (see RFC 3503).  If so, and not set: set the flags and return this information.
+	If the folder cannot handle the `$MDNSent` flag, we risk duplicated MDNs; it's up to the receiving MUA to handle this then (eg. Delta Chat has no problem with this). */
+	int can_create_flag = 0;
+	if (imap->etpan->imap_selection_info!=NULL
+	 && imap->etpan->imap_selection_info->sel_perm_flags!=NULL)
 	{
-		/* Check if the folder can handle the `$MDNSent` flag (see RFC 3503).  If so, and not set: set the flags and return this information.
-		If the folder cannot handle the `$MDNSent` flag, we risk duplicated MDNs; it's up to the receiving MUA to handle this then (eg. Delta Chat has no problem with this). */
-		int can_create_flag = 0;
 		clistiter* iter;
 		for (iter=clist_begin(imap->etpan->imap_selection_info->sel_perm_flags); iter!=NULL; iter=clist_next(iter))
 		{
@@ -1111,42 +1205,52 @@ int dc_imap_markseen_msg(dc_imap_t* imap, const char* folder, uint32_t server_ui
 				}
 				else if (fp->fl_type==MAILIMAP_FLAG_PERM_FLAG && fp->fl_flag) {
 					struct mailimap_flag* fl = (struct mailimap_flag*)fp->fl_flag;
-					if (fl->fl_type==MAILIMAP_FLAG_KEYWORD && fl->fl_data.fl_keyword && strcmp(fl->fl_data.fl_keyword, "$MDNSent")==0) {
+					if (fl->fl_type==MAILIMAP_FLAG_KEYWORD
+					 && fl->fl_data.fl_keyword
+					 && strcmp(fl->fl_data.fl_keyword, "$MDNSent")==0) {
 						can_create_flag = 1;
 						break;
 					}
 				}
 			}
 		}
+	}
 
-		if (can_create_flag)
-		{
-			clist* fetch_result = NULL;
-			r = mailimap_uid_fetch(imap->etpan, set, imap->fetch_type_flags, &fetch_result);
-			if (!dc_imap_is_error(imap, r) && fetch_result) {
-				clistiter* cur=clist_begin(fetch_result);
-				if (cur) {
-					if (!peek_flag_keyword((struct mailimap_msg_att*)clist_content(cur), "$MDNSent")) {
-						add_flag(imap, server_uid, mailimap_flag_new_flag_keyword(dc_strdup("$MDNSent")));
-						*ret_ms_flags |= DC_MS_MDNSent_JUST_SET;
-					}
-				}
-				mailimap_fetch_list_free(fetch_result);
+	if (can_create_flag)
+	{
+		int r = mailimap_uid_fetch(imap->etpan, set, imap->fetch_type_flags, &fetch_result);
+		if (dc_imap_is_error(imap, r) || fetch_result==NULL) {
+			goto cleanup;
+		}
+
+		clistiter* cur=clist_begin(fetch_result);
+		if (cur==NULL) {
+			goto cleanup;
+		}
+
+		if (peek_flag_keyword((struct mailimap_msg_att*)clist_content(cur), "$MDNSent")) {
+			res = DC_ALREADY_DONE;
+		}
+		else {
+			if (add_flag(imap, uid, mailimap_flag_new_flag_keyword(dc_strdup("$MDNSent")))==0) {
+				goto cleanup;
 			}
-			dc_log_info(imap->context, 0, ((*ret_ms_flags)&DC_MS_MDNSent_JUST_SET)? "$MDNSent just set and MDN will be sent." : "$MDNSent already set and MDN already sent.");
+			res = DC_SUCCESS;
 		}
-		else
-		{
-			*ret_ms_flags |= DC_MS_MDNSent_JUST_SET;
-			dc_log_info(imap->context, 0, "Cannot store $MDNSent flags, risk sending duplicate MDN.");
-		}
+
+		dc_log_info(imap->context, 0, res==DC_SUCCESS? "$MDNSent just set and MDN will be sent." : "$MDNSent already set and MDN already sent.");
+	}
+	else
+	{
+		res = DC_SUCCESS;
+		dc_log_info(imap->context, 0, "Cannot store $MDNSent flags, risk sending duplicate MDN.");
 	}
 
 cleanup:
-	if (set) {
-		mailimap_set_free(set);
-	}
-	return imap->should_reconnect? 0 : 1;
+	FREE_SET(set);
+	FREE_FETCH_LIST(fetch_result);
+	return res==DC_RETRY_LATER?
+		(imap->should_reconnect? DC_RETRY_LATER : DC_FAILED) : res;
 }
 
 

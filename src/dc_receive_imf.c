@@ -930,6 +930,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 	int              state = DC_STATE_UNDEFINED;
 	int              hidden = 0;
 	int              add_delete_job = 0;
+	uint32_t         insert_msg_id = 0;
 
 	sqlite3_stmt*    stmt = NULL;
 	size_t           i = 0;
@@ -1338,7 +1339,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				free(txt_raw);
 				txt_raw = NULL;
 
-				int insert_msg_id = dc_sqlite3_get_rowid(context->sql, "msgs", "rfc724_mid", rfc724_mid);
+				insert_msg_id = dc_sqlite3_get_rowid(context->sql, "msgs", "rfc724_mid", rfc724_mid);
 
 				carray_add(created_db_entries, (void*)(uintptr_t)chat_id, NULL);
 				carray_add(created_db_entries, (void*)(uintptr_t)insert_msg_id, NULL);
@@ -1365,6 +1366,12 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				else {
 					create_event_to_send = DC_EVENT_INCOMING_MSG;
 				}
+			}
+
+			// insert_msg_id is the last msg_id
+			// if the mime-message splits into several delta-messages
+			if (dc_shall_move(context, server_folder, mime_parser, insert_msg_id)) {
+				dc_job_add(context, DC_JOB_MOVE_MSG, insert_msg_id, NULL, 0);
 			}
 		}
 		else
@@ -1450,15 +1457,17 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 					- Consumed or not consumed MDNs from other messengers
 					- Consumed MDNs from normal MUAs
 					Unconsumed MDNs from normal MUAs are _not_ moved.
-					NB: we do not delete the MDN as it may be used by other clients
-
-					CAVE: we rely on dc_imap_markseen_msg() not to move messages that are already in the correct folder.
-					otherwise, the moved message get a new server_uid and is "fresh" again and we will be here again to move it away -
-					a classical deadlock, see also (***) in dc_imap.c */
+					NB: we do not delete the MDN as it may be used by other clients */
 					if (mime_parser->is_send_by_messenger || mdn_consumed) {
-						char* jobparam = dc_mprintf("%c=%s\n%c=%lu", DC_PARAM_SERVER_FOLDER, server_folder, DC_PARAM_SERVER_UID, server_uid);
-							dc_job_add(context, DC_JOB_MARKSEEN_MDN_ON_IMAP, 0, jobparam, 0);
-						free(jobparam);
+						dc_param_t* param = dc_param_new();
+						dc_param_set(param, DC_PARAM_SERVER_FOLDER, server_folder);
+						dc_param_set_int(param, DC_PARAM_SERVER_UID, server_uid);
+						if (mime_parser->is_send_by_messenger
+						 && dc_sqlite3_get_config_int(context->sql, "mvbox_move", DC_MVBOX_MOVE_DEFAULT)) {
+							dc_param_set_int(param, DC_PARAM_ALSO_MOVE, 1);
+						}
+						dc_job_add(context, DC_JOB_MARKSEEN_MDN_ON_IMAP, 0, param->packed, 0);
+						dc_param_unref(param);
 					}
 				}
 

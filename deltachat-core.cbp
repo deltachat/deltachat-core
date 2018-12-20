@@ -488,6 +488,9 @@
 		<Unit filename="src/dc_mimeparser.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="src/dc_move.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="src/dc_msg.c">
 			<Option compilerVar="CC" />
 		</Unit>
