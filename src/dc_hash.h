@@ -73,6 +73,12 @@ typedef struct dc_hashelem_t
 
 
 /*
+ * Just to make the last parameter of dc_hash_init() more readable.
+ */
+#define DC_HASH_COPY_KEY  1
+
+
+/*
  * Access routines.  To delete an element, insert a NULL pointer.
  */
 void    dc_hash_init     (dc_hash_t*, int keytype, int copyKey);
@@ -81,6 +87,7 @@ void*   dc_hash_find     (const dc_hash_t*, const void *pKey, int nKey);
 void    dc_hash_clear    (dc_hash_t*);
 
 #define dc_hash_find_str(H, s) dc_hash_find((H), (s), strlen((s)))
+#define dc_hash_insert_str(H, s, d) dc_hash_insert((H), (s), strlen((s)), (d))
 
 
 /*

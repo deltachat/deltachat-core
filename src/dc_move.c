@@ -33,6 +33,10 @@ dc_move_state_t dc_determine_next_move_state(dc_context_t* context, const dc_msg
 	// This function works with the DB, does not perform any IMAP commands.
 	dc_move_state_t res = DC_MOVE_STATE_UNDEFINED;
 	dc_msg_t*       newmsg = NULL;
+	dc_hash_t       handled_ids;
+
+	// we remember the Messages-IDs we've looped through to avoid a dead-lock
+	dc_hash_init(&handled_ids, DC_HASH_STRING, DC_HASH_COPY_KEY);
 
 	if (context==NULL || msg==NULL) {
 		goto cleanup;
@@ -62,10 +66,11 @@ dc_move_state_t dc_determine_next_move_state(dc_context_t* context, const dc_msg
 		goto cleanup;
 	}
 
-	// TODO: we should implement some protection against deadlocks here
 	int last_dc_count = 0;
 	while (1)
 	{
+		dc_hash_insert_str(&handled_ids, msg->rfc724_mid, (void*)1);
+
 		last_dc_count = msg->is_dc_message? (last_dc_count + 1) : 0;
 
 		if (msg->in_reply_to==NULL || msg->in_reply_to[0]==0)
@@ -86,7 +91,8 @@ dc_move_state_t dc_determine_next_move_state(dc_context_t* context, const dc_msg
 		dc_msg_unref(newmsg); // unref after consuming msg->in_reply_to above
 		newmsg = temp;
 
-		if (newmsg==NULL || newmsg->id==0)
+		if (newmsg==NULL || newmsg->id==0
+		 || dc_hash_find_str(&handled_ids, newmsg->rfc724_mid))
 		{
 			dc_log_info(context, 0, "[move] failed to fetch from db: %s", msg->in_reply_to);
 			// we don't have the parent message ... maybe because
@@ -117,5 +123,6 @@ dc_move_state_t dc_determine_next_move_state(dc_context_t* context, const dc_msg
 
 cleanup:
 	dc_msg_unref(newmsg);
+	dc_hash_clear(&handled_ids);
 	return res;
 }
