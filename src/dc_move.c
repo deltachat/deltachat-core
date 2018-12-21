@@ -3,30 +3,7 @@
 #include "dc_job.h"
 
 
-dc_move_state_t dc_resolve_move_state(dc_context_t* context, const dc_msg_t* msg)
-{
-	dc_move_state_t res = dc_determine_next_move_state(context, msg);
-
-	switch (res)
-	{
-		case DC_MOVE_STATE_MOVING:
-			dc_job_add(context, DC_JOB_MOVE_MSG, msg->id, NULL, 0);
-			dc_update_msg_move_state(context, msg->rfc724_mid, DC_MOVE_STATE_MOVING);
-			break;
-
-		case DC_MOVE_STATE_STAY:
-			dc_update_msg_move_state(context, msg->rfc724_mid, DC_MOVE_STATE_STAY);
-			break;
-
-		default:
-			break;
-	}
-
-	return res;
-}
-
-
-dc_move_state_t dc_determine_next_move_state(dc_context_t* context, const dc_msg_t* msg)
+static dc_move_state_t determine_next_move_state(dc_context_t* context, const dc_msg_t* msg)
 {
 	// Return the next move state for this message.
 	// Only call this function if the message is pending.
@@ -125,4 +102,34 @@ cleanup:
 	dc_msg_unref(newmsg);
 	dc_hash_clear(&handled_ids);
 	return res;
+}
+
+
+dc_move_state_t dc_resolve_move_state(dc_context_t* context, dc_msg_t* msg)
+{
+	// Return move-state after this message's next move-state is determined
+	// (i.e. it is not PENDING)
+	if (msg->move_state==DC_MOVE_STATE_PENDING)
+	{
+		switch (determine_next_move_state(context, msg))
+		{
+			case DC_MOVE_STATE_MOVING:
+				dc_job_add(context, DC_JOB_MOVE_MSG, msg->id, NULL, 0);
+				dc_update_msg_move_state(context, msg->rfc724_mid, DC_MOVE_STATE_MOVING);
+				msg->move_state = DC_MOVE_STATE_MOVING;
+				break;
+
+			case DC_MOVE_STATE_STAY:
+				dc_update_msg_move_state(context, msg->rfc724_mid, DC_MOVE_STATE_STAY);
+				msg->move_state = DC_MOVE_STATE_STAY;
+				break;
+
+			default:
+				dc_log_info(context, 0, "[move] PENDING uid=%i message-id=%s in-reply-to=%s",
+					(int)msg->server_uid, msg->rfc724_mid, msg->in_reply_to);
+				break;
+		}
+	}
+
+	return msg->move_state;
 }

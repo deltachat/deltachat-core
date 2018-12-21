@@ -108,8 +108,7 @@ int             dc_connect_to_configured_imap (dc_context_t*, dc_imap_t*);
 void            dc_configure_folders (dc_context_t*, dc_imap_t*, int flags);
 
 
-dc_move_state_t dc_resolve_move_state        (dc_context_t*, const dc_msg_t* msg);
-dc_move_state_t dc_determine_next_move_state (dc_context_t*, const dc_msg_t* msg);
+dc_move_state_t dc_resolve_move_state        (dc_context_t*, dc_msg_t* msg);
 
 
 int             dc_is_inbox          (dc_context_t*, const char* folder);
