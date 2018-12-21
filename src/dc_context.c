@@ -525,6 +525,21 @@ int dc_set_config(dc_context_t* context, const char* key, const char* value)
 		}
 		ret = dc_sqlite3_set_config(context->sql, key, rel_path);
 	}
+	else if(strcmp(key, "inbox_watch")==0)
+	{
+		ret = dc_sqlite3_set_config(context->sql, key, value);
+		dc_interrupt_imap_idle(context); // force idle() to be called again with the new mode
+	}
+	else if(strcmp(key, "sentbox_watch")==0)
+	{
+		ret = dc_sqlite3_set_config(context->sql, key, value);
+		dc_interrupt_sentbox_idle(context); // force idle() to be called again with the new mode
+	}
+	else if(strcmp(key, "mvbox_watch")==0)
+	{
+		ret = dc_sqlite3_set_config(context->sql, key, value);
+		dc_interrupt_mvbox_idle(context); // force idle() to be called again with the new mode
+	}
 	else
 	{
 		ret = dc_sqlite3_set_config(context->sql, key, value);
