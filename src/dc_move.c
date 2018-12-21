@@ -26,23 +26,6 @@ dc_move_state_t dc_resolve_move_state(dc_context_t* context, const dc_msg_t* msg
 }
 
 
-static int is_moved_message(dc_msg_t* msg)
-{
-	// TODO: check if comparing against the current folder is sufficient.
-	// the python implementation differs between the foldername
-	// and the target_foldername.
-	// we currently do not have this distinction,
-	// server_folder is just the folder where the message is currently in;
-	// it is updated after the move-job.
-
-	if (dc_is_mvbox(msg->context, msg->server_folder)) {
-		return 1;
-	}
-
-	return 0;
-}
-
-
 dc_move_state_t dc_determine_next_move_state(dc_context_t* context, const dc_msg_t* msg)
 {
 	// Return the next move state for this message.
@@ -120,7 +103,7 @@ dc_move_state_t dc_determine_next_move_state(dc_context_t* context, const dc_msg
 				goto cleanup;
 			}
 		}
-		else if (is_moved_message(newmsg))
+		else if (newmsg->move_state==DC_MOVE_STATE_MOVING)
 		{
 			dc_log_info(context, 0, "[move] parent was a moved message"); // and papa was rolling stone.
 			res = DC_MOVE_STATE_MOVING;
