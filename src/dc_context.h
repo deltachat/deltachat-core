@@ -53,6 +53,7 @@ struct _dc_context
 	int              perform_inbox_jobs_needed;
 	int              probe_imap_network;    /**< if this flag is set, the imap-job timeouts are bypassed and messages are sent until they fail */
 
+	dc_jobthread_t   sentbox_thread;
 	dc_jobthread_t   mvbox_thread;
 
 	dc_smtp_t*       smtp;                  /**< Internal SMTP object, never NULL */

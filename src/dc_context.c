@@ -180,6 +180,7 @@ dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_na
 	pthread_mutex_init(&context->smear_critical, NULL);
 	pthread_mutex_init(&context->bobs_qr_critical, NULL);
 	pthread_mutex_init(&context->inboxidle_condmutex, NULL);
+	dc_jobthread_init(&context->sentbox_thread, context, "SENTBOX", "configured_sentbox_folder");
 	dc_jobthread_init(&context->mvbox_thread, context, "MVBOX", "configured_mvbox_folder");
 	pthread_mutex_init(&context->smtpidle_condmutex, NULL);
 	pthread_cond_init(&context->smtpidle_cond, NULL);
@@ -195,6 +196,7 @@ dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_na
 	dc_pgp_init();
 	context->sql      = dc_sqlite3_new(context);
 	context->inbox    = dc_imap_new(cb_get_config, cb_set_config, cb_precheck_imf, cb_receive_imf, (void*)context, context);
+	context->sentbox_thread.imap = dc_imap_new(cb_get_config, cb_set_config, cb_precheck_imf, cb_receive_imf, (void*)context, context);
 	context->mvbox_thread.imap = dc_imap_new(cb_get_config, cb_set_config, cb_precheck_imf, cb_receive_imf, (void*)context, context);
 	context->smtp     = dc_smtp_new(context);
 
@@ -239,6 +241,7 @@ void dc_context_unref(dc_context_t* context)
 	}
 
 	dc_imap_unref(context->inbox);
+	dc_imap_unref(context->sentbox_thread.imap);
 	dc_imap_unref(context->mvbox_thread.imap);
 	dc_smtp_unref(context->smtp);
 	dc_sqlite3_unref(context->sql);
@@ -248,6 +251,7 @@ void dc_context_unref(dc_context_t* context)
 	pthread_mutex_destroy(&context->smear_critical);
 	pthread_mutex_destroy(&context->bobs_qr_critical);
 	pthread_mutex_destroy(&context->inboxidle_condmutex);
+	dc_jobthread_exit(&context->sentbox_thread);
 	dc_jobthread_exit(&context->mvbox_thread);
 	pthread_cond_destroy(&context->smtpidle_cond);
 	pthread_mutex_destroy(&context->smtpidle_condmutex);
@@ -349,6 +353,7 @@ void dc_close(dc_context_t* context)
 	}
 
 	dc_imap_disconnect(context->inbox);
+	dc_imap_disconnect(context->sentbox_thread.imap);
 	dc_imap_disconnect(context->mvbox_thread.imap);
 	dc_smtp_disconnect(context->smtp);
 

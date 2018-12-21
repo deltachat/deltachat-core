@@ -577,6 +577,7 @@ static void dc_job_perform(dc_context_t* context, int thread, int probe_network)
 			dc_job_kill_actions(context, job.action, 0);
 			sqlite3_finalize(select_stmt);
 			select_stmt = NULL;
+			dc_jobthread_suspend(&context->sentbox_thread, 1);
 			dc_jobthread_suspend(&context->mvbox_thread, 1);
 			dc_suspend_smtp_thread(context, 1);
 		}
@@ -602,6 +603,7 @@ static void dc_job_perform(dc_context_t* context, int thread, int probe_network)
 		}
 
 		if (IS_EXCLUSIVE_JOB) {
+			dc_jobthread_suspend(&context->sentbox_thread, 0);
 			dc_jobthread_suspend(&context->mvbox_thread, 0);
 			dc_suspend_smtp_thread(context, 0);
 			goto cleanup;
@@ -914,7 +916,7 @@ void dc_perform_mvbox_idle(dc_context_t* context)
  */
 void dc_interrupt_mvbox_idle(dc_context_t* context)
 {
-	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || context->mvbox_thread.imap==NULL) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
 		dc_log_warning(context, 0, "Interrupt MVBOX-IDLE: Bad parameters.");
 		return;
 	}
@@ -928,18 +930,61 @@ void dc_interrupt_mvbox_idle(dc_context_t* context)
  ******************************************************************************/
 
 
+/**
+ * Fetch new messages from the Sent folder, if any.
+ * This function and dc_perform_sentbox_idle()
+ * must be called from the same thread, typically in a loop.
+ *
+ * @memberof dc_context_t
+ * @param context The context as created by dc_context_new().
+ * @return None.
+ */
 void dc_perform_sentbox_fetch(dc_context_t* context)
 {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		return;
+	}
+
+	int use_network = dc_sqlite3_get_config_int(context->sql, "sentbox_watch", DC_SENTBOX_WATCH_DEFAULT);
+	dc_jobthread_fetch(&context->sentbox_thread, use_network);
 }
 
 
+/**
+ * Wait for messages or jobs in the SENTBOX-thread.
+ * This function and dc_perform_sentbox_fetch()
+ * must be called from the same thread, typically in a loop.
+ *
+ * @memberof dc_context_t
+ * @param context The context as created by dc_context_new().
+ * @return None.
+ */
 void dc_perform_sentbox_idle(dc_context_t* context)
 {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		return;
+	}
+
+	int use_network = dc_sqlite3_get_config_int(context->sql, "sentbox_watch", DC_SENTBOX_WATCH_DEFAULT);
+	dc_jobthread_idle(&context->sentbox_thread, use_network);
 }
 
 
+/**
+ * Interrupt waiting for messages or jobs in the SENTBOX-thread.
+ *
+ * @memberof dc_context_t
+ * @param context The context as created by dc_context_new().
+ * @return None.
+ */
 void dc_interrupt_sentbox_idle(dc_context_t* context)
 {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		dc_log_warning(context, 0, "Interrupt SENT-IDLE: Bad parameters.");
+		return;
+	}
+
+	dc_jobthread_interrupt_idle(&context->sentbox_thread);
 }
 
 
@@ -1114,4 +1159,5 @@ void dc_maybe_network(dc_context_t* context)
 	dc_interrupt_smtp_idle(context);
 	dc_interrupt_imap_idle(context);
 	dc_interrupt_mvbox_idle(context);
+	dc_interrupt_sentbox_idle(context);
 }

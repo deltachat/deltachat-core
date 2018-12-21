@@ -99,6 +99,11 @@ static int connect_to_imap(dc_jobthread_t* jobthread)
 	int   ret_connected = DC_NOT_CONNECTED;
 	char* mvbox_name = NULL;
 
+	if(dc_imap_is_connected(jobthread->imap)) {
+		ret_connected = DC_ALREADY_CONNECTED;
+		goto cleanup;
+	}
+
 	if (!(ret_connected=dc_connect_to_configured_imap(jobthread->context, jobthread->imap))) {
 		goto cleanup;
 	}
