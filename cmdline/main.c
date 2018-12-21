@@ -164,6 +164,24 @@ static void* mvbox_thread_entry_point (void* entry_arg)
 }
 
 
+static pthread_t sentbox_thread = 0;
+static void* sentbox_thread_entry_point (void* entry_arg)
+{
+	dc_context_t* context = (dc_context_t*)entry_arg;
+
+	while (run_threads) {
+		// fetch() and idle() MUST be called from the same single thread
+		// and MUST be called sequentially.
+		dc_perform_sentbox_fetch(context);
+		if (run_threads) {
+			dc_perform_sentbox_idle(context); // this may take hours ...
+		}
+	}
+
+	return NULL;
+}
+
+
 static pthread_t smtp_thread = 0;
 static void* smtp_thread_entry_point (void* entry_arg)
 {
@@ -193,6 +211,10 @@ static void start_threads(dc_context_t* context)
 		pthread_create(&mvbox_thread, NULL, mvbox_thread_entry_point, context);
 	}
 
+	if (!sentbox_thread) {
+		pthread_create(&sentbox_thread, NULL, sentbox_thread_entry_point, context);
+	}
+
 	if (!smtp_thread) {
 		pthread_create(&smtp_thread, NULL, smtp_thread_entry_point, context);
 	}
@@ -204,14 +226,17 @@ static void stop_threads(dc_context_t* context)
 	run_threads = 0;
 	dc_interrupt_imap_idle(context);
 	dc_interrupt_mvbox_idle(context);
+	dc_interrupt_sentbox_idle(context);
 	dc_interrupt_smtp_idle(context);
 
 	pthread_join(inbox_thread, NULL);
 	pthread_join(mvbox_thread, NULL);
+	pthread_join(sentbox_thread, NULL);
 	pthread_join(smtp_thread, NULL);
 
 	inbox_thread = 0;
 	mvbox_thread = 0;
+	sentbox_thread = 0;
 	smtp_thread = 0;
 }
 
