@@ -1278,9 +1278,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				}
 			}
 
-			dc_msg_t* inserted_msg = dc_msg_new_load(context, insert_msg_id);
-			dc_resolve_move_state(context, inserted_msg);
-			dc_msg_unref(inserted_msg);
+			dc_do_heuristics_moves(context, server_folder, insert_msg_id);
 		}
 		else
 		{

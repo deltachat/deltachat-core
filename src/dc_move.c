@@ -105,7 +105,7 @@ cleanup:
 }
 
 
-dc_move_state_t dc_resolve_move_state(dc_context_t* context, dc_msg_t* msg)
+static dc_move_state_t resolve_move_state(dc_context_t* context, dc_msg_t* msg)
 {
 	// Return move-state after this message's next move-state is determined
 	// (i.e. it is not PENDING)
@@ -132,4 +132,30 @@ dc_move_state_t dc_resolve_move_state(dc_context_t* context, dc_msg_t* msg)
 	}
 
 	return msg->move_state;
+}
+
+
+void dc_do_heuristics_moves(dc_context_t* context, const char* folder, uint32_t msg_id)
+{
+	// for already seen messages, folder may be different from msg->folder
+	dc_msg_t* msg = dc_msg_new_load(context, msg_id);
+
+	// TODO: preprocessing from move_imap.py::perform_imap_fetch()
+
+	if (!dc_is_inbox(context, folder) && !dc_is_sentbox(context, folder)) {
+		goto cleanup;
+	}
+
+	if (resolve_move_state(context, msg) != DC_MOVE_STATE_PENDING)
+	{
+		// see if there are pending messages which have a in-reply-to
+		// to our currnet msg
+		// NOTE: should be one sql-statement to find the
+		// possibly multiple messages that waited on us
+
+		// TODO
+	}
+
+cleanup:
+	dc_msg_unref(msg);
 }
