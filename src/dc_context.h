@@ -23,6 +23,7 @@ extern "C" {
 #include "dc_lot.h"
 #include "dc_msg.h"
 #include "dc_contact.h"
+#include "dc_jobthread.h"
 
 
 typedef struct dc_imap_t       dc_imap_t;
@@ -52,13 +53,7 @@ struct _dc_context
 	int              perform_inbox_jobs_needed;
 	int              probe_imap_network;    /**< if this flag is set, the imap-job timeouts are bypassed and messages are sent until they fail */
 
-	dc_imap_t*       mvbox;                 /**< secondary IMAP object watching the delta chat folder, never NULL */
-	pthread_cond_t   mvboxidle_cond;
-	pthread_mutex_t  mvboxidle_condmutex;
-	int              mvboxidle_condflag;
-	int              perform_mvbox_jobs_needed;
-	int              mvbox_suspended;
-	int              mvbox_using_handle;
+	dc_jobthread_t   mvbox_thread;
 
 	dc_smtp_t*       smtp;                  /**< Internal SMTP object, never NULL */
 	pthread_cond_t   smtpidle_cond;

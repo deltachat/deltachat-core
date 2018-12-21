@@ -615,13 +615,13 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	}
 
 	dc_imap_disconnect(context->inbox);
-	dc_imap_disconnect(context->mvbox);
+	dc_imap_disconnect(context->mvbox_thread.imap);
 	dc_smtp_disconnect(context->smtp);
 
 	//dc_sqlite3_set_config_int(context->sql, "configured", 0); -- NO: we do _not_ reset this flag if it was set once; otherwise the user won't get back to his chats (as an alternative, we could change the UI).  Moreover, and not changeable in the UI, we use this flag to check if we shall search for backups.
 	context->smtp->log_connect_errors = 1;
 	context->inbox->log_connect_errors = 1;
-	context->mvbox->log_connect_errors = 1;
+	context->mvbox_thread.imap->log_connect_errors = 1;
 
 	dc_log_info(context, 0, "Configure ...");
 

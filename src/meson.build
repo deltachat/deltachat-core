@@ -9,6 +9,7 @@ lib_src = [
   'dc_hash.c',
   'dc_imap.c',
   'dc_job.c',
+  'dc_jobthread.c',
   'dc_key.c',
   'dc_keyring.c',
   'dc_loginparam.c',
