@@ -711,6 +711,7 @@ char* dc_get_info(dc_context_t* context)
 	int              mvbox_watch = 0;
 	int              mvbox_move = 0;
 	int              folders_configured = 0;
+	char*            configured_sentbox_folder = NULL;
 	char*            configured_mvbox_folder = NULL;
 	int              contacts = 0;
 	int              chats = 0;
@@ -775,6 +776,7 @@ char* dc_get_info(dc_context_t* context)
 	mvbox_watch = dc_sqlite3_get_config_int(context->sql, "mvbox_watch", DC_MVBOX_WATCH_DEFAULT);
 	mvbox_move = dc_sqlite3_get_config_int(context->sql, "mvbox_move", DC_MVBOX_MOVE_DEFAULT);
 	folders_configured = dc_sqlite3_get_config_int(context->sql, "folders_configured", 0);
+	configured_sentbox_folder = dc_sqlite3_get_config(context->sql, "configured_sentbox_folder", "<unset>");
 	configured_mvbox_folder = dc_sqlite3_get_config(context->sql, "configured_mvbox_folder", "<unset>");
 
 	temp = dc_mprintf(
@@ -801,6 +803,7 @@ char* dc_get_info(dc_context_t* context)
 		"mvbox_watch=%i\n"
 		"mvbox_move=%i\n"
 		"folders_configured=%i\n"
+		"configured_sentbox_folder=%s\n"
 		"configured_mvbox_folder=%s\n"
 		"mdns_enabled=%i\n"
 		"e2ee_enabled=%i\n"
@@ -830,6 +833,7 @@ char* dc_get_info(dc_context_t* context)
 		, mvbox_watch
 		, mvbox_move
 		, folders_configured
+		, configured_sentbox_folder
 		, configured_mvbox_folder
 		, mdns_enabled
 		, e2ee_enabled
@@ -846,6 +850,7 @@ char* dc_get_info(dc_context_t* context)
 	free(displayname);
 	free(l_readable_str);
 	free(l2_readable_str);
+	free(configured_sentbox_folder);
 	free(configured_mvbox_folder);
 	free(fingerprint_str);
 	dc_key_unref(self_public);

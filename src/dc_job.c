@@ -92,7 +92,7 @@ static void dc_job_do_DC_JOB_MOVE_MSG(dc_context_t* context, dc_job_t* job)
 		goto cleanup;
 	}
 
-	if (dc_sqlite3_get_config_int(context->sql, "folders_configured", 0)==0) {
+	if (dc_sqlite3_get_config_int(context->sql, "folders_configured", 0)<DC_FOLDERS_CONFIGURED_VERSION) {
 		dc_configure_folders(context, context->inbox, DC_CREATE_MVBOX);
 	}
 
@@ -148,7 +148,7 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* context, dc_job_
 
 	if (dc_param_get_int(job->param, DC_PARAM_ALSO_MOVE, 0))
 	{
-		if (dc_sqlite3_get_config_int(context->sql, "folders_configured", 0)==0) {
+		if (dc_sqlite3_get_config_int(context->sql, "folders_configured", 0)<DC_FOLDERS_CONFIGURED_VERSION) {
 			dc_configure_folders(context, context->inbox, DC_CREATE_MVBOX);
 		}
 
@@ -189,7 +189,7 @@ static void dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP(dc_context_t* context, dc_job_
 
 	if (dc_param_get_int(job->param, DC_PARAM_ALSO_MOVE, 0))
 	{
-		if (dc_sqlite3_get_config_int(context->sql, "folders_configured", 0)==0) {
+		if (dc_sqlite3_get_config_int(context->sql, "folders_configured", 0)<DC_FOLDERS_CONFIGURED_VERSION) {
 			dc_configure_folders(context, context->inbox, DC_CREATE_MVBOX);
 		}
 

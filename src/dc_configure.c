@@ -424,7 +424,72 @@ typedef struct dc_imapfolder_t
 {
 	char* name_to_select;
 	char* name_utf8;
+
+	#define MEANING_UNKNOWN      0
+	#define MEANING_SENT_OBJECTS 1
+	#define MEANING_OTHER_KNOWN  2
+	int     meaning;
 } dc_imapfolder_t;
+
+
+static int get_folder_meaning(struct mailimap_mbx_list_flags* flags)
+{
+	int ret_meaning = MEANING_UNKNOWN;
+
+	// We check for flags if we get some
+	// (LIST may also return some, see https://tools.ietf.org/html/rfc6154 )
+	if (flags)
+	{
+		clistiter* iter2;
+		for (iter2=clist_begin(flags->mbf_oflags); iter2!=NULL; iter2=clist_next(iter2))
+		{
+			struct mailimap_mbx_list_oflag* oflag = (struct mailimap_mbx_list_oflag*)clist_content(iter2);
+			switch (oflag->of_type)
+			{
+				case MAILIMAP_MBX_LIST_OFLAG_FLAG_EXT:
+					if (strcasecmp(oflag->of_flag_ext, "spam")==0
+					 || strcasecmp(oflag->of_flag_ext, "trash")==0
+					 || strcasecmp(oflag->of_flag_ext, "drafts")==0
+					 || strcasecmp(oflag->of_flag_ext, "junk")==0)
+					{
+						ret_meaning = MEANING_OTHER_KNOWN;
+					}
+					else if (strcasecmp(oflag->of_flag_ext, "sent")==0)
+					{
+						ret_meaning = MEANING_SENT_OBJECTS;
+					}
+					break;
+			}
+		}
+	}
+
+	return ret_meaning;
+}
+
+
+static int get_folder_meaning_by_name(const char* folder_name)
+{
+	// try to get the folder meaning by the name of the folder.
+	// only used if the server does not support XLIST.
+	int ret_meaning = MEANING_UNKNOWN;
+
+	// TODO: lots languages missing - maybe there is a list somewhere on other MUAs?
+	// however, if we fail to find out the sent-folder,
+	// only watching this folder is not working. at least, this is no show stopper.
+	// CAVE: if possible, take care not to add a name here that is "sent" in one language
+	// but sth. different in others - a hard job.
+	static const char* sent_names =
+		",sent,sent objects,gesendet,";
+
+	char* lower = dc_mprintf(",%s,", folder_name);
+	dc_strlower_in_place(lower);
+	if (strstr(sent_names, lower)!=NULL) {
+		ret_meaning = MEANING_SENT_OBJECTS;
+	}
+
+	free(lower);
+	return ret_meaning;
+}
 
 
 static clist* list_folders(dc_imap_t* imap)
@@ -433,6 +498,7 @@ static clist* list_folders(dc_imap_t* imap)
 	clistiter* iter1 = NULL;
 	clist *    ret_list = clist_new();
 	int        r = 0;
+	int        xlist_works = 0;
 
 	if (imap==NULL || imap->etpan==NULL) {
 		goto cleanup;
@@ -445,7 +511,12 @@ static clist* list_folders(dc_imap_t* imap)
 	// when switching to XLIST: at least my server claims
 	// that it support XLIST but does not return folder flags.
 	// so, if we did not get a _single_ flag, sth. seems not to work.
-	r = mailimap_list(imap->etpan, "", "*", &imap_list);
+	if (imap->has_xlist)  {
+		r = mailimap_xlist(imap->etpan, "", "*", &imap_list);
+	}
+	else {
+		r = mailimap_list(imap->etpan, "", "*", &imap_list);
+	}
 
 	if (dc_imap_is_error(imap, r) || imap_list==NULL) {
 		imap_list = NULL;
@@ -481,8 +552,24 @@ static clist* list_folders(dc_imap_t* imap)
 		}
 
 		ret_folder->name_utf8 = dc_decode_modified_utf7(imap_folder->mb_name, 0);
+		ret_folder->meaning = get_folder_meaning(imap_folder->mb_flag);
+
+		if (ret_folder->meaning==MEANING_OTHER_KNOWN
+		 || ret_folder->meaning==MEANING_SENT_OBJECTS /*INBOX is no hint for a working XLIST*/) {
+			xlist_works = 1;
+		}
 
 		clist_append(ret_list, (void*)ret_folder);
+	}
+
+	// at least my own server claims that it support XLIST
+	// but does not return folder flags.
+	if (!xlist_works) {
+		for (iter1 = clist_begin(ret_list); iter1!=NULL ; iter1 = clist_next(iter1))
+		{
+			dc_imapfolder_t* ret_folder = (struct dc_imapfolder_t*)clist_content(iter1);
+			ret_folder->meaning = get_folder_meaning_by_name(ret_folder->name_utf8);
+		}
 	}
 
 cleanup:
@@ -515,6 +602,7 @@ void dc_configure_folders(dc_context_t* context, dc_imap_t* imap, int flags)
 	clist*     folder_list = NULL;
 	clistiter* iter;
 	char*      mvbox_folder = NULL;
+	char*      sentbox_folder = NULL;
 	char*      fallback_folder = NULL;
 
 	if (imap==NULL || imap->etpan==NULL) {
@@ -535,6 +623,12 @@ void dc_configure_folders(dc_context_t* context, dc_imap_t* imap, int flags)
 		 || strcmp(folder->name_utf8, fallback_folder)==0) {
 			if (mvbox_folder==NULL) {
 				mvbox_folder = dc_strdup(folder->name_to_select);
+			}
+		}
+
+		if (folder->meaning==MEANING_SENT_OBJECTS) {
+			if(sentbox_folder==NULL) {
+				sentbox_folder = dc_strdup(folder->name_to_select);
 			}
 		}
 	}
@@ -568,8 +662,9 @@ void dc_configure_folders(dc_context_t* context, dc_imap_t* imap, int flags)
 	}
 
 	// remember the configuration, mvbox_folder may be NULL
-	dc_sqlite3_set_config_int(context->sql, "folders_configured", 1);
+	dc_sqlite3_set_config_int(context->sql, "folders_configured", DC_FOLDERS_CONFIGURED_VERSION);
 	dc_sqlite3_set_config(context->sql, "configured_mvbox_folder", mvbox_folder);
+	dc_sqlite3_set_config(context->sql, "configured_sentbox_folder", sentbox_folder);
 
 cleanup:
 	free_folders(folder_list);

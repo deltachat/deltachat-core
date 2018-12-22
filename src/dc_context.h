@@ -106,6 +106,7 @@ void            dc_receive_imf       (dc_context_t*, const char* imf_raw_not_ter
 int             dc_connect_to_configured_imap (dc_context_t*, dc_imap_t*);
 
 #define         DC_CREATE_MVBOX      0x01
+#define         DC_FOLDERS_CONFIGURED_VERSION 3
 void            dc_configure_folders (dc_context_t*, dc_imap_t*, int flags);
 
 

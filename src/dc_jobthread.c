@@ -108,7 +108,7 @@ static int connect_to_imap(dc_jobthread_t* jobthread)
 		goto cleanup;
 	}
 
-	if (dc_sqlite3_get_config_int(jobthread->context->sql, "folders_configured", 0)==0) {
+	if (dc_sqlite3_get_config_int(jobthread->context->sql, "folders_configured", 0)<DC_FOLDERS_CONFIGURED_VERSION) {
 		dc_configure_folders(jobthread->context, jobthread->imap, DC_CREATE_MVBOX);
 	}
 
