@@ -998,7 +998,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 			}
 
 			if (rfc724_mid==NULL) {
-				rfc724_mid = dc_create_incoming_rfc724_mid(sort_timestamp, from_id, to_ids);
+				rfc724_mid = dc_create_incoming_rfc724_mid(sent_timestamp, from_id, to_ids);
 				if (rfc724_mid==NULL) {
 					dc_log_info(context, 0, "Cannot create Message-ID.");
 					goto cleanup;

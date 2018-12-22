@@ -1302,8 +1302,14 @@ cleanup:
  */
 uint32_t dc_rfc724_mid_exists(dc_context_t* context, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid)
 {
-	uint32_t ret = 0;
-	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->sql,
+	uint32_t      ret = 0;
+	sqlite3_stmt* stmt = NULL;
+
+	if (context==NULL || rfc724_mid==NULL || rfc724_mid[0]==0) {
+		goto cleanup;
+	}
+
+	stmt = dc_sqlite3_prepare(context->sql,
 		"SELECT server_folder, server_uid, id FROM msgs WHERE rfc724_mid=?;");
 	sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
 	if (sqlite3_step(stmt)!=SQLITE_ROW) {
