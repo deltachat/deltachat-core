@@ -138,24 +138,34 @@ static dc_move_state_t resolve_move_state(dc_context_t* context, dc_msg_t* msg)
 void dc_do_heuristics_moves(dc_context_t* context, const char* folder, uint32_t msg_id)
 {
 	// for already seen messages, folder may be different from msg->folder
-	dc_msg_t* msg = dc_msg_new_load(context, msg_id);
-
-	// TODO: preprocessing from move_imap.py::perform_imap_fetch()
+	dc_msg_t*     msg = NULL;
+	sqlite3_stmt* stmt = NULL;
 
 	if (!dc_is_inbox(context, folder) && !dc_is_sentbox(context, folder)) {
 		goto cleanup;
 	}
 
+	msg = dc_msg_new_load(context, msg_id);
 	if (resolve_move_state(context, msg) != DC_MOVE_STATE_PENDING)
 	{
 		// see if there are pending messages which have a in-reply-to
-		// to our currnet msg
-		// NOTE: should be one sql-statement to find the
-		// possibly multiple messages that waited on us
-
-		// TODO
+		// to our current msg
+		stmt = dc_sqlite3_prepare(context->sql,
+			"SELECT id"
+			" FROM msgs"
+			" WHERE move_state=?"
+			"   AND mime_in_reply_to=?");
+		sqlite3_bind_int (stmt, 1, DC_MOVE_STATE_PENDING);
+		sqlite3_bind_text(stmt, 2, msg->rfc724_mid, -1, SQLITE_STATIC);
+		while (sqlite3_step(stmt)==SQLITE_ROW)
+		{
+			dc_msg_unref(msg);
+			msg = dc_msg_new_load(context, sqlite3_column_int(stmt, 0));
+			resolve_move_state(context, msg);
+		}
 	}
 
 cleanup:
+	sqlite3_finalize(stmt);
 	dc_msg_unref(msg);
 }

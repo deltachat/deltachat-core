@@ -100,6 +100,7 @@ static int cb_precheck_imf(dc_imap_t* imap, const char* rfc724_mid,
 	uint32_t msg_id = 0;
 	char*    old_server_folder = NULL;
 	uint32_t old_server_uid = 0;
+	int      mark_seen = 0;
 
 	msg_id = dc_rfc724_mid_exists(imap->context, rfc724_mid,
 		&old_server_folder, &old_server_uid);
@@ -108,22 +109,24 @@ static int cb_precheck_imf(dc_imap_t* imap, const char* rfc724_mid,
 	{
 		rfc724_mid_exists = 1;
 
+		if (old_server_folder[0]==0 && old_server_uid==0) {
+			dc_log_info(imap->context, 0, "[move] detected bbc-self %s", rfc724_mid);
+			mark_seen = 1;
+		}
+		else if (strcmp(old_server_folder, server_folder)!=0) {
+			dc_log_info(imap->context, 0, "[move] detected moved message %s", rfc724_mid);
+			dc_update_msg_move_state(imap->context, rfc724_mid, DC_MOVE_STATE_STAY);
+		}
+
 		if (strcmp(old_server_folder, server_folder)!=0
 		 || old_server_uid!=server_uid) {
 			dc_update_server_uid(imap->context, rfc724_mid, server_folder, server_uid);
 		}
 
-		if (old_server_folder[0]==0 && old_server_uid==0
-		 && dc_is_inbox(imap->context, server_folder)) {
-			// bcc-self message that should be marked as seen and moved away
-			// (every other messages have folder/uid set)
-			dc_param_t* param = dc_param_new();
-			if (dc_sqlite3_get_config_int(imap->context->sql, "mvbox_move", DC_MVBOX_MOVE_DEFAULT)) {
-				dc_param_set_int(param, DC_PARAM_ALSO_MOVE, 1);
-			}
-			dc_job_add(imap->context, DC_JOB_MARKSEEN_MSG_ON_IMAP, msg_id,
-				param->packed, 0);
-			dc_param_unref(param);
+		dc_do_heuristics_moves(imap->context, server_folder, msg_id);
+
+		if (mark_seen) {
+			dc_job_add(imap->context, DC_JOB_MARKSEEN_MSG_ON_IMAP, msg_id, NULL, 0);
 		}
 	}
 
