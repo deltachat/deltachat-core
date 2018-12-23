@@ -714,6 +714,11 @@ void dc_perform_imap_fetch(dc_context_t* context)
 		return;
 	}
 
+	if (dc_sqlite3_get_config_int(context->sql, "inbox_watch", DC_INBOX_WATCH_DEFAULT)==0) {
+		dc_log_info(context, 0, "INBOX-watch disabled.");
+		return;
+	}
+
 	dc_log_info(context, 0, "INBOX-fetch started...");
 
 	dc_imap_fetch(context->inbox);
@@ -758,6 +763,12 @@ void dc_perform_imap_idle(dc_context_t* context)
 			return;
 		}
 	pthread_mutex_unlock(&context->inboxidle_condmutex);
+
+	// TODO: optimisation: inbox_watch should also be regarded here to save some bytes.
+	// however, the thread and the imap connection are needed even if inbox_watch is disabled
+	// as the jobs are happending here.
+	// anyway, the best way would be to switch this thread also to dc_jobthread_t
+	// which has all the needed capabilities.
 
 	dc_log_info(context, 0, "INBOX-IDLE started...");
 
