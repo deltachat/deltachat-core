@@ -1106,8 +1106,12 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				/* degrade state for unknown senders and non-delta messages
 				(the latter may be removed if we run into spam problems, currently this is fine)
 				(noticed messages do count as being unread; therefore, the deaddrop will not popup in the chatlist) */
-				if (chat_id_blocked && state==DC_STATE_IN_FRESH) {
-					if (incoming_origin<DC_ORIGIN_MIN_VERIFIED && mime_parser->is_send_by_messenger==0) {
+				if (chat_id_blocked && state==DC_STATE_IN_FRESH)
+				{
+					if (incoming_origin < DC_ORIGIN_MIN_VERIFIED
+					 && mime_parser->is_send_by_messenger == 0
+					 && !dc_is_mvbox(context, server_folder))
+					{
 						state = DC_STATE_IN_NOTICED;
 					}
 				}
