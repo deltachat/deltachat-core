@@ -32,6 +32,8 @@ static const char* config_keys[] = {
 	,"selfavatar"
 	,"e2ee_enabled"
 	,"mdns_enabled"
+	,"inbox_watch"
+	,"sentbox_watch"
 	,"mvbox_watch"
 	,"mvbox_move"
 	,"save_mime_headers"
@@ -98,6 +100,7 @@ static int cb_precheck_imf(dc_imap_t* imap, const char* rfc724_mid,
 	uint32_t msg_id = 0;
 	char*    old_server_folder = NULL;
 	uint32_t old_server_uid = 0;
+	int      mark_seen = 0;
 
 	msg_id = dc_rfc724_mid_exists(imap->context, rfc724_mid,
 		&old_server_folder, &old_server_uid);
@@ -106,22 +109,24 @@ static int cb_precheck_imf(dc_imap_t* imap, const char* rfc724_mid,
 	{
 		rfc724_mid_exists = 1;
 
+		if (old_server_folder[0]==0 && old_server_uid==0) {
+			dc_log_info(imap->context, 0, "[move] detected bbc-self %s", rfc724_mid);
+			mark_seen = 1;
+		}
+		else if (strcmp(old_server_folder, server_folder)!=0) {
+			dc_log_info(imap->context, 0, "[move] detected moved message %s", rfc724_mid);
+			dc_update_msg_move_state(imap->context, rfc724_mid, DC_MOVE_STATE_STAY);
+		}
+
 		if (strcmp(old_server_folder, server_folder)!=0
 		 || old_server_uid!=server_uid) {
 			dc_update_server_uid(imap->context, rfc724_mid, server_folder, server_uid);
 		}
 
-		if (old_server_folder[0]==0 && old_server_uid==0
-		 && dc_is_inbox(imap->context, server_folder)) {
-			// bcc-self message that should be marked as seen and moved away
-			// (every other messages have folder/uid set)
-			dc_param_t* param = dc_param_new();
-			if (dc_sqlite3_get_config_int(imap->context->sql, "mvbox_move", DC_MVBOX_MOVE_DEFAULT)) {
-				dc_param_set_int(param, DC_PARAM_ALSO_MOVE, 1);
-			}
-			dc_job_add(imap->context, DC_JOB_MARKSEEN_MSG_ON_IMAP, msg_id,
-				param->packed, 0);
-			dc_param_unref(param);
+		dc_do_heuristics_moves(imap->context, server_folder, msg_id);
+
+		if (mark_seen) {
+			dc_job_add(imap->context, DC_JOB_MARKSEEN_MSG_ON_IMAP, msg_id, NULL, 0);
 		}
 	}
 
@@ -178,8 +183,8 @@ dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_na
 	pthread_mutex_init(&context->smear_critical, NULL);
 	pthread_mutex_init(&context->bobs_qr_critical, NULL);
 	pthread_mutex_init(&context->inboxidle_condmutex, NULL);
-	pthread_mutex_init(&context->mvboxidle_condmutex, NULL);
-	pthread_cond_init(&context->mvboxidle_cond, NULL);
+	dc_jobthread_init(&context->sentbox_thread, context, "SENTBOX", "configured_sentbox_folder");
+	dc_jobthread_init(&context->mvbox_thread, context, "MVBOX", "configured_mvbox_folder");
 	pthread_mutex_init(&context->smtpidle_condmutex, NULL);
 	pthread_cond_init(&context->smtpidle_cond, NULL);
 
@@ -194,7 +199,8 @@ dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_na
 	dc_pgp_init();
 	context->sql      = dc_sqlite3_new(context);
 	context->inbox    = dc_imap_new(cb_get_config, cb_set_config, cb_precheck_imf, cb_receive_imf, (void*)context, context);
-	context->mvbox    = dc_imap_new(cb_get_config, cb_set_config, cb_precheck_imf, cb_receive_imf, (void*)context, context);
+	context->sentbox_thread.imap = dc_imap_new(cb_get_config, cb_set_config, cb_precheck_imf, cb_receive_imf, (void*)context, context);
+	context->mvbox_thread.imap = dc_imap_new(cb_get_config, cb_set_config, cb_precheck_imf, cb_receive_imf, (void*)context, context);
 	context->smtp     = dc_smtp_new(context);
 
 	/* Random-seed.  An additional seed with more random data is done just before key generation
@@ -238,7 +244,8 @@ void dc_context_unref(dc_context_t* context)
 	}
 
 	dc_imap_unref(context->inbox);
-	dc_imap_unref(context->mvbox);
+	dc_imap_unref(context->sentbox_thread.imap);
+	dc_imap_unref(context->mvbox_thread.imap);
 	dc_smtp_unref(context->smtp);
 	dc_sqlite3_unref(context->sql);
 
@@ -247,8 +254,8 @@ void dc_context_unref(dc_context_t* context)
 	pthread_mutex_destroy(&context->smear_critical);
 	pthread_mutex_destroy(&context->bobs_qr_critical);
 	pthread_mutex_destroy(&context->inboxidle_condmutex);
-	pthread_cond_destroy(&context->mvboxidle_cond);
-	pthread_mutex_destroy(&context->mvboxidle_condmutex);
+	dc_jobthread_exit(&context->sentbox_thread);
+	dc_jobthread_exit(&context->mvbox_thread);
 	pthread_cond_destroy(&context->smtpidle_cond);
 	pthread_mutex_destroy(&context->smtpidle_condmutex);
 
@@ -349,7 +356,8 @@ void dc_close(dc_context_t* context)
 	}
 
 	dc_imap_disconnect(context->inbox);
-	dc_imap_disconnect(context->mvbox);
+	dc_imap_disconnect(context->sentbox_thread.imap);
+	dc_imap_disconnect(context->mvbox_thread.imap);
 	dc_smtp_disconnect(context->smtp);
 
 	if (dc_sqlite3_is_open(context->sql)) {
@@ -488,6 +496,10 @@ static char* get_sys_config_str(const char* key)
  * - `e2ee_enabled` = 0=no end-to-end-encryption, 1=prefer end-to-end-encryption (default)
  * - `mdns_enabled` = 0=do not send or request read receipts,
  *                    1=send and request read receipts (default)
+ * - `inbox_watch`  = 1=watch `INBOX`-folder for changes (default),
+ *                    0=do not watch the `INBOX`-folder
+ * - `sentbox_watch`= 1=watch `Sent`-folder for changes (default),
+ *                    0=do not watch the `Sent`-folder
  * - `mvbox_watch`  = 1=watch `DeltaChat`-folder for changes (default),
  *                    0=do not watch the `DeltaChat`-folder
  * - `mvbox_move`   = 1=heuristically detect chat-messages
@@ -520,6 +532,21 @@ int dc_set_config(dc_context_t* context, const char* key, const char* value)
 			goto cleanup;
 		}
 		ret = dc_sqlite3_set_config(context->sql, key, rel_path);
+	}
+	else if(strcmp(key, "inbox_watch")==0)
+	{
+		ret = dc_sqlite3_set_config(context->sql, key, value);
+		dc_interrupt_imap_idle(context); // force idle() to be called again with the new mode
+	}
+	else if(strcmp(key, "sentbox_watch")==0)
+	{
+		ret = dc_sqlite3_set_config(context->sql, key, value);
+		dc_interrupt_sentbox_idle(context); // force idle() to be called again with the new mode
+	}
+	else if(strcmp(key, "mvbox_watch")==0)
+	{
+		ret = dc_sqlite3_set_config(context->sql, key, value);
+		dc_interrupt_mvbox_idle(context); // force idle() to be called again with the new mode
 	}
 	else
 	{
@@ -588,6 +615,12 @@ char* dc_get_config(dc_context_t* context, const char* key)
 		else if (strcmp(key, "imap_folder")==0) {
 			value = dc_strdup("INBOX");
 		}
+		else if (strcmp(key, "inbox_watch")==0) {
+			value = dc_mprintf("%i", DC_INBOX_WATCH_DEFAULT);
+		}
+		else if (strcmp(key, "sentbox_watch")==0) {
+			value = dc_mprintf("%i", DC_SENTBOX_WATCH_DEFAULT);
+		}
 		else if (strcmp(key, "mvbox_watch")==0) {
 			value = dc_mprintf("%i", DC_MVBOX_WATCH_DEFAULT);
 		}
@@ -609,12 +642,44 @@ char* dc_get_config(dc_context_t* context, const char* key)
  */
 int dc_is_inbox(dc_context_t* context, const char* folder_name)
 {
-	char* inbox_name = dc_get_config(context, "imap_folder");
-	int is_inbox = strcasecmp(inbox_name, folder_name)==0? 1 : 0;
-	free(inbox_name);
+	int is_inbox = 0;
+	if (folder_name) {
+		is_inbox = strcasecmp("INBOX", folder_name)==0? 1 : 0;
+	}
 	return is_inbox;
 }
 
+
+/**
+ * Tool to check if a folder is equal to the configured sent-folder.
+ * @private @memberof dc_context_t
+ */
+int dc_is_sentbox(dc_context_t* context, const char* folder_name)
+{
+	char* sentbox_name = dc_sqlite3_get_config(context->sql, "configured_sentbox_folder", NULL);
+	int is_sentbox = 0;
+	if (sentbox_name && folder_name) {
+		is_sentbox = strcasecmp(sentbox_name, folder_name)==0? 1 : 0;
+	}
+	free(sentbox_name);
+	return is_sentbox;
+}
+
+
+/**
+ * Tool to check if a folder is equal to the configured sent-folder.
+ * @private @memberof dc_context_t
+ */
+int dc_is_mvbox(dc_context_t* context, const char* folder_name)
+{
+	char* mvbox_name = dc_sqlite3_get_config(context->sql, "configured_mvbox_folder", NULL);
+	int is_mvbox = 0;
+	if (mvbox_name && folder_name) {
+		is_mvbox = strcasecmp(mvbox_name, folder_name)==0? 1 : 0;
+	}
+	free(mvbox_name);
+	return is_mvbox;
+}
 
 /**
  * Find out the version of the Delta Chat core library.
@@ -648,9 +713,12 @@ char* dc_get_info(dc_context_t* context)
 	char*            fingerprint_str = NULL;
 	dc_loginparam_t* l = NULL;
 	dc_loginparam_t* l2 = NULL;
+	int              inbox_watch = 0;
+	int              sentbox_watch = 0;
 	int              mvbox_watch = 0;
 	int              mvbox_move = 0;
 	int              folders_configured = 0;
+	char*            configured_sentbox_folder = NULL;
 	char*            configured_mvbox_folder = NULL;
 	int              contacts = 0;
 	int              chats = 0;
@@ -710,9 +778,12 @@ char* dc_get_info(dc_context_t* context)
 	l_readable_str = dc_loginparam_get_readable(l);
 	l2_readable_str = dc_loginparam_get_readable(l2);
 
+	inbox_watch = dc_sqlite3_get_config_int(context->sql, "inbox_watch", DC_INBOX_WATCH_DEFAULT);
+	sentbox_watch = dc_sqlite3_get_config_int(context->sql, "sentbox_watch", DC_SENTBOX_WATCH_DEFAULT);
 	mvbox_watch = dc_sqlite3_get_config_int(context->sql, "mvbox_watch", DC_MVBOX_WATCH_DEFAULT);
 	mvbox_move = dc_sqlite3_get_config_int(context->sql, "mvbox_move", DC_MVBOX_MOVE_DEFAULT);
 	folders_configured = dc_sqlite3_get_config_int(context->sql, "folders_configured", 0);
+	configured_sentbox_folder = dc_sqlite3_get_config(context->sql, "configured_sentbox_folder", "<unset>");
 	configured_mvbox_folder = dc_sqlite3_get_config(context->sql, "configured_mvbox_folder", "<unset>");
 
 	temp = dc_mprintf(
@@ -734,9 +805,12 @@ char* dc_get_info(dc_context_t* context)
 		"is_configured=%i\n"
 		"entered_account_settings=%s\n"
 		"used_account_settings=%s\n"
+		"inbox_watch=%i\n"
+		"sentbox_watch=%i\n"
 		"mvbox_watch=%i\n"
 		"mvbox_move=%i\n"
 		"folders_configured=%i\n"
+		"configured_sentbox_folder=%s\n"
 		"configured_mvbox_folder=%s\n"
 		"mdns_enabled=%i\n"
 		"e2ee_enabled=%i\n"
@@ -761,9 +835,12 @@ char* dc_get_info(dc_context_t* context)
 		, is_configured
 		, l_readable_str
 		, l2_readable_str
+		, inbox_watch
+		, sentbox_watch
 		, mvbox_watch
 		, mvbox_move
 		, folders_configured
+		, configured_sentbox_folder
 		, configured_mvbox_folder
 		, mdns_enabled
 		, e2ee_enabled
@@ -780,6 +857,7 @@ char* dc_get_info(dc_context_t* context)
 	free(displayname);
 	free(l_readable_str);
 	free(l2_readable_str);
+	free(configured_sentbox_folder);
 	free(configured_mvbox_folder);
 	free(fingerprint_str);
 	dc_key_unref(self_public);

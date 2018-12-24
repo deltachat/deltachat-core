@@ -17,45 +17,15 @@
 static int connect_to_inbox(dc_context_t* context)
 {
 	int   ret_connected = DC_NOT_CONNECTED;
-	char* inbox_name = NULL;
 
 	ret_connected = dc_connect_to_configured_imap(context, context->inbox);
 	if (!ret_connected) {
 		goto cleanup;
 	}
 
-	inbox_name = dc_sqlite3_get_config(context->sql, "imap_folder", "INBOX");
-	dc_imap_set_watch_folder(context->inbox, inbox_name);
+	dc_imap_set_watch_folder(context->inbox, "INBOX");
 
 cleanup:
-	free(inbox_name);
-	return ret_connected;
-}
-
-
-static int connect_to_mvbox(dc_context_t* context)
-{
-	int   ret_connected = DC_NOT_CONNECTED;
-	char* mvbox_name = NULL;
-
-	if (!(ret_connected=dc_connect_to_configured_imap(context, context->mvbox))) {
-		goto cleanup;
-	}
-
-	if (dc_sqlite3_get_config_int(context->sql, "folders_configured", 0)==0) {
-		dc_configure_folders(context, context->mvbox, DC_CREATE_MVBOX);
-	}
-
-	mvbox_name = dc_sqlite3_get_config(context->sql, "configured_mvbox_folder", NULL);
-	if (mvbox_name==NULL) {
-		ret_connected = DC_NOT_CONNECTED;
-		goto cleanup;
-	}
-
-	dc_imap_set_watch_folder(context->mvbox, mvbox_name);
-
-cleanup:
-	free(mvbox_name);
 	return ret_connected;
 }
 
@@ -122,7 +92,7 @@ static void dc_job_do_DC_JOB_MOVE_MSG(dc_context_t* context, dc_job_t* job)
 		goto cleanup;
 	}
 
-	if (dc_sqlite3_get_config_int(context->sql, "folders_configured", 0)==0) {
+	if (dc_sqlite3_get_config_int(context->sql, "folders_configured", 0)<DC_FOLDERS_CONFIGURED_VERSION) {
 		dc_configure_folders(context, context->inbox, DC_CREATE_MVBOX);
 	}
 
@@ -144,8 +114,6 @@ cleanup:
 static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* context, dc_job_t* job)
 {
 	dc_msg_t* msg = dc_msg_new_untyped(context);
-	char*     dest_folder = NULL;
-	uint32_t  dest_uid = 0;
 
 	if (!dc_imap_is_connected(context->inbox)) {
 		connect_to_inbox(context);
@@ -176,24 +144,7 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* context, dc_job_
 		}
 	}
 
-	if (dc_param_get_int(job->param, DC_PARAM_ALSO_MOVE, 0))
-	{
-		if (dc_sqlite3_get_config_int(context->sql, "folders_configured", 0)==0) {
-			dc_configure_folders(context, context->inbox, DC_CREATE_MVBOX);
-		}
-
-		dest_folder = dc_sqlite3_get_config(context->sql, "configured_mvbox_folder", NULL);
-
-		switch (dc_imap_move(context->inbox, msg->server_folder, msg->server_uid, dest_folder, &dest_uid)) {
-			case DC_FAILED:       goto cleanup;
-			case DC_RETRY_LATER:  dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL); break;
-			case DC_ALREADY_DONE: break;
-			case DC_SUCCESS:      dc_update_server_uid(context, msg->rfc724_mid, dest_folder, dest_uid); break;
-		}
-	}
-
 cleanup:
-	free(dest_folder);
 	dc_msg_unref(msg);
 }
 
@@ -219,7 +170,7 @@ static void dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP(dc_context_t* context, dc_job_
 
 	if (dc_param_get_int(job->param, DC_PARAM_ALSO_MOVE, 0))
 	{
-		if (dc_sqlite3_get_config_int(context->sql, "folders_configured", 0)==0) {
+		if (dc_sqlite3_get_config_int(context->sql, "folders_configured", 0)<DC_FOLDERS_CONFIGURED_VERSION) {
 			dc_configure_folders(context, context->inbox, DC_CREATE_MVBOX);
 		}
 
@@ -235,41 +186,6 @@ static void dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP(dc_context_t* context, dc_job_
 cleanup:
 	free(folder);
 	free(dest_folder);
-}
-
-
-static void dc_suspend_mvbox_thread(dc_context_t* context, int suspend)
-{
-	if (suspend)
-	{
-		dc_log_info(context, 0, "Suspending MVBOX-thread.");
-		pthread_mutex_lock(&context->mvboxidle_condmutex);
-			context->mvbox_suspended = 1;
-		pthread_mutex_unlock(&context->mvboxidle_condmutex);
-
-		dc_interrupt_mvbox_idle(context);
-
-		// wait until we're out of idle,
-		// after that the handle won't be in use anymore
-		while (1) {
-			pthread_mutex_lock(&context->mvboxidle_condmutex);
-				if (context->mvbox_using_handle==0) {
-					pthread_mutex_unlock(&context->mvboxidle_condmutex);
-					return;
-				}
-			pthread_mutex_unlock(&context->mvboxidle_condmutex);
-			usleep(300*1000);
-		}
-	}
-	else
-	{
-		dc_log_info(context, 0, "Unsuspending MVBOX-thread.");
-		pthread_mutex_lock(&context->mvboxidle_condmutex);
-			context->mvbox_suspended = 0;
-			context->mvboxidle_condflag = 1;
-			pthread_cond_signal(&context->mvboxidle_cond);
-		pthread_mutex_unlock(&context->mvboxidle_condmutex);
-	}
 }
 
 
@@ -642,7 +558,8 @@ static void dc_job_perform(dc_context_t* context, int thread, int probe_network)
 			dc_job_kill_actions(context, job.action, 0);
 			sqlite3_finalize(select_stmt);
 			select_stmt = NULL;
-			dc_suspend_mvbox_thread(context, 1);
+			dc_jobthread_suspend(&context->sentbox_thread, 1);
+			dc_jobthread_suspend(&context->mvbox_thread, 1);
 			dc_suspend_smtp_thread(context, 1);
 		}
 
@@ -667,7 +584,8 @@ static void dc_job_perform(dc_context_t* context, int thread, int probe_network)
 		}
 
 		if (IS_EXCLUSIVE_JOB) {
-			dc_suspend_mvbox_thread(context, 0);
+			dc_jobthread_suspend(&context->sentbox_thread, 0);
+			dc_jobthread_suspend(&context->mvbox_thread, 0);
 			dc_suspend_smtp_thread(context, 0);
 			goto cleanup;
 		}
@@ -796,6 +714,11 @@ void dc_perform_imap_fetch(dc_context_t* context)
 		return;
 	}
 
+	if (dc_sqlite3_get_config_int(context->sql, "inbox_watch", DC_INBOX_WATCH_DEFAULT)==0) {
+		dc_log_info(context, 0, "INBOX-watch disabled.");
+		return;
+	}
+
 	dc_log_info(context, 0, "INBOX-fetch started...");
 
 	dc_imap_fetch(context->inbox);
@@ -840,6 +763,12 @@ void dc_perform_imap_idle(dc_context_t* context)
 			return;
 		}
 	pthread_mutex_unlock(&context->inboxidle_condmutex);
+
+	// TODO: optimisation: inbox_watch should also be regarded here to save some bytes.
+	// however, the thread and the imap connection are needed even if inbox_watch is disabled
+	// as the jobs are happending here.
+	// anyway, the best way would be to switch this thread also to dc_jobthread_t
+	// which has all the needed capabilities.
 
 	dc_log_info(context, 0, "INBOX-IDLE started...");
 
@@ -933,40 +862,8 @@ void dc_perform_mvbox_fetch(dc_context_t* context)
 		return;
 	}
 
-	pthread_mutex_lock(&context->mvboxidle_condmutex);
-		if (context->mvbox_suspended) {
-			pthread_mutex_unlock(&context->mvboxidle_condmutex);
-			return;
-		}
-
-		context->mvbox_using_handle = 1;
-	pthread_mutex_unlock(&context->mvboxidle_condmutex);
-
-	clock_t start = clock();
-
-	if (dc_sqlite3_get_config_int(context->sql, "mvbox_watch", DC_MVBOX_WATCH_DEFAULT)==0) {
-		goto cleanup;
-	}
-
-	if (!connect_to_mvbox(context)) {
-		goto cleanup;
-	}
-
-	dc_log_info(context, 0, "MVBOX-fetch started...");
-	dc_imap_fetch(context->mvbox);
-
-	if (context->mvbox->should_reconnect)
-	{
-		dc_log_info(context, 0, "MVBOX-fetch aborted, starting over...");
-		dc_imap_fetch(context->mvbox);
-	}
-
-	dc_log_info(context, 0, "MVBOX-fetch done in %.0f ms.", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
-
-cleanup:
-	pthread_mutex_lock(&context->mvboxidle_condmutex);
-		context->mvbox_using_handle = 0;
-	pthread_mutex_unlock(&context->mvboxidle_condmutex);
+	int use_network = dc_sqlite3_get_config_int(context->sql, "mvbox_watch", DC_MVBOX_WATCH_DEFAULT);
+	dc_jobthread_fetch(&context->mvbox_thread, use_network);
 }
 
 
@@ -989,48 +886,8 @@ void dc_perform_mvbox_idle(dc_context_t* context)
 		return;
 	}
 
-	pthread_mutex_lock(&context->mvboxidle_condmutex);
-		if (context->perform_mvbox_jobs_needed) {
-			dc_log_info(context, 0, "MVBOX-IDLE will not be started as it was interrupted while not ideling.");
-			context->perform_mvbox_jobs_needed = 0;
-			pthread_mutex_unlock(&context->mvboxidle_condmutex);
-			return;
-		}
-
-		if (context->mvbox_suspended) {
-			while (context->mvboxidle_condflag==0) {
-				// unlock mutex -> wait -> lock mutex
-				pthread_cond_wait(&context->mvboxidle_cond, &context->mvboxidle_condmutex);
-			}
-			context->mvboxidle_condflag = 0;
-			pthread_mutex_unlock(&context->mvboxidle_condmutex);
-			return;
-		}
-
-		context->mvbox_using_handle = 1;
-	pthread_mutex_unlock(&context->mvboxidle_condmutex);
-
-	if (dc_sqlite3_get_config_int(context->sql, "mvbox_watch", DC_MVBOX_WATCH_DEFAULT)==0) {
-		pthread_mutex_lock(&context->mvboxidle_condmutex);
-			context->mvbox_using_handle = 0;
-			while (context->mvboxidle_condflag==0) {
-				// unlock mutex -> wait -> lock mutex
-				pthread_cond_wait(&context->mvboxidle_cond, &context->mvboxidle_condmutex);
-			}
-			context->mvboxidle_condflag = 0;
-		pthread_mutex_unlock(&context->mvboxidle_condmutex);
-		return;
-	}
-
-	connect_to_mvbox(context);
-
-	dc_log_info(context, 0, "MVBOX-IDLE started...");
-	dc_imap_idle(context->mvbox);
-	dc_log_info(context, 0, "MVBOX-IDLE ended.");
-
-	pthread_mutex_lock(&context->mvboxidle_condmutex);
-		context->mvbox_using_handle = 0;
-	pthread_mutex_unlock(&context->mvboxidle_condmutex);
+	int use_network = dc_sqlite3_get_config_int(context->sql, "mvbox_watch", DC_MVBOX_WATCH_DEFAULT);
+	dc_jobthread_idle(&context->mvbox_thread, use_network);
 }
 
 
@@ -1051,24 +908,75 @@ void dc_perform_mvbox_idle(dc_context_t* context)
  */
 void dc_interrupt_mvbox_idle(dc_context_t* context)
 {
-	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || context->mvbox==NULL) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
 		dc_log_warning(context, 0, "Interrupt MVBOX-IDLE: Bad parameters.");
 		return;
 	}
 
-	pthread_mutex_lock(&context->mvboxidle_condmutex);
-		// when we're not in idle, make sure not to enter it
-		context->perform_mvbox_jobs_needed = 1;
-	pthread_mutex_unlock(&context->mvboxidle_condmutex);
+	dc_jobthread_interrupt_idle(&context->mvbox_thread);
+}
 
-	dc_log_info(context, 0, "Interrupting MVBOX-IDLE...");
-	dc_imap_interrupt_idle(context->mvbox);
 
-	// in case we're not IMAP-ideling, also raise the signal
-	pthread_mutex_lock(&context->mvboxidle_condmutex);
-		context->mvboxidle_condflag = 1;
-		pthread_cond_signal(&context->mvboxidle_cond);
-	pthread_mutex_unlock(&context->mvboxidle_condmutex);
+/*******************************************************************************
+ * User-functions to handle IMAP-jobs in the Sendbox-IMAP-thread
+ ******************************************************************************/
+
+
+/**
+ * Fetch new messages from the Sent folder, if any.
+ * This function and dc_perform_sentbox_idle()
+ * must be called from the same thread, typically in a loop.
+ *
+ * @memberof dc_context_t
+ * @param context The context as created by dc_context_new().
+ * @return None.
+ */
+void dc_perform_sentbox_fetch(dc_context_t* context)
+{
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		return;
+	}
+
+	int use_network = dc_sqlite3_get_config_int(context->sql, "sentbox_watch", DC_SENTBOX_WATCH_DEFAULT);
+	dc_jobthread_fetch(&context->sentbox_thread, use_network);
+}
+
+
+/**
+ * Wait for messages or jobs in the SENTBOX-thread.
+ * This function and dc_perform_sentbox_fetch()
+ * must be called from the same thread, typically in a loop.
+ *
+ * @memberof dc_context_t
+ * @param context The context as created by dc_context_new().
+ * @return None.
+ */
+void dc_perform_sentbox_idle(dc_context_t* context)
+{
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		return;
+	}
+
+	int use_network = dc_sqlite3_get_config_int(context->sql, "sentbox_watch", DC_SENTBOX_WATCH_DEFAULT);
+	dc_jobthread_idle(&context->sentbox_thread, use_network);
+}
+
+
+/**
+ * Interrupt waiting for messages or jobs in the SENTBOX-thread.
+ *
+ * @memberof dc_context_t
+ * @param context The context as created by dc_context_new().
+ * @return None.
+ */
+void dc_interrupt_sentbox_idle(dc_context_t* context)
+{
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		dc_log_warning(context, 0, "Interrupt SENT-IDLE: Bad parameters.");
+		return;
+	}
+
+	dc_jobthread_interrupt_idle(&context->sentbox_thread);
 }
 
 
@@ -1243,4 +1151,5 @@ void dc_maybe_network(dc_context_t* context)
 	dc_interrupt_smtp_idle(context);
 	dc_interrupt_imap_idle(context);
 	dc_interrupt_mvbox_idle(context);
+	dc_interrupt_sentbox_idle(context);
 }

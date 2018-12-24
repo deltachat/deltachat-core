@@ -177,80 +177,6 @@ static int dc_is_reply_to_known_message(dc_context_t* context, dc_mimeparser_t* 
 
 
 /*******************************************************************************
- * Check if a message is a reply to any messenger message
- ******************************************************************************/
-
-
-static int is_msgrmsg_rfc724_mid(dc_context_t* context, const char* rfc724_mid)
-{
-	int is_msgrmsg = 0;
-	if (rfc724_mid) {
-		sqlite3_stmt* stmt = dc_sqlite3_prepare(context->sql,
-			"SELECT id FROM msgs "
-			" WHERE rfc724_mid=? "
-			" AND msgrmsg!=0 "
-			" AND chat_id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL) ";");
-		sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
-		if (sqlite3_step(stmt)==SQLITE_ROW) {
-			is_msgrmsg = 1;
-		}
-		sqlite3_finalize(stmt);
-	}
-	return is_msgrmsg;
-}
-
-
-static int is_msgrmsg_rfc724_mid_in_list(dc_context_t* context, const clist* mid_list)
-{
-	if (mid_list) {
-		for (clistiter* cur = clist_begin(mid_list); cur!=NULL ; cur=clist_next(cur)) {
-			if (is_msgrmsg_rfc724_mid(context, clist_content(cur))) {
-				return 1;
-			}
-		}
-	}
-
-	return 0;
-}
-
-
-static int dc_is_reply_to_messenger_message(dc_context_t* context, dc_mimeparser_t* mime_parser)
-{
-	/* function checks, if the message defined by mime_parser references a message send by us from Delta Chat.
-
-	This is similar to is_reply_to_known_message() but
-	- checks also if any of the referenced IDs are send by a messenger
-	- it is okay, if the referenced messages are moved to trash here
-	- no check for the Chat-* headers (function is only called if it is no messenger message itself) */
-
-	struct mailimf_field* field = NULL;
-	if ((field=dc_mimeparser_lookup_field(mime_parser, "In-Reply-To"))!=NULL
-	 && field->fld_type==MAILIMF_FIELD_IN_REPLY_TO)
-	{
-		struct mailimf_in_reply_to* fld_in_reply_to = field->fld_data.fld_in_reply_to;
-		if (fld_in_reply_to) {
-			if (is_msgrmsg_rfc724_mid_in_list(context, field->fld_data.fld_in_reply_to->mid_list)) {
-				return 1;
-			}
-		}
-	}
-
-	if ((field=dc_mimeparser_lookup_field(mime_parser, "References"))!=NULL
-	 && field->fld_type==MAILIMF_FIELD_REFERENCES)
-	{
-		struct mailimf_references* fld_references = field->fld_data.fld_references;
-		if (fld_references) {
-			if (is_msgrmsg_rfc724_mid_in_list(context, field->fld_data.fld_references->mid_list)) {
-				return 1;
-			}
-		}
-	}
-
-	return 0;
-}
-
-
-/*******************************************************************************
  * Misc. Tools
  ******************************************************************************/
 
@@ -1072,7 +998,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 			}
 
 			if (rfc724_mid==NULL) {
-				rfc724_mid = dc_create_incoming_rfc724_mid(sort_timestamp, from_id, to_ids);
+				rfc724_mid = dc_create_incoming_rfc724_mid(sent_timestamp, from_id, to_ids);
 				if (rfc724_mid==NULL) {
 					dc_log_info(context, 0, "Cannot create Message-ID.");
 					goto cleanup;
@@ -1180,8 +1106,12 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				/* degrade state for unknown senders and non-delta messages
 				(the latter may be removed if we run into spam problems, currently this is fine)
 				(noticed messages do count as being unread; therefore, the deaddrop will not popup in the chatlist) */
-				if (chat_id_blocked && state==DC_STATE_IN_FRESH) {
-					if (incoming_origin<DC_ORIGIN_MIN_VERIFIED && mime_parser->is_send_by_messenger==0) {
+				if (chat_id_blocked && state==DC_STATE_IN_FRESH)
+				{
+					if (incoming_origin < DC_ORIGIN_MIN_VERIFIED
+					 && mime_parser->is_send_by_messenger == 0
+					 && !dc_is_mvbox(context, server_folder))
+					{
 						state = DC_STATE_IN_NOTICED;
 					}
 				}
@@ -1236,22 +1166,6 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 
 			/* unarchive chat */
 			dc_unarchive_chat(context, chat_id);
-
-			/* if the message is not sent by a messenger, check if it is sent at least as a reply to a messenger message
-			(later, we move these replies to the folder used for DeltaChat messages) */
-			int msgrmsg = mime_parser->is_send_by_messenger; /* 1 or 0 for yes/no */
-			if (msgrmsg)
-			{
-				dc_log_info(context, 0, "Message sent by another messenger.");
-			}
-			else
-			{
-				if (dc_is_reply_to_messenger_message(context, mime_parser))
-				{
-					dc_log_info(context, 0, "Message is a reply to a messenger message.");
-					msgrmsg = 2; /* 2=no, but is reply to messenger message */
-				}
-			}
 
 			// if the mime-headers should be saved, find out its size
 			// (the mime-header ends with an empty line)
@@ -1322,7 +1236,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				sqlite3_bind_int64(stmt,  9, rcvd_timestamp);
 				sqlite3_bind_int  (stmt, 10, part->type);
 				sqlite3_bind_int  (stmt, 11, state);
-				sqlite3_bind_int  (stmt, 12, msgrmsg);
+				sqlite3_bind_int  (stmt, 12, mime_parser->is_send_by_messenger);
 				sqlite3_bind_text (stmt, 13, part->msg? part->msg : "", -1, SQLITE_STATIC);
 				sqlite3_bind_text (stmt, 14, txt_raw? txt_raw : "", -1, SQLITE_STATIC);
 				sqlite3_bind_text (stmt, 15, part->param->packed, -1, SQLITE_STATIC);
@@ -1368,11 +1282,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				}
 			}
 
-			// insert_msg_id is the last msg_id
-			// if the mime-message splits into several delta-messages
-			if (dc_shall_move(context, server_folder, mime_parser, insert_msg_id)) {
-				dc_job_add(context, DC_JOB_MOVE_MSG, insert_msg_id, NULL, 0);
-			}
+			dc_do_heuristics_moves(context, server_folder, insert_msg_id);
 		}
 		else
 		{

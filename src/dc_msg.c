@@ -44,6 +44,14 @@ dc_msg_t* dc_msg_new_untyped(dc_context_t* context)
 }
 
 
+dc_msg_t* dc_msg_new_load(dc_context_t* context, uint32_t msg_id)
+{
+	dc_msg_t* msg = dc_msg_new_untyped(context);
+	dc_msg_load_from_db(msg, context, msg_id);
+	return msg;
+}
+
+
 /**
  * Free a message object. Message objects are created eg. by dc_get_msg().
  *
@@ -83,6 +91,9 @@ void dc_msg_empty(dc_msg_t* msg)
 
 	free(msg->rfc724_mid);
 	msg->rfc724_mid = NULL;
+
+	free(msg->in_reply_to);
+	msg->in_reply_to = NULL;
 
 	free(msg->server_folder);
 	msg->server_folder = NULL;
@@ -749,7 +760,7 @@ cleanup:
 }
 
 
-#define DC_MSG_FIELDS " m.id,rfc724_mid,m.server_folder,m.server_uid,m.chat_id, " \
+#define DC_MSG_FIELDS " m.id,rfc724_mid,m.mime_in_reply_to,m.server_folder,m.server_uid,m.move_state,m.chat_id, " \
                       " m.from_id,m.to_id,m.timestamp,m.timestamp_sent,m.timestamp_rcvd, m.type,m.state,m.msgrmsg,m.txt, " \
                       " m.param,m.starred,m.hidden,c.blocked "
 
@@ -760,8 +771,10 @@ static int dc_msg_set_from_stmt(dc_msg_t* msg, sqlite3_stmt* row, int row_offset
 
 	msg->id           =           (uint32_t)sqlite3_column_int  (row, row_offset++);
 	msg->rfc724_mid   =    dc_strdup((char*)sqlite3_column_text (row, row_offset++));
+	msg->in_reply_to  =    dc_strdup((char*)sqlite3_column_text (row, row_offset++));
 	msg->server_folder=    dc_strdup((char*)sqlite3_column_text (row, row_offset++));
 	msg->server_uid   =           (uint32_t)sqlite3_column_int  (row, row_offset++);
+	msg->move_state   =    (dc_move_state_t)sqlite3_column_int  (row, row_offset++);
 	msg->chat_id      =           (uint32_t)sqlite3_column_int  (row, row_offset++);
 
 	msg->from_id      =           (uint32_t)sqlite3_column_int  (row, row_offset++);
@@ -772,7 +785,7 @@ static int dc_msg_set_from_stmt(dc_msg_t* msg, sqlite3_stmt* row, int row_offset
 
 	msg->type         =                     sqlite3_column_int  (row, row_offset++);
 	msg->state        =                     sqlite3_column_int  (row, row_offset++);
-	msg->is_msgrmsg   =                     sqlite3_column_int  (row, row_offset++);
+	msg->is_dc_message=                     sqlite3_column_int  (row, row_offset++);
 	msg->text         =    dc_strdup((char*)sqlite3_column_text (row, row_offset++));
 
 	dc_param_set_packed( msg->param, (char*)sqlite3_column_text (row, row_offset++));
@@ -1149,6 +1162,19 @@ void dc_update_msg_state(dc_context_t* context, uint32_t msg_id, int state)
 }
 
 
+void dc_update_msg_move_state(dc_context_t* context, const char* rfc724_mid, dc_move_state_t state)
+{
+	// we update the move_state for all messages belonging to a given Message-ID
+	// so that the state stay intact when parts are deleted
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->sql,
+		"UPDATE msgs SET move_state=? WHERE rfc724_mid=?;");
+	sqlite3_bind_int (stmt, 1, state);
+	sqlite3_bind_text(stmt, 2, rfc724_mid, -1, SQLITE_STATIC);
+	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+}
+
+
 /**
  * Changes the state of PENDING or DELIVERED messages to DC_STATE_OUT_FAILED.
  * Moreover, the message error text can be updated.
@@ -1276,8 +1302,14 @@ cleanup:
  */
 uint32_t dc_rfc724_mid_exists(dc_context_t* context, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid)
 {
-	uint32_t ret = 0;
-	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->sql,
+	uint32_t      ret = 0;
+	sqlite3_stmt* stmt = NULL;
+
+	if (context==NULL || rfc724_mid==NULL || rfc724_mid[0]==0) {
+		goto cleanup;
+	}
+
+	stmt = dc_sqlite3_prepare(context->sql,
 		"SELECT server_folder, server_uid, id FROM msgs WHERE rfc724_mid=?;");
 	sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
 	if (sqlite3_step(stmt)!=SQLITE_ROW) {

@@ -967,7 +967,7 @@ char* dc_create_incoming_rfc724_mid(time_t message_timestamp, uint32_t contact_i
 	- when fetching the same message again, this function should generate the same Message-ID
 	*/
 
-	if (message_timestamp==DC_INVALID_TIMESTAMP || contact_ids_to==NULL || dc_array_get_cnt(contact_ids_to)==0) {
+	if (contact_ids_to==NULL || dc_array_get_cnt(contact_ids_to)==0) {
 		return NULL;
 	}
 

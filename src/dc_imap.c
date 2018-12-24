@@ -400,7 +400,7 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 	}
 
 	if (select_folder(imap, folder)==0) {
-		dc_log_warning(imap->context, 0, "Cannot select folder \"%s\".", folder);
+		dc_log_warning(imap->context, 0, "Cannot select folder %s for fetching.", folder);
 		goto cleanup;
 	}
 
@@ -1087,7 +1087,7 @@ dc_imap_res dc_imap_move(dc_imap_t* imap, const char* folder, uint32_t uid,
 	dc_log_info(imap->context, 0, "Moving message %s/%i to %s...", folder, (int)uid, dest_folder);
 
 	if (select_folder(imap, folder)==0) {
-		dc_log_warning(imap->context, 0, "Cannot select folder.");
+		dc_log_warning(imap->context, 0, "Cannot select folder %s for moving message.", folder);
 		goto cleanup;
 	}
 
@@ -1148,7 +1148,7 @@ dc_imap_res dc_imap_set_seen(dc_imap_t* imap, const char* folder, uint32_t uid)
 	dc_log_info(imap->context, 0, "Marking message %s/%i as seen...", folder, (int)uid);
 
 	if (select_folder(imap, folder)==0) {
-		dc_log_warning(imap->context, 0, "Cannot select folder.");
+		dc_log_warning(imap->context, 0, "Cannot select folder %s for setting SEEN flag.", folder);
 		goto cleanup;
 	}
 
@@ -1184,7 +1184,7 @@ dc_imap_res dc_imap_set_mdnsent(dc_imap_t* imap, const char* folder, uint32_t ui
 	dc_log_info(imap->context, 0, "Marking message %s/%i as $MDNSent...", folder, (int)uid);
 
 	if (select_folder(imap, folder)==0) {
-		dc_log_warning(imap->context, 0, "Cannot select folder for $MDNSent.");
+		dc_log_warning(imap->context, 0, "Cannot select folder %s for setting $MDNSent flag.", folder);
 		goto cleanup;
 	}
 
@@ -1270,7 +1270,7 @@ int dc_imap_delete_msg(dc_imap_t* imap, const char* rfc724_mid, const char* fold
 	dc_log_info(imap->context, 0, "Marking message \"%s\", %s/%i for deletion...", rfc724_mid, folder, (int)server_uid);
 
 	if (select_folder(imap, folder)==0) {
-		dc_log_warning(imap->context, 0, "Cannot select folder \"%s\".", folder); /* maybe the folder does no longer exist */
+		dc_log_warning(imap->context, 0, "Cannot select folder %s for deleting message.", folder);
 		goto cleanup;
 	}
 

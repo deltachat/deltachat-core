@@ -23,6 +23,7 @@ extern "C" {
 #include "dc_lot.h"
 #include "dc_msg.h"
 #include "dc_contact.h"
+#include "dc_jobthread.h"
 
 
 typedef struct dc_imap_t       dc_imap_t;
@@ -52,13 +53,8 @@ struct _dc_context
 	int              perform_inbox_jobs_needed;
 	int              probe_imap_network;    /**< if this flag is set, the imap-job timeouts are bypassed and messages are sent until they fail */
 
-	dc_imap_t*       mvbox;                 /**< secondary IMAP object watching the delta chat folder, never NULL */
-	pthread_cond_t   mvboxidle_cond;
-	pthread_mutex_t  mvboxidle_condmutex;
-	int              mvboxidle_condflag;
-	int              perform_mvbox_jobs_needed;
-	int              mvbox_suspended;
-	int              mvbox_using_handle;
+	dc_jobthread_t   sentbox_thread;
+	dc_jobthread_t   mvbox_thread;
 
 	dc_smtp_t*       smtp;                  /**< Internal SMTP object, never NULL */
 	pthread_cond_t   smtpidle_cond;
@@ -110,10 +106,16 @@ void            dc_receive_imf       (dc_context_t*, const char* imf_raw_not_ter
 int             dc_connect_to_configured_imap (dc_context_t*, dc_imap_t*);
 
 #define         DC_CREATE_MVBOX      0x01
+#define         DC_FOLDERS_CONFIGURED_VERSION 3
 void            dc_configure_folders (dc_context_t*, dc_imap_t*, int flags);
 
-int             dc_shall_move        (dc_context_t*, const char* folder, const dc_mimeparser_t* parser, uint32_t msg_id);
+
+void            dc_do_heuristics_moves(dc_context_t*, const char* folder, uint32_t msg_id);
+
+
 int             dc_is_inbox          (dc_context_t*, const char* folder);
+int             dc_is_sentbox        (dc_context_t*, const char* folder);
+int             dc_is_mvbox          (dc_context_t*, const char* folder);
 
 #define         DC_BAK_PREFIX                "delta-chat"
 #define         DC_BAK_SUFFIX                "bak"
@@ -130,8 +132,10 @@ int             dc_is_inbox          (dc_context_t*, const char* folder);
 // some defaults
 #define DC_E2EE_DEFAULT_ENABLED   1
 #define DC_MDNS_DEFAULT_ENABLED   1
-#define DC_MVBOX_WATCH_DEFAULT    1
-#define DC_MVBOX_MOVE_DEFAULT     1
+#define DC_INBOX_WATCH_DEFAULT    1
+#define DC_SENTBOX_WATCH_DEFAULT  0
+#define DC_MVBOX_WATCH_DEFAULT    0
+#define DC_MVBOX_MOVE_DEFAULT     0
 
 
 /* library private: end-to-end-encryption */
