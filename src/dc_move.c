@@ -19,11 +19,6 @@ static dc_move_state_t determine_next_move_state(dc_context_t* context, const dc
 		goto cleanup;
 	}
 
-	// TODO: where is a good place to check for user-disabled moving?
-	if (dc_sqlite3_get_config_int(context->sql, "mvbox_move", DC_MVBOX_MOVE_DEFAULT)==0) {
-		goto cleanup;
-	}
-
 	dc_log_info(context, 0, "[move] shall_move %s", msg->rfc724_mid);
 
 	if (!dc_is_inbox(context, msg->server_folder)
@@ -140,6 +135,10 @@ void dc_do_heuristics_moves(dc_context_t* context, const char* folder, uint32_t 
 	// for already seen messages, folder may be different from msg->folder
 	dc_msg_t*     msg = NULL;
 	sqlite3_stmt* stmt = NULL;
+
+	if (dc_sqlite3_get_config_int(context->sql, "mvbox_move", DC_MVBOX_MOVE_DEFAULT)==0) {
+		goto cleanup;
+	}
 
 	if (!dc_is_inbox(context, folder) && !dc_is_sentbox(context, folder)) {
 		goto cleanup;
