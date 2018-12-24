@@ -642,7 +642,11 @@ char* dc_get_config(dc_context_t* context, const char* key)
  */
 int dc_is_inbox(dc_context_t* context, const char* folder_name)
 {
-	return strcasecmp("INBOX", folder_name)==0? 1 : 0;
+	int is_inbox = 0;
+	if (folder_name) {
+		is_inbox = strcasecmp("INBOX", folder_name)==0? 1 : 0;
+	}
+	return is_inbox;
 }
 
 
@@ -654,7 +658,7 @@ int dc_is_sentbox(dc_context_t* context, const char* folder_name)
 {
 	char* sentbox_name = dc_sqlite3_get_config(context->sql, "configured_sentbox_folder", NULL);
 	int is_sentbox = 0;
-	if (sentbox_name) {
+	if (sentbox_name && folder_name) {
 		is_sentbox = strcasecmp(sentbox_name, folder_name)==0? 1 : 0;
 	}
 	free(sentbox_name);
@@ -670,7 +674,7 @@ int dc_is_mvbox(dc_context_t* context, const char* folder_name)
 {
 	char* mvbox_name = dc_sqlite3_get_config(context->sql, "configured_mvbox_folder", NULL);
 	int is_mvbox = 0;
-	if (mvbox_name) {
+	if (mvbox_name && folder_name) {
 		is_mvbox = strcasecmp(mvbox_name, folder_name)==0? 1 : 0;
 	}
 	free(mvbox_name);
