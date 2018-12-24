@@ -8,6 +8,14 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes anywhere in the Delta Chat ecosystem,
 see https://delta.chat/en/changelog
 
+## v0.32.0
+
+* add function to add a thread watching the Send folder
+* add config-options inbox_watch and sendbox_watch
+* move chat messages from inbox/sent to DeltaChat folder
+
+The changes have been done by Björn Petersen and Holger Krekel
+
 ## v0.31.1
 2018-12-20
 
