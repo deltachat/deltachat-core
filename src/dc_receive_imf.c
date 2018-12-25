@@ -777,6 +777,10 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 	for recreation: we should add a timestamp */
 	if (recreate_member_list)
 	{
+		// TODO: the member list should only be recreated if the corresponding message is newer
+		// than the one that is responsible for the current member list, see
+		// https://github.com/deltachat/deltachat-core/issues/127
+
 		const char* skip = X_MrRemoveFromGrp? X_MrRemoveFromGrp : NULL;
 
 		stmt = dc_sqlite3_prepare(context->sql, "DELETE FROM chats_contacts WHERE chat_id=?;");
