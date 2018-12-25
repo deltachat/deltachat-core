@@ -146,6 +146,8 @@ static int select_folder(dc_imap_t* imap, const char* folder /*may be NULL*/)
 	if (folder) {
 		int r = mailimap_select(imap->etpan, folder);
 		if (dc_imap_is_error(imap, r) || imap->etpan->imap_selection_info==NULL) {
+			dc_log_info(imap->context, 0, "Cannot select folder; code=%i, imap_response=%s", r,
+				imap->etpan->imap_response? imap->etpan->imap_response : "<none>");
 			imap->selected_folder[0] = 0;
 			return 0;
 		}
