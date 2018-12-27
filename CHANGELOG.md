@@ -8,6 +8,10 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes anywhere in the Delta Chat ecosystem,
 see https://delta.chat/en/changelog
 
+## v0.33.0
+
+* re-create goup-member-list if members are missing; avoid group-splits
+
 ## v0.32.0
 
 * add function to add a thread watching the Send folder
