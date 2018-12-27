@@ -687,11 +687,9 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 	}
 
 	/* check if the sender is a member of the existing group -
-	if not, the message does not go to the group chat but to the normal chat with the sender */
+	if not, we'll recreate the group list */
 	if (chat_id!=0 && !dc_is_contact_in_chat(context, chat_id, from_id)) {
-		chat_id = 0;
-		create_or_lookup_adhoc_group(context, mime_parser, create_blocked, from_id, to_ids, &chat_id, &chat_id_blocked);
-		goto cleanup;
+		recreate_member_list = 1;
 	}
 
 	/* check if the group does not exist but should be created */
@@ -779,6 +777,10 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 	for recreation: we should add a timestamp */
 	if (recreate_member_list)
 	{
+		// TODO: the member list should only be recreated if the corresponding message is newer
+		// than the one that is responsible for the current member list, see
+		// https://github.com/deltachat/deltachat-core/issues/127
+
 		const char* skip = X_MrRemoveFromGrp? X_MrRemoveFromGrp : NULL;
 
 		stmt = dc_sqlite3_prepare(context->sql, "DELETE FROM chats_contacts WHERE chat_id=?;");
