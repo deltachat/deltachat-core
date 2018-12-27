@@ -8,7 +8,7 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes anywhere in the Delta Chat ecosystem,
 see https://delta.chat/en/changelog
 
-## v0.33.0
+## v0.34.0
 
 * re-create goup-member-list if members are missing; avoid group-splits
 
