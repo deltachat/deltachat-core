@@ -329,8 +329,11 @@ static struct mailmime* build_body_file(const dc_msg_t* msg, const char* base_na
 	}
 
 	/* check mimetype */
-	if (mimetype==NULL && suffix!=NULL) {
-		if (strcmp(suffix, "png")==0) {
+	if (mimetype==NULL) {
+		if (suffix==NULL) {
+			mimetype = dc_strdup("application/octet-stream");
+		}
+		else if (strcmp(suffix, "png")==0) {
 			mimetype = dc_strdup("image/png");
 		}
 		else if (strcmp(suffix, "jpg")==0 || strcmp(suffix, "jpeg")==0 || strcmp(suffix, "jpe")==0) {
