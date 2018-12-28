@@ -1120,7 +1120,7 @@ void dc_imex(dc_context_t* context, int what, const char* param1, const char* pa
 	dc_param_set    (param, DC_PARAM_CMD_ARG,  param1);
 	dc_param_set    (param, DC_PARAM_CMD_ARG2, param2);
 
-	dc_job_kill_actions(context, DC_JOB_IMEX_IMAP, 0);
+	dc_job_kill_action(context, DC_JOB_IMEX_IMAP);
 	dc_job_add(context, DC_JOB_IMEX_IMAP, 0, param->packed, 0); // results in a call to dc_job_do_DC_JOB_IMEX_IMAP()
 
 	dc_param_unref(param);
