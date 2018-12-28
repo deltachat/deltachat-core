@@ -73,6 +73,7 @@ char* dc_stock_str_repl_string(dc_context_t* context, int id, const char* to_ins
 {
 	char* ret = get_string(context, id, 0);
 	dc_str_replace(&ret, "%1$s", to_insert);
+	dc_str_replace(&ret, "%1$d", to_insert);
 	return ret;
 }
 
@@ -82,6 +83,7 @@ char* dc_stock_str_repl_int(dc_context_t* context, int id, int to_insert_int)
 	char* ret = get_string(context, id, to_insert_int);
 	char* to_insert_str = dc_mprintf("%i", (int)to_insert_int);
 	dc_str_replace(&ret, "%1$s", to_insert_str);
+	dc_str_replace(&ret, "%1$d", to_insert_str);
 	free(to_insert_str);
 	return ret;
 }
@@ -91,6 +93,8 @@ char* dc_stock_str_repl_string2(dc_context_t* context, int id, const char* to_in
 {
 	char* ret = get_string(context, id, 0);
 	dc_str_replace(&ret, "%1$s", to_insert);
+	dc_str_replace(&ret, "%1$d", to_insert);
 	dc_str_replace(&ret, "%2$s", to_insert2);
+	dc_str_replace(&ret, "%2$d", to_insert2);
 	return ret;
 }
