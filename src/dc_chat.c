@@ -2225,7 +2225,7 @@ static uint32_t send_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc_ms
 	{
 		int can_encrypt = 1, all_mutual = 1; /* be optimistic */
 		stmt = dc_sqlite3_prepare(context->sql,
-			"SELECT ps.prefer_encrypted "
+			"SELECT ps.prefer_encrypted, c.addr"
 			 " FROM chats_contacts cc "
 			 " LEFT JOIN contacts c ON cc.contact_id=c.id "
 			 " LEFT JOIN acpeerstates ps ON c.addr=ps.addr "
@@ -2235,6 +2235,8 @@ static uint32_t send_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc_ms
 		while (sqlite3_step(stmt)==SQLITE_ROW)
 		{
 			if (sqlite3_column_type(stmt, 0)==SQLITE_NULL) {
+				dc_log_info(context, 0, "[autocrypt] no peerstate for %s",
+					sqlite3_column_text(stmt, 1));
 				can_encrypt = 0;
 				all_mutual = 0;
 			}
@@ -2242,6 +2244,9 @@ static uint32_t send_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc_ms
 				/* the peerstate exist, so we have either public_key or gossip_key and can encrypt potentially */
 				int prefer_encrypted = sqlite3_column_int(stmt, 0);
 				if (prefer_encrypted!=DC_PE_MUTUAL) {
+					dc_log_info(context, 0, "[autocrypt] peerstate for %s is %s",
+						sqlite3_column_text(stmt, 1),
+						prefer_encrypted==DC_PE_NOPREFERENCE? "NOPREFERENCE" : "RESET");
 					all_mutual = 0;
 				}
 			}
