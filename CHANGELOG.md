@@ -8,6 +8,12 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes anywhere in the Delta Chat ecosystem,
 see https://delta.chat/en/changelog
 
+## PENDING
+
+* additional parameter for dc_get_chat_media() to pass a third type
+* additional parameters for dc_get_next_media()
+  to be in sync with dc_get_chat_media()
+
 ## v0.34.0
 
 * re-create goup-member-list if members are missing; avoid group-splits
