@@ -280,8 +280,8 @@ int             dc_get_fresh_msg_cnt         (dc_context_t*, uint32_t chat_id);
 dc_array_t*     dc_get_fresh_msgs            (dc_context_t*);
 void            dc_marknoticed_chat          (dc_context_t*, uint32_t chat_id);
 void            dc_marknoticed_all_chats     (dc_context_t*);
-dc_array_t*     dc_get_chat_media            (dc_context_t*, uint32_t chat_id, int msg_type, int or_msg_type);
-uint32_t        dc_get_next_media            (dc_context_t*, uint32_t curr_msg_id, int dir);
+dc_array_t*     dc_get_chat_media            (dc_context_t*, uint32_t chat_id, int msg_type, int or_msg_type2, int or_msg_type3);
+uint32_t        dc_get_next_media            (dc_context_t*, uint32_t msg_id, int dir, int msg_type, int or_msg_type2, int or_msg_type3);
 
 void            dc_archive_chat              (dc_context_t*, uint32_t chat_id, int archive);
 void            dc_delete_chat               (dc_context_t*, uint32_t chat_id);

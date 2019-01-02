@@ -973,7 +973,7 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 	else if (strcmp(cmd, "listmedia")==0)
 	{
 		if (sel_chat) {
-			dc_array_t* images = dc_get_chat_media(context, dc_chat_get_id(sel_chat), DC_MSG_IMAGE, DC_MSG_VIDEO);
+			dc_array_t* images = dc_get_chat_media(context, dc_chat_get_id(sel_chat), DC_MSG_IMAGE, DC_MSG_GIF, DC_MSG_VIDEO);
 			int i, icnt = dc_array_get_cnt(images);
 			ret = dc_mprintf("%i images or videos: ", icnt);
 			for (i = 0; i < icnt; i++) {

@@ -829,11 +829,12 @@ cleanup:
  * @param context The context object as returned from dc_context_new().
  * @param chat_id The chat ID to get all messages with media from.
  * @param msg_type Specify a message type to query here, one of the DC_MSG_* constats.
- * @param or_msg_type Another message type to return, one of the DC_MSG_* constats.
- *     The function will return both types then.  0 if you need only one.
+ * @param msg_type2 Alternative message type to search for. 0 to skip.
+ * @param msg_type3 Alternative message type to search for. 0 to skip.
  * @return An array with messages from the given chat ID that have the wanted message types.
  */
-dc_array_t* dc_get_chat_media(dc_context_t* context, uint32_t chat_id, int msg_type, int or_msg_type)
+dc_array_t* dc_get_chat_media(dc_context_t* context, uint32_t chat_id,
+                              int msg_type, int msg_type2, int msg_type3)
 {
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
 		return NULL;
@@ -842,10 +843,11 @@ dc_array_t* dc_get_chat_media(dc_context_t* context, uint32_t chat_id, int msg_t
 	dc_array_t* ret = dc_array_new(context, 100);
 
 	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->sql,
-		"SELECT id FROM msgs WHERE chat_id=? AND (type=? OR type=?) ORDER BY timestamp, id;");
+		"SELECT id FROM msgs WHERE chat_id=? AND (type=? OR type=? OR type=?) ORDER BY timestamp, id;");
 	sqlite3_bind_int(stmt, 1, chat_id);
 	sqlite3_bind_int(stmt, 2, msg_type);
-	sqlite3_bind_int(stmt, 3, or_msg_type>0? or_msg_type : msg_type);
+	sqlite3_bind_int(stmt, 3, msg_type2>0? msg_type2 : msg_type);
+	sqlite3_bind_int(stmt, 4, msg_type3>0? msg_type3 : msg_type);
 	while (sqlite3_step(stmt)==SQLITE_ROW) {
 		dc_array_add_id(ret, sqlite3_column_int(stmt, 0));
 	}
@@ -856,20 +858,29 @@ dc_array_t* dc_get_chat_media(dc_context_t* context, uint32_t chat_id, int msg_t
 
 
 /**
- * Get next/previous message of the same type.
- * Typically used to implement the "next" and "previous" buttons on a media
- * player playing eg. voice messages.
+ * Search next/previous message based on a given message and a list of types.
+ * The
+ * Typically used to implement the "next" and "previous" buttons
+ * in a gallery or in a media player.
  *
  * @memberof dc_context_t
  * @param context The context object as returned from dc_context_new().
- * @param curr_msg_id  This is the current (image) message displayed.
- * @param dir 1=get the next (image) message, -1=get the previous one.
- * @return Returns the message ID that should be played next. The
- *     returned message is in the same chat as the given one and has the same type.
+ * @param curr_msg_id  This is the current message
+ *     from which the next or previous message should be searched.
+ * @param dir 1=get the next message, -1=get the previous one.
+ * @param msg_type Message type to search for.
+ *     If 0, the message type from curr_msg_id is used.
+ * @param msg_type2 Alternative message type to search for. 0 to skip.
+ * @param msg_type3 Alternative message type to search for. 0 to skip.
+ * @return Returns the message ID that should be played next.
+ *     The returned message is in the same chat as the given one
+ *     and has one of the given types.
  *     Typically, this result is passed again to dc_get_next_media()
- *     later on the next swipe. If there is not next/previous message, the function returns 0.
+ *     later on the next swipe.
+ *     If there is not next/previous message, the function returns 0.
  */
-uint32_t dc_get_next_media(dc_context_t* context, uint32_t curr_msg_id, int dir)
+uint32_t dc_get_next_media(dc_context_t* context, uint32_t curr_msg_id, int dir,
+                              int msg_type, int msg_type2, int msg_type3)
 {
 	uint32_t    ret_msg_id = 0;
 	dc_msg_t*   msg = dc_msg_new_untyped(context);
@@ -885,7 +896,9 @@ uint32_t dc_get_next_media(dc_context_t* context, uint32_t curr_msg_id, int dir)
 		goto cleanup;
 	}
 
-	if ((list=dc_get_chat_media(context, msg->chat_id, msg->type, 0))==NULL) {
+	if ((list=dc_get_chat_media(context, msg->chat_id,
+			msg_type>0? msg_type : msg->type,
+			msg_type2, msg_type3))==NULL) {
 		goto cleanup;
 	}
 
