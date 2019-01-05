@@ -8,11 +8,16 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes anywhere in the Delta Chat ecosystem,
 see https://delta.chat/en/changelog
 
-## PENDING
+## v0.35.0
 
 * additional parameter for dc_get_chat_media() to pass a third type
 * additional parameters for dc_get_next_media()
   to be in sync with dc_get_chat_media()
+* on sending, missing mime types are guessed from extension
+* fix sending files without extension
+
+The changes have been done by Björn Petersen, Holger Krekel
+and Simon Laux
 
 ## v0.34.0
 
