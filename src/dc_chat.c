@@ -2439,6 +2439,13 @@ uint32_t dc_send_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 			}
 			free(better_mime);
 		}
+		else if (!dc_param_exists(msg->param, DC_PARAM_MIMETYPE))
+		{
+			char* better_mime = NULL;
+			dc_msg_guess_msgtype_from_suffix(pathNfilename, NULL, &better_mime);
+			dc_param_set(msg->param, DC_PARAM_MIMETYPE, better_mime);
+			free(better_mime);
+		}
 
 		dc_log_info(context, 0, "Attaching \"%s\" for message type #%i.", pathNfilename, (int)msg->type);
 	}

@@ -875,6 +875,10 @@ void dc_msg_guess_msgtype_from_suffix(const char* pathNfilename, int* ret_msgtyp
 		*ret_msgtype = DC_MSG_AUDIO;
 		*ret_mime = dc_strdup("audio/mpeg");
 	}
+	else if (strcmp(suffix, "aac")==0) {
+		*ret_msgtype = DC_MSG_AUDIO;
+		*ret_mime = dc_strdup("audio/aac");
+	}
 	else if (strcmp(suffix, "mp4")==0) {
 		*ret_msgtype = DC_MSG_VIDEO;
 		*ret_mime = dc_strdup("video/mp4");
