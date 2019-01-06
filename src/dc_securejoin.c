@@ -282,19 +282,21 @@ static void end_bobs_joining(dc_context_t* context, int status)
 
 /**
  * Get QR code text that will offer an secure-join verification.
- * The QR code is compatible to the OPENPGP4FPR format so that a basic
- * fingerprint comparison also works eg. with K-9 or OpenKeychain.
+ * The QR code is compatible to the OPENPGP4FPR format
+ * so that a basic fingerprint comparison also works eg. with OpenKeychain.
  *
- * The scanning Delta Chat device will pass the scanned content to
- * dc_check_qr() then; if this function returns
- * DC_QR_ASK_VERIFYCONTACT or DC_QR_ASK_VERIFYGROUP an out-of-band-verification
- * can be joined using dc_join_securejoin()
+ * The scanning device will pass the scanned content to dc_check_qr() then;
+ * if this function returns DC_QR_ASK_VERIFYCONTACT or DC_QR_ASK_VERIFYGROUP
+ * an out-of-band-verification can be joined using dc_join_securejoin()
  *
  * @memberof dc_context_t
  * @param context The context object.
- * @param group_chat_id If set to the ID of a chat, the "Joining a verified group" protocol is offered in the QR code.
- *     If set to 0, the "Setup Verified Contact" protocol is offered in the QR code.
- * @return Text that should go to the QR code, on problems, an empty QR code is returned.
+ * @param group_chat_id If set to a group-chat-id,
+ *     the group-join-protocol is offered in the QR code;
+ *     works for verified groups as well as for normal groups.
+ *     If set to 0, the setup-Verified-contact-protocol is offered in the QR code.
+ * @return Text that should go to the QR code,
+ *     On errors, an empty QR code is returned, NULL is never returned.
  *     The returned string must be free()'d after usage.
  */
 char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
@@ -353,8 +355,8 @@ char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
 	{
 		// parameters used: a=g=x=i=s=
 		chat = dc_get_chat(context, group_chat_id);
-		if (chat==NULL || chat->type!=DC_CHAT_TYPE_VERIFIED_GROUP) {
-			dc_log_error(context, 0, "Secure join is only available for verified groups.");
+		if (chat==NULL) {
+			dc_log_error(context, 0, "Cannot get QR-code for chat-id %i", group_chat_id);
 			goto cleanup;
 		}
 		group_name = dc_chat_get_name(chat);
