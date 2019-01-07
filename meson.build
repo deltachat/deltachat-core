@@ -7,11 +7,6 @@ project(
   default_options: ['c_std=gnu99'],
 )
 
-if host_machine.system() == 'darwin'
-  message('Its darwin') 
-endif
-message('Test ' + host_machine.system())
-
 
 ## Figure out the version, use this instead of meson.project_version()
 # The version schema is:
