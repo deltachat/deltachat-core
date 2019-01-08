@@ -8,9 +8,6 @@ extern "C" {
 #include "dc_param.h"
 
 
-typedef struct sqlite3_stmt sqlite3_stmt;
-
-
 typedef enum {
      DC_MOVE_STATE_UNDEFINED = 0
 	,DC_MOVE_STATE_PENDING   = 1

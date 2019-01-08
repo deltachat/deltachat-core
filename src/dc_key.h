@@ -5,7 +5,9 @@ extern "C" {
 #endif
 
 
-typedef struct sqlite3_stmt sqlite3_stmt;
+#include <sqlite3.h>
+
+
 typedef struct _dc_key      dc_key_t;
 
 
