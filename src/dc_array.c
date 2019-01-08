@@ -251,7 +251,7 @@ size_t dc_array_get_cnt(const dc_array_t* array)
  */
 uintptr_t dc_array_get_uint(const dc_array_t* array, size_t index)
 {
-	if (array==NULL || array->magic!=DC_ARRAY_MAGIC || index<0 || index>=array->count) {
+	if (array==NULL || array->magic!=DC_ARRAY_MAGIC || index>=array->count) {
 		return 0;
 	}
 
@@ -269,7 +269,7 @@ uintptr_t dc_array_get_uint(const dc_array_t* array, size_t index)
  */
 uint32_t dc_array_get_id(const dc_array_t* array, size_t index)
 {
-	if (array==NULL || array->magic!=DC_ARRAY_MAGIC || index<0 || index>=array->count) {
+	if (array==NULL || array->magic!=DC_ARRAY_MAGIC || index>=array->count) {
 		return 0;
 	}
 
@@ -287,7 +287,7 @@ uint32_t dc_array_get_id(const dc_array_t* array, size_t index)
  */
 void* dc_array_get_ptr(const dc_array_t* array, size_t index)
 {
-	if (array==NULL || array->magic!=DC_ARRAY_MAGIC || index<0 || index>=array->count) {
+	if (array==NULL || array->magic!=DC_ARRAY_MAGIC || index>=array->count) {
 		return 0;
 	}
 
