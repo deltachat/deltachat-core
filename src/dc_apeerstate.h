@@ -19,6 +19,7 @@ typedef struct _dc_apeerstate dc_apeerstate_t;
 
 
 /**
+ * @class dc_apeerstate_t
  * Library-internal.
  */
 struct _dc_apeerstate

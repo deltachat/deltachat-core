@@ -9,6 +9,8 @@ typedef struct _dc_param dc_param_t;
 
 
 /**
+ * @class dc_param_t
+ *
  * An object for handling key=value parameter lists; for the key, curently only
  * a single character is allowed.
  *

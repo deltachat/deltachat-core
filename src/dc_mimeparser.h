@@ -32,6 +32,9 @@ struct _dc_mimepart
 };
 
 
+/**
+ * @class dc_mimeparser_t
+ */
 struct _dc_mimeparser
 {
 	/** @privatesection */

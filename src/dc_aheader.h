@@ -11,6 +11,7 @@ extern "C" {
 typedef struct _dc_aheader dc_aheader_t;
 
 /**
+ * @class dc_aheader_t
  * Library-internal. Parse and create [Autocrypt-headers](https://autocrypt.org/en/latest/level1.html#the-autocrypt-header).
  */
 struct _dc_aheader
