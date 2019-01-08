@@ -1381,6 +1381,7 @@ int dc_read_file(dc_context_t* context, const char* pathNfilename, void** buf, s
 {
 	int   success = 0;
 	char* pathNfilename_abs = NULL;
+	FILE* f = NULL;
 
 	if (pathNfilename==NULL || buf==NULL || buf_bytes==NULL) {
 		return 0; /* do not go to cleanup as this would dereference "buf" and "buf_bytes" */
@@ -1393,7 +1394,7 @@ int dc_read_file(dc_context_t* context, const char* pathNfilename, void** buf, s
 		goto cleanup;
 	}
 
-	FILE* f = fopen(pathNfilename_abs, "rb");
+	f = fopen(pathNfilename_abs, "rb");
 	if (f==NULL) { goto cleanup; }
 
 	fseek(f, 0, SEEK_END);
