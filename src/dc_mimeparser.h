@@ -14,7 +14,6 @@ extern "C" {
 #include "dc_param.h"
 
 
-typedef struct _dc_e2ee_helper dc_e2ee_helper_t;
 typedef struct _dc_mimepart    dc_mimepart_t;
 typedef struct _dc_mimeparser  dc_mimeparser_t;
 
@@ -50,7 +49,7 @@ struct _dc_mimeparser
 
 	int                    decrypting_failed; /* set, if there are multipart/encrypted parts left after decryption */
 
-	dc_e2ee_helper_t*      e2ee_helper;
+	struct _dc_e2ee_helper* e2ee_helper;
 
 	const char*            blobdir;
 

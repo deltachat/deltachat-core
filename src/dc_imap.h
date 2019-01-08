@@ -10,7 +10,9 @@ extern "C" {
 #endif
 
 
-typedef struct _dc_loginparam dc_loginparam_t;
+#include "dc_loginparam.h"
+
+
 typedef struct _dc_imap       dc_imap_t;
 
 
@@ -23,9 +25,6 @@ typedef int      (*dc_precheck_imf_t)  (dc_imap_t*, const char* rfc724_mid,
 
 #define DC_IMAP_SEEN 0x0001L
 typedef void     (*dc_receive_imf_t)   (dc_imap_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags);
-
-
-typedef struct _dc_imap dc_imap_t;
 
 
 /**

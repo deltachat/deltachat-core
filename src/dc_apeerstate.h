@@ -6,9 +6,10 @@ extern "C" {
 
 
 #include "dc_key.h"
+#include "dc_aheader.h"
+#include "dc_hash.h"
 
 
-typedef struct _dc_aheader    dc_aheader_t;
 typedef struct _dc_apeerstate dc_apeerstate_t;
 
 

@@ -5,7 +5,9 @@ extern "C" {
 #endif
 
 
-typedef struct _dc_key     dc_key_t;
+#include "dc_key.h"
+
+
 typedef struct _dc_keyring dc_keyring_t;
 
 

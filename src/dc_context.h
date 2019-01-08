@@ -24,14 +24,11 @@ extern "C" {
 #include "dc_msg.h"
 #include "dc_contact.h"
 #include "dc_jobthread.h"
-
-
-typedef struct _dc_imap        dc_imap_t;
-typedef struct _dc_smtp        dc_smtp_t;
-typedef struct _dc_sqlite3     dc_sqlite3_t;
-typedef struct _dc_job         dc_job_t;
-typedef struct _dc_mimeparser  dc_mimeparser_t;
-typedef struct _dc_hash        dc_hash_t;
+#include "dc_imap.h"
+#include "dc_smtp.h"
+#include "dc_job.h"
+#include "dc_mimeparser.h"
+#include "dc_hash.h"
 
 
 /** Structure behind dc_context_t */

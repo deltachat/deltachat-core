@@ -5,7 +5,6 @@ extern "C" {
 #endif
 
 
-typedef struct _dc_imap      dc_imap_t;
 typedef struct _dc_jobthread dc_jobthread_t;
 
 
@@ -15,7 +14,7 @@ struct _dc_jobthread
 	char*            name;
 	char*            folder_config_name;
 
-	dc_imap_t*       imap;
+	struct _dc_imap* imap;
 
 	pthread_mutex_t  mutex;
 
