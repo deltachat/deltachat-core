@@ -1499,6 +1499,20 @@ void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_termi
 		mimeparser->is_send_by_messenger = 0; /* do not treat a setup message as a messenger message (eg. do not move setup messages to the Chats-folder; there may be a 3rd device that wants to handle it) */
 	}
 
+	/* some special system message? */
+	if (dc_mimeparser_lookup_field(mimeparser, "Chat-Group-Image")
+	 && carray_count(mimeparser->parts)>=1) {
+		dc_mimepart_t* textpart = (dc_mimepart_t*)carray_get(mimeparser->parts, 0);
+		if (textpart->type==DC_MSG_TEXT) {
+			if (carray_count(mimeparser->parts)>=2) {
+				dc_mimepart_t* imgpart = (dc_mimepart_t*)carray_get(mimeparser->parts, 1);
+				if (imgpart->type==DC_MSG_IMAGE) {
+					imgpart->is_meta = 1;
+				}
+			}
+		}
+	}
+
 	// create compound messages
 	if (mimeparser->is_send_by_messenger
 	 && s_generate_compound_msgs
@@ -1507,7 +1521,9 @@ void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_termi
 		dc_mimepart_t* textpart = (dc_mimepart_t*)carray_get(mimeparser->parts, 0);
 		dc_mimepart_t* filepart = (dc_mimepart_t*)carray_get(mimeparser->parts, 1);
 
-		if (textpart->type==DC_MSG_TEXT && DC_MSG_NEEDS_ATTACHMENT(filepart->type))
+		if (textpart->type==DC_MSG_TEXT
+		 && DC_MSG_NEEDS_ATTACHMENT(filepart->type)
+		 && !filepart->is_meta)
 		{
 			free(filepart->msg);
 			filepart->msg = textpart->msg;
@@ -1583,21 +1599,6 @@ void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_termi
 				int duration_ms = atoi(field->fld_value);
 				if (duration_ms > 0 && duration_ms < 24*60*60*1000) {
 					dc_param_set_int(part->param, DC_PARAM_DURATION, duration_ms);
-				}
-			}
-		}
-	}
-
-	/* some special system message? */
-	if (dc_mimeparser_lookup_field(mimeparser, "Chat-Group-Image")
-	 && carray_count(mimeparser->parts)>=1) {
-		dc_mimepart_t* textpart = (dc_mimepart_t*)carray_get(mimeparser->parts, 0);
-		if (textpart->type==DC_MSG_TEXT) {
-			dc_param_set_int(textpart->param, DC_PARAM_CMD, DC_CMD_GROUPIMAGE_CHANGED);
-			if (carray_count(mimeparser->parts)>=2) {
-				dc_mimepart_t* imgpart = (dc_mimepart_t*)carray_get(mimeparser->parts, 1);
-				if (imgpart->type==DC_MSG_IMAGE) {
-					imgpart->is_meta = 1;
 				}
 			}
 		}

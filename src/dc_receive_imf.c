@@ -661,6 +661,9 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 		else if ((optional_field=dc_mimeparser_lookup_optional_field(mime_parser, "Chat-Group-Member-Added"))!=NULL) {
 			X_MrAddToGrp = optional_field->fld_value;
 			mime_parser->is_system_message = DC_CMD_MEMBER_ADDED_TO_GROUP;
+			if ((optional_field=dc_mimeparser_lookup_optional_field(mime_parser, "Chat-Group-Image"))!=NULL) {
+				X_MrGrpImageChanged = optional_field->fld_value;
+			}
 		}
 		else if ((optional_field=dc_mimeparser_lookup_optional_field(mime_parser, "Chat-Group-Name-Changed"))!=NULL) {
 			X_MrGrpNameChanged = 1;
