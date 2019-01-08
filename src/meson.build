@@ -43,6 +43,11 @@ lib_src = [
 
 lib_deps = [pthreads, zlib, openssl, sasl, sqlite, etpan, netpgp, math]
 lib_inc = include_directories('.')
+
+if host_machine.system() == 'darwin'
+  add_project_link_arguments('-framework','CoreFoundation', '-framework', 'CoreServices', '-framework', 'Security', language: 'c')
+endif
+
 lib = library(
   'deltachat', lib_src,
   dependencies: lib_deps,
