@@ -5,6 +5,8 @@ extern "C" {
 #endif
 
 
+typedef struct _dc_mimefactory dc_mimefactory_t;
+
 
 #define DC_CMD_GROUPNAME_CHANGED           2
 #define DC_CMD_GROUPIMAGE_CHANGED          3
@@ -24,7 +26,7 @@ typedef enum {
 /**
  * Library-internal.
  */
-typedef struct dc_mimefactory_t {
+struct _dc_mimefactory {
 
 	/** @privatesection */
 
@@ -55,7 +57,7 @@ typedef struct dc_mimefactory_t {
 	/* private */
 	dc_context_t* context;
 
-} dc_mimefactory_t;
+};
 
 
 void        dc_mimefactory_init              (dc_mimefactory_t*, dc_context_t*);

@@ -5,8 +5,7 @@ extern "C" {
 #endif
 
 
-typedef struct dc_param_t   dc_param_t;
-typedef struct sqlite3_stmt sqlite3_stmt;
+#include "dc_param.h"
 
 
 typedef enum {

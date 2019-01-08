@@ -5,10 +5,13 @@ extern "C" {
 #endif
 
 
+typedef struct _dc_loginparam dc_loginparam_t;
+
+
 /**
  * Library-internal.
  */
-typedef struct dc_loginparam_t
+struct _dc_loginparam
 {
 	/**  @privatesection */
 
@@ -27,7 +30,7 @@ typedef struct dc_loginparam_t
 
 	/* Server options as DC_LP_* flags */
 	int           server_flags;
-} dc_loginparam_t;
+};
 
 
 dc_loginparam_t* dc_loginparam_new          ();

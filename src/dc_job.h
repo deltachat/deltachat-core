@@ -31,10 +31,12 @@ extern "C" {
 #define DC_SMTP_TIMEOUT_SEC       10
 
 
+typedef struct _dc_job dc_job_t;
+
 /**
  * Library-internal.
  */
-typedef struct dc_job_t
+struct _dc_job
 {
 	/** @privatesection */
 
@@ -48,7 +50,7 @@ typedef struct dc_job_t
 
 	int         try_again;
 	char*       pending_error; // discarded if the retry succeeds
-} dc_job_t;
+};
 
 
 void     dc_job_add                   (dc_context_t*, int action, int foreign_id, const char* param, int delay);

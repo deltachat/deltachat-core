@@ -14,10 +14,11 @@ extern "C" {
 #include "dc_param.h"
 
 
-typedef struct dc_e2ee_helper_t dc_e2ee_helper_t;
+typedef struct _dc_mimepart    dc_mimepart_t;
+typedef struct _dc_mimeparser  dc_mimeparser_t;
 
 
-typedef struct dc_mimepart_t
+struct _dc_mimepart
 {
 	/** @privatesection */
 	int                 type; /*one of DC_MSG_* */
@@ -28,10 +29,10 @@ typedef struct dc_mimepart_t
 	int                 bytes;
 	dc_param_t*          param;
 
-} dc_mimepart_t;
+};
 
 
-typedef struct dc_mimeparser_t
+struct _dc_mimeparser
 {
 	/** @privatesection */
 
@@ -48,7 +49,7 @@ typedef struct dc_mimeparser_t
 
 	int                    decrypting_failed; /* set, if there are multipart/encrypted parts left after decryption */
 
-	dc_e2ee_helper_t*      e2ee_helper;
+	struct _dc_e2ee_helper* e2ee_helper;
 
 	const char*            blobdir;
 
@@ -60,7 +61,7 @@ typedef struct dc_mimeparser_t
 
 	int                    is_system_message;
 
-} dc_mimeparser_t;
+};
 
 
 dc_mimeparser_t*  dc_mimeparser_new                    (const char* blobdir, dc_context_t*);

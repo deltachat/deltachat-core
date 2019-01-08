@@ -5,13 +5,16 @@ extern "C" {
 #endif
 
 
-typedef struct dc_strbuilder_t
+typedef struct _dc_strbuilder dc_strbuilder_t;
+
+
+struct _dc_strbuilder
 {
 	char* buf;
 	int   allocated;
 	int   free;
 	char* eos;
-} dc_strbuilder_t;
+};
 
 
 void  dc_strbuilder_init    (dc_strbuilder_t*, int init_bytes);

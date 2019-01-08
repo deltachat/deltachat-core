@@ -10,7 +10,9 @@ extern "C" {
 
 /*** library-private **********************************************************/
 
-typedef struct dc_smtp_t
+typedef struct _dc_smtp dc_smtp_t;
+
+struct _dc_smtp
 {
 	mailsmtp*       etpan;
 	char*           from;
@@ -22,7 +24,7 @@ typedef struct dc_smtp_t
 
 	char*           error;
 	int             error_etpan; // one of the MAILSMTP_ERROR_* codes, eg. MAILSMTP_ERROR_EXCEED_STORAGE_ALLOCATION
-} dc_smtp_t;
+};
 
 dc_smtp_t*   dc_smtp_new          (dc_context_t*);
 void         dc_smtp_unref        (dc_smtp_t*);

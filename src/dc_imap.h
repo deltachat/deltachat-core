@@ -10,8 +10,10 @@ extern "C" {
 #endif
 
 
-typedef struct dc_loginparam_t dc_loginparam_t;
-typedef struct dc_imap_t dc_imap_t;
+#include "dc_loginparam.h"
+
+
+typedef struct _dc_imap       dc_imap_t;
 
 
 typedef char*    (*dc_get_config_t)    (dc_imap_t*, const char*, const char*);
@@ -28,7 +30,7 @@ typedef void     (*dc_receive_imf_t)   (dc_imap_t*, const char* imf_raw_not_term
 /**
  * Library-internal.
  */
-typedef struct dc_imap_t
+struct _dc_imap
 {
 	/** @privatesection */
 
@@ -69,7 +71,7 @@ typedef struct dc_imap_t
 	int                   log_connect_errors;
 	int                   skip_log_capabilities;
 
-} dc_imap_t;
+};
 
 
 typedef enum {

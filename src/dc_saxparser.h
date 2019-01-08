@@ -5,18 +5,21 @@ extern "C" {
 #endif
 
 
+typedef struct _dc_saxparser dc_saxparser_t;
+
+
 typedef void (*dc_saxparser_starttag_cb_t) (void* userdata, const char* tag, char** attr);
 typedef void (*dc_saxparser_endtag_cb_t)   (void* userdata, const char* tag);
 typedef void (*dc_saxparser_text_cb_t)     (void* userdata, const char* text, int len); /* len is only informational, text is already null-terminated */
 
 
-typedef struct dc_saxparser_t
+struct _dc_saxparser
 {
 	dc_saxparser_starttag_cb_t starttag_cb;
 	dc_saxparser_endtag_cb_t   endtag_cb;
 	dc_saxparser_text_cb_t     text_cb;
 	void*                      userdata;
-} dc_saxparser_t;
+};
 
 
 void           dc_saxparser_init             (dc_saxparser_t*, void* userData);

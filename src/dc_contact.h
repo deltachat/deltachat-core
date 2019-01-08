@@ -5,8 +5,8 @@ extern "C" {
 #endif
 
 
-typedef struct dc_sqlite3_t dc_sqlite3_t;
-typedef struct dc_apeerstate_t dc_apeerstate_t;
+#include "dc_contact.h"
+#include "dc_apeerstate.h"
 
 
 /** the structure behind dc_contact_t */
