@@ -666,14 +666,13 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 		if (join_vg) {
 			// the vg-member-added message is special: this is a normal Chat-Group-Member-Added message with an additional Secure-Join header
 			grpid = dc_strdup(lookup_field(mimeparser, "Secure-Join-Group"));
-			int is_verified = 0;
-			uint32_t verified_chat_id = dc_get_chat_id_by_grpid(context, grpid, NULL, &is_verified);
-			if (verified_chat_id==0 || !is_verified) {
-				dc_log_error(context, 0, "Verified chat not found.");
+			uint32_t group_chat_id = dc_get_chat_id_by_grpid(context, grpid, NULL, NULL);
+			if (group_chat_id==0) {
+				dc_log_error(context, 0, "Chat %s not found.", grpid);
 				goto cleanup;
 			}
 
-			dc_add_contact_to_chat_ex(context, verified_chat_id, contact_id, DC_FROM_HANDSHAKE); // Alice -> Bob and all members
+			dc_add_contact_to_chat_ex(context, group_chat_id, contact_id, DC_FROM_HANDSHAKE); // Alice -> Bob and all members
 		}
 		else {
 			send_handshake_msg(context, contact_chat_id, "vc-contact-confirm",
@@ -704,12 +703,30 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 				goto cleanup;
 			}
 			scanned_fingerprint_of_alice = dc_strdup(context->bobs_qr_scan->fingerprint);
+			if (join_vg) {
+				grpid = dc_strdup(context->bobs_qr_scan->text2);
+			}
 		UNLOCK_QR
 
-		if (!encrypted_and_signed(mimeparser, scanned_fingerprint_of_alice)) {
-			could_not_establish_secure_connection(context, contact_chat_id, "Contact confirm message not encrypted.");
-			end_bobs_joining(context, DC_BOB_ERROR);
-			goto cleanup;
+		int vg_expect_encrypted = 1;
+		if (join_vg) {
+			int is_verified_group = 0;
+			dc_get_chat_id_by_grpid(context, grpid, NULL, &is_verified_group);
+			if (!is_verified_group) {
+				// when joining a normal group after verification,
+				// the vg-member-added message may be unencrypted
+				// when not all group members have keys or prefer encryption.
+				// this does not affect the contact verification as such.
+				vg_expect_encrypted = 0;
+			}
+		}
+
+		if (vg_expect_encrypted) {
+			if (!encrypted_and_signed(mimeparser, scanned_fingerprint_of_alice)) {
+				could_not_establish_secure_connection(context, contact_chat_id, "Contact confirm message not encrypted.");
+				end_bobs_joining(context, DC_BOB_ERROR);
+				goto cleanup;
+			}
 		}
 
 		if (!mark_peer_as_verified(context, scanned_fingerprint_of_alice)) {
