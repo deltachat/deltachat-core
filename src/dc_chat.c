@@ -2600,7 +2600,13 @@ void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt
 				goto cleanup;
 			}
 
-			dc_param_set_int(msg->param, DC_PARAM_FORWARDED, 1);
+			// do not mark own messages as being forwarded.
+			// this allows sort of broadcasting
+			// by just forwarding messages to other chats.
+			if (msg->from_id!=DC_CONTACT_ID_SELF) {
+				dc_param_set_int(msg->param, DC_PARAM_FORWARDED, 1);
+			}
+
 			dc_param_set    (msg->param, DC_PARAM_GUARANTEE_E2EE, NULL);
 			dc_param_set    (msg->param, DC_PARAM_FORCE_PLAINTEXT, NULL);
 
