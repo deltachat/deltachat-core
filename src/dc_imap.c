@@ -12,8 +12,8 @@
 static int  setup_handle_if_needed   (dc_imap_t*);
 static void unsetup_handle           (dc_imap_t*);
 
-#define FREE_SET(a)        if((a)) { mailimap_set_free((a)); }
-#define FREE_FETCH_LIST(a) if((a)) { mailimap_fetch_list_free((a)); }
+#define FREE_SET(a)        if((a)) { mailimap_set_free((a)); (a)=NULL; }
+#define FREE_FETCH_LIST(a) if((a)) { mailimap_fetch_list_free((a)); (a)=NULL; }
 
 
 /*******************************************************************************
@@ -1098,6 +1098,8 @@ dc_imap_res dc_imap_move(dc_imap_t* imap, const char* folder, uint32_t uid,
 
 	r = mailimap_uidplus_uid_move(imap->etpan, set, dest_folder, &res_uid, &res_setsrc, &res_setdest);
 	if (dc_imap_is_error(imap, r)) {
+		FREE_SET(res_setsrc);
+		FREE_SET(res_setdest);
 		dc_log_info(imap->context, 0, "Cannot move message, fallback to COPY/DELETE %s/%i to %s...", folder, (int)uid, dest_folder);
 		r = mailimap_uidplus_uid_copy(imap->etpan, set, dest_folder, &res_uid, &res_setsrc, &res_setdest);
 		if (dc_imap_is_error(imap, r)) {
@@ -1121,7 +1123,6 @@ dc_imap_res dc_imap_move(dc_imap_t* imap, const char* folder, uint32_t uid,
 			item = clist_content(cur);
 			*dest_uid = item->set_first;
 		}
-		mailimap_set_free(res_setdest);
 	}
 
 	res = DC_SUCCESS;
@@ -1129,6 +1130,7 @@ dc_imap_res dc_imap_move(dc_imap_t* imap, const char* folder, uint32_t uid,
 cleanup:
 	FREE_SET(set);
 	FREE_SET(res_setsrc);
+	FREE_SET(res_setdest);
 	return res==DC_RETRY_LATER?
 		(imap->should_reconnect? DC_RETRY_LATER : DC_FAILED) : res;
 }
