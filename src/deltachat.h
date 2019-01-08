@@ -366,9 +366,6 @@ uint32_t        dc_join_securejoin           (dc_context_t*, const char* qr);
  * The items of the array are typically IDs.
  * To free an array object, use dc_array_unref().
  */
-typedef struct _dc_array dc_array_t;
-
-
 dc_array_t*      dc_array_new                (dc_context_t*, size_t initsize);
 void             dc_array_empty              (dc_array_t*);
 void             dc_array_unref              (dc_array_t*);
@@ -424,9 +421,6 @@ const uintptr_t* dc_array_get_raw            (const dc_array_t*);
  * Rendering the deaddrop in the described way
  * would not add extra work in the UI then.
  */
-typedef struct _dc_chatlist dc_chatlist_t;
-
-
 dc_chatlist_t*   dc_chatlist_new             (dc_context_t*);
 void             dc_chatlist_empty           (dc_chatlist_t*);
 void             dc_chatlist_unref           (dc_chatlist_t*);
@@ -445,9 +439,6 @@ dc_context_t*    dc_chatlist_get_context     (dc_chatlist_t*);
  * and are not updated on database changes;
  * if you want an update, you have to recreate the object.
  */
-typedef struct _dc_chat dc_chat_t;
-
-
 #define         DC_CHAT_ID_DEADDROP          1 // virtual chat showing all messages belonging to chats flagged with chats.blocked=2
 #define         DC_CHAT_ID_TRASH             3 // messages that should be deleted get this chat_id; the messages are deleted from the working thread later then. This is also needed as rfc724_mid should be preset as long as the message is not deleted on the server (otherwise it is downloaded again)
 #define         DC_CHAT_ID_MSGS_IN_CREATION  4 // a message is just in creation but not yet assigned to a chat (eg. we may need the message ID to set up blobs; this avoids unready message to be sent and shown)
@@ -486,9 +477,6 @@ int             dc_chat_is_verified          (const dc_chat_t*);
  * The message object is not updated.
  * If you want an update, you have to recreate the object.
  */
-typedef struct _dc_msg dc_msg_t;
-
-
 #define         DC_MSG_ID_MARKER1            1
 #define         DC_MSG_ID_DAYMARKER          9
 #define         DC_MSG_ID_LAST_SPECIAL       9
@@ -563,8 +551,6 @@ void            dc_msg_latefiling_mediasize  (dc_msg_t*, int width, int height, 
  * dc_create_contact() or dc_add_address_book())
  * only affect the given-name.
  */
-typedef struct _dc_contact dc_contact_t;
-
 #define         DC_CONTACT_ID_SELF           1
 #define         DC_CONTACT_ID_DEVICE         2
 #define         DC_CONTACT_ID_LAST_SPECIAL   9
@@ -595,9 +581,6 @@ int             dc_contact_is_verified       (dc_contact_t*);
  *
  * NB: _Lot_ is used in the meaning _heap_ here.
  */
-typedef struct _dc_lot dc_lot_t;
-
-
 #define         DC_TEXT1_DRAFT     1
 #define         DC_TEXT1_USERNAME  2
 #define         DC_TEXT1_SELF      3
