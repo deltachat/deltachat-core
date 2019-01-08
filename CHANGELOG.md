@@ -8,6 +8,13 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes anywhere in the Delta Chat ecosystem,
 see https://delta.chat/en/changelog
 
+## v0.36.0
+
+* build improvements
+
+The changes have been done by Björn Petersen, Jikstra
+and Lars-Magnus Skog
+
 ## v0.35.0
 
 * additional parameter for dc_get_chat_media() to pass a third type
