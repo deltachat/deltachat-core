@@ -7,8 +7,8 @@ extern "C" {
 
 /*** library-private **********************************************************/
 
-typedef struct dc_key_t dc_key_t;
-typedef struct dc_keyring_t dc_keyring_t;
+typedef struct _dc_key     dc_key_t;
+typedef struct _dc_keyring dc_keyring_t;
 
 
 /* validation errors */

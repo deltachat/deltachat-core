@@ -5,6 +5,9 @@ extern "C" {
 #endif
 
 
+typedef struct _dc_param dc_param_t;
+
+
 /**
  * An object for handling key=value parameter lists; for the key, curently only
  * a single character is allowed.
@@ -14,11 +17,11 @@ extern "C" {
  *
  * Only for library-internal use.
  */
-typedef struct dc_param_t
+struct _dc_param
 {
 	/** @privatesection */
 	char*           packed;    /**< Always set, never NULL. */
-} dc_param_t;
+};
 
 
 #define DC_PARAM_FILE              'f'  /* for msgs */

@@ -5,11 +5,11 @@ extern "C" {
 #endif
 
 
-typedef struct _dc_context dc_context_t;
-typedef struct dc_imap_t dc_imap_t;
+typedef struct _dc_imap      dc_imap_t;
+typedef struct _dc_jobthread dc_jobthread_t;
 
 
-typedef struct dc_jobthread_t
+struct _dc_jobthread
 {
 	dc_context_t*    context;
 	char*            name;
@@ -26,7 +26,7 @@ typedef struct dc_jobthread_t
 	int              suspended;
 	int              using_handle;
 
-} dc_jobthread_t;
+};
 
 
 void dc_jobthread_init           (dc_jobthread_t*, dc_context_t* context, const char* name,

@@ -7,12 +7,16 @@ extern "C" {
 
 /*** library-private **********************************************************/
 
-typedef struct dc_simplify_t
+
+typedef struct _dc_simplify dc_simplify_t;
+
+
+struct _dc_simplify
 {
 	int is_forwarded;
 	int is_cut_at_begin;
 	int is_cut_at_end;
-} dc_simplify_t;
+};
 
 
 dc_simplify_t* dc_simplify_new           ();

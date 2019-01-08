@@ -14,10 +14,12 @@ extern "C" {
 #include "dc_param.h"
 
 
-typedef struct dc_e2ee_helper_t dc_e2ee_helper_t;
+typedef struct _dc_e2ee_helper dc_e2ee_helper_t;
+typedef struct _dc_mimepart    dc_mimepart_t;
+typedef struct _dc_mimeparser  dc_mimeparser_t;
 
 
-typedef struct dc_mimepart_t
+struct _dc_mimepart
 {
 	/** @privatesection */
 	int                 type; /*one of DC_MSG_* */
@@ -28,10 +30,10 @@ typedef struct dc_mimepart_t
 	int                 bytes;
 	dc_param_t*          param;
 
-} dc_mimepart_t;
+};
 
 
-typedef struct dc_mimeparser_t
+struct _dc_mimeparser
 {
 	/** @privatesection */
 
@@ -60,7 +62,7 @@ typedef struct dc_mimeparser_t
 
 	int                    is_system_message;
 
-} dc_mimeparser_t;
+};
 
 
 dc_mimeparser_t*  dc_mimeparser_new                    (const char* blobdir, dc_context_t*);

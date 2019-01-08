@@ -6,6 +6,7 @@ extern "C" {
 
 
 typedef struct sqlite3_stmt sqlite3_stmt;
+typedef struct _dc_key      dc_key_t;
 
 
 #define DC_KEY_PUBLIC  0
@@ -15,7 +16,7 @@ typedef struct sqlite3_stmt sqlite3_stmt;
 /**
  * Library-internal.
  */
-typedef struct dc_key_t
+struct _dc_key
 {
 	void*          binary;
 	int            bytes;
@@ -23,7 +24,7 @@ typedef struct dc_key_t
 
 	/** @privatesection */
 	int            _m_heap_refcnt; /* !=0 for objects created with dc_key_new(), 0 for stack objects  */
-} dc_key_t;
+};
 
 
 dc_key_t* dc_key_new                      ();

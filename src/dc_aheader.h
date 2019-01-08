@@ -8,15 +8,17 @@ extern "C" {
 #include "dc_key.h"
 
 
+typedef struct _dc_aheader dc_aheader_t;
+
 /**
  * Library-internal. Parse and create [Autocrypt-headers](https://autocrypt.org/en/latest/level1.html#the-autocrypt-header).
  */
-typedef struct dc_aheader_t
+struct _dc_aheader
 {
 	char*          addr;
 	dc_key_t*      public_key; /* != NULL */
 	int            prefer_encrypt; /* YES, NO or NOPREFERENCE if attribute is missing */
-} dc_aheader_t;
+};
 
 
 dc_aheader_t* dc_aheader_new               (); /* the returned pointer is ref'd and must be unref'd after usage */

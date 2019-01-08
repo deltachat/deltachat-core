@@ -8,7 +8,8 @@ extern "C" {
 #include "dc_key.h"
 
 
-typedef struct dc_aheader_t dc_aheader_t;
+typedef struct _dc_aheader    dc_aheader_t;
+typedef struct _dc_apeerstate dc_apeerstate_t;
 
 
 #define DC_PE_NOPREFERENCE   0 /* prefer-encrypt states */
@@ -19,7 +20,7 @@ typedef struct dc_aheader_t dc_aheader_t;
 /**
  * Library-internal.
  */
-typedef struct dc_apeerstate_t
+struct _dc_apeerstate
 {
 	/** @privatesection */
 	dc_context_t*  context;
@@ -51,7 +52,7 @@ typedef struct dc_apeerstate_t
 	#define        DC_DE_FINGERPRINT_CHANGED 0x02 // recoverable by a new verify
 	int            degrade_event;
 
-} dc_apeerstate_t;
+};
 
 
 dc_apeerstate_t* dc_apeerstate_new                  (dc_context_t*); /* the returned pointer is ref'd and must be unref'd after usage */

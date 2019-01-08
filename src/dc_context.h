@@ -26,12 +26,12 @@ extern "C" {
 #include "dc_jobthread.h"
 
 
-typedef struct dc_imap_t       dc_imap_t;
-typedef struct dc_smtp_t       dc_smtp_t;
-typedef struct dc_sqlite3_t    dc_sqlite3_t;
-typedef struct dc_job_t        dc_job_t;
-typedef struct dc_mimeparser_t dc_mimeparser_t;
-typedef struct dc_hash_t       dc_hash_t;
+typedef struct _dc_imap        dc_imap_t;
+typedef struct _dc_smtp        dc_smtp_t;
+typedef struct _dc_sqlite3     dc_sqlite3_t;
+typedef struct _dc_job         dc_job_t;
+typedef struct _dc_mimeparser  dc_mimeparser_t;
+typedef struct _dc_hash        dc_hash_t;
 
 
 /** Structure behind dc_context_t */
@@ -138,8 +138,11 @@ int             dc_is_mvbox          (dc_context_t*, const char* folder);
 #define DC_MVBOX_MOVE_DEFAULT     0
 
 
+typedef struct _dc_e2ee_helper dc_e2ee_helper_t;
+
+
 /* library private: end-to-end-encryption */
-typedef struct dc_e2ee_helper_t {
+struct _dc_e2ee_helper {
 	// encryption
 	int        encryption_successfull;
 	void*      cdata_to_free;
@@ -149,7 +152,7 @@ typedef struct dc_e2ee_helper_t {
 	dc_hash_t* signatures; // fingerprints of valid signatures
 	dc_hash_t* gossipped_addr;
 
-} dc_e2ee_helper_t;
+};
 
 void            dc_e2ee_encrypt      (dc_context_t*, const clist* recipients_addr, int force_plaintext, int e2ee_guaranteed, int min_verified, struct mailmime* in_out_message, dc_e2ee_helper_t*);
 void            dc_e2ee_decrypt      (dc_context_t*, struct mailmime* in_out_message, dc_e2ee_helper_t*); /* returns 1 if sth. was decrypted, 0 in other cases */

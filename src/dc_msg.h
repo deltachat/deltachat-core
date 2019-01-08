@@ -5,7 +5,7 @@ extern "C" {
 #endif
 
 
-typedef struct dc_param_t   dc_param_t;
+typedef struct _dc_param    dc_param_t;
 typedef struct sqlite3_stmt sqlite3_stmt;
 
 

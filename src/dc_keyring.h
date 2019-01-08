@@ -5,20 +5,21 @@ extern "C" {
 #endif
 
 
-typedef struct dc_key_t dc_key_t;
+typedef struct _dc_key     dc_key_t;
+typedef struct _dc_keyring dc_keyring_t;
 
 
 /**
  * Library-internal.
  */
-typedef struct dc_keyring_t
+struct _dc_keyring
 {
 	/** @privatesection */
 
 	dc_key_t** keys; /**< Keys in the keyring. Only pointers to keys, the caller is responsible for freeing them and should make sure, the pointers are valid as long as the keyring is valid. */
 	int        count;
 	int        allocated;
-} dc_keyring_t;
+};
 
 dc_keyring_t* dc_keyring_new  ();
 void          dc_keyring_unref();
