@@ -1092,7 +1092,7 @@ void dc_configure(dc_context_t* context)
 		return;
 	}
 
-	dc_job_kill_actions(context, DC_JOB_CONFIGURE_IMAP, 0);
+	dc_job_kill_action(context, DC_JOB_CONFIGURE_IMAP);
 	dc_job_add(context, DC_JOB_CONFIGURE_IMAP, 0, NULL, 0); // results in a call to dc_configure_job()
 }
 

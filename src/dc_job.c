@@ -487,16 +487,15 @@ void dc_job_try_again_later(dc_job_t* job, int try_again, const char* pending_er
 }
 
 
-void dc_job_kill_actions(dc_context_t* context, int action1, int action2)
+void dc_job_kill_action(dc_context_t* context, int action)
 {
 	if (context==NULL) {
 		return;
 	}
 
 	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->sql,
-		"DELETE FROM jobs WHERE action=? OR action=?;");
-	sqlite3_bind_int(stmt, 1, action1);
-	sqlite3_bind_int(stmt, 2, action2);
+		"DELETE FROM jobs WHERE action=?;");
+	sqlite3_bind_int(stmt, 1, action);
 	sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
 }
@@ -555,7 +554,7 @@ static void dc_job_perform(dc_context_t* context, int thread, int probe_network)
 		// - they may change the database handle change the database handle; we do not keep old pointers therefore
 		// - they can be re-executed one time AT_ONCE, but they are not save in the database for later execution
 		if (IS_EXCLUSIVE_JOB) {
-			dc_job_kill_actions(context, job.action, 0);
+			dc_job_kill_action(context, job.action);
 			sqlite3_finalize(select_stmt);
 			select_stmt = NULL;
 			dc_jobthread_suspend(&context->sentbox_thread, 1);
