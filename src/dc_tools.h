@@ -21,6 +21,8 @@ int     dc_exactly_one_bit_set     (int v);
 #define DC_EDITORIAL_OPEN          "["
 #define DC_EDITORIAL_CLOSE         "]"
 #define DC_EDITORIAL_ELLIPSE       DC_EDITORIAL_OPEN "..." DC_EDITORIAL_CLOSE
+#define DC_NDASH                   "\xE2\x80\x93"
+
 char*   dc_strdup                  (const char*); /* dc_strdup() returns empty string if NULL is given, never returns NULL (exits on errors) */
 char*   dc_strdup_keep_null        (const char*); /* strdup(NULL) is undefined, safe_strdup_keep_null(NULL) returns NULL in this case */
 int     dc_atoi_null_is_0          (const char*);

@@ -1561,7 +1561,6 @@ void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_termi
 				for (i = 0; i < icnt; i++) {
 					dc_mimepart_t* part = (dc_mimepart_t*)carray_get(mimeparser->parts, i);
 					if (part->type==DC_MSG_TEXT) {
-						#define DC_NDASH "\xE2\x80\x93"
 						char* new_txt = dc_mprintf("%s " DC_NDASH " %s", subj, part->msg);
 						free(part->msg);
 						part->msg = new_txt;

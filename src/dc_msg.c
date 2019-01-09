@@ -906,49 +906,62 @@ char* dc_msg_get_summarytext_by_raw(int type, const char* text, dc_param_t* para
 {
 	/* get a summary text, result must be free()'d, never returns NULL. */
 	char* ret = NULL;
+	char* prefix = NULL;
 	char* pathNfilename = NULL;
 	char* label = NULL;
 	char* value = NULL;
+	int   append_text = 1;
 
 	switch (type) {
 		case DC_MSG_IMAGE:
-			ret = dc_stock_str(context, DC_STR_IMAGE);
+			prefix = dc_stock_str(context, DC_STR_IMAGE);
 			break;
 
 		case DC_MSG_GIF:
-			ret = dc_stock_str(context, DC_STR_GIF);
+			prefix = dc_stock_str(context, DC_STR_GIF);
 			break;
 
 		case DC_MSG_VIDEO:
-			ret = dc_stock_str(context, DC_STR_VIDEO);
+			prefix = dc_stock_str(context, DC_STR_VIDEO);
 			break;
 
 		case DC_MSG_VOICE:
-			ret = dc_stock_str(context, DC_STR_VOICEMESSAGE);
+			prefix = dc_stock_str(context, DC_STR_VOICEMESSAGE);
 			break;
 
 		case DC_MSG_AUDIO:
 		case DC_MSG_FILE:
 			if (dc_param_get_int(param, DC_PARAM_CMD, 0)==DC_CMD_AUTOCRYPT_SETUP_MESSAGE) {
-				ret = dc_stock_str(context, DC_STR_AC_SETUP_MSG_SUBJECT);
+				prefix = dc_stock_str(context, DC_STR_AC_SETUP_MSG_SUBJECT);
+				append_text = 0;
 			}
 			else {
 				pathNfilename = dc_param_get(param, DC_PARAM_FILE, "ErrFilename");
 				value = dc_get_filename(pathNfilename);
 				label = dc_stock_str(context, type==DC_MSG_AUDIO? DC_STR_AUDIO : DC_STR_FILE);
-				ret = dc_mprintf("%s: %s", label, value);
+				prefix = dc_mprintf("%s " DC_NDASH " %s", label, value);
 			}
 			break;
 
 		default:
-			if (text) {
-				ret = dc_strdup(text);
-				dc_truncate_n_unwrap_str(ret, approx_characters, 1/*unwrap*/);
-			}
 			break;
 	}
 
+	if (append_text && prefix && text && text[0]) {
+		ret = dc_mprintf("%s " DC_NDASH " %s", prefix, text);
+		dc_truncate_n_unwrap_str(ret, approx_characters, 1/*unwrap*/);
+	}
+	else if (append_text && text && text[0]) {
+		ret = dc_strdup(text);
+		dc_truncate_n_unwrap_str(ret, approx_characters, 1/*unwrap*/);
+	}
+	else {
+		ret = prefix;
+		prefix = NULL;
+	}
+
 	/* cleanup */
+	free(prefix);
 	free(pathNfilename);
 	free(label);
 	free(value);
