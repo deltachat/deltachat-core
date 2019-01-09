@@ -8,6 +8,10 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes anywhere in the Delta Chat ecosystem,
 see https://delta.chat/en/changelog
 
+## PENDING
+
+* add dc_msg_get_sort_timestamp()
+
 ## v0.36.0
 
 * build improvements

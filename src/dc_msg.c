@@ -264,6 +264,29 @@ time_t dc_msg_get_received_timestamp(const dc_msg_t* msg)
 
 
 /**
+ * Get message time used for sorting.
+ * This function returns the timestamp that is used for sorting the message
+ * into lists as returned eg. by dc_get_chat_msgs().
+ * This may be the reveived time, the sending time or another time.
+ *
+ * To get the receiving time, use dc_msg_get_received_timestamp().
+ * To get the sending time, use dc_msg_get_timestamp().
+ *
+ * @memberof dc_msg_t
+ * @param msg The message object.
+ * @return Time used for ordering.
+ */
+time_t dc_msg_get_sort_timestamp(const dc_msg_t* msg)
+{
+	if (msg==NULL || msg->magic!=DC_MSG_MAGIC) {
+		return 0;
+	}
+
+	return msg->timestamp_sort;
+}
+
+
+/**
  * Get the text of the message.
  * If there is no text associated with the message, an empty string is returned.
  * NULL is never returned.
