@@ -57,6 +57,7 @@ int     clist_search_string_nocase (const clist*, const char* str);
 
 /* date/time tools */
 #define                    DC_INVALID_TIMESTAMP               (-1)
+#define                    DC_SECONDS_PER_DAY                 86400
 time_t                     dc_timestamp_from_date             (struct mailimf_date_time * date_time); /* the result is UTC or DC_INVALID_TIMESTAMP */
 char*                      dc_timestamp_to_str                (time_t); /* the return value must be free()'d */
 struct mailimap_date_time* dc_timestamp_to_mailimap_date_time (time_t);
