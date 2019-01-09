@@ -287,6 +287,31 @@ time_t dc_msg_get_sort_timestamp(const dc_msg_t* msg)
 
 
 /**
+ * Check if a message has a deviating timestamp.
+ * A message has a deviating timestamp
+ * when it is sent on another day as received/sorted by.
+ *
+ * When the UI displays normally only the time beside the message and the full day as headlines,
+ * the UI should display the full date directly beside the message if the timestamp is deviating.
+ *
+ * @memberof dc_msg_t
+ * @param msg The message object.
+ * @return 1=Timestamp is deviating, the UI should display the full date beside the message.
+ *     0=Timestamp is not deviating and belongs to the same date as the date headers,
+ *     displaying the time only is sufficient in this case.
+ */
+int dc_msg_has_deviating_timestamp(const dc_msg_t* msg)
+{
+	long   cnv_to_local = dc_gm2local_offset();
+
+	time_t sort_timestamp = dc_msg_get_sort_timestamp(msg) + cnv_to_local;
+	time_t send_timestamp = dc_msg_get_timestamp(msg) + cnv_to_local;
+
+	return (sort_timestamp/DC_SECONDS_PER_DAY != send_timestamp/DC_SECONDS_PER_DAY);
+}
+
+
+/**
  * Get the text of the message.
  * If there is no text associated with the message, an empty string is returned.
  * NULL is never returned.

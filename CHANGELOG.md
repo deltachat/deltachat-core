@@ -10,7 +10,7 @@ see https://delta.chat/en/changelog
 
 ## PENDING
 
-* add dc_msg_get_sort_timestamp()
+* add dc_msg_get_sort_timestamp() and dc_msg_has_deviating_timestamp()
 
 ## v0.36.0
 

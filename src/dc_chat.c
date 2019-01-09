@@ -1009,7 +1009,6 @@ dc_array_t* dc_get_chat_msgs(dc_context_t* context, uint32_t chat_id, uint32_t f
 	time_t        curr_local_timestamp;
 	int           curr_day, last_day = 0;
 	long          cnv_to_local = dc_gm2local_offset();
-	#define       SECONDS_PER_DAY 86400
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || ret==NULL) {
 		goto cleanup;
@@ -1064,7 +1063,7 @@ dc_array_t* dc_get_chat_msgs(dc_context_t* context, uint32_t chat_id, uint32_t f
 		/* add daymarker, if needed */
 		if (flags&DC_GCM_ADDDAYMARKER) {
 			curr_local_timestamp = (time_t)sqlite3_column_int64(stmt, 1) + cnv_to_local;
-			curr_day = curr_local_timestamp/SECONDS_PER_DAY;
+			curr_day = curr_local_timestamp/DC_SECONDS_PER_DAY;
 			if (curr_day!=last_day) {
 				dc_array_add_id(ret, DC_MSG_ID_DAYMARKER);
 				last_day = curr_day;
