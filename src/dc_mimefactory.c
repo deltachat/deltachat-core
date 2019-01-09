@@ -186,7 +186,7 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 
 			success = 1;
 			factory->loaded = DC_MF_MSG_LOADED;
-			factory->timestamp = factory->msg->timestamp;
+			factory->timestamp = factory->msg->timestamp_sort;
 			factory->rfc724_mid = dc_strdup(factory->msg->rfc724_mid);
 		}
 
@@ -306,7 +306,7 @@ static struct mailmime* build_body_file(const dc_msg_t* msg, const char* base_na
 	/* get file name to use for sending (for privacy purposes, we do not transfer the original filenames eg. for images; these names are normally not needed and contain timesamps, running numbers etc.) */
 	if (msg->type==DC_MSG_VOICE) {
 		struct tm wanted_struct;
-		memcpy(&wanted_struct, localtime(&msg->timestamp), sizeof(struct tm));
+		memcpy(&wanted_struct, localtime(&msg->timestamp_sort), sizeof(struct tm));
 		filename_to_send = dc_mprintf("voice-message_%04i-%02i-%02i_%02i-%02i-%02i.%s",
 			(int)wanted_struct.tm_year+1900, (int)wanted_struct.tm_mon+1, (int)wanted_struct.tm_mday,
 			(int)wanted_struct.tm_hour, (int)wanted_struct.tm_min, (int)wanted_struct.tm_sec,

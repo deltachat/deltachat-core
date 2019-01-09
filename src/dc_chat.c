@@ -991,7 +991,7 @@ cleanup:
  * @memberof dc_context_t
  * @param context The context object as returned from dc_context_new().
  * @param chat_id The chat ID of which the messages IDs should be queried.
- * @param flags If set to DC_GCM_ADD_DAY_MARKER, the marker DC_MSG_ID_DAYMARKER will
+ * @param flags If set to DC_GCM_ADDDAYMARKER, the marker DC_MSG_ID_DAYMARKER will
  *     be added before each day (regarding the local timezone).  Set this to 0 if you do not want this behaviour.
  * @param marker1before An optional message ID.  If set, the id DC_MSG_ID_MARKER1 will be added just
  *   before the given ID in the returned array.  Set this to 0 if you do not want this behaviour.

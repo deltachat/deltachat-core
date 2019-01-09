@@ -238,7 +238,7 @@ time_t dc_msg_get_timestamp(const dc_msg_t* msg)
 		return 0;
 	}
 
-	return msg->timestamp_sent? msg->timestamp_sent : msg->timestamp;
+	return msg->timestamp_sent? msg->timestamp_sent : msg->timestamp_sort;
 }
 
 
@@ -779,7 +779,7 @@ static int dc_msg_set_from_stmt(dc_msg_t* msg, sqlite3_stmt* row, int row_offset
 
 	msg->from_id      =           (uint32_t)sqlite3_column_int  (row, row_offset++);
 	msg->to_id        =           (uint32_t)sqlite3_column_int  (row, row_offset++);
-	msg->timestamp    =             (time_t)sqlite3_column_int64(row, row_offset++);
+	msg->timestamp_sort =           (time_t)sqlite3_column_int64(row, row_offset++);
 	msg->timestamp_sent =           (time_t)sqlite3_column_int64(row, row_offset++);
 	msg->timestamp_rcvd =           (time_t)sqlite3_column_int64(row, row_offset++);
 
@@ -1446,7 +1446,7 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 
 	if (msg->from_id!=DC_CONTACT_ID_SELF) {
 		dc_strbuilder_cat(&ret, "Received: ");
-		p = dc_timestamp_to_str(msg->timestamp_rcvd? msg->timestamp_rcvd : msg->timestamp); dc_strbuilder_cat(&ret, p); free(p);
+		p = dc_timestamp_to_str(msg->timestamp_rcvd? msg->timestamp_rcvd : msg->timestamp_sort); dc_strbuilder_cat(&ret, p); free(p);
 		dc_strbuilder_cat(&ret, "\n");
 	}
 

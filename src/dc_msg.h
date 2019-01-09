@@ -57,7 +57,7 @@ struct _dc_msg
 
 	int             hidden;                 /**< Used eg. for handshaking messages. */
 
-	time_t          timestamp;              /**< Unix time for sorting. 0 if unset. */
+	time_t          timestamp_sort;         /**< Unix time for sorting. 0 if unset. */
 	time_t          timestamp_sent;         /**< Unix time the message was sent. 0 if unset. */
 	time_t          timestamp_rcvd;         /**< Unix time the message was recveived. 0 if unset. */
 
