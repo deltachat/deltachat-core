@@ -282,19 +282,21 @@ static void end_bobs_joining(dc_context_t* context, int status)
 
 /**
  * Get QR code text that will offer an secure-join verification.
- * The QR code is compatible to the OPENPGP4FPR format so that a basic
- * fingerprint comparison also works eg. with K-9 or OpenKeychain.
+ * The QR code is compatible to the OPENPGP4FPR format
+ * so that a basic fingerprint comparison also works eg. with OpenKeychain.
  *
- * The scanning Delta Chat device will pass the scanned content to
- * dc_check_qr() then; if this function returns
- * DC_QR_ASK_VERIFYCONTACT or DC_QR_ASK_VERIFYGROUP an out-of-band-verification
- * can be joined using dc_join_securejoin()
+ * The scanning device will pass the scanned content to dc_check_qr() then;
+ * if this function returns DC_QR_ASK_VERIFYCONTACT or DC_QR_ASK_VERIFYGROUP
+ * an out-of-band-verification can be joined using dc_join_securejoin()
  *
  * @memberof dc_context_t
  * @param context The context object.
- * @param group_chat_id If set to the ID of a chat, the "Joining a verified group" protocol is offered in the QR code.
- *     If set to 0, the "Setup Verified Contact" protocol is offered in the QR code.
- * @return Text that should go to the QR code, on problems, an empty QR code is returned.
+ * @param group_chat_id If set to a group-chat-id,
+ *     the group-join-protocol is offered in the QR code;
+ *     works for verified groups as well as for normal groups.
+ *     If set to 0, the setup-Verified-contact-protocol is offered in the QR code.
+ * @return Text that should go to the QR code,
+ *     On errors, an empty QR code is returned, NULL is never returned.
  *     The returned string must be free()'d after usage.
  */
 char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
@@ -353,8 +355,8 @@ char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
 	{
 		// parameters used: a=g=x=i=s=
 		chat = dc_get_chat(context, group_chat_id);
-		if (chat==NULL || chat->type!=DC_CHAT_TYPE_VERIFIED_GROUP) {
-			dc_log_error(context, 0, "Secure join is only available for verified groups.");
+		if (chat==NULL) {
+			dc_log_error(context, 0, "Cannot get QR-code for chat-id %i", group_chat_id);
 			goto cleanup;
 		}
 		group_name = dc_chat_get_name(chat);
@@ -664,14 +666,13 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 		if (join_vg) {
 			// the vg-member-added message is special: this is a normal Chat-Group-Member-Added message with an additional Secure-Join header
 			grpid = dc_strdup(lookup_field(mimeparser, "Secure-Join-Group"));
-			int is_verified = 0;
-			uint32_t verified_chat_id = dc_get_chat_id_by_grpid(context, grpid, NULL, &is_verified);
-			if (verified_chat_id==0 || !is_verified) {
-				dc_log_error(context, 0, "Verified chat not found.");
+			uint32_t group_chat_id = dc_get_chat_id_by_grpid(context, grpid, NULL, NULL);
+			if (group_chat_id==0) {
+				dc_log_error(context, 0, "Chat %s not found.", grpid);
 				goto cleanup;
 			}
 
-			dc_add_contact_to_chat_ex(context, verified_chat_id, contact_id, DC_FROM_HANDSHAKE); // Alice -> Bob and all members
+			dc_add_contact_to_chat_ex(context, group_chat_id, contact_id, DC_FROM_HANDSHAKE); // Alice -> Bob and all members
 		}
 		else {
 			send_handshake_msg(context, contact_chat_id, "vc-contact-confirm",
@@ -702,12 +703,30 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 				goto cleanup;
 			}
 			scanned_fingerprint_of_alice = dc_strdup(context->bobs_qr_scan->fingerprint);
+			if (join_vg) {
+				grpid = dc_strdup(context->bobs_qr_scan->text2);
+			}
 		UNLOCK_QR
 
-		if (!encrypted_and_signed(mimeparser, scanned_fingerprint_of_alice)) {
-			could_not_establish_secure_connection(context, contact_chat_id, "Contact confirm message not encrypted.");
-			end_bobs_joining(context, DC_BOB_ERROR);
-			goto cleanup;
+		int vg_expect_encrypted = 1;
+		if (join_vg) {
+			int is_verified_group = 0;
+			dc_get_chat_id_by_grpid(context, grpid, NULL, &is_verified_group);
+			if (!is_verified_group) {
+				// when joining a normal group after verification,
+				// the vg-member-added message may be unencrypted
+				// when not all group members have keys or prefer encryption.
+				// this does not affect the contact verification as such.
+				vg_expect_encrypted = 0;
+			}
+		}
+
+		if (vg_expect_encrypted) {
+			if (!encrypted_and_signed(mimeparser, scanned_fingerprint_of_alice)) {
+				could_not_establish_secure_connection(context, contact_chat_id, "Contact confirm message not encrypted.");
+				end_bobs_joining(context, DC_BOB_ERROR);
+				goto cleanup;
+			}
 		}
 
 		if (!mark_peer_as_verified(context, scanned_fingerprint_of_alice)) {
