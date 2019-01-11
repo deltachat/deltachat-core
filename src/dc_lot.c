@@ -188,7 +188,7 @@ void dc_lot_fill(dc_lot_t* lot, const dc_msg_t* msg, const dc_chat_t* chat, cons
 	}
 	else if (msg->from_id==DC_CONTACT_ID_SELF)
 	{
-		if (dc_msg_is_info(msg)) {
+		if (dc_msg_is_info(msg) || dc_chat_is_self_talk(chat)) {
 			lot->text1 = NULL;
 			lot->text1_meaning = 0;
 		}
