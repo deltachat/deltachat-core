@@ -1,4 +1,6 @@
 #include <assert.h>
+#include <dirent.h>
+#include <sys/stat.h>
 #include "dc_context.h"
 #include "dc_apeerstate.h"
 
@@ -783,4 +785,135 @@ void dc_sqlite3_commit(dc_sqlite3_t* sql)
 	}
 	sqlite3_finalize(stmt);
 #endif
+}
+
+
+/*******************************************************************************
+ * Housekeeping
+ ******************************************************************************/
+
+
+static void maybe_add_file(dc_hash_t* files_in_use, const char* file)
+{
+	#define PREFIX     "$BLOBDIR/"
+	#define PREFIX_LEN 9
+	if (strncmp(file, PREFIX, PREFIX_LEN)!=0) {
+		return;
+	}
+
+	const char* raw_name = &file[PREFIX_LEN];
+    dc_hash_insert_str(files_in_use, raw_name, (void*)1);
+}
+
+
+static void maybe_add_from_param(dc_context_t* context, dc_hash_t* files_in_use,
+	                             const char* query, int param_id)
+{
+	dc_param_t*   param = dc_param_new();
+
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->sql, query);
+	while (sqlite3_step(stmt)==SQLITE_ROW)
+	{
+		dc_param_set_packed(param, (const char*)sqlite3_column_text(stmt, 0));
+		char* file = dc_param_get(param, param_id, NULL);
+		if (file!=NULL) {
+			maybe_add_file(files_in_use, file);
+			free(file);
+		}
+	}
+
+	sqlite3_finalize(stmt);
+	dc_param_unref(param);
+}
+
+
+static int is_file_in_use(dc_hash_t* files_in_use, const char* namespc, const char* name)
+{
+	char* name_to_check = dc_strdup(name);
+
+	if (namespc) {
+		int name_len = strlen(name);
+		int namespc_len = strlen(namespc);
+		if (name_len<=namespc_len
+		 || strcmp(&name[name_len-namespc_len], namespc)!=0) {
+			return 0;
+		}
+		name_to_check[name_len-namespc_len] = 0;
+	}
+
+	int ret = (dc_hash_find_str(files_in_use, name_to_check)!=NULL);
+
+	free(name_to_check);
+	return ret;
+}
+
+void dc_housekeeping(dc_context_t* context)
+{
+	sqlite3_stmt*  stmt = NULL;
+	DIR*           dir_handle = NULL;
+	struct dirent* dir_entry = NULL;
+	dc_hash_t      files_in_use;
+	int            unreferenced_count = 0;
+	dc_hash_init(&files_in_use, DC_HASH_STRING, DC_HASH_COPY_KEY);
+
+	dc_log_info(context, 0, "Start housekeeping...");
+
+	/* collect all files in use */
+	maybe_add_from_param(context, &files_in_use,
+		"SELECT param FROM msgs WHERE type!=" DC_STRINGIFY(DC_MSG_TEXT) ";",
+		DC_PARAM_FILE);
+
+	maybe_add_from_param(context, &files_in_use,
+		"SELECT param FROM chats;",
+		DC_PARAM_PROFILE_IMAGE);
+
+	maybe_add_from_param(context, &files_in_use,
+		"SELECT param FROM contacts;",
+		DC_PARAM_PROFILE_IMAGE);
+
+	stmt = dc_sqlite3_prepare(context->sql,
+		"SELECT value FROM config;");
+	while (sqlite3_step(stmt)==SQLITE_ROW) {
+		maybe_add_file(&files_in_use, (const char*)sqlite3_column_text(stmt, 0));
+	}
+
+	dc_log_info(context, 0, "%i files in use.", (int)dc_hash_cnt(&files_in_use));
+
+	/* go through directory and delete unused files */
+	if ((dir_handle=opendir(context->blobdir))==NULL) {
+		dc_log_warning(context, 0, "Housekeeping: Cannot open %s.", context->blobdir);
+		goto cleanup;
+	}
+
+	while ((dir_entry=readdir(dir_handle))!=NULL)
+	{
+		const char* name = dir_entry->d_name; /* name without path or `.` or `..` */
+		int name_len = strlen(name);
+		if ((name_len==1 && name[0]=='.')
+		 || (name_len==2 && name[0]=='.' && name[1]=='.')) {
+			continue;
+		}
+
+        if (is_file_in_use(&files_in_use, NULL, name)
+         || is_file_in_use(&files_in_use, ".increation", name)
+         || is_file_in_use(&files_in_use, ".waveform", name)
+         || is_file_in_use(&files_in_use, "-preview.jpg", name)) {
+			continue;
+        }
+
+		unreferenced_count++;
+
+		dc_log_info(context, 0, "Housekeeping: Deleting unreferenced file #%i: %s",
+			unreferenced_count, name);
+
+		char* path = dc_mprintf("$BLOBDIR/%s", name);
+		dc_delete_file(context, path);
+		free(path);
+	}
+
+cleanup:
+	if (dir_handle) { closedir(dir_handle); }
+	sqlite3_finalize(stmt);
+	dc_hash_clear(&files_in_use);
+	dc_log_info(context, 0, "Housekeeping done.");
 }
