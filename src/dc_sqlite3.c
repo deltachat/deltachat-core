@@ -853,6 +853,7 @@ void dc_housekeeping(dc_context_t* context)
 	DIR*           dir_handle = NULL;
 	struct dirent* dir_entry = NULL;
 	dc_hash_t      files_in_use;
+	char*          path = NULL;
 	int            unreferenced_count = 0;
 	dc_hash_init(&files_in_use, DC_HASH_STRING, DC_HASH_COPY_KEY);
 
@@ -885,6 +886,9 @@ void dc_housekeeping(dc_context_t* context)
 		goto cleanup;
 	}
 
+	/* avoid deletion of files that are just created to build a message object */
+	time_t keep_files_newer_than = time(NULL) - 60*60;
+
 	while ((dir_entry=readdir(dir_handle))!=NULL)
 	{
 		const char* name = dir_entry->d_name; /* name without path or `.` or `..` */
@@ -903,17 +907,32 @@ void dc_housekeeping(dc_context_t* context)
 
 		unreferenced_count++;
 
-		dc_log_info(context, 0, "Housekeeping: Deleting unreferenced file #%i: %s",
+		free(path);
+		path = dc_mprintf("%s/%s", context->blobdir, name);
+
+		struct stat st;
+		if (stat(path, &st)==0) {
+			if (st.st_mtime > keep_files_newer_than
+			 || st.st_atime > keep_files_newer_than
+			 || st.st_ctime > keep_files_newer_than) {
+				dc_log_info(context, 0,
+					"Housekeeping: Keeping new unreferenced file #%i: %s",
+					unreferenced_count, name);
+				continue;
+			}
+		}
+
+		dc_log_info(context, 0,
+			"Housekeeping: Deleting unreferenced file #%i: %s",
 			unreferenced_count, name);
 
-		char* path = dc_mprintf("$BLOBDIR/%s", name);
 		dc_delete_file(context, path);
-		free(path);
 	}
 
 cleanup:
 	if (dir_handle) { closedir(dir_handle); }
 	sqlite3_finalize(stmt);
 	dc_hash_clear(&files_in_use);
+	free(path);
 	dc_log_info(context, 0, "Housekeeping done.");
 }
