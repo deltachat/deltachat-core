@@ -54,6 +54,7 @@ void          dc_sqlite3_commit           (dc_sqlite3_t*);
 void          dc_sqlite3_rollback         (dc_sqlite3_t*);
 
 /* housekeeping */
+#define       DC_HOUSEKEEPING_DELAY_SEC   10
 void          dc_housekeeping             (dc_context_t*);
 
 

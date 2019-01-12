@@ -1758,6 +1758,9 @@ void dc_delete_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt)
 
 	if (msg_cnt) {
 		context->cb(context, DC_EVENT_MSGS_CHANGED, 0, 0);
+
+		dc_job_kill_action(context, DC_JOB_HOUSEKEEPING);
+		dc_job_add(context, DC_JOB_HOUSEKEEPING, 0, NULL, DC_HOUSEKEEPING_DELAY_SEC);
 	}
 }
 

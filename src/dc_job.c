@@ -575,6 +575,7 @@ static void dc_job_perform(dc_context_t* context, int thread, int probe_network)
 				case DC_JOB_SEND_MDN:             dc_job_do_DC_JOB_SEND_MDN             (context, &job); break;
 				case DC_JOB_CONFIGURE_IMAP:       dc_job_do_DC_JOB_CONFIGURE_IMAP       (context, &job); break;
 				case DC_JOB_IMEX_IMAP:            dc_job_do_DC_JOB_IMEX_IMAP            (context, &job); break;
+				case DC_JOB_HOUSEKEEPING:         dc_housekeeping                       (context);       break;
 			}
 
 			if (job.try_again!=DC_AT_ONCE) {

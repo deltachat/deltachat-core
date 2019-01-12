@@ -861,7 +861,9 @@ void dc_housekeeping(dc_context_t* context)
 
 	/* collect all files in use */
 	maybe_add_from_param(context, &files_in_use,
-		"SELECT param FROM msgs WHERE type!=" DC_STRINGIFY(DC_MSG_TEXT) ";",
+		"SELECT param FROM msgs "
+		" WHERE chat_id!=" DC_STRINGIFY(DC_CHAT_ID_TRASH)
+		"   AND type!=" DC_STRINGIFY(DC_MSG_TEXT) ";",
 		DC_PARAM_FILE);
 
 	maybe_add_from_param(context, &files_in_use,
