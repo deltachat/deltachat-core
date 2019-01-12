@@ -900,12 +900,12 @@ void dc_housekeeping(dc_context_t* context)
 			continue;
 		}
 
-        if (is_file_in_use(&files_in_use, NULL, name)
-         || is_file_in_use(&files_in_use, ".increation", name)
-         || is_file_in_use(&files_in_use, ".waveform", name)
-         || is_file_in_use(&files_in_use, "-preview.jpg", name)) {
+		if (is_file_in_use(&files_in_use, NULL, name)
+		 || is_file_in_use(&files_in_use, ".increation", name)
+		 || is_file_in_use(&files_in_use, ".waveform", name)
+		 || is_file_in_use(&files_in_use, "-preview.jpg", name)) {
 			continue;
-        }
+		}
 
 		unreferenced_count++;
 
