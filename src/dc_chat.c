@@ -2609,8 +2609,9 @@ void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt
 				dc_param_set_int(msg->param, DC_PARAM_FORWARDED, 1);
 			}
 
-			dc_param_set    (msg->param, DC_PARAM_GUARANTEE_E2EE, NULL);
-			dc_param_set    (msg->param, DC_PARAM_FORCE_PLAINTEXT, NULL);
+			dc_param_set(msg->param, DC_PARAM_GUARANTEE_E2EE, NULL);
+			dc_param_set(msg->param, DC_PARAM_FORCE_PLAINTEXT, NULL);
+			dc_param_set(msg->param, DC_PARAM_CMD, NULL);
 
 			uint32_t new_msg_id = send_msg_raw(context, chat, msg, curr_timestamp++);
 			carray_add(created_db_entries, (void*)(uintptr_t)chat_id, NULL);
