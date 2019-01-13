@@ -859,6 +859,12 @@ static int export_backup(dc_context_t* context, const char* dir)
 		}
 	}
 
+	/* delete unreferenced files before export */
+	dc_housekeeping(context);
+
+	/* vacuum before export; this fixed failed vacuum's on previous import */
+	dc_sqlite3_execute(context->sql, "VACUUM;");
+
 	/* temporary lock and close the source (we just make a copy of the whole file, this is the fastest and easiest approach) */
 	dc_sqlite3_close(context->sql);
 	closed = 1;
