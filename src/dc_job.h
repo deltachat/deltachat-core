@@ -11,7 +11,8 @@ extern "C" {
 
 
 // jobs in the INBOX-thread
-#define DC_JOB_DELETE_MSG_ON_IMAP     110    // low priority ...
+#define DC_JOB_HOUSEKEEPING           105    // low priority ...
+#define DC_JOB_DELETE_MSG_ON_IMAP     110
 #define DC_JOB_MARKSEEN_MDN_ON_IMAP   120
 #define DC_JOB_MARKSEEN_MSG_ON_IMAP   130
 #define DC_JOB_MOVE_MSG               200

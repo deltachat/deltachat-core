@@ -1585,6 +1585,9 @@ void dc_delete_chat(dc_context_t* context, uint32_t chat_id)
 
 	context->cb(context, DC_EVENT_MSGS_CHANGED, 0, 0);
 
+	dc_job_kill_action(context, DC_JOB_HOUSEKEEPING);
+	dc_job_add(context, DC_JOB_HOUSEKEEPING, 0, NULL, DC_HOUSEKEEPING_DELAY_SEC);
+
 cleanup:
 	if (pending_transaction) { dc_sqlite3_rollback(context->sql); }
 	dc_chat_unref(obj);

@@ -8,6 +8,7 @@ your library */
 #include "../src/dc_apeerstate.h"
 #include "../src/dc_key.h"
 #include "../src/dc_pgp.h"
+#include "../src/dc_sqlite3.h"
 
 
 
@@ -419,6 +420,7 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 				"connect\n"
 				"disconnect\n"
 				"maybenetwork\n"
+				"housekeeping\n"
 				"help imex (Import/Export)\n"
 				"==============================Chat commands==\n"
 				"listchats [<query>]\n"
@@ -649,6 +651,11 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 	else if (strcmp(cmd, "maybenetwork")==0)
 	{
 		dc_maybe_network(context);
+		ret = COMMAND_SUCCEEDED;
+	}
+	else if (strcmp(cmd, "housekeeping")==0)
+	{
+		dc_housekeeping(context);
 		ret = COMMAND_SUCCEEDED;
 	}
 
