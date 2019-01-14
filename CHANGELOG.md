@@ -8,6 +8,10 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes anywhere in the Delta Chat ecosystem,
 see https://delta.chat/en/changelog
 
+## v0.38.0
+
+* enable sentbox_watch, mvbox_watch and mvbox_move by default
+
 ## v0.37.0
 
 * join normal groups via qr-code
