@@ -8,9 +8,13 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes anywhere in the Delta Chat ecosystem,
 see https://delta.chat/en/changelog
 
-## PENDING
+## v0.37.0
 
+* join normal groups via qr-code
 * add dc_msg_get_sort_timestamp() and dc_msg_has_deviating_timestamp()
+* improved internal housekeeping
+
+The changes have been done by Björn Petersen and Holger Krekel
 
 ## v0.36.0
 
