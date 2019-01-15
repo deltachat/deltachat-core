@@ -37,6 +37,9 @@ static char* default_string(int id)
 		case DC_STR_READRCPT_MAILBODY:     return dc_strdup("This is a return receipt for the message \"%1$s\".");
 		case DC_STR_MSGGRPIMGDELETED:      return dc_strdup("Group image deleted.");
 		case DC_STR_E2E_PREFERRED:         return dc_strdup("End-to-end encryption preferred.");
+		case DC_STR_CONTACT_VERIFIED:      return dc_strdup("%1$s verified.");
+		case DC_STR_CONTACT_NOT_VERIFIED:  return dc_strdup("Cannot verifiy %1$s");
+		case DC_STR_CONTACT_SETUP_CHANGED: return dc_strdup("Changed setup for %1$s");
 		case DC_STR_ARCHIVEDCHATS:         return dc_strdup("Archived chats");
 		case DC_STR_STARREDMSGS:           return dc_strdup("Starred messages");
 		case DC_STR_AC_SETUP_MSG_SUBJECT:  return dc_strdup("Autocrypt Setup Message");

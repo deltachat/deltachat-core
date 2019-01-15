@@ -1130,6 +1130,9 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 #define DC_STR_READRCPT_MAILBODY          32
 #define DC_STR_MSGGRPIMGDELETED           33
 #define DC_STR_E2E_PREFERRED              34
+#define DC_STR_CONTACT_VERIFIED           35
+#define DC_STR_CONTACT_NOT_VERIFIED       36
+#define DC_STR_CONTACT_SETUP_CHANGED      37
 #define DC_STR_ARCHIVEDCHATS              40
 #define DC_STR_STARREDMSGS                41
 #define DC_STR_AC_SETUP_MSG_SUBJECT       42

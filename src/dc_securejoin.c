@@ -50,7 +50,7 @@ void dc_handle_degrade_event(dc_context_t* context, dc_apeerstate_t* peerstate)
 
 		dc_create_or_lookup_nchat_by_contact_id(context, contact_id, DC_CHAT_DEADDROP_BLOCKED, &contact_chat_id, NULL);
 
-		char* msg = dc_mprintf("Changed setup for %s", peerstate->addr);
+		char* msg = dc_stock_str_repl_string(context, DC_STR_CONTACT_SETUP_CHANGED, peerstate->addr);
 		dc_add_device_msg(context, contact_chat_id, msg);
 		free(msg);
 		context->cb(context, DC_EVENT_CHAT_MODIFIED, contact_chat_id, 0);
@@ -241,7 +241,7 @@ static void could_not_establish_secure_connection(dc_context_t* context, uint32_
 {
 	uint32_t      contact_id = chat_id_2_contact_id(context, contact_chat_id);
 	dc_contact_t* contact = dc_get_contact(context, contact_id);
-	char*         msg = dc_mprintf("Could not establish secure connection to %s.", contact? contact->addr : "?");
+	char*         msg = dc_stock_str_repl_string(context, DC_STR_CONTACT_NOT_VERIFIED, contact? contact->addr : "?");
 
 	dc_add_device_msg(context, contact_chat_id, msg);
 
@@ -256,7 +256,7 @@ static void secure_connection_established(dc_context_t* context, uint32_t contac
 {
 	uint32_t      contact_id = chat_id_2_contact_id(context, contact_chat_id);
 	dc_contact_t* contact = dc_get_contact(context, contact_id);
-	char*         msg = dc_mprintf("Secure connection to %s established.", contact? contact->addr : "?");
+	char*         msg = dc_stock_str_repl_string(context, DC_STR_CONTACT_VERIFIED, contact? contact->addr : "?");
 
 	dc_add_device_msg(context, contact_chat_id, msg);
 
