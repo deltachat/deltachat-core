@@ -28,7 +28,7 @@ static char* default_string(int id)
 		case DC_STR_MSGGRPIMGCHANGED:      return dc_strdup("Group image changed.");
 		case DC_STR_MSGADDMEMBER:          return dc_strdup("Member %1$s added.");
 		case DC_STR_MSGDELMEMBER:          return dc_strdup("Member %1$s removed.");
-		case DC_STR_MSGGROUPLEFT:          return dc_strdup("Member %1$s left this group.");
+		case DC_STR_MSGGROUPLEFT:          return dc_strdup("Group left.");
 		case DC_STR_MSGACTIONBYUSER:       return dc_strdup("%1$s by %2$s.");
 		case DC_STR_MSGACTIONBYME:         return dc_strdup("%1$s by me.");
 		case DC_STR_E2E_AVAILABLE:         return dc_strdup("End-to-end encryption available.");
@@ -117,8 +117,7 @@ char* dc_stock_system_msg(dc_context_t* context, int str_id,
 
 	/* if the first parameter is an email-address,
 	expand it to name+address */
-	if (str_id==DC_STR_MSGADDMEMBER || str_id==DC_STR_MSGDELMEMBER
-	 || str_id==DC_STR_MSGGROUPLEFT) {
+	if (str_id==DC_STR_MSGADDMEMBER || str_id==DC_STR_MSGDELMEMBER) {
 		uint32_t mod_contact_id = dc_lookup_contact_id_by_addr(context, param1);
 		if (mod_contact_id!=0) {
 			mod_contact = dc_get_contact(context, mod_contact_id);
@@ -131,7 +130,7 @@ char* dc_stock_system_msg(dc_context_t* context, int str_id,
 		str_id,
 		param1, param2);
 
-	if (from_id && str_id!=DC_STR_MSGGROUPLEFT)
+	if (from_id)
 	{
 		// to simplify building of sentencens in some languages,
 		// remove the full-stop from the action string

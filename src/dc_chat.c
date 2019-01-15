@@ -2068,7 +2068,7 @@ int dc_remove_contact_from_chat(dc_context_t* context, uint32_t chat_id, uint32_
 			msg->type = DC_MSG_TEXT;
 			if (contact->id==DC_CONTACT_ID_SELF) {
 				dc_set_group_explicitly_left(context, chat->grpid);
-				msg->text = dc_stock_system_msg(context, DC_STR_MSGGROUPLEFT, contact->addr, NULL, DC_CONTACT_ID_SELF);
+				msg->text = dc_stock_system_msg(context, DC_STR_MSGGROUPLEFT, NULL, NULL, DC_CONTACT_ID_SELF);
 			}
 			else {
 				msg->text = dc_stock_system_msg(context, DC_STR_MSGDELMEMBER, contact->addr, NULL, DC_CONTACT_ID_SELF);
