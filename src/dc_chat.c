@@ -1780,7 +1780,7 @@ int dc_set_chat_name(dc_context_t* context, uint32_t chat_id, const char* new_na
 	if (DO_SEND_STATUS_MAILS)
 	{
 		msg->type = DC_MSG_TEXT;
-		msg->text = dc_stock_str_repl_string2(context, DC_STR_MSGGRPNAME, chat->name, new_name);
+		msg->text = dc_stock_system_msg(context, DC_STR_MSGGRPNAME, chat->name, new_name, DC_CONTACT_ID_SELF);
 		dc_param_set_int(msg->param, DC_PARAM_CMD,     DC_CMD_GROUPNAME_CHANGED);
 		dc_param_set    (msg->param, DC_PARAM_CMD_ARG, chat->name);
 		msg->id = dc_send_msg(context, chat_id, msg);
@@ -1855,7 +1855,7 @@ int dc_set_chat_profile_image(dc_context_t* context, uint32_t chat_id, const cha
 		dc_param_set_int(msg->param, DC_PARAM_CMD,     DC_CMD_GROUPIMAGE_CHANGED);
 		dc_param_set    (msg->param, DC_PARAM_CMD_ARG, new_image_rel);
 		msg->type = DC_MSG_TEXT;
-		msg->text = dc_stock_str(context, new_image_rel? DC_STR_MSGGRPIMGCHANGED : DC_STR_MSGGRPIMGDELETED);
+		msg->text = dc_stock_system_msg(context, new_image_rel? DC_STR_MSGGRPIMGCHANGED : DC_STR_MSGGRPIMGDELETED, NULL, NULL, DC_CONTACT_ID_SELF);
 		msg->id = dc_send_msg(context, chat_id, msg);
 		context->cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg->id);
 	}
@@ -1980,7 +1980,7 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 	if (DO_SEND_STATUS_MAILS)
 	{
 		msg->type = DC_MSG_TEXT;
-		msg->text = dc_stock_str_repl_string(context, DC_STR_MSGADDMEMBER, (contact->authname&&contact->authname[0])? contact->authname : contact->addr);
+		msg->text = dc_stock_system_msg(context, DC_STR_MSGADDMEMBER, contact->addr, NULL, DC_CONTACT_ID_SELF);
 		dc_param_set_int(msg->param, DC_PARAM_CMD,      DC_CMD_MEMBER_ADDED_TO_GROUP);
 		dc_param_set    (msg->param, DC_PARAM_CMD_ARG,  contact->addr);
 		dc_param_set_int(msg->param, DC_PARAM_CMD_ARG2, flags); // combine the Secure-Join protocol headers with the Chat-Group-Member-Added header
@@ -2068,10 +2068,10 @@ int dc_remove_contact_from_chat(dc_context_t* context, uint32_t chat_id, uint32_
 			msg->type = DC_MSG_TEXT;
 			if (contact->id==DC_CONTACT_ID_SELF) {
 				dc_set_group_explicitly_left(context, chat->grpid);
-				msg->text = dc_stock_str(context, DC_STR_MSGGROUPLEFT);
+				msg->text = dc_stock_system_msg(context, DC_STR_MSGGROUPLEFT, contact->addr, NULL, DC_CONTACT_ID_SELF);
 			}
 			else {
-				msg->text = dc_stock_str_repl_string(context, DC_STR_MSGDELMEMBER, (contact->authname&&contact->authname[0])? contact->authname : contact->addr);
+				msg->text = dc_stock_system_msg(context, DC_STR_MSGDELMEMBER, contact->addr, NULL, DC_CONTACT_ID_SELF);
 			}
 			dc_param_set_int(msg->param, DC_PARAM_CMD,       DC_CMD_MEMBER_REMOVED_FROM_GROUP);
 			dc_param_set    (msg->param, DC_PARAM_CMD_ARG, contact->addr);

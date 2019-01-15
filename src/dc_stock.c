@@ -28,7 +28,9 @@ static char* default_string(int id)
 		case DC_STR_MSGGRPIMGCHANGED:      return dc_strdup("Group image changed.");
 		case DC_STR_MSGADDMEMBER:          return dc_strdup("Member %1$s added.");
 		case DC_STR_MSGDELMEMBER:          return dc_strdup("Member %1$s removed.");
-		case DC_STR_MSGGROUPLEFT:          return dc_strdup("Left group.");
+		case DC_STR_MSGGROUPLEFT:          return dc_strdup("Member %1$s left this group.");
+		case DC_STR_MSGACTIONBYUSER:       return dc_strdup("%1$s by %2$s.");
+		case DC_STR_MSGACTIONBYME:         return dc_strdup("%1$s by me.");
 		case DC_STR_E2E_AVAILABLE:         return dc_strdup("End-to-end encryption available.");
 		case DC_STR_ENCR_TRANSP:           return dc_strdup("Transport-encryption.");
 		case DC_STR_ENCR_NONE:             return dc_strdup("No encryption.");
@@ -99,5 +101,59 @@ char* dc_stock_str_repl_string2(dc_context_t* context, int id, const char* to_in
 	dc_str_replace(&ret, "%1$d", to_insert);
 	dc_str_replace(&ret, "%2$s", to_insert2);
 	dc_str_replace(&ret, "%2$d", to_insert2);
+	return ret;
+}
+
+
+char* dc_stock_system_msg(dc_context_t* context, int str_id,
+                          const char* param1, const char* param2,
+                          uint32_t from_id)
+{
+	char*         ret = NULL;
+	dc_contact_t* mod_contact = NULL;
+	char*         mod_displayname = NULL;
+	dc_contact_t* from_contact = NULL;
+	char*         from_displayname = NULL;
+
+	/* if the first parameter is an email-address,
+	expand it to name+address */
+	if (str_id==DC_STR_MSGADDMEMBER || str_id==DC_STR_MSGDELMEMBER
+	 || str_id==DC_STR_MSGGROUPLEFT) {
+		uint32_t mod_contact_id = dc_lookup_contact_id_by_addr(context, param1);
+		if (mod_contact_id!=0) {
+			mod_contact = dc_get_contact(context, mod_contact_id);
+			mod_displayname = dc_contact_get_name_n_addr(mod_contact);
+			param1 = mod_displayname;
+		}
+	}
+
+	char* action = dc_stock_str_repl_string2(context,
+		str_id,
+		param1, param2);
+
+	if (from_id && str_id!=DC_STR_MSGGROUPLEFT)
+	{
+		// to simplify building of sentencens in some languages,
+		// remove the full-stop from the action string
+		if (strlen(action) && action[strlen(action)-1]=='.') {
+			action[strlen(action)-1] = 0;
+		}
+
+		from_contact = dc_get_contact(context, from_id);
+		from_displayname = dc_contact_get_display_name(from_contact);
+		ret = dc_stock_str_repl_string2(context,
+			from_id==DC_CONTACT_ID_SELF? DC_STR_MSGACTIONBYME : DC_STR_MSGACTIONBYUSER,
+			action, from_displayname);
+	}
+	else
+	{
+		ret = dc_strdup(action);
+	}
+
+	free(action);
+	free(from_displayname);
+	free(mod_displayname);
+	dc_contact_unref(from_contact);
+	dc_contact_unref(mod_contact);
 	return ret;
 }

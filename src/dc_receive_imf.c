@@ -604,6 +604,7 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 	char*         X_MrAddToGrp = NULL; /* pointer somewhere into mime_parser, must not be freed */
 	int           X_MrGrpNameChanged = 0;
 	const char*   X_MrGrpImageChanged = NULL;
+	char*         better_msg = NULL;
 
 	/* search the grpid in the header */
 	{
@@ -657,6 +658,11 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 		if ((optional_field=dc_mimeparser_lookup_optional_field(mime_parser, "Chat-Group-Member-Removed"))!=NULL) {
 			X_MrRemoveFromGrp = optional_field->fld_value;
 			mime_parser->is_system_message = DC_CMD_MEMBER_REMOVED_FROM_GROUP;
+
+			int left_group = (dc_lookup_contact_id_by_addr(context, X_MrRemoveFromGrp)==from_id);
+			better_msg = dc_stock_system_msg(context,
+				left_group? DC_STR_MSGGROUPLEFT : DC_STR_MSGDELMEMBER,
+				X_MrRemoveFromGrp, NULL, from_id);
 		}
 		else if ((optional_field=dc_mimeparser_lookup_optional_field(mime_parser, "Chat-Group-Member-Added"))!=NULL) {
 			X_MrAddToGrp = optional_field->fld_value;
@@ -664,14 +670,34 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 			if ((optional_field=dc_mimeparser_lookup_optional_field(mime_parser, "Chat-Group-Image"))!=NULL) {
 				X_MrGrpImageChanged = optional_field->fld_value;
 			}
+
+			better_msg = dc_stock_system_msg(context,
+				DC_STR_MSGADDMEMBER, X_MrAddToGrp, NULL, from_id);
 		}
 		else if ((optional_field=dc_mimeparser_lookup_optional_field(mime_parser, "Chat-Group-Name-Changed"))!=NULL) {
 			X_MrGrpNameChanged = 1;
 			mime_parser->is_system_message = DC_CMD_GROUPNAME_CHANGED;
+
+			better_msg = dc_stock_system_msg(context,
+				DC_STR_MSGGRPNAME, optional_field->fld_value, grpname, from_id);
 		}
 		else if ((optional_field=dc_mimeparser_lookup_optional_field(mime_parser, "Chat-Group-Image"))!=NULL) {
 			X_MrGrpImageChanged = optional_field->fld_value;
 			mime_parser->is_system_message = DC_CMD_GROUPIMAGE_CHANGED;
+
+			better_msg = dc_stock_system_msg(context,
+				strcmp(X_MrGrpImageChanged, "0")==0? DC_STR_MSGGRPIMGDELETED : DC_STR_MSGGRPIMGCHANGED,
+				NULL, NULL, from_id);
+		}
+	}
+
+	if (better_msg
+	 && carray_count(mime_parser->parts)>0) {
+		dc_mimepart_t* part = (dc_mimepart_t*)carray_get(mime_parser->parts, 0);
+		if (part->type==DC_MSG_TEXT) {
+			free(part->msg);
+			part->msg = better_msg;
+			better_msg = NULL;
 		}
 	}
 
@@ -832,6 +858,7 @@ cleanup:
 	free(grpid);
 	free(grpname);
 	free(self_addr);
+	free(better_msg);
 	if (ret_chat_id)         { *ret_chat_id = chat_id; }
 	if (ret_chat_id_blocked) { *ret_chat_id_blocked = chat_id? chat_id_blocked : 0; }
 }

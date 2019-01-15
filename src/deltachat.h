@@ -1140,7 +1140,9 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 #define DC_STR_SELFTALK_SUBTITLE          50
 #define DC_STR_CANNOT_LOGIN               60
 #define DC_STR_SERVER_RESPONSE            61
-#define DC_STR_COUNT                      62
+#define DC_STR_MSGACTIONBYUSER            62
+#define DC_STR_MSGACTIONBYME              63
+#define DC_STR_COUNT                      64
 
 /*
  * @}
