@@ -1781,7 +1781,8 @@ int dc_set_chat_name(dc_context_t* context, uint32_t chat_id, const char* new_na
 	{
 		msg->type = DC_MSG_TEXT;
 		msg->text = dc_stock_str_repl_string2(context, DC_STR_MSGGRPNAME, chat->name, new_name);
-		dc_param_set_int(msg->param, DC_PARAM_CMD, DC_CMD_GROUPNAME_CHANGED);
+		dc_param_set_int(msg->param, DC_PARAM_CMD,     DC_CMD_GROUPNAME_CHANGED);
+		dc_param_set    (msg->param, DC_PARAM_CMD_ARG, chat->name);
 		msg->id = dc_send_msg(context, chat_id, msg);
 		context->cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg->id);
 	}

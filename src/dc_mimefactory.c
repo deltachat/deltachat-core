@@ -556,7 +556,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 			}
 			else if (command==DC_CMD_GROUPNAME_CHANGED)
 			{
-				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Name-Changed"), strdup("1")));
+				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Name-Changed"), dc_param_get(msg->param, DC_PARAM_CMD_ARG, "")));
 			}
 			else if (command==DC_CMD_GROUPIMAGE_CHANGED)
 			{
