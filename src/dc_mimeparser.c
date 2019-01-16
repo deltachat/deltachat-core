@@ -5,6 +5,8 @@
 #include "dc_simplify.h"
 
 
+static void hash_header(dc_hash_t* out, const struct mailimf_fields* in, dc_context_t* context);
+
 
 // deprecated: flag to switch generation of compound messages on and off.
 static int s_generate_compound_msgs = 1;
@@ -1204,6 +1206,9 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* mimeparser, struc
 			 || mimeparser->header_protected==NULL) {
 				dc_log_warning(mimeparser->context, 0, "Protected headers parsing error.");
 			}
+			else {
+				hash_header(&mimeparser->header, mimeparser->header_protected, mimeparser->context);
+			}
 		}
 		else {
 			dc_log_info(mimeparser->context, 0, "Protected headers found in MIME header: Will be ignored as we already found an outer one.");
@@ -1348,6 +1353,7 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* mimeparser, struc
 			if (mimeparser->header_root==NULL)
 			{
 				mimeparser->header_root = mime->mm_data.mm_message.mm_fields;
+				hash_header(&mimeparser->header, mimeparser->header_root, mimeparser->context);
 			}
 
 			if (mime->mm_data.mm_message.mm_msg_mime)
