@@ -8,9 +8,13 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes anywhere in the Delta Chat ecosystem,
 see https://delta.chat/en/changelog
 
-## PENDING
+## v0.39.0
 
+* add sender to system messages
+* translatable system messages
 * three new strings DC_STR_CONTACT_*
+
+The changes have been done by Björn Petersen and Lars-Magnus Skog
 
 ## v0.38.0
 
