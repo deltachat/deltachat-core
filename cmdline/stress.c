@@ -170,22 +170,22 @@ void stress_functions(dc_context_t* context)
 		dc_simplify_t* simplify = dc_simplify_new();
 
 		const char* html = "\r\r\nline1<br>\r\n\r\n\r\rline2\n\r"; /* check, that `<br>\ntext` does not result in `\n text` */
-		char* plain = dc_simplify_simplify(simplify, html, strlen(html), 1);
+		char* plain = dc_simplify_simplify(simplify, html, strlen(html), 1, 0);
 		assert( strcmp(plain, "line1\nline2")==0 );
 		free(plain);
 
 		html = "<a href=url>text</a"; /* check unquoted attribute and unclosed end-tag */
-		plain = dc_simplify_simplify(simplify, html, strlen(html), 1);
+		plain = dc_simplify_simplify(simplify, html, strlen(html), 1, 0);
 		assert( strcmp(plain, "[text](url)")==0 );
 		free(plain);
 
 		html = "<!DOCTYPE name [<!DOCTYPE ...>]><!-- comment -->text <b><?php echo ... ?>bold</b><![CDATA[<>]]>";
-		plain = dc_simplify_simplify(simplify, html, strlen(html), 1);
+		plain = dc_simplify_simplify(simplify, html, strlen(html), 1, 0);
 		assert( strcmp(plain, "text *bold*<>")==0 );
 		free(plain);
 
 		html = "&lt;&gt;&quot;&apos;&amp; &auml;&Auml;&ouml;&Ouml;&uuml;&Uuml;&szlig; foo&AElig;&ccedil;&Ccedil; &diams;&noent;&lrm;&rlm;&zwnj;&zwj;";
-		plain = dc_simplify_simplify(simplify, html, strlen(html), 1);
+		plain = dc_simplify_simplify(simplify, html, strlen(html), 1, 0);
 		assert( strcmp(plain, "<>\"'& äÄöÖüÜß fooÆçÇ ♦&noent;")==0 );
 		free(plain);
 
