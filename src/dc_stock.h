@@ -24,6 +24,11 @@ char* dc_stock_str_repl_int    (dc_context_t*, int id, int value);
 The result must be free()'d! */
 char* dc_stock_str_repl_string2 (dc_context_t*, int id, const char*, const char*);
 
+/* Misc. */
+char* dc_stock_system_msg(dc_context_t* context, int str_id,
+                          const char* param1, const char* param2,
+                          uint32_t from_id);
+
 
 #ifdef __cplusplus
 } /* /extern "C" */
