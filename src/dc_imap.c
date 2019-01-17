@@ -345,7 +345,7 @@ static int fetch_single_msg(dc_imap_t* imap, const char* folder, uint32_t server
 	{
 		struct mailimap_set* set = mailimap_set_new_single(server_uid);
 			r = mailimap_uid_fetch(imap->etpan, set, imap->fetch_type_body, &fetch_result);
-		mailimap_set_free(set);
+		FREE_SET(set);
 	}
 
 	if (dc_imap_is_error(imap, r) || fetch_result==NULL) {
@@ -390,7 +390,7 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 	size_t               read_cnt = 0;
 	size_t               read_errors = 0;
 	clistiter*           cur;
-	struct mailimap_set* set;
+	struct mailimap_set* set = NULL;
 
 	if (imap==NULL) {
 		goto cleanup;
@@ -431,7 +431,7 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 			set = mailimap_set_new_single(0);
 		}
 		r = mailimap_fetch(imap->etpan, set, imap->fetch_type_prefetch, &fetch_result);
-		mailimap_set_free(set);
+		FREE_SET(set);
 
 		if (dc_imap_is_error(imap, r) || fetch_result==NULL || (cur=clist_begin(fetch_result))==NULL) {
 			dc_log_info(imap->context, 0, "Empty result returned for folder \"%s\".", folder);
@@ -460,7 +460,7 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 	/* fetch messages with larger UID than the last one seen (`UID FETCH lastseenuid+1:*)`, see RFC 4549 */
 	set = mailimap_set_new_interval(lastseenuid+1, 0);
 		r = mailimap_uid_fetch(imap->etpan, set, imap->fetch_type_prefetch, &fetch_result);
-	mailimap_set_free(set);
+	FREE_SET(set);
 
 	if (dc_imap_is_error(imap, r) || fetch_result==NULL)
 	{
@@ -1057,9 +1057,7 @@ cleanup:
 	if (store_att_flags) {
 		mailimap_store_att_flags_free(store_att_flags);
 	}
-	if (set) {
-		mailimap_set_free(set);
-	}
+	FREE_SET(set);
 	return imap->should_reconnect? 0 : 1; /* all non-connection states are treated as success - the mail may already be deleted or moved away on the server */
 }
 
@@ -1288,7 +1286,7 @@ int dc_imap_delete_msg(dc_imap_t* imap, const char* rfc724_mid, const char* fold
 
 		struct mailimap_set* set = mailimap_set_new_single(server_uid);
 			r = mailimap_uid_fetch(imap->etpan, set, imap->fetch_type_prefetch, &fetch_result);
-		mailimap_set_free(set);
+		FREE_SET(set);
 
 		if (dc_imap_is_error(imap, r) || fetch_result==NULL
 		 || (cur=clist_begin(fetch_result))==NULL
