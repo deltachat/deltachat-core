@@ -635,6 +635,7 @@ uint32_t dc_add_or_lookup_contact( dc_context_t* context,
 	uint32_t      row_id = 0;
 	int           dummy = 0;
 	char*         addr = NULL;
+	char*         addr_self = NULL;
 	char*         row_name = NULL;
 	char*         row_addr = NULL;
 	char*         row_authname = NULL;
@@ -652,6 +653,12 @@ uint32_t dc_add_or_lookup_contact( dc_context_t* context,
 	/* normalize the email-address:
 	- remove leading `mailto:` */
 	addr = dc_addr_normalize(addr__);
+
+	addr_self = dc_sqlite3_get_config(context->sql, "configured_addr", "");
+	if (strcasecmp(addr, addr_self)==0) {
+		row_id = DC_CONTACT_ID_SELF;
+		goto cleanup;
+	}
 
 	/* rough check if email-address is valid */
 	if (!dc_may_be_valid_addr(addr)) {
@@ -747,6 +754,7 @@ uint32_t dc_add_or_lookup_contact( dc_context_t* context,
 
 cleanup:
 	free(addr);
+	free(addr_self);
 	free(row_addr);
 	free(row_name);
 	free(row_authname);
