@@ -486,11 +486,12 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 			read_cnt++;
 			if (!imap->precheck_imf(imap, rfc724_mid, folder, cur_uid)) {
 				if (fetch_single_msg(imap, folder, cur_uid)==0/* 0=try again later*/) {
+					dc_log_info(imap->context, 0, "Read error for message %s from \"%s\", trying over later.", rfc724_mid, folder);
 					read_errors++; // with read_errors, lastseenuid is not written
 				}
 			}
 			else {
-				dc_log_info(imap->context, 0, "Skipping message %s by precheck.", rfc724_mid);
+				dc_log_info(imap->context, 0, "Skipping message %s from \"%s\" by precheck.", rfc724_mid, folder);
 			}
 
 			if (cur_uid > new_lastseenuid) {
