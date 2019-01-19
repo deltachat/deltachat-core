@@ -345,7 +345,7 @@ static int fetch_single_msg(dc_imap_t* imap, const char* folder, uint32_t server
 	{
 		struct mailimap_set* set = mailimap_set_new_single(server_uid);
 			r = mailimap_uid_fetch(imap->etpan, set, imap->fetch_type_body, &fetch_result);
-		mailimap_set_free(set);
+		FREE_SET(set);
 	}
 
 	if (dc_imap_is_error(imap, r) || fetch_result==NULL) {
@@ -372,10 +372,7 @@ static int fetch_single_msg(dc_imap_t* imap, const char* folder, uint32_t server
 	imap->receive_imf(imap, msg_content, msg_bytes, folder, server_uid, flags);
 
 cleanup:
-
-	if (fetch_result) {
-		mailimap_fetch_list_free(fetch_result);
-	}
+	FREE_FETCH_LIST(fetch_result);
 	return retry_later? 0 : 1;
 }
 
@@ -390,7 +387,7 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 	size_t               read_cnt = 0;
 	size_t               read_errors = 0;
 	clistiter*           cur;
-	struct mailimap_set* set;
+	struct mailimap_set* set = NULL;
 
 	if (imap==NULL) {
 		goto cleanup;
@@ -431,17 +428,22 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 			set = mailimap_set_new_single(0);
 		}
 		r = mailimap_fetch(imap->etpan, set, imap->fetch_type_prefetch, &fetch_result);
-		mailimap_set_free(set);
+		FREE_SET(set);
 
-		if (dc_imap_is_error(imap, r) || fetch_result==NULL || (cur=clist_begin(fetch_result))==NULL) {
+		if (dc_imap_is_error(imap, r) || fetch_result==NULL) {
+			fetch_result = NULL;
+			dc_log_info(imap->context, 0, "No result returned for folder \"%s\".", folder);
+			goto cleanup; /* this might happen if the mailbox is empty an EXISTS does not work */
+		}
+
+		if ((cur=clist_begin(fetch_result))==NULL) {
 			dc_log_info(imap->context, 0, "Empty result returned for folder \"%s\".", folder);
 			goto cleanup; /* this might happen if the mailbox is empty an EXISTS does not work */
 		}
 
 		struct mailimap_msg_att* msg_att = (struct mailimap_msg_att*)clist_content(cur);
 		lastseenuid = peek_uid(msg_att);
-		mailimap_fetch_list_free(fetch_result);
-		fetch_result = NULL;
+		FREE_FETCH_LIST(fetch_result);
 		if (lastseenuid <= 0) {
 			dc_log_error(imap->context, 0, "Cannot get largest UID for folder \"%s\"", folder);
 			goto cleanup;
@@ -455,12 +457,13 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 		/* store calculated uidvalidity/lastseenuid */
 		uidvalidity = imap->etpan->imap_selection_info->sel_uidvalidity;
 		set_config_lastseenuid(imap, folder, uidvalidity, lastseenuid);
+		dc_log_info(imap->context, 0, "lastseenuid initialized to %i for %s@%i", (int)lastseenuid, folder, (int)uidvalidity);
 	}
 
 	/* fetch messages with larger UID than the last one seen (`UID FETCH lastseenuid+1:*)`, see RFC 4549 */
 	set = mailimap_set_new_interval(lastseenuid+1, 0);
 		r = mailimap_uid_fetch(imap->etpan, set, imap->fetch_type_prefetch, &fetch_result);
-	mailimap_set_free(set);
+	FREE_SET(set);
 
 	if (dc_imap_is_error(imap, r) || fetch_result==NULL)
 	{
@@ -486,11 +489,12 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 			read_cnt++;
 			if (!imap->precheck_imf(imap, rfc724_mid, folder, cur_uid)) {
 				if (fetch_single_msg(imap, folder, cur_uid)==0/* 0=try again later*/) {
+					dc_log_info(imap->context, 0, "Read error for message %s from \"%s\", trying over later.", rfc724_mid, folder);
 					read_errors++; // with read_errors, lastseenuid is not written
 				}
 			}
 			else {
-				dc_log_info(imap->context, 0, "Skipping message %s by precheck.", rfc724_mid);
+				dc_log_info(imap->context, 0, "Skipping message %s from \"%s\" by precheck.", rfc724_mid, folder);
 			}
 
 			if (cur_uid > new_lastseenuid) {
@@ -515,10 +519,7 @@ cleanup:
 		dc_log_info(imap->context, 0, "%i mails read from \"%s\".", (int)read_cnt, folder);
 	}
 
-	if (fetch_result) {
-		mailimap_fetch_list_free(fetch_result);
-	}
-
+	FREE_FETCH_LIST(fetch_result);
 	return read_cnt;
 }
 
@@ -1057,9 +1058,7 @@ cleanup:
 	if (store_att_flags) {
 		mailimap_store_att_flags_free(store_att_flags);
 	}
-	if (set) {
-		mailimap_set_free(set);
-	}
+	FREE_SET(set);
 	return imap->should_reconnect? 0 : 1; /* all non-connection states are treated as success - the mail may already be deleted or moved away on the server */
 }
 
@@ -1224,6 +1223,7 @@ dc_imap_res dc_imap_set_mdnsent(dc_imap_t* imap, const char* folder, uint32_t ui
 	{
 		int r = mailimap_uid_fetch(imap->etpan, set, imap->fetch_type_flags, &fetch_result);
 		if (dc_imap_is_error(imap, r) || fetch_result==NULL) {
+			fetch_result = NULL;
 			goto cleanup;
 		}
 
@@ -1266,7 +1266,7 @@ int dc_imap_delete_msg(dc_imap_t* imap, const char* rfc724_mid, const char* fold
 	char*  is_rfc724_mid = NULL;
 	char*  new_folder = NULL;
 
-	if (imap==NULL || rfc724_mid==NULL || folder==NULL || folder[0]==0) {
+	if (imap==NULL || rfc724_mid==NULL || folder==NULL || folder[0]==0 || server_uid==0) {
 		success = 1; /* job done, do not try over */
 		goto cleanup;
 	}
@@ -1281,33 +1281,29 @@ int dc_imap_delete_msg(dc_imap_t* imap, const char* rfc724_mid, const char* fold
 	/* check if Folder+UID matches the Message-ID (to detect if the messages
 	was moved around by other MUAs and in place of an UIDVALIDITY check)
 	*/
-	if (server_uid)
 	{
 		clistiter* cur = NULL;
 		const char* is_quoted_rfc724_mid = NULL;
 
 		struct mailimap_set* set = mailimap_set_new_single(server_uid);
 			r = mailimap_uid_fetch(imap->etpan, set, imap->fetch_type_prefetch, &fetch_result);
-		mailimap_set_free(set);
+		FREE_SET(set);
 
-		if (dc_imap_is_error(imap, r) || fetch_result==NULL
-		 || (cur=clist_begin(fetch_result))==NULL
+		if (dc_imap_is_error(imap, r) || fetch_result==NULL) {
+			fetch_result = NULL;
+			dc_log_warning(imap->context, 0, "Cannot delete on IMAP, %s/%i not found.", folder, (int)server_uid);
+			server_uid = 0;
+		}
+
+		if( (cur=clist_begin(fetch_result))==NULL
 		 || (is_quoted_rfc724_mid=peek_rfc724_mid((struct mailimap_msg_att*)clist_content(cur)))==NULL
 		 || (is_rfc724_mid=unquote_rfc724_mid(is_quoted_rfc724_mid))==NULL
 		 || strcmp(is_rfc724_mid, rfc724_mid)!=0)
 		{
-			dc_log_warning(imap->context, 0, "UID not found in the given folder or does not match Message-ID.");
+			dc_log_warning(imap->context, 0, "Cannot delete on IMAP, %s/%i does not match %s.", folder, (int)server_uid, rfc724_mid);
 			server_uid = 0;
 		}
 	}
-
-	/* server_uid is 0 now if it was not given or if it does not match the given message id;
-	try to search for it in all folders (the message may be moved by another MUA to a folder we do not sync or the sync is a moment ago) */
-	if (server_uid==0) {
-			dc_log_warning(imap->context, 0, "Message-ID \"%s\" not found in any folder, cannot delete message.", rfc724_mid);
-			goto cleanup;
-	}
-
 
 	/* mark the message for deletion */
 	if (add_flag(imap, server_uid, mailimap_flag_new_deleted())==0) {
@@ -1322,7 +1318,7 @@ int dc_imap_delete_msg(dc_imap_t* imap, const char* rfc724_mid, const char* fold
 
 cleanup:
 
-	if (fetch_result) { mailimap_fetch_list_free(fetch_result); }
+	FREE_FETCH_LIST(fetch_result);
 	free(is_rfc724_mid);
 	free(new_folder);
 
