@@ -457,6 +457,7 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 		/* store calculated uidvalidity/lastseenuid */
 		uidvalidity = imap->etpan->imap_selection_info->sel_uidvalidity;
 		set_config_lastseenuid(imap, folder, uidvalidity, lastseenuid);
+		dc_log_info(imap->context, 0, "lastseenuid initialized to %i for %s@%i", (int)lastseenuid, folder, (int)uidvalidity);
 	}
 
 	/* fetch messages with larger UID than the last one seen (`UID FETCH lastseenuid+1:*)`, see RFC 4549 */
