@@ -461,6 +461,7 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 	}
 
 	/* fetch messages with larger UID than the last one seen (`UID FETCH lastseenuid+1:*)`, see RFC 4549 */
+	/* CAVE: some servers return UID smaller or equal to the requested ones under some circumstances! */
 	set = mailimap_set_new_interval(lastseenuid+1, 0);
 		r = mailimap_uid_fetch(imap->etpan, set, imap->fetch_type_prefetch, &fetch_result);
 	FREE_SET(set);
@@ -481,8 +482,7 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 	{
 		struct mailimap_msg_att* msg_att = (struct mailimap_msg_att*)clist_content(cur); /* mailimap_msg_att is a list of attributes: list is a list of message attributes */
 		uint32_t cur_uid = peek_uid(msg_att);
-		if (cur_uid > 0
-		 && cur_uid!=lastseenuid /* `UID FETCH <lastseenuid+1>:*` may include lastseenuid if "*"==lastseenuid */)
+		if (cur_uid > lastseenuid /* `UID FETCH <lastseenuid+1>:*` may include lastseenuid if "*"==lastseenuid - and also smaller uids may be returned! */)
 		{
 			char* rfc724_mid = unquote_rfc724_mid(peek_rfc724_mid(msg_att));
 
