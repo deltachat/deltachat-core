@@ -416,6 +416,13 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 		if (imap->etpan->imap_selection_info->sel_has_exists) {
 			if (imap->etpan->imap_selection_info->sel_exists <= 0) {
 				dc_log_info(imap->context, 0, "Folder \"%s\" is empty.", folder);
+				if(imap->etpan->imap_selection_info->sel_exists==0) {
+					/* set lastseenuid=0 for empty folders.
+					id we do not do this here, we'll miss the first message
+					as we will get in here again and fetch from lastseenuid+1 then */
+					set_config_lastseenuid(imap, folder,
+						imap->etpan->imap_selection_info->sel_uidvalidity, 0);
+				}
 				goto cleanup;
 			}
 			/* `FETCH <message sequence number> (UID)` */
