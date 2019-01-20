@@ -513,6 +513,8 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 	}
 
 	if (!read_errors && new_lastseenuid > 0) {
+		// TODO: it might be better to increase the lastseenuid also on partial errors.
+		// however, this requires to sort the list before going through it above.
 		set_config_lastseenuid(imap, folder, uidvalidity, new_lastseenuid);
 	}
 
