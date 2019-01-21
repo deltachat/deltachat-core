@@ -416,6 +416,13 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 		if (imap->etpan->imap_selection_info->sel_has_exists) {
 			if (imap->etpan->imap_selection_info->sel_exists <= 0) {
 				dc_log_info(imap->context, 0, "Folder \"%s\" is empty.", folder);
+				if(imap->etpan->imap_selection_info->sel_exists==0) {
+					/* set lastseenuid=0 for empty folders.
+					id we do not do this here, we'll miss the first message
+					as we will get in here again and fetch from lastseenuid+1 then */
+					set_config_lastseenuid(imap, folder,
+						imap->etpan->imap_selection_info->sel_uidvalidity, 0);
+				}
 				goto cleanup;
 			}
 			/* `FETCH <message sequence number> (UID)` */
@@ -461,6 +468,7 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 	}
 
 	/* fetch messages with larger UID than the last one seen (`UID FETCH lastseenuid+1:*)`, see RFC 4549 */
+	/* CAVE: some servers return UID smaller or equal to the requested ones under some circumstances! */
 	set = mailimap_set_new_interval(lastseenuid+1, 0);
 		r = mailimap_uid_fetch(imap->etpan, set, imap->fetch_type_prefetch, &fetch_result);
 	FREE_SET(set);
@@ -481,8 +489,7 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 	{
 		struct mailimap_msg_att* msg_att = (struct mailimap_msg_att*)clist_content(cur); /* mailimap_msg_att is a list of attributes: list is a list of message attributes */
 		uint32_t cur_uid = peek_uid(msg_att);
-		if (cur_uid > 0
-		 && cur_uid!=lastseenuid /* `UID FETCH <lastseenuid+1>:*` may include lastseenuid if "*"==lastseenuid */)
+		if (cur_uid > lastseenuid /* `UID FETCH <lastseenuid+1>:*` may include lastseenuid if "*"==lastseenuid - and also smaller uids may be returned! */)
 		{
 			char* rfc724_mid = unquote_rfc724_mid(peek_rfc724_mid(msg_att));
 
@@ -506,6 +513,8 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 	}
 
 	if (!read_errors && new_lastseenuid > 0) {
+		// TODO: it might be better to increase the lastseenuid also on partial errors.
+		// however, this requires to sort the list before going through it above.
 		set_config_lastseenuid(imap, folder, uidvalidity, new_lastseenuid);
 	}
 
