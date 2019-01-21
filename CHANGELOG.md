@@ -8,6 +8,12 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes anywhere in the Delta Chat ecosystem,
 see https://delta.chat/en/changelog
 
+## v0.39.1
+
+* bugfix release
+
+The changes have been done by Ampli-fier, Björn Petersen and Lars-Magnus Skog
+
 ## v0.39.0
 
 * add sender to system messages
