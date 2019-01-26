@@ -548,6 +548,14 @@ int dc_set_config(dc_context_t* context, const char* key, const char* value)
 		ret = dc_sqlite3_set_config(context->sql, key, value);
 		dc_interrupt_mvbox_idle(context); // force idle() to be called again with the new mode
 	}
+	else if (strcmp(key, "selfstatus")==0) {
+		// if the status text equals to the default,
+		// store it as NULL to support future updatates of this text
+		char* def = dc_stock_str(context, DC_STR_STATUSLINE);
+		ret = dc_sqlite3_set_config(context->sql, key,
+			(value==NULL || strcmp(value, def)==0)? NULL : value);
+		free(def);
+	}
 	else
 	{
 		ret = dc_sqlite3_set_config(context->sql, key, value);
@@ -626,6 +634,9 @@ char* dc_get_config(dc_context_t* context, const char* key)
 		}
 		else if (strcmp(key, "mvbox_move")==0) {
 			value = dc_mprintf("%i", DC_MVBOX_MOVE_DEFAULT);
+		}
+		else if (strcmp(key, "selfstatus")==0) {
+			value = dc_stock_str(context, DC_STR_STATUSLINE);
 		}
 		else {
 			value = dc_mprintf("");
