@@ -499,12 +499,27 @@ static int check_verified_properties(dc_context_t* context, dc_mimeparser_t* mim
 	char*            q3 = NULL;
 	sqlite3_stmt*    stmt = NULL;
 
-	// ensure, the contact is verified
-	if (!dc_contact_load_from_db(contact, context->sql, from_id)
-	 || !dc_apeerstate_load_by_addr(peerstate, context->sql, contact->addr)
-	 || dc_contact_is_verified_ex(contact, peerstate) < DC_BIDIRECT_VERIFIED) {
-		dc_log_warning(context, 0, "Cannot verifiy group; sender is not verified.");
+	if (!dc_contact_load_from_db(contact, context->sql, from_id)) {
+		dc_log_warning(context, 0, "Cannot verifiy group; cannot load contact.");
 		goto cleanup;
+	}
+
+	// ensure, the contact is verified
+	// and the message is signed with a verified key of the sender.
+	// this check is skipped for SELF as there is no proper SELF-peerstate
+	// and results in group-splits otherwise.
+	if (from_id!=DC_CONTACT_ID_SELF)
+	{
+		if (!dc_apeerstate_load_by_addr(peerstate, context->sql, contact->addr)
+		 || dc_contact_is_verified_ex(contact, peerstate) < DC_BIDIRECT_VERIFIED) {
+			dc_log_warning(context, 0, "Cannot verifiy group; sender is not verified.");
+			goto cleanup;
+		}
+
+		if (!dc_apeerstate_has_verified_key(peerstate, mimeparser->e2ee_helper->signatures)) {
+			dc_log_warning(context, 0, "Cannot verifiy group; message is not signed properly.");
+			goto cleanup;
+		}
 	}
 
 	// ensure, the message is encrypted
@@ -512,12 +527,6 @@ static int check_verified_properties(dc_context_t* context, dc_mimeparser_t* mim
 		dc_log_warning(context, 0, "Cannot verifiy group; message is not encrypted properly.");
 		goto cleanup;
 	}
-
-	// ensure, the message is signed with a verified key of the sender
-	if (!dc_apeerstate_has_verified_key(peerstate, mimeparser->e2ee_helper->signatures)) {
-		dc_log_warning(context, 0, "Cannot verifiy group; message is not signed properly.");
-		goto cleanup;
-    }
 
 	// check that all members are verified.
 	// if a verification is missing, check if this was just gossiped - as we've verified the sender, we verify the member then.
