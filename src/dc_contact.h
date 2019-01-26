@@ -33,6 +33,7 @@ struct _dc_contact
 	int             origin;   /**< The origin/source of the contact. One of the DC_ORIGIN_* constants. */
 };
 
+#define DC_ORIGIN_MANUALLY_DELETED            0x1 /* Contact only soft-deleted by dc_contact_delete() due to pending references */
 #define DC_ORIGIN_INCOMING_UNKNOWN_FROM      0x10 /* From: of incoming messages of unknown sender */
 #define DC_ORIGIN_INCOMING_UNKNOWN_CC        0x20 /* Cc: of incoming messages of unknown sender */
 #define DC_ORIGIN_INCOMING_UNKNOWN_TO        0x40 /* To: of incoming messages of unknown sender */

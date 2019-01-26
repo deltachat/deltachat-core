@@ -1406,6 +1406,7 @@ cleanup:
 int dc_delete_contact(dc_context_t* context, uint32_t contact_id)
 {
 	int           success = 0;
+	int           do_hard_delete = 1;
 	sqlite3_stmt* stmt = NULL;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || contact_id<=DC_CONTACT_ID_LAST_SPECIAL) {
@@ -1417,8 +1418,11 @@ int dc_delete_contact(dc_context_t* context, uint32_t contact_id)
 	stmt = dc_sqlite3_prepare(context->sql,
 		"SELECT COUNT(*) FROM chats_contacts WHERE contact_id=?;");
 	sqlite3_bind_int(stmt, 1, contact_id);
-	if (sqlite3_step(stmt)!=SQLITE_ROW || sqlite3_column_int(stmt, 0) >= 1) {
+	if (sqlite3_step(stmt)!=SQLITE_ROW) {
 		goto cleanup;
+	}
+	if (sqlite3_column_int(stmt, 0) >= 1) {
+		do_hard_delete = 0;
 	}
 	sqlite3_finalize(stmt);
 	stmt = NULL;
@@ -1427,17 +1431,35 @@ int dc_delete_contact(dc_context_t* context, uint32_t contact_id)
 		"SELECT COUNT(*) FROM msgs WHERE from_id=? OR to_id=?;");
 	sqlite3_bind_int(stmt, 1, contact_id);
 	sqlite3_bind_int(stmt, 2, contact_id);
-	if (sqlite3_step(stmt)!=SQLITE_ROW || sqlite3_column_int(stmt, 0) >= 1) {
+	if (sqlite3_step(stmt)!=SQLITE_ROW) {
 		goto cleanup;
+	}
+	if (sqlite3_column_int(stmt, 0) >= 1) {
+		do_hard_delete = 0;
 	}
 	sqlite3_finalize(stmt);
 	stmt = NULL;
 
-	stmt = dc_sqlite3_prepare(context->sql,
-		"DELETE FROM contacts WHERE id=?;");
-	sqlite3_bind_int(stmt, 1, contact_id);
-	if (sqlite3_step(stmt)!=SQLITE_DONE) {
-		goto cleanup;
+	if (do_hard_delete)
+	{
+		stmt = dc_sqlite3_prepare(context->sql,
+			"DELETE FROM contacts WHERE id=?;");
+		sqlite3_bind_int(stmt, 1, contact_id);
+		if (sqlite3_step(stmt)!=SQLITE_DONE) {
+			goto cleanup;
+		}
+	}
+	else
+	{
+		stmt = dc_sqlite3_prepare(context->sql,
+			"UPDATE contacts "
+			" SET name='', authname='', origin=? "
+			" WHERE id=?;");
+		sqlite3_bind_int(stmt, 1, DC_ORIGIN_MANUALLY_DELETED);
+		sqlite3_bind_int(stmt, 2, contact_id);
+		if (sqlite3_step(stmt)!=SQLITE_DONE) {
+			goto cleanup;
+		}
 	}
 
 	context->cb(context, DC_EVENT_CONTACTS_CHANGED, 0, 0);
