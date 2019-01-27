@@ -114,6 +114,7 @@ static int connect_to_imap(dc_jobthread_t* jobthread)
 
 	mvbox_name = dc_sqlite3_get_config(jobthread->context->sql, jobthread->folder_config_name, NULL);
 	if (mvbox_name==NULL) {
+		dc_imap_disconnect(jobthread->imap);
 		ret_connected = DC_NOT_CONNECTED;
 		goto cleanup;
 	}
