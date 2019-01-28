@@ -404,6 +404,7 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 				"export-setup\n"
 				"poke [<eml-file>|<folder>|<addr> <key-file>]\n"
 				"reset <flags>\n"
+				"stop\n"
 				"============================================="
 			);
 		}
@@ -615,6 +616,11 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 		else {
 			ret = dc_strdup("ERROR: Argument <bits> missing: 1=jobs, 2=peerstates, 4=private keys, 8=rest but server config");
 		}
+	}
+	else if (strcmp(cmd, "stop")==0)
+	{
+		dc_stop_ongoing_process(context);
+		ret = COMMAND_SUCCEEDED;
 	}
 	else if (strcmp(cmd, "set")==0)
 	{
