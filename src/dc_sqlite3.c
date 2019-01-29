@@ -32,12 +32,16 @@ safe. However, there are some points to keep in mind:
 void dc_sqlite3_log_error(dc_sqlite3_t* sql, const char* msg_format, ...)
 {
 	char*       msg = NULL;
-	const char* notSetUp = "SQLite object not set up.";
 	va_list     va;
+
 	va_start(va, msg_format);
-		msg = sqlite3_vmprintf(msg_format, va); if (msg==NULL) { dc_log_error(sql->context, 0, "Bad log format string \"%s\".", msg_format); }
-			dc_log_error(sql->context, 0, "%s SQLite says: %s", msg, sql->cobj? sqlite3_errmsg(sql->cobj) : notSetUp);
-		sqlite3_free(msg);
+	msg = sqlite3_vmprintf(msg_format, va);
+
+	dc_log_error(sql->context, 0, "%s SQLite says: %s",
+		msg? msg : "",
+		sql->cobj? sqlite3_errmsg(sql->cobj) : "SQLite object not set up.");
+
+	sqlite3_free(msg);
 	va_end(va);
 }
 
