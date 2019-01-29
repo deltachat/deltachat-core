@@ -792,7 +792,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 		}
 
 		if (param_autoconfig==NULL) {
-			char* url = dc_mprintf("http://autoconfig.%s/mail/config-v1.1.xml", param_domain); // do not transfer the email-address unencrypted
+			char* url = dc_mprintf("http://autoconfig.%s/mail/config-v1.1.xml?emailaddress=%s", param_domain, param_addr_urlencoded);
 			param_autoconfig = moz_autoconfigure(context, url, param);
 			free(url);
 			PROGRESS(340)
