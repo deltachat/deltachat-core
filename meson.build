@@ -78,7 +78,7 @@ if libetpan_fallback == false
   etpan_version = run_command(libetpan_config, ['--version']).stdout().strip()
   message('Dependency libetpan found: @0@. Checking for compatibility.'.format(etpan_version))
   if (etpan_version.version_compare('>=1.8')
-      or host_machine.system() == 'darwin'
+      or build_machine.system() == 'darwin'
       and etpan_version.version_compare('>=1.6'))
     message('Check done. Installed libetpan version is compatible.')
     libetpan_is_compatible = true
@@ -99,6 +99,9 @@ if libetpan_fallback == false
     link_args: etpan_libs,
   )
 else
+  if build_machine.system() == 'darwin'
+    error('Fallback libetpan not (yet) supported on OSX')
+  endif
   message('Using libetpan fallback...')
   etpan_proj = subproject('libetpan', default_options: ['static-pic-lib=true'])
   etpan = etpan_proj.get_variable('dep')
