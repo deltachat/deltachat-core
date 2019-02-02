@@ -32,12 +32,16 @@ safe. However, there are some points to keep in mind:
 void dc_sqlite3_log_error(dc_sqlite3_t* sql, const char* msg_format, ...)
 {
 	char*       msg = NULL;
-	const char* notSetUp = "SQLite object not set up.";
 	va_list     va;
+
 	va_start(va, msg_format);
-		msg = sqlite3_vmprintf(msg_format, va); if (msg==NULL) { dc_log_error(sql->context, 0, "Bad log format string \"%s\".", msg_format); }
-			dc_log_error(sql->context, 0, "%s SQLite says: %s", msg, sql->cobj? sqlite3_errmsg(sql->cobj) : notSetUp);
-		sqlite3_free(msg);
+	msg = sqlite3_vmprintf(msg_format, va);
+
+	dc_log_error(sql->context, 0, "%s SQLite says: %s",
+		msg? msg : "",
+		sql->cobj? sqlite3_errmsg(sql->cobj) : "SQLite object not set up.");
+
+	sqlite3_free(msg);
 	va_end(va);
 }
 
@@ -64,6 +68,33 @@ sqlite3_stmt* dc_sqlite3_prepare(dc_sqlite3_t* sql, const char* querystr)
 }
 
 
+int dc_sqlite3_try_execute(dc_sqlite3_t* sql, const char* querystr)
+{
+	// same as dc_sqlite3_execute() but does not pass error to ui
+	int           success = 0;
+	sqlite3_stmt* stmt = NULL;
+	int           sql_state = 0;
+
+	stmt = dc_sqlite3_prepare(sql, querystr);
+	if (stmt==NULL) {
+		goto cleanup;
+	}
+
+	sql_state = sqlite3_step(stmt);
+	if (sql_state != SQLITE_DONE && sql_state != SQLITE_ROW)  {
+		dc_log_warning(sql->context, 0, "Try-execute for \"%s\" failed: %s",
+			querystr, sqlite3_errmsg(sql->cobj));
+		goto cleanup;
+	}
+
+	success = 1;
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return success;
+}
+
+
 int dc_sqlite3_execute(dc_sqlite3_t* sql, const char* querystr)
 {
 	int           success = 0;
@@ -77,16 +108,14 @@ int dc_sqlite3_execute(dc_sqlite3_t* sql, const char* querystr)
 
 	sqlState = sqlite3_step(stmt);
 	if (sqlState != SQLITE_DONE && sqlState != SQLITE_ROW)  {
-		dc_sqlite3_log_error(sql, "Cannot excecute \"%s\".", querystr);
+		dc_sqlite3_log_error(sql, "Cannot execute \"%s\".", querystr);
 		goto cleanup;
 	}
 
 	success = 1;
 
 cleanup:
-	if (stmt) {
-		sqlite3_finalize(stmt);
-	}
+	sqlite3_finalize(stmt);
 	return success;
 }
 

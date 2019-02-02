@@ -863,7 +863,7 @@ static int export_backup(dc_context_t* context, const char* dir)
 	dc_housekeeping(context);
 
 	/* vacuum before export; this fixed failed vacuum's on previous import */
-	dc_sqlite3_execute(context->sql, "VACUUM;");
+	dc_sqlite3_try_execute(context->sql, "VACUUM;");
 
 	/* temporary lock and close the source (we just make a copy of the whole file, this is the fastest and easiest approach) */
 	dc_sqlite3_close(context->sql);
@@ -1054,7 +1054,7 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 	stmt = 0;
 
 	dc_sqlite3_execute(context->sql, "DROP TABLE backup_blobs;");
-	dc_sqlite3_execute(context->sql, "VACUUM;");
+	dc_sqlite3_try_execute(context->sql, "VACUUM;");
 
 	success = 1;
 
