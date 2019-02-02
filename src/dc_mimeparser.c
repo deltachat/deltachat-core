@@ -943,6 +943,35 @@ void dc_mimeparser_empty(dc_mimeparser_t* mimeparser)
 }
 
 
+void dc_mimeparser_repl_msg_by_error(dc_mimeparser_t* mimeparser,
+                                     const char* error_msg)
+{
+	dc_mimepart_t* part = NULL;
+	int            i = 0;
+
+	if (mimeparser==NULL || mimeparser->parts==NULL
+	 || carray_count(mimeparser->parts)<=0) {
+		return;
+	}
+
+	// part->raw_msg is unchanged
+	// so that the original message can be retrieved using dc_get_msg_info()
+	part = (dc_mimepart_t*)carray_get(mimeparser->parts, 0);
+	part->type = DC_MSG_TEXT;
+	free(part->msg);
+	part->msg = dc_mprintf(DC_EDITORIAL_OPEN "%s" DC_EDITORIAL_CLOSE, error_msg);
+
+	for (i = 1; i < carray_count(mimeparser->parts); i++) {
+		part = (dc_mimepart_t*)carray_get(mimeparser->parts, i);
+		if (part) {
+			dc_mimepart_unref(part);
+		}
+	}
+
+	carray_set_size(mimeparser->parts, 1);
+}
+
+
 static void do_add_single_part(dc_mimeparser_t* parser, dc_mimepart_t* part)
 {
 	/* add a single part to the list of parts, the parser takes the ownership of the part, so you MUST NOT unref it after calling this function. */

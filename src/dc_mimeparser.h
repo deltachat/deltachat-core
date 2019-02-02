@@ -81,7 +81,7 @@ dc_mimepart_t*                 dc_mimeparser_get_last_nonmeta       (dc_mimepars
 #define                        dc_mimeparser_has_nonmeta(a)         (dc_mimeparser_get_last_nonmeta((a))!=NULL)
 int                            dc_mimeparser_is_mailinglist_message (dc_mimeparser_t*);
 int                            dc_mimeparser_sender_equals_recipient(dc_mimeparser_t*);
-
+void                           dc_mimeparser_repl_msg_by_error      (dc_mimeparser_t*, const char* error_msg);
 
 
 /* low-level-tools for working with mailmime structures directly */
