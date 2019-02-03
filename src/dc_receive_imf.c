@@ -505,7 +505,7 @@ static int check_verified_properties(dc_context_t* context, dc_mimeparser_t* mim
 		dc_log_warning(context, 0, *failure_reason);
 
 	if (!dc_contact_load_from_db(contact, context->sql, from_id)) {
-		VERIFY_FAIL("Cannot verifiy group; cannot load contact.")
+		VERIFY_FAIL("Internal Error; cannot load contact.")
 		goto cleanup;
 	}
 
@@ -516,19 +516,20 @@ static int check_verified_properties(dc_context_t* context, dc_mimeparser_t* mim
 	if (from_id!=DC_CONTACT_ID_SELF)
 	{
 		if (!dc_apeerstate_load_by_addr(peerstate, context->sql, contact->addr)
-		 || dc_contact_is_verified_ex(contact, peerstate) < DC_BIDIRECT_VERIFIED) {
+		 || dc_contact_is_verified_ex(contact, peerstate) != DC_BIDIRECT_VERIFIED) {
 			VERIFY_FAIL("The sender of this message is not not verified.")
+			goto cleanup;
 		}
 
 		if (!dc_apeerstate_has_verified_key(peerstate, mimeparser->e2ee_helper->signatures)) {
-			VERIFY_FAIL("This message is not signed properly by the sender.")
+			VERIFY_FAIL("The message is not authorized.")
 			goto cleanup;
 		}
 	}
 
 	// ensure, the message is encrypted
 	if (!mimeparser->e2ee_helper->encrypted) {
-		VERIFY_FAIL("This message is not encrypted properly by the sender.")
+		VERIFY_FAIL("This message is not encrypted.")
 		goto cleanup;
 	}
 
@@ -558,7 +559,7 @@ static int check_verified_properties(dc_context_t* context, dc_mimeparser_t* mim
 			 ||   (strcmp(peerstate->verified_key_fingerprint, peerstate->public_key_fingerprint)!=0
 			    && strcmp(peerstate->verified_key_fingerprint, peerstate->gossip_key_fingerprint)!=0))
 			{
-				dc_log_info(context, 0, "Marking gossipped key %s as verified due to verified %s.", to_addr, contact->addr);
+				dc_log_info(context, 0, "%s has verfied %s.", contact->addr, to_addr);
 				dc_apeerstate_set_verified(peerstate, DC_PS_GOSSIP_KEY, peerstate->gossip_key_fingerprint, DC_BIDIRECT_VERIFIED);
 				dc_apeerstate_save_to_db(peerstate, context->sql, 0);
 				is_verified = 1;
@@ -567,7 +568,7 @@ static int check_verified_properties(dc_context_t* context, dc_mimeparser_t* mim
 
 		if (!is_verified)
 		{
-			char* err = dc_mprintf("Recipient %s is not gossipped and cannot be verified.", to_addr);
+			char* err = dc_mprintf("%s is not a member of this verified group.", to_addr);
 			VERIFY_FAIL(err)
 			free(err);
 			goto cleanup;
