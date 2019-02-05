@@ -103,7 +103,7 @@ RUN tar xzf libetpan-${ETPAN_VERSION}.tar.gz
 RUN cd libetpan-${ETPAN_VERSION} && \
     ./autogen.sh && \
     ./configure --enable-ipv6 \
-                --disable-iconv --disable-db \
+                --enable-iconv --disable-db \
                 --with-openssl --with-sasl --with-zlib \
                 --without-curl --without-expat
 RUN cd libetpan-${ETPAN_VERSION} && make
