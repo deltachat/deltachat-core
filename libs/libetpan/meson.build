@@ -132,7 +132,7 @@ inc = include_directories(
 )
 
 add_project_arguments('-DHAVE_CONFIG_H', language: 'c')
-# add_project_arguments('-DHAVE_ICONV', language: 'c')
+add_project_arguments('-DHAVE_ICONV', language: 'c')
 
 # We don't own this subproject, silence some warnings
 cc = meson.get_compiler('c')
