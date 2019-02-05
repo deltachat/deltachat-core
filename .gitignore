@@ -59,5 +59,6 @@ libs/zlib-1.2.11
 python/.tox/
 python/liveconfig
 python/src/deltachat/capi*so
+python/wheelhouse/
 
 .*.swp
