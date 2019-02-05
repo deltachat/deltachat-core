@@ -266,12 +266,16 @@ int main(int argc, char ** argv)
 {
 	char*         cmd = NULL;
 	dc_context_t* context = dc_context_new(receive_event, NULL, "CLI");
+	int           stresstest_only = 0;
 
 	dc_cmdline_skip_auth(context); /* disable the need to enter the command `auth <password>` for all mailboxes. */
 
 	/* open database from the commandline (if omitted, it can be opened using the `open`-command) */
 	if (argc == 2) {
-		if (!dc_open(context, argv[1], NULL)) {
+		if (strcmp(argv[1], "--stress")==0) {
+			stresstest_only = 1;
+		}
+		else if (!dc_open(context, argv[1], NULL)) {
 			printf("ERROR: Cannot open %s.\n", argv[1]);
 		}
 	}
@@ -283,13 +287,10 @@ int main(int argc, char ** argv)
 	stress_functions(context);
 	s_do_log_info = 1;
 
-	#if 0
-	for(int i=0; i<10000;i++) {
-		printf("--%i--\n", i);
-		start_threads(context);
-		stop_threads(context);
+
+	if (stresstest_only) {
+		return 0;
 	}
-	#endif
 
 	printf("Delta Chat Core is awaiting your commands.\n");
 
