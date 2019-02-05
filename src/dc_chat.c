@@ -2301,6 +2301,15 @@ static uint32_t send_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc_ms
 			new_in_reply_to = dc_strdup(parent_rfc724_mid);
 		}
 
+		// the whole list of messages referenced may be huge;
+		// only use the oldest and and the parent message
+		if (parent_references) {
+			char* space = NULL;
+			if ((space=strchr(parent_references, ' '))!=NULL) {
+				*space = 0;
+			}
+		}
+
 		if (parent_references && parent_references[0]
 		 && parent_rfc724_mid && parent_rfc724_mid[0]) {
 			// angle brackets are added by the mimefactory later
