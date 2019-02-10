@@ -123,3 +123,7 @@ subdir('src')
 
 # Build the binaries.
 subdir('cmdline')
+
+
+# Finally have some tests
+test('stress test', exe, args: ['--stress'])
