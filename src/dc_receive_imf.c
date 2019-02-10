@@ -490,7 +490,8 @@ cleanup:
 
 
 static int check_verified_properties(dc_context_t* context, dc_mimeparser_t* mimeparser,
-                                       uint32_t from_id, const dc_array_t* to_ids)
+                                     uint32_t from_id, const dc_array_t* to_ids,
+                                     char** failure_reason)
 {
 	int              everythings_okay = 0;
 	dc_contact_t*    contact = dc_contact_new(context);
@@ -499,8 +500,18 @@ static int check_verified_properties(dc_context_t* context, dc_mimeparser_t* mim
 	char*            q3 = NULL;
 	sqlite3_stmt*    stmt = NULL;
 
+	#define VERIFY_FAIL(a) \
+		*failure_reason = dc_mprintf("%s. See \"Info\" for details.", (a)); \
+		dc_log_warning(context, 0, *failure_reason);
+
 	if (!dc_contact_load_from_db(contact, context->sql, from_id)) {
-		dc_log_warning(context, 0, "Cannot verifiy group; cannot load contact.");
+		VERIFY_FAIL("Internal Error; cannot load contact.")
+		goto cleanup;
+	}
+
+	// ensure, the message is encrypted
+	if (!mimeparser->e2ee_helper->encrypted) {
+		VERIFY_FAIL("This message is not encrypted.")
 		goto cleanup;
 	}
 
@@ -511,21 +522,15 @@ static int check_verified_properties(dc_context_t* context, dc_mimeparser_t* mim
 	if (from_id!=DC_CONTACT_ID_SELF)
 	{
 		if (!dc_apeerstate_load_by_addr(peerstate, context->sql, contact->addr)
-		 || dc_contact_is_verified_ex(contact, peerstate) < DC_BIDIRECT_VERIFIED) {
-			dc_log_warning(context, 0, "Cannot verifiy group; sender is not verified.");
+		 || dc_contact_is_verified_ex(contact, peerstate) != DC_BIDIRECT_VERIFIED) {
+			VERIFY_FAIL("The sender of this message is not verified.")
 			goto cleanup;
 		}
 
 		if (!dc_apeerstate_has_verified_key(peerstate, mimeparser->e2ee_helper->signatures)) {
-			dc_log_warning(context, 0, "Cannot verifiy group; message is not signed properly.");
+			VERIFY_FAIL("The message was sent with non-verified encryption.")
 			goto cleanup;
 		}
-	}
-
-	// ensure, the message is encrypted
-	if (!mimeparser->e2ee_helper->encrypted) {
-		dc_log_warning(context, 0, "Cannot verifiy group; message is not encrypted properly.");
-		goto cleanup;
 	}
 
 	// check that all members are verified.
@@ -554,7 +559,7 @@ static int check_verified_properties(dc_context_t* context, dc_mimeparser_t* mim
 			 ||   (strcmp(peerstate->verified_key_fingerprint, peerstate->public_key_fingerprint)!=0
 			    && strcmp(peerstate->verified_key_fingerprint, peerstate->gossip_key_fingerprint)!=0))
 			{
-				dc_log_info(context, 0, "Marking gossipped key %s as verified due to verified %s.", to_addr, contact->addr);
+				dc_log_info(context, 0, "%s has verfied %s.", contact->addr, to_addr);
 				dc_apeerstate_set_verified(peerstate, DC_PS_GOSSIP_KEY, peerstate->gossip_key_fingerprint, DC_BIDIRECT_VERIFIED);
 				dc_apeerstate_save_to_db(peerstate, context->sql, 0);
 				is_verified = 1;
@@ -563,7 +568,9 @@ static int check_verified_properties(dc_context_t* context, dc_mimeparser_t* mim
 
 		if (!is_verified)
 		{
-			dc_log_warning(context, 0, "Cannot verifiy group; recipient %s is not gossipped.", to_addr);
+			char* err = dc_mprintf("%s is not a member of this verified group.", to_addr);
+			VERIFY_FAIL(err)
+			free(err);
 			goto cleanup;
 		}
 	}
@@ -614,6 +621,7 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 	int           X_MrGrpNameChanged = 0;
 	const char*   X_MrGrpImageChanged = NULL;
 	char*         better_msg = NULL;
+	char*         failure_reason = NULL;
 
 	/* search the grpid in the header */
 	{
@@ -713,14 +721,8 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 	/* check, if we have a chat with this group ID */
 	if ((chat_id=dc_get_chat_id_by_grpid(context, grpid, &chat_id_blocked, &chat_id_verified))!=0) {
 		if (chat_id_verified
-		 && !check_verified_properties(context, mime_parser, from_id, to_ids)) {
-			chat_id          = 0; // force the creation of an unverified ad-hoc group.
-			chat_id_blocked  = 0;
-			chat_id_verified = 0;
-			free(grpid);
-			grpid = NULL;
-			free(grpname);
-			grpname = NULL;
+		 && !check_verified_properties(context, mime_parser, from_id, to_ids, &failure_reason)) {
+			dc_mimeparser_repl_msg_by_error(mime_parser, failure_reason);
 		}
 	}
 
@@ -744,8 +746,9 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 	{
 		int create_verified = 0;
 		if (dc_mimeparser_lookup_field(mime_parser, "Chat-Verified")) {
-			if (check_verified_properties(context, mime_parser, from_id, to_ids)) {
-				create_verified = 1;
+			create_verified = 1;
+			if (!check_verified_properties(context, mime_parser, from_id, to_ids, &failure_reason)) {
+				dc_mimeparser_repl_msg_by_error(mime_parser, failure_reason);
 			}
 		}
 
@@ -868,6 +871,7 @@ cleanup:
 	free(grpname);
 	free(self_addr);
 	free(better_msg);
+	free(failure_reason);
 	if (ret_chat_id)         { *ret_chat_id = chat_id; }
 	if (ret_chat_id_blocked) { *ret_chat_id_blocked = chat_id? chat_id_blocked : 0; }
 }
