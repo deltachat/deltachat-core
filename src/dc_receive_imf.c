@@ -509,6 +509,12 @@ static int check_verified_properties(dc_context_t* context, dc_mimeparser_t* mim
 		goto cleanup;
 	}
 
+	// ensure, the message is encrypted
+	if (!mimeparser->e2ee_helper->encrypted) {
+		VERIFY_FAIL("This message is not encrypted.")
+		goto cleanup;
+	}
+
 	// ensure, the contact is verified
 	// and the message is signed with a verified key of the sender.
 	// this check is skipped for SELF as there is no proper SELF-peerstate
@@ -517,20 +523,14 @@ static int check_verified_properties(dc_context_t* context, dc_mimeparser_t* mim
 	{
 		if (!dc_apeerstate_load_by_addr(peerstate, context->sql, contact->addr)
 		 || dc_contact_is_verified_ex(contact, peerstate) != DC_BIDIRECT_VERIFIED) {
-			VERIFY_FAIL("The sender of this message is not not verified.")
+			VERIFY_FAIL("The sender of this message is not verified.")
 			goto cleanup;
 		}
 
 		if (!dc_apeerstate_has_verified_key(peerstate, mimeparser->e2ee_helper->signatures)) {
-			VERIFY_FAIL("The message is not authorized.")
+			VERIFY_FAIL("The message was sent with non-verified encryption.")
 			goto cleanup;
 		}
-	}
-
-	// ensure, the message is encrypted
-	if (!mimeparser->e2ee_helper->encrypted) {
-		VERIFY_FAIL("This message is not encrypted.")
-		goto cleanup;
 	}
 
 	// check that all members are verified.
