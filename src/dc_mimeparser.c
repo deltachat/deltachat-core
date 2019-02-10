@@ -5,6 +5,8 @@
 #include "dc_simplify.h"
 
 
+static void hash_header(dc_hash_t* out, const struct mailimf_fields* in, dc_context_t* context);
+
 
 // deprecated: flag to switch generation of compound messages on and off.
 static int s_generate_compound_msgs = 1;
@@ -1064,7 +1066,13 @@ static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* mimeparser, s
 					}
 				}
 
-				char* simplified_txt = dc_simplify_simplify(simplifier, decoded_data, decoded_data_bytes, mime_type==DC_MIMETYPE_TEXT_HTML? 1 : 0);
+				/* check header directly as is_send_by_messenger is not yet set up */
+				int is_msgrmsg = dc_mimeparser_lookup_optional_field(mimeparser, "Chat-Version")!=NULL;
+
+				char* simplified_txt = dc_simplify_simplify(simplifier,
+					decoded_data, decoded_data_bytes,
+					mime_type==DC_MIMETYPE_TEXT_HTML? 1 : 0,
+					is_msgrmsg);
 				if (simplified_txt && simplified_txt[0])
 				{
 					part = dc_mimepart_new();
@@ -1203,6 +1211,9 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* mimeparser, struc
 			if (mailimf_envelope_and_optional_fields_parse(mime->mm_mime_start, mime->mm_length, &dummy, &mimeparser->header_protected)!=MAILIMF_NO_ERROR
 			 || mimeparser->header_protected==NULL) {
 				dc_log_warning(mimeparser->context, 0, "Protected headers parsing error.");
+			}
+			else {
+				hash_header(&mimeparser->header, mimeparser->header_protected, mimeparser->context);
 			}
 		}
 		else {
@@ -1348,6 +1359,7 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* mimeparser, struc
 			if (mimeparser->header_root==NULL)
 			{
 				mimeparser->header_root = mime->mm_data.mm_message.mm_fields;
+				hash_header(&mimeparser->header, mimeparser->header_root, mimeparser->context);
 			}
 
 			if (mime->mm_data.mm_message.mm_msg_mime)
@@ -1458,10 +1470,6 @@ void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_termi
 
 	/* recursively check, whats parsed, this also sets up header_old */
 	dc_mimeparser_parse_mime_recursive(mimeparser, mimeparser->mimeroot);
-
-	/* setup header */
-	hash_header(&mimeparser->header, mimeparser->header_root, mimeparser->context);
-	hash_header(&mimeparser->header, mimeparser->header_protected, mimeparser->context); /* overwrite the original header with the protected one */
 
 	/* set some basic data */
 	{

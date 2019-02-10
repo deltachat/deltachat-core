@@ -25,7 +25,9 @@ void           dc_simplify_unref         (dc_simplify_t*);
 /* Simplify and normalise text: Remove quotes, signatures, unnecessary
 lineends etc.
 The data returned from Simplify() must be free()'d when no longer used, private */
-char*          dc_simplify_simplify      (dc_simplify_t*, const char* txt_unterminated, int txt_bytes, int is_html);
+char*          dc_simplify_simplify      (dc_simplify_t*,
+                                          const char* txt_unterminated, int txt_bytes,
+                                          int is_html, int is_msgrmsg);
 
 
 #ifdef __cplusplus

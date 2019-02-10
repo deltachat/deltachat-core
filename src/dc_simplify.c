@@ -90,16 +90,15 @@ void dc_simplify_unref(dc_simplify_t* simplify)
  ******************************************************************************/
 
 
-static char* dc_simplify_simplify_plain_text(dc_simplify_t* simplify, const char* buf_terminated)
+static char* dc_simplify_simplify_plain_text(dc_simplify_t* simplify,
+                                             const char* buf_terminated,
+                                             int is_msgrmsg)
 {
 	/* This function ...
 	... removes all text after the line `-- ` (footer mark)
 	... removes full quotes at the beginning and at the end of the text -
 	    these are all lines starting with the character `>`
 	... remove a non-empty line before the removed quote (contains sth. like "On 2.9.2016, Bjoern wrote:" in different formats and lanugages) */
-
-	/* we could skip some of this stuff if we know that the mail is from another messenger,
-	however, this adds some additional complexity and seems not to be needed currently */
 
 	/* split the given buffer into lines */
 	carray* lines = dc_split_into_lines(buf_terminated);
@@ -168,6 +167,7 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* simplify, const char
 	}
 
 	/* remove full quotes at the end of the text */
+	if (!is_msgrmsg)
 	{
 		int l_lastQuotedLine = -1;
 
@@ -202,6 +202,7 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* simplify, const char
 	}
 
 	/* remove full quotes at the beginning of the text */
+	if (!is_msgrmsg)
 	{
 		int l_lastQuotedLine = -1;
 		int hasQuotedHeadline = 0;
@@ -280,7 +281,8 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* simplify, const char
  ******************************************************************************/
 
 
-char* dc_simplify_simplify(dc_simplify_t* simplify, const char* in_unterminated, int in_bytes, int is_html)
+char* dc_simplify_simplify(dc_simplify_t* simplify, const char* in_unterminated,
+                           int in_bytes, int is_html, int is_msgrmsg)
 {
 	/* create a copy of the given buffer */
 	char* out = NULL;
@@ -309,7 +311,7 @@ char* dc_simplify_simplify(dc_simplify_t* simplify, const char* in_unterminated,
 
 	/* simplify the text in the buffer (characters to remove may be marked by `\r`) */
 	dc_remove_cr_chars(out); /* make comparisons easier, eg. for line `-- ` */
-	if ((temp = dc_simplify_simplify_plain_text(simplify, out)) != NULL) {
+	if ((temp = dc_simplify_simplify_plain_text(simplify, out, is_msgrmsg)) != NULL) {
 		free(out);
 		out = temp;
 	}
