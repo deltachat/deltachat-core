@@ -2220,7 +2220,7 @@ cleanup:
 }
 
 
-static uint32_t send_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc_msg_t* msg, time_t timestamp)
+static uint32_t prepare_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc_msg_t* msg, time_t timestamp, int state)
 {
 	char*         parent_rfc724_mid = NULL;
 	char*         parent_references = NULL;
@@ -2383,7 +2383,7 @@ static uint32_t send_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc_ms
 	sqlite3_bind_int  (stmt,  4, to_id);
 	sqlite3_bind_int64(stmt,  5, timestamp);
 	sqlite3_bind_int  (stmt,  6, msg->type);
-	sqlite3_bind_int  (stmt,  7, DC_STATE_OUT_PENDING);
+	sqlite3_bind_int  (stmt,  7, state);
 	sqlite3_bind_text (stmt,  8, msg->text? msg->text : "",  -1, SQLITE_STATIC);
 	sqlite3_bind_text (stmt,  9, msg->param->packed, -1, SQLITE_STATIC);
 	sqlite3_bind_int  (stmt, 10, msg->hidden);
@@ -2395,7 +2395,6 @@ static uint32_t send_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc_ms
 	}
 
 	msg_id = dc_sqlite3_get_rowid(context->sql, "msgs", "rfc724_mid", new_rfc724_mid);
-	dc_job_add(context, DC_JOB_SEND_MSG_TO_SMTP, msg_id, NULL, 0);
 
 cleanup:
 	free(parent_rfc724_mid);
@@ -2409,51 +2408,10 @@ cleanup:
 }
 
 
-/**
- * Send a message defined by a dc_msg_t object to a chat.
- *
- * Sends the event #DC_EVENT_MSGS_CHANGED on succcess.
- * However, this does not imply, the message really reached the recipient -
- * sending may be delayed eg. due to network problems. However, from your
- * view, you're done with the message. Sooner or later it will find its way.
- *
- * Example:
- * ~~~
- * dc_msg_t* msg = dc_msg_new(context, DC_MSG_IMAGE);
- * dc_msg_set_file(msg, "/file/to/send.jpg", NULL);
- * dc_send_msg(context, msg);
- * ~~~
- *
- * You can even call this function if the file to be sent is still in creation.
- * For this purpose, create a file with the additional extension `.increation`
- * beside the file to sent. Once you're done with creating the file, delete the
- * increation-file and the message will really be sent.
- * This is useful as the user can already send the next messages while
- * eg. the recoding of a video is not yet finished. Or the user can even forward
- * the message with the file being still in creation to other groups.
- *
- * Files being sent with the increation-method must be placed in the
- * blob directory, see dc_get_blobdir().
- * If the increation-method is not used - which is probably the normal case -
- * the file is copied to the blob directory if it is not yet there.
- *
- * @memberof dc_context_t
- * @param context The context object as returned from dc_context_new().
- * @param chat_id Chat ID to send the message to.
- * @param msg Message object to send to the chat defined by the chat ID.
- *     On succcess, msg_id of the object is set up,
- *     The function does not take ownership of the object,
- *     so you have to free it using dc_msg_unref() as usual.
- * @return The ID of the message that is about being sent.
- */
-uint32_t dc_send_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
+static uint32_t prepare_msg_common(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg, int state)
 {
 	char*      pathNfilename = NULL;
 	dc_chat_t* chat = NULL;
-
-	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || msg==NULL || chat_id<=DC_CHAT_ID_LAST_SPECIAL) {
-		return 0;
-	}
 
 	msg->id      = 0;
 	msg->context = context;
@@ -2517,17 +2475,122 @@ uint32_t dc_send_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 
 	chat = dc_chat_new(context);
 	if (dc_chat_load_from_db(chat, chat_id)) {
-		msg->id = send_msg_raw(context, chat, msg, dc_create_smeared_timestamp(context));
-		if (msg->id==0) {
-			goto cleanup; /* error already logged */
-		}
+		msg->id = prepare_msg_raw(context, chat, msg, dc_create_smeared_timestamp(context), state);
+		/* potential error already logged */
 	}
-
-	context->cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg->id);
 
 cleanup:
 	dc_chat_unref(chat);
 	free(pathNfilename);
+	return msg->id;
+}
+
+
+/**
+ * Prepare a message for sending.
+ *
+ * Call this function if the file to be sent is still in creation.
+ * Once you're done with creating the file, call dc_send_msg() with chat_id of 0
+ * and the message will really be sent.
+ *
+ * This is useful as the user can already send the next messages while
+ * e.g. the recoding of a video is not yet finished. Or the user can even forward
+ * the message with the file being still in creation to other groups.
+ *
+ * Files being sent with the increation-method must be placed in the
+ * blob directory, see dc_get_blobdir().
+ * If the increation-method is not used - which is probably the normal case -
+ * dc_send_msg() copies the file to the blob directory if it is not yet there.
+ *
+ * Example:
+ * ~~~
+ * dc_msg_t* msg = dc_msg_new(context, DC_MSG_VIDEO);
+ * dc_msg_set_file(msg, "/file/to/send.mp4", NULL);
+ * dc_prepare_msg(context, chat_id, msg);
+ * // ... after /file/to/send.mp4 is ready:
+ * dc_send_msg(context, 0, msg);
+ *
+ * @memberof dc_context_t
+ * @param context The context object as returned from dc_context_new().
+ * @param chat_id Chat ID to send the message to.
+ * @param msg Message object to send to the chat defined by the chat ID.
+ *     On succcess, msg_id of the object is set up,
+ *     The function does not take ownership of the object,
+ *     so you have to free it using dc_msg_unref() as usual.
+ * @return The ID of the message that is being prepared.
+ */
+uint32_t dc_prepare_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
+{
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || msg==NULL || chat_id<=DC_CHAT_ID_LAST_SPECIAL) {
+		return 0;
+	}
+
+	return prepare_msg_common(context, chat_id, msg, DC_STATE_OUT_PREPARING);
+}
+
+/**
+ * Send a message defined by a dc_msg_t object to a chat.
+ *
+ * Sends the event #DC_EVENT_MSGS_CHANGED on succcess.
+ * However, this does not imply, the message really reached the recipient -
+ * sending may be delayed eg. due to network problems. However, from your
+ * view, you're done with the message. Sooner or later it will find its way.
+ *
+ * Example:
+ * ~~~
+ * dc_msg_t* msg = dc_msg_new(context, DC_MSG_IMAGE);
+ * dc_msg_set_file(msg, "/file/to/send.jpg", NULL);
+ * dc_send_msg(context, chat_id, msg);
+ * ~~~
+ *
+ * You can even call this function if the file to be sent is still in creation.
+ * For this purpose, create a file with the additional extension `.increation`
+ * beside the file to sent. Once you're done with creating the file, delete the
+ * increation-file and the message will really be sent.
+ * This is useful as the user can already send the next messages while
+ * eg. the recoding of a video is not yet finished. Or the user can even forward
+ * the message with the file being still in creation to other groups.
+ *
+ * Files being sent with the increation-method must be placed in the
+ * blob directory, see dc_get_blobdir().
+ * If the increation-method is not used - which is probably the normal case -
+ * the file is copied to the blob directory if it is not yet there.
+ *
+ * @memberof dc_context_t
+ * @param context The context object as returned from dc_context_new().
+ * @param chat_id Chat ID to send the message to.
+ *     If dc_prepare_msg() was called before, this parameter must be 0.
+ * @param msg Message object to send to the chat defined by the chat ID.
+ *     On succcess, msg_id of the object is set up,
+ *     The function does not take ownership of the object,
+ *     so you have to free it using dc_msg_unref() as usual.
+ * @return The ID of the message that is about being sent.
+ */
+uint32_t dc_send_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
+{
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || msg==NULL) {
+		return 0;
+	}
+
+	// automatically prepare normal messages
+	if (chat_id) {
+		if (!prepare_msg_common(context, chat_id, msg, DC_STATE_OUT_PENDING)) {
+			return 0;
+		};
+	}
+	// update message state of separately prepared messages
+	else {
+		sqlite3_stmt* stmt = dc_sqlite3_prepare(context->sql,
+			"UPDATE msgs SET state=" DC_STRINGIFY(DC_STATE_OUT_PENDING)
+			" WHERE id=?;");
+		sqlite3_bind_int(stmt, 1, msg->id);
+		sqlite3_step(stmt);
+		sqlite3_finalize(stmt);
+	}
+
+	dc_job_add(context, DC_JOB_SEND_MSG_TO_SMTP, msg->id, NULL, 0);
+
+	context->cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg->id);
 	return msg->id;
 }
 
@@ -2667,7 +2730,19 @@ void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt
 			dc_param_set(msg->param, DC_PARAM_FORCE_PLAINTEXT, NULL);
 			dc_param_set(msg->param, DC_PARAM_CMD, NULL);
 
-			uint32_t new_msg_id = send_msg_raw(context, chat, msg, curr_timestamp++);
+			uint32_t new_msg_id;
+			// PREPARING messages can't be forwarded immediately
+			if (msg->state==DC_STATE_OUT_PREPARING) {
+				if (!dc_param_exists(msg->param, DC_PARAM_FWD_ORIGINAL)) {
+					dc_param_set_int(msg->param, DC_PARAM_FWD_ORIGINAL, src_msg_id);
+				}
+				new_msg_id = prepare_msg_raw(context, chat, msg, curr_timestamp++, msg->state);
+			}
+			else {
+				new_msg_id = prepare_msg_raw(context, chat, msg, curr_timestamp++, msg->state);
+				dc_job_add(context, DC_JOB_SEND_MSG_TO_SMTP, new_msg_id, NULL, 0);
+			}
+
 			carray_add(created_db_entries, (void*)(uintptr_t)chat_id, NULL);
 			carray_add(created_db_entries, (void*)(uintptr_t)new_msg_id, NULL);
 		}
