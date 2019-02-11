@@ -8,6 +8,19 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes anywhere in the Delta Chat ecosystem,
 see https://delta.chat/en/changelog
 
+## v0.40.0
+
+* do not truncate messenger messages
+* avoid group splits
+* avoid possible polling of unconfigured folders
+* refine error handling on export/import
+* read autoconfig from http-servers if https fails
+* limit the number of messages referenced in the header
+* meson handles iconv and calls the stress test
+
+The changes have been done by Ampli-fier, Björn Petersen, Floris Bruynooghe
+and Holger Krekel
+
 ## v0.39.1
 
 * bugfix release
