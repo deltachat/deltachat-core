@@ -765,8 +765,11 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	 && param->send_port   ==0
 	 && param->send_user   ==NULL
 	/*&&param->send_pw     ==NULL -- the password cannot be auto-configured and is no criterion for autoconfig or not */
-	 && param->server_flags==0)
+	 && (param->server_flags & (~DC_LP_AUTH_OAUTH2))==0 /* flags but OAuth2 avoid autoconfig */
+	 )
 	{
+		int keep_flags = param->server_flags & DC_LP_AUTH_OAUTH2;
+
 		/* A.  Search configurations from the domain used in the email-address, prefer encrypted */
 		if (param_autoconfig==NULL) {
 			char* url = dc_mprintf("https://autoconfig.%s/mail/config-v1.1.xml?emailaddress=%s", param_domain, param_addr_urlencoded);
@@ -833,17 +836,8 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 			/* althoug param_autoconfig's data are no longer needed from, it is important to keep the object as
 			we may enter "deep guessing" if we could not read a configuration */
 		}
-	}
 
-
-	/* 3.  Internal specials (eg. for uploading to chats-folder etc.)
-	 **************************************************************************/
-
-	if (strcasecmp(param_domain, "gmail.com")==0 || strcasecmp(param_domain, "googlemail.com")==0)
-	{
-		/* NB: Checking GMa'l too often (<10 Minutes) may result in blocking, says https://github.com/itprojects/InboxPager/blob/HEAD/README.md#gmail-configuration
-		Also note https://www.google.com/settings/security/lesssecureapps */
-		param->server_flags |= DC_LP_AUTH_XOAUTH2;
+		param->server_flags |= keep_flags;
 	}
 
 

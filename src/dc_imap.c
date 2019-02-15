@@ -769,19 +769,19 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 		dc_log_info(imap->context, 0, "IMAP-server %s:%i SSL-connected.", imap->imap_server, (int)imap->imap_port);
 	}
 
-	/* TODO: There are more authorisation types, see mailcore2/MCIMAPSession.cpp, however, I'm not sure of they are really all needed */
-	/*if (imap->server_flags&DC_LP_AUTH_XOAUTH2)
+	/* from mailcore2/MCIMAPSession.cpp */
+	if (imap->server_flags&DC_LP_AUTH_OAUTH2)
 	{
-		//TODO: Support XOAUTH2, we "just" need to get the token someway. If we do so, there is no more need for the user to enable
-		//https://www.google.com/settings/security/lesssecureapps - however, maybe this is also not needed if the user had enabled 2-factor-authorisation.
-		if (mOAuth2Token==NULL) {
-			r = MAILIMAP_ERROR_STREAM;
+		// for DC_LP_AUTH_OAUTH2, user_pw is assumed to be the oauth_token
+		dc_log_info(imap->context, 0, "IMAP-OAuth2 connect...");
+		if (imap->imap_pw==NULL || imap->imap_pw[0]==0) {
+			dc_log_event_seq(imap->context, DC_EVENT_ERROR_NETWORK, &imap->log_connect_errors,
+				"IMAP-OAuth2 token missing for %s@%s:%i.", imap->imap_user, imap->imap_server, (int)imap->imap_port);
+			goto cleanup;
 		}
-		else {
-			r = mailimap_oauth2_authenticate(imap->etpan, imap->imap_use, mOAuth2Token);
-		}
+		r = mailimap_oauth2_authenticate(imap->etpan, imap->imap_user, imap->imap_pw);
 	}
-	else*/
+	else
 	{
 		/* DC_LP_AUTH_NORMAL or no auth flag set */
 		r = mailimap_login(imap->etpan, imap->imap_user, imap->imap_pw);

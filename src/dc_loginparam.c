@@ -103,7 +103,7 @@ static char* get_readable_flags(int flags)
 		{
 			int flag_added = 0;
 
-			CAT_FLAG(DC_LP_AUTH_XOAUTH2,         "XOAUTH2 ");
+			CAT_FLAG(DC_LP_AUTH_OAUTH2,          "OAUTH2 ");
 			CAT_FLAG(DC_LP_AUTH_NORMAL,          "AUTH_NORMAL ");
 
 			CAT_FLAG(DC_LP_IMAP_SOCKET_STARTTLS, "IMAP_STARTTLS ");

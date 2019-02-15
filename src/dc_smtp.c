@@ -177,7 +177,21 @@ int dc_smtp_connect(dc_smtp_t* smtp, const dc_loginparam_t* lp)
 
 	if (lp->send_user)
 	{
-		if((r=mailsmtp_auth(smtp->etpan, lp->send_user, lp->send_pw))!=MAILSMTP_NO_ERROR) {
+		if (lp->server_flags&DC_LP_AUTH_OAUTH2)
+		{
+			dc_log_info(smtp->context, 0, "SMTP-OAuth2 connect...");
+			if (lp->send_pw==NULL || lp->send_pw[0]==0) {
+				dc_log_event_seq(smtp->context, DC_EVENT_ERROR_NETWORK, &smtp->log_connect_errors,
+					"SMTP-OAuth2 token missing for %s@%s:%i.", lp->send_user, lp->send_server, (int)lp->send_port);
+				goto cleanup;
+			}
+
+			if ((r = mailsmtp_oauth2_authenticate(smtp->etpan, lp->send_user, lp->send_pw)) != MAILSMTP_NO_ERROR) {
+				r = mailsmtp_oauth2_outlook_authenticate(smtp->etpan, lp->send_user, lp->send_pw);
+			}
+		}
+		else if((r=mailsmtp_auth(smtp->etpan, lp->send_user, lp->send_pw))!=MAILSMTP_NO_ERROR)
+		{
 			/*
 			 * There are some Mailservers which do not correclty implement PLAIN auth (hMail)
 			 * So here we try a workaround. See https://github.com/deltachat/deltachat-android/issues/67
@@ -194,12 +208,13 @@ int dc_smtp_connect(dc_smtp_t* smtp, const dc_loginparam_t* lp)
 				}
 				r = mailesmtp_auth_sasl(smtp->etpan, "PLAIN", hostname, NULL, NULL, NULL, lp->send_user, lp->send_pw, NULL);
 			}
-			if (r != MAILSMTP_NO_ERROR)
-			{
-				dc_log_event_seq(smtp->context, DC_EVENT_ERROR_NETWORK, &smtp->log_connect_errors,
-					"SMTP-login failed for user %s (%s)", lp->send_user, mailsmtp_strerror(r));
-				goto cleanup;
-			}
+		}
+
+		if (r != MAILSMTP_NO_ERROR)
+		{
+			dc_log_event_seq(smtp->context, DC_EVENT_ERROR_NETWORK, &smtp->log_connect_errors,
+				"SMTP-login failed for user %s (%s)", lp->send_user, mailsmtp_strerror(r));
+			goto cleanup;
 		}
 
 		dc_log_event(smtp->context, DC_EVENT_SMTP_CONNECTED, 0,
