@@ -1062,19 +1062,39 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 
 
 /**
- * Request a HTTP-file or HTTPS-file from the frontend.
+ * Request a HTTP-file or HTTPS-file from the frontend using HTTP-GET.
  *
  * @param data1 (const char*) Null-terminated UTF-8 string containing the URL.
  *     The string starts with https:// or http://.
  *     Must not be free()'d or modified and is valid only until the callback returns.
  * @param data2 0
  * @return (const char*) The content of the requested file as a null-terminated UTF-8 string;
- *     Response headers, encodings etc. must be stripped, only the raw file, which may be binary, should be returned.
+ *     Response headers, encodings etc. must be stripped.
+ *     Only the raw file should be returned.
  *     CAVE: The string will be free()'d by the core,
  *     so make sure it is allocated using malloc() or a compatible function.
  *     If you cannot provide the content, just return 0 or an empty string.
  */
 #define DC_EVENT_HTTP_GET                 2100
+
+
+/**
+ * Request a HTTP-file or HTTPS-file from the frontend using HTTP-POST.
+ *
+ * @param data1 (const char*) Null-terminated UTF-8 string containing the URL.
+ *     The string starts with https:// or http://.
+ *     Must not be free()'d or modified and is valid only until the callback returns.
+ *     Parameter to POST are added to the url after `?`.
+ * @param data2 0
+ * @return (const char*) The content of the requested file as a null-terminated UTF-8 string;
+ *     Response headers, encodings etc. must be stripped.
+ *     Only the raw file should be returned.
+ *     CAVE: The string will be free()'d by the core,
+ *     so make sure it is allocated using malloc() or a compatible function.
+ *     If you cannot provide the content, just return 0 or an empty string.
+ */
+#define DC_EVENT_HTTP_POST                2110
+
 
 /**
  * @}

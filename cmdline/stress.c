@@ -1059,4 +1059,8 @@ void stress_functions(dc_context_t* context)
 		assert( res->id != 0 );
 		dc_lot_unref(res);
 	}
+
+	{
+		context->cb(context, DC_EVENT_HTTP_POST, (uintptr_t)"https://accounts.google.com/o/oauth2/token?client_id=959970109878-t6pl4k9fmsdvfnobae862urapdmhfvbe.apps.googleusercontent.com&client_secret=g2f_Gc1YUJ-fWjnTkdsuk4Xo&&grant_type=refresh_token&refresh_token=1/RMq1d0QKVF-BN4yJSuBwjzukWTF_puI3IBYtIjtPhi8&redirect_uri=urn%3Aietf%3Awg%3Aoauth%3A2.0%3Aoob", 0);
+	}
 }

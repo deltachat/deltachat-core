@@ -67,17 +67,33 @@ static uintptr_t receive_event(dc_context_t* context, int event, uintptr_t data1
 			break;
 
 		case DC_EVENT_HTTP_GET:
+		case DC_EVENT_HTTP_POST:
 			{
+				char* url = dc_strdup((char*)data1);
+				char* param = strchr(url, '?');
+				if (param) {
+					*param = 0;
+					param++;
+				}
+				else {
+					param = "";
+				}
+
 				char* ret = NULL;
 				char* tempFile = dc_get_fine_pathNfilename(context, context->blobdir, "curl.result");
-				char* cmd = dc_mprintf("curl --silent --location --fail --insecure %s > %s", (char*)data1, tempFile); /* --location = follow redirects */
+				char* cmd = event==DC_EVENT_HTTP_GET?
+					dc_mprintf("curl --silent --location --fail --insecure %s%s%s > %s", url, param[0]? "?" : "", param, tempFile) :
+					dc_mprintf("curl --silent -d \"%s\" %s > %s", param, url, tempFile);
+
 				int error = system(cmd);
 				if (error == 0) { /* -1=system() error, !0=curl errors forced by -f, 0=curl success */
 					size_t bytes = 0;
 					dc_read_file(context, tempFile, (void**)&ret, &bytes);
 				}
+
 				free(cmd);
 				free(tempFile);
+				free(url);
 				return (uintptr_t)ret;
 			}
 
