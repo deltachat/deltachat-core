@@ -39,8 +39,10 @@ int           dc_sqlite3_is_open          (const dc_sqlite3_t*);
 /* handle configurations, private */
 int           dc_sqlite3_set_config       (dc_sqlite3_t*, const char* key, const char* value);
 int           dc_sqlite3_set_config_int   (dc_sqlite3_t*, const char* key, int32_t value);
+int           dc_sqlite3_set_config_int64 (dc_sqlite3_t*, const char* key, int64_t value);
 char*         dc_sqlite3_get_config       (dc_sqlite3_t*, const char* key, const char* def); /* the returned string must be free()'d, returns NULL on errors */
 int32_t       dc_sqlite3_get_config_int   (dc_sqlite3_t*, const char* key, int32_t def);
+int64_t       dc_sqlite3_get_config_int64 (dc_sqlite3_t*, const char* key, int64_t def);
 
 /* tools, these functions are compatible to the corresponding sqlite3_* functions */
 sqlite3_stmt* dc_sqlite3_prepare          (dc_sqlite3_t*, const char* sql); /* the result mus be freed using sqlite3_finalize() */

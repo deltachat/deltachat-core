@@ -21,12 +21,32 @@ static char* jsondup(const char *json, jsmntok_t *tok) {
 }
 
 
+static int is_expired(dc_context_t* context)
+{
+	time_t expire_timestamp = dc_sqlite3_get_config_int64(context->sql,
+		"oauth2_timestamp_expires", 0);
+
+	if (expire_timestamp<=0) {
+		dc_log_info(context, 0, "===== OAuth: no expire time =====");
+		return 0; // timestamp does never expire
+	}
+
+	if (expire_timestamp>time(NULL)) {
+		dc_log_info(context, 0, "===== OAuth: still valid =====");
+		return 0; // expire timestamp is in the future and not yet expired
+	}
+
+	dc_log_info(context, 0, "===== OAuth: expired =====");
+	return 1; // expired
+}
+
+
 char* dc_oauth2_get_access_token(dc_context_t* context, const char* code, int flags)
 {
 	char*       access_token = NULL;
 	char*       refresh_token = NULL;
 	char*       auth_url = NULL;
-	char*       expires_in_str = NULL;
+	time_t      expires_in = 0;
 	char*       error = NULL;
 	char*       error_description = NULL;
 	char*       json = NULL;
@@ -45,7 +65,7 @@ char* dc_oauth2_get_access_token(dc_context_t* context, const char* code, int fl
 	locked = 1;
 
 	// read generated token
-	if (!(flags&DC_REGENERATE)) {
+	if ( !(flags&DC_REGENERATE) && !is_expired(context) ) {
 		access_token = dc_sqlite3_get_config(context->sql, "oauth2_access_token", NULL);
 		if (access_token!=NULL) {
 			goto cleanup; // success
@@ -60,6 +80,7 @@ char* dc_oauth2_get_access_token(dc_context_t* context, const char* code, int fl
 	refresh_token = dc_sqlite3_get_config(context->sql, "oauth2_refresh_token", NULL);
 	if (refresh_token==NULL)
 	{
+		dc_log_info(context, 0, "===== OAuth: get code =====");
 		auth_url = dc_mprintf("https://accounts.google.com/o/oauth2/token"
 			"?client_id=%s"
 			"&client_secret=%s"
@@ -70,6 +91,7 @@ char* dc_oauth2_get_access_token(dc_context_t* context, const char* code, int fl
 	}
 	else
 	{
+		dc_log_info(context, 0, "===== OAuth: regen =====");
 		auth_url = dc_mprintf("https://accounts.google.com/o/oauth2/token"
 			"?client_id=%s"
 			"&client_secret=%s"
@@ -101,7 +123,17 @@ char* dc_oauth2_get_access_token(dc_context_t* context, const char* code, int fl
 			refresh_token = jsondup(json, &tok[i+1]);
 		}
 		else if (jsoneq(json, &tok[i], "expires_in")==0) {
-			expires_in_str = jsondup(json, &tok[i+1]);
+			char* expires_in_str = jsondup(json, &tok[i+1]);
+			if (expires_in_str) {
+				time_t val = atol(expires_in_str);
+				// val should be reasonable, maybe between 20 seconds and 5 years.
+				// if out of range, we re-create when the token gets invalid,
+				// which may create some additional load and requests wrt threads.
+				if (val>20 && val<(60*60*24*365*5)) {
+					expires_in = val;
+				}
+				free(expires_in_str);
+			}
 		}
 		else if (jsoneq(json, &tok[i], "error")==0) {
 			error = jsondup(json, &tok[i+1]);
@@ -126,6 +158,9 @@ char* dc_oauth2_get_access_token(dc_context_t* context, const char* code, int fl
 
 	dc_sqlite3_set_config(context->sql, "oauth2_access_token", access_token);
 
+	dc_sqlite3_set_config_int64(context->sql, "oauth2_timestamp_expires",
+		expires_in? time(NULL)+expires_in-5/*refresh a bet before*/ : 0);
+
 	// update refresh_token if given,
 	// typically this is on the first round with `grant_type=authorization_code`
 	// but we update it later, too.
@@ -138,7 +173,6 @@ cleanup:
 	free(refresh_token);
 	free(auth_url);
 	free(json);
-	free(expires_in_str);
 	free(error);
 	free(error_description);
 	return access_token? access_token : dc_strdup(NULL);
