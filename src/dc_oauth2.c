@@ -41,11 +41,46 @@ static int is_expired(dc_context_t* context)
 }
 
 
-char* dc_oauth2_get_access_token(dc_context_t* context, const char* code, int flags)
+char* dc_get_oauth2_url(dc_context_t* context, const char* addr)
+{
+	#define CLIENT_ID     "959970109878-t6pl4k9fmsdvfnobae862urapdmhfvbe.apps.googleusercontent.com"
+	#define CLIENT_SECRET "g2f_Gc1YUJ-fWjnTkdsuk4Xo"
+	#define AUTH_REDIRECT "urn%3Aietf%3Awg%3Aoauth%3A2.0%3Aoob"
+	#define AUTH_SCOPE    "https%3A%2F%2Fmail.google.com%2F%20email"
+
+	char*       oauth2_url = NULL;
+	char*       addr_normalized = NULL;
+	const char* domain = NULL;
+
+	addr_normalized = dc_addr_normalize(addr);
+	domain = strchr(addr_normalized, '@');
+	if (domain==NULL || domain[0]==0) {
+		goto cleanup;
+	}
+	domain++;
+
+	if (strcasecmp(domain, "gmail.com")==0
+	 || strcasecmp(domain, "googlemail.com")==0) {
+		oauth2_url = dc_mprintf("https://accounts.google.com/o/oauth2/auth"
+			"?client_id=%s"
+			"&redirect_uri=%s"
+			"&response_type=code"
+			"&scope=%s"
+			"&access_type=offline",
+			CLIENT_ID, AUTH_REDIRECT, AUTH_SCOPE);
+	}
+
+cleanup:
+	free(addr_normalized);
+	return oauth2_url;
+}
+
+
+char* dc_get_oauth2_access_token(dc_context_t* context, const char* code, int flags)
 {
 	char*       access_token = NULL;
 	char*       refresh_token = NULL;
-	char*       auth_url = NULL;
+	char*       token_url = NULL;
 	time_t      expires_in = 0;
 	char*       error = NULL;
 	char*       error_description = NULL;
@@ -73,35 +108,33 @@ char* dc_oauth2_get_access_token(dc_context_t* context, const char* code, int fl
 	}
 
 	// generate new token: build & call auth url
-	#define CLIENT_ID     "959970109878-t6pl4k9fmsdvfnobae862urapdmhfvbe.apps.googleusercontent.com"
-	#define CLIENT_SECRET "g2f_Gc1YUJ-fWjnTkdsuk4Xo"
-	#define REDIRECT_URI  "urn%3Aietf%3Awg%3Aoauth%3A2.0%3Aoob"
+	#define TOKEN_REDIRECT_URI "urn%3Aietf%3Awg%3Aoauth%3A2.0%3Aoob"
 
 	refresh_token = dc_sqlite3_get_config(context->sql, "oauth2_refresh_token", NULL);
 	if (refresh_token==NULL)
 	{
 		dc_log_info(context, 0, "===== OAuth: get code =====");
-		auth_url = dc_mprintf("https://accounts.google.com/o/oauth2/token"
+		token_url = dc_mprintf("https://accounts.google.com/o/oauth2/token"
 			"?client_id=%s"
 			"&client_secret=%s"
 			"&grant_type=authorization_code"
 			"&code=%s"
 			"&redirect_uri=%s",
-			CLIENT_ID, CLIENT_SECRET, code, REDIRECT_URI);
+			CLIENT_ID, CLIENT_SECRET, code, TOKEN_REDIRECT_URI);
 	}
 	else
 	{
 		dc_log_info(context, 0, "===== OAuth: regen =====");
-		auth_url = dc_mprintf("https://accounts.google.com/o/oauth2/token"
+		token_url = dc_mprintf("https://accounts.google.com/o/oauth2/token"
 			"?client_id=%s"
 			"&client_secret=%s"
 			"&grant_type=refresh_token"
 			"&refresh_token=%s"
 			"&redirect_uri=%s",
-			CLIENT_ID, CLIENT_SECRET, refresh_token, REDIRECT_URI);
+			CLIENT_ID, CLIENT_SECRET, refresh_token, TOKEN_REDIRECT_URI);
 	}
 
-	json = (char*)context->cb(context, DC_EVENT_HTTP_POST, (uintptr_t)auth_url, 0);
+	json = (char*)context->cb(context, DC_EVENT_HTTP_POST, (uintptr_t)token_url, 0);
 	if (json==NULL) {
 		dc_log_warning(context, 0, "Error calling OAuth2 url");
 		goto cleanup;
@@ -147,7 +180,6 @@ char* dc_oauth2_get_access_token(dc_context_t* context, const char* code, int fl
 		dc_log_warning(context, 0, "OAuth error: %s: %s",
 			error? error : "unknown",
 			error_description? error_description : "no details");
-		dc_log_warning(context, 0, "FULL COMMAND WAS: %s", auth_url);
 		// continue, errors do not imply everything went wrong
 	}
 
@@ -171,7 +203,7 @@ char* dc_oauth2_get_access_token(dc_context_t* context, const char* code, int fl
 cleanup:
 	if (locked) { pthread_mutex_unlock(&context->oauth2_critical); }
 	free(refresh_token);
-	free(auth_url);
+	free(token_url);
 	free(json);
 	free(error);
 	free(error_description);

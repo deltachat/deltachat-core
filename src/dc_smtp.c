@@ -181,11 +181,11 @@ int dc_smtp_connect(dc_smtp_t* smtp, const dc_loginparam_t* lp)
 		if (lp->server_flags&DC_LP_AUTH_OAUTH2)
 		{
 			dc_log_info(smtp->context, 0, "SMTP-OAuth2 connect...");
-			char* access_token = dc_oauth2_get_access_token(smtp->context, lp->send_pw, 0);
+			char* access_token = dc_get_oauth2_access_token(smtp->context, lp->send_pw, 0);
 			// if we want to support outlook, there is a mailsmtp_oauth2_outlook_authenticate() ...
 			if ((r = mailsmtp_oauth2_authenticate(smtp->etpan, lp->send_user, access_token)) != MAILSMTP_NO_ERROR) {
 				free(access_token);
-				access_token = dc_oauth2_get_access_token(smtp->context, lp->send_pw, DC_REGENERATE);
+				access_token = dc_get_oauth2_access_token(smtp->context, lp->send_pw, DC_REGENERATE);
 				r = mailsmtp_oauth2_authenticate(smtp->etpan, lp->send_user, access_token);
 			}
 			free(access_token);

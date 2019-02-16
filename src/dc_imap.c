@@ -775,11 +775,11 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 	{
 		// for DC_LP_AUTH_OAUTH2, user_pw is assumed to be the oauth_token
 		dc_log_info(imap->context, 0, "IMAP-OAuth2 connect...");
-		char* access_token = dc_oauth2_get_access_token(imap->context, imap->imap_pw, 0);
+		char* access_token = dc_get_oauth2_access_token(imap->context, imap->imap_pw, 0);
 		r = mailimap_oauth2_authenticate(imap->etpan, imap->imap_user, access_token);
 		if (dc_imap_is_error(imap, r)) {
 			free(access_token);
-			access_token = dc_oauth2_get_access_token(imap->context, imap->imap_pw, DC_REGENERATE);
+			access_token = dc_get_oauth2_access_token(imap->context, imap->imap_pw, DC_REGENERATE);
 			r = mailimap_oauth2_authenticate(imap->etpan, imap->imap_user, access_token);
 		}
 		free(access_token);

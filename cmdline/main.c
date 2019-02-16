@@ -351,6 +351,26 @@ int main(int argc, char ** argv)
 			start_threads(context);
 			dc_configure(context);
 		}
+		else if (strcmp(cmd, "oauth2")==0)
+		{
+			char* addr = dc_get_config(context, "addr");
+			if (addr==NULL || addr[0]==0) {
+				printf("oauth2: set addr first.\n");
+			}
+			else {
+				char* oauth2_url = dc_get_oauth2_url(context, addr);
+				if (oauth2_url==NULL) {
+					printf("OAuth2 not available for %s.\n", addr);
+				}
+				else {
+					printf("Open the following url, "
+						"set mail_pw to the generated token "
+						"and server_flags to 2:\n%s\n", oauth2_url);
+				}
+				free(oauth2_url);
+			}
+			free(addr);
+		}
 		else if (strcmp(cmd, "clear")==0)
 		{
 			printf("\n\n\n\n"); /* insert some blank lines to visualize the break in the buffer */
