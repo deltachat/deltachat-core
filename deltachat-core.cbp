@@ -65,6 +65,9 @@
 		<Unit filename="cmdline/stress.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="libs/jsmn/jsmn.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="libs/libetpan/src/data-types/base64.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -495,6 +498,9 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/dc_msg.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/dc_oauth2.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/dc_openssl.c">

@@ -3,6 +3,7 @@
 #include "dc_context.h"
 #include "dc_smtp.h"
 #include "dc_job.h"
+#include "dc_oauth2.h"
 
 
 #ifndef DEBUG_SMTP
@@ -180,15 +181,14 @@ int dc_smtp_connect(dc_smtp_t* smtp, const dc_loginparam_t* lp)
 		if (lp->server_flags&DC_LP_AUTH_OAUTH2)
 		{
 			dc_log_info(smtp->context, 0, "SMTP-OAuth2 connect...");
-			if (lp->send_pw==NULL || lp->send_pw[0]==0) {
-				dc_log_event_seq(smtp->context, DC_EVENT_ERROR_NETWORK, &smtp->log_connect_errors,
-					"SMTP-OAuth2 token missing for %s@%s:%i.", lp->send_user, lp->send_server, (int)lp->send_port);
-				goto cleanup;
+			char* access_token = dc_oauth2_get_access_token(smtp->context, lp->send_pw, 0);
+			// if we want to support outlook, there is a mailsmtp_oauth2_outlook_authenticate() ...
+			if ((r = mailsmtp_oauth2_authenticate(smtp->etpan, lp->send_user, access_token)) != MAILSMTP_NO_ERROR) {
+				free(access_token);
+				access_token = dc_oauth2_get_access_token(smtp->context, lp->send_pw, DC_REGENERATE);
+				r = mailsmtp_oauth2_authenticate(smtp->etpan, lp->send_user, access_token);
 			}
-
-			if ((r = mailsmtp_oauth2_authenticate(smtp->etpan, lp->send_user, lp->send_pw)) != MAILSMTP_NO_ERROR) {
-				r = mailsmtp_oauth2_outlook_authenticate(smtp->etpan, lp->send_user, lp->send_pw);
-			}
+			free(access_token);
 		}
 		else if((r=mailsmtp_auth(smtp->etpan, lp->send_user, lp->send_pw))!=MAILSMTP_NO_ERROR)
 		{

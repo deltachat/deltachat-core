@@ -7,6 +7,7 @@
 #include "dc_imap.h"
 #include "dc_job.h"
 #include "dc_loginparam.h"
+#include "dc_oauth2.h"
 
 
 static int  setup_handle_if_needed   (dc_imap_t*);
@@ -774,12 +775,14 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 	{
 		// for DC_LP_AUTH_OAUTH2, user_pw is assumed to be the oauth_token
 		dc_log_info(imap->context, 0, "IMAP-OAuth2 connect...");
-		if (imap->imap_pw==NULL || imap->imap_pw[0]==0) {
-			dc_log_event_seq(imap->context, DC_EVENT_ERROR_NETWORK, &imap->log_connect_errors,
-				"IMAP-OAuth2 token missing for %s@%s:%i.", imap->imap_user, imap->imap_server, (int)imap->imap_port);
-			goto cleanup;
+		char* access_token = dc_oauth2_get_access_token(imap->context, imap->imap_pw, 0);
+		r = mailimap_oauth2_authenticate(imap->etpan, imap->imap_user, access_token);
+		if (dc_imap_is_error(imap, r)) {
+			free(access_token);
+			access_token = dc_oauth2_get_access_token(imap->context, imap->imap_pw, DC_REGENERATE);
+			r = mailimap_oauth2_authenticate(imap->etpan, imap->imap_user, access_token);
 		}
-		r = mailimap_oauth2_authenticate(imap->etpan, imap->imap_user, imap->imap_pw);
+		free(access_token);
 	}
 	else
 	{

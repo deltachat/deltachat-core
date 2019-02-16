@@ -187,6 +187,7 @@ dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_na
 	dc_jobthread_init(&context->mvbox_thread, context, "MVBOX", "configured_mvbox_folder");
 	pthread_mutex_init(&context->smtpidle_condmutex, NULL);
 	pthread_cond_init(&context->smtpidle_cond, NULL);
+	pthread_mutex_init(&context->oauth2_critical, NULL);
 
 	context->magic    = DC_CONTEXT_MAGIC;
 	context->userdata = userdata;
@@ -258,6 +259,7 @@ void dc_context_unref(dc_context_t* context)
 	dc_jobthread_exit(&context->mvbox_thread);
 	pthread_cond_destroy(&context->smtpidle_cond);
 	pthread_mutex_destroy(&context->smtpidle_condmutex);
+	pthread_mutex_destroy(&context->oauth2_critical);
 
 	free(context->os_name);
 	context->magic = 0;
