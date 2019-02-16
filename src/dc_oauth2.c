@@ -1,6 +1,6 @@
 #include "dc_context.h"
 #include "dc_oauth2.h"
-#include "../libs/jsmn/jsmn.h"
+#include "dc_jsmn.h"
 
 
 static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {

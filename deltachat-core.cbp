@@ -11,7 +11,7 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="/home/bpetersen/messy/mailboxes/messenger.db" />
+				<Option parameters="/home/bpetersen/messy/mailboxes/messenger-gmail-susi.db" />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>
@@ -63,9 +63,6 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="cmdline/stress.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="libs/jsmn/jsmn.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="libs/libetpan/src/data-types/base64.c">
@@ -468,6 +465,9 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/dc_jobthread.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/dc_jsmn.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/dc_key.c">

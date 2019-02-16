@@ -40,6 +40,7 @@ lib_src = [
   'dc_strencode.c',
   'dc_token.c',
   'dc_tools.c',
+  'dc_jsmn.c',
 ]
 
 lib_deps = [pthreads, zlib, openssl, sasl, sqlite, etpan, netpgp, math]
