@@ -14,7 +14,7 @@ static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
 
 
 static char* jsondup(const char *json, jsmntok_t *tok) {
-	if (tok->type == JSMN_STRING) {
+	if (tok->type == JSMN_STRING || tok->type == JSMN_PRIMITIVE) {
 		return strndup(json+tok->start, tok->end - tok->start);
 	}
 	return strdup("");
