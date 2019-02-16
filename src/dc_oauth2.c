@@ -41,15 +41,19 @@ static int is_expired(dc_context_t* context)
 }
 
 
-char* dc_get_oauth2_url(dc_context_t* context, const char* addr)
+char* dc_get_oauth2_url(dc_context_t* context, const char* addr,
+                        const char* redirect)
 {
-	#define CLIENT_ID     "959970109878-t6pl4k9fmsdvfnobae862urapdmhfvbe.apps.googleusercontent.com"
+	// it's fine to add the "secret" to "offline" apps source code,
+	// "In this context, the client secret is obviously not treated as a secret."
+	// https://developers.google.com/identity/protocols/OAuth2
 	#define CLIENT_SECRET "g2f_Gc1YUJ-fWjnTkdsuk4Xo"
-	#define AUTH_REDIRECT "urn%3Aietf%3Awg%3Aoauth%3A2.0%3Aoob"
+	#define CLIENT_ID     "959970109878-t6pl4k9fmsdvfnobae862urapdmhfvbe.apps.googleusercontent.com"
 	#define AUTH_SCOPE    "https%3A%2F%2Fmail.google.com%2F%20email"
 
 	char*       oauth2_url = NULL;
 	char*       addr_normalized = NULL;
+	char*       redirect_urlencoded = NULL;
 	const char* domain = NULL;
 
 	addr_normalized = dc_addr_normalize(addr);
@@ -59,6 +63,8 @@ char* dc_get_oauth2_url(dc_context_t* context, const char* addr)
 	}
 	domain++;
 
+	redirect_urlencoded = dc_urlencode(redirect);
+
 	if (strcasecmp(domain, "gmail.com")==0
 	 || strcasecmp(domain, "googlemail.com")==0) {
 		oauth2_url = dc_mprintf("https://accounts.google.com/o/oauth2/auth"
@@ -67,11 +73,12 @@ char* dc_get_oauth2_url(dc_context_t* context, const char* addr)
 			"&response_type=code"
 			"&scope=%s"
 			"&access_type=offline",
-			CLIENT_ID, AUTH_REDIRECT, AUTH_SCOPE);
+			CLIENT_ID, redirect_urlencoded, AUTH_SCOPE);
 	}
 
 cleanup:
 	free(addr_normalized);
+	free(redirect_urlencoded);
 	return oauth2_url;
 }
 

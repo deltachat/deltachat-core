@@ -358,7 +358,8 @@ int main(int argc, char ** argv)
 				printf("oauth2: set addr first.\n");
 			}
 			else {
-				char* oauth2_url = dc_get_oauth2_url(context, addr);
+				char* oauth2_url = dc_get_oauth2_url(context, addr,
+					"urn:ietf:wg:oauth:2.0:oob");
 				if (oauth2_url==NULL) {
 					printf("OAuth2 not available for %s.\n", addr);
 				}
