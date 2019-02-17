@@ -359,7 +359,7 @@ int main(int argc, char ** argv)
 			}
 			else {
 				char* oauth2_url = dc_get_oauth2_url(context, addr,
-					"urn:ietf:wg:oauth:2.0:oob");
+					"chat.delta:/com.b44t.messenger");
 				if (oauth2_url==NULL) {
 					printf("OAuth2 not available for %s.\n", addr);
 				}

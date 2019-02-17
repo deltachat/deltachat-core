@@ -698,51 +698,60 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * @{
  */
 
+
 /**
- * Force NORMAL authentification, this is the default.
- * If this, or any other flag is set, automatic configuration is skipped.
+ * Force OAuth2 authorization. This flag does not skip automatic configuration.
+ * Before calling dc_configure() with DC_LP_AUTH_OAUTH2 set,
+ * the user has to confirm access at the URL returned by dc_get_oauth2_url().
+ */
+#define DC_LP_AUTH_OAUTH2                0x2
+
+
+/**
+ * Force NORMAL authorization, this is the default.
+ * If this flag is set, automatic configuration is skipped.
  */
 #define DC_LP_AUTH_NORMAL                0x4
 
 
 /**
  * Connect to IMAP via STARTTLS.
- * If this, or any other flag is set, automatic configuration is skipped.
+ * If this flag is set, automatic configuration is skipped.
  */
 #define DC_LP_IMAP_SOCKET_STARTTLS     0x100
 
 
 /**
  * Connect to IMAP via SSL.
- * If this, or any other flag is set, automatic configuration is skipped.
+ * If this flag is set, automatic configuration is skipped.
  */
 #define DC_LP_IMAP_SOCKET_SSL          0x200
 
 
 /**
  * Connect to IMAP unencrypted, this should not be used.
- * If this, or any other flag is set, automatic configuration is skipped.
+ * If this flag is set, automatic configuration is skipped.
  */
 #define DC_LP_IMAP_SOCKET_PLAIN        0x400
 
 
 /**
  * Connect to SMTP via STARTTLS.
- * If this, or any other flag is set, automatic configuration is skipped.
+ * If this flag is set, automatic configuration is skipped.
  */
 #define DC_LP_SMTP_SOCKET_STARTTLS   0x10000
 
 
 /**
  * Connect to SMTP via SSL.
- * If this, or any other flag is set, automatic configuration is skipped.
+ * If this flag is set, automatic configuration is skipped.
  */
 #define DC_LP_SMTP_SOCKET_SSL        0x20000
 
 
 /**
  * Connect to SMTP unencrypted, this should not be used.
- * If this, or any other flag is set, automatic configuration is skipped.
+ * If this flag is set, automatic configuration is skipped.
  */
 #define DC_LP_SMTP_SOCKET_PLAIN      0x40000 ///<
 
@@ -750,7 +759,6 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * @}
  */
 
-#define DC_LP_AUTH_OAUTH2                0x2
 #define DC_LP_AUTH_FLAGS        (DC_LP_AUTH_OAUTH2|DC_LP_AUTH_NORMAL) // if none of these flags are set, the default is choosen
 #define DC_LP_IMAP_SOCKET_FLAGS (DC_LP_IMAP_SOCKET_STARTTLS|DC_LP_IMAP_SOCKET_SSL|DC_LP_IMAP_SOCKET_PLAIN) // if none of these flags are set, the default is choosen
 #define DC_LP_SMTP_SOCKET_FLAGS (DC_LP_SMTP_SOCKET_STARTTLS|DC_LP_SMTP_SOCKET_SSL|DC_LP_SMTP_SOCKET_PLAIN) // if none of these flags are set, the default is choosen
