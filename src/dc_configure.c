@@ -6,6 +6,7 @@
 #include "dc_smtp.h"
 #include "dc_saxparser.h"
 #include "dc_job.h"
+#include "dc_oauth2.h"
 
 
 /*******************************************************************************
@@ -736,6 +737,19 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 		goto cleanup;
 	}
 	dc_trim(param->addr);
+
+	if (param->server_flags & DC_LP_AUTH_OAUTH2)
+	{
+		// the used oauth2 addr may differ, check this.
+		// if dc_get_oauth2_addr() is not available in the oauth2 implementation,
+		// just use the given one.
+		char* oauth2_addr = dc_get_oauth2_addr(context, param->addr);
+		if (oauth2_addr) {
+			free(param->addr);
+			param->addr = oauth2_addr;
+			dc_sqlite3_set_config(context->sql, "addr", param->addr);
+		}
+	}
 
 	param_domain = strchr(param->addr, '@');
 	if (param_domain==NULL || param_domain[0]==0) {

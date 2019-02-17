@@ -216,3 +216,24 @@ cleanup:
 	free(error_description);
 	return access_token? access_token : dc_strdup(NULL);
 }
+
+
+char* dc_get_oauth2_addr(dc_context_t* context, const char* addr)
+{
+	// TODO:
+	//
+	// calling https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=TOKEN
+	// returns sth. as
+	// {
+	//   "id": "100000000831024152393",
+	//   "email": "NAME@gmail.com",
+	//   "verified_email": true,
+	//   "picture": "https://lh4.googleusercontent.com/-Gj5jh_9R0BY/AAAAAAAAAAI/AAAAAAAAAAA/IAjtjfjtjNA/photo.jpg"
+	// }
+	// the returned email-addr must be used
+	// instead of the one initially entered by the user as he may have
+	// selected a different account to use in the browser.
+	//
+	// if the address cannot be find out this way, return NULL and the caller will use the given one.
+	return NULL;
+}
