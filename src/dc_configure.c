@@ -928,32 +928,49 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	PROGRESS(600)
 
 	/* try to connect to IMAP - if we did not got an autoconfig,
-	we do a second try with the localpart of the email-address as the loginname
-	(the part before the '@') */
-	{ char* r = dc_loginparam_get_readable(param); dc_log_info(context, 0, "Trying: %s", r); free(r); }
+	do some further tries with different settings and username variations */
+	for (int username_variation=0; username_variation<=1; username_variation++)
+	{
+		// probe given settings, SSL/993 by default
+		{ char* r = dc_loginparam_get_readable(param); dc_log_info(context, 0, "Trying: %s", r); free(r); }
+		if (dc_imap_connect(context->inbox, param)) {
+			break;
+		}
 
-	if (!dc_imap_connect(context->inbox, param)) {
 		if (param_autoconfig) {
 			goto cleanup;
 		}
 
-		PROGRESS(650)
-
-		char* at = strchr(param->mail_user, '@');
-		if (at) {
-			*at = 0;
-		}
-
-		at = strchr(param->send_user, '@');
-		if (at) {
-			*at = 0;
-		}
+		// probe STARTTLS/993
+		PROGRESS(650+username_variation*30)
+		param->server_flags &= ~DC_LP_IMAP_SOCKET_FLAGS;
+		param->server_flags |=  DC_LP_IMAP_SOCKET_STARTTLS;
 
 		{ char* r = dc_loginparam_get_readable(param); dc_log_info(context, 0, "Trying: %s", r); free(r); }
+		if (dc_imap_connect(context->inbox, param)) {
+			break;
+		}
 
-		if (!dc_imap_connect(context->inbox, param)) {
+		// probe STARTTLS/143
+		PROGRESS(660+username_variation*30)
+		param->mail_port = TYPICAL_IMAP_STARTTLS_PORT;
+		{ char* r = dc_loginparam_get_readable(param); dc_log_info(context, 0, "Trying: %s", r); free(r); }
+		if (dc_imap_connect(context->inbox, param)) {
+			break;
+		}
+		else if (username_variation) {
 			goto cleanup;
 		}
+
+		// next probe round with only the localpart of the email-address as the loginname
+		PROGRESS(670+username_variation*30)
+		param->server_flags &= ~DC_LP_IMAP_SOCKET_FLAGS;
+		param->server_flags |=  DC_LP_IMAP_SOCKET_SSL;
+		param->mail_port    =   TYPICAL_IMAP_SSL_PORT;
+		char* at = strchr(param->mail_user, '@');
+		if (at) { *at = 0; }
+		at = strchr(param->send_user, '@');
+		if (at) { *at = 0; }
 	}
 
 	imap_connected_here = 1;
