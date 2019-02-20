@@ -68,7 +68,7 @@ struct _dc_msg
 	char*           in_reply_to;
 	char*           server_folder;          /**< Folder where the message was last seen on the server */
 	uint32_t        server_uid;             /**< UID last seen on the server for this message */
-	int             is_dc_message;          /**< Set to 1 if the message was sent by another messenger. 0 otherwise. */
+	int             is_dc_message;          /**< Set to 1 if the message was sent by another messenger. 2=reply to messenger message. 0 otherwise. */
 	int             starred;                /**< Starred-state of the message. 0=no, 1=yes. */
 	int             chat_blocked;           /**< Internal */
 	dc_param_t*     param;                  /**< Additional paramter for the message. Never a NULL-pointer. It is recommended to use setters and getters instead of accessing this field directly. */
