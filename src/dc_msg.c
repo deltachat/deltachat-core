@@ -1094,6 +1094,34 @@ void dc_msg_set_text(dc_msg_t* msg, const char* text)
 
 
 /**
+ * Set if the message is sent out encrypted or unencrypted.
+ * This overwrites the heuristic which automatically desides if a message is encrypted or
+ * unencrypted. If set to encrypted here and encryption is not available later, the message
+ * will not be sent out at all.
+ * This does not alter any information in the database; this may be done by dc_send_msg() later.
+ *
+ * @memberof dc_msg_t
+ * @param msg The message object.
+ * @param encrypted 1=force-encrypt the msg, 0=force-unencrypt it
+ * @return None.
+ */
+void dc_msg_set_guarantee_e2ee(dc_msg_t* msg, int encrypted)
+{
+	if (msg==NULL || msg->magic!=DC_MSG_MAGIC) {
+		return;
+	}
+	if (encrypted) {
+		dc_param_set_int(msg->param, DC_PARAM_GUARANTEE_E2EE, 1);
+		dc_param_set_int(msg->param, DC_PARAM_FORCE_PLAINTEXT, 0);
+	}
+	else {
+		dc_param_set_int(msg->param, DC_PARAM_GUARANTEE_E2EE, 0);
+		dc_param_set_int(msg->param, DC_PARAM_FORCE_PLAINTEXT, DC_FP_ADD_AUTOCRYPT_HEADER);
+	}
+}
+
+
+/**
  * Set the file associated with a message object.
  * This does not alter any information in the database
  * nor copy or move the file or checks if the file exist.

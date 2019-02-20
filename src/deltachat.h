@@ -532,6 +532,7 @@ void            dc_msg_set_file               (dc_msg_t*, const char* file, cons
 void            dc_msg_set_dimension          (dc_msg_t*, int width, int height);
 void            dc_msg_set_duration           (dc_msg_t*, int duration);
 void            dc_msg_latefiling_mediasize   (dc_msg_t*, int width, int height, int duration);
+void            dc_msg_set_guarantee_e2ee     (dc_msg_t*, int encrypted);
 
 
 /**
