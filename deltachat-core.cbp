@@ -467,6 +467,9 @@
 		<Unit filename="src/dc_jobthread.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="src/dc_jsmn.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="src/dc_key.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -495,6 +498,9 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/dc_msg.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/dc_oauth2.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/dc_openssl.c">

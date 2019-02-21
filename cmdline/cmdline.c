@@ -417,6 +417,7 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 				"close\n"
 				"set <configuration-key> [<value>]\n"
 				"get <configuration-key>\n"
+				"oauth2\n"
 				"configure\n"
 				"connect\n"
 				"disconnect\n"

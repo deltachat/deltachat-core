@@ -7,6 +7,7 @@
 #include "dc_imap.h"
 #include "dc_job.h"
 #include "dc_loginparam.h"
+#include "dc_oauth2.h"
 
 
 static int  setup_handle_if_needed   (dc_imap_t*);
@@ -769,19 +770,21 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 		dc_log_info(imap->context, 0, "IMAP-server %s:%i SSL-connected.", imap->imap_server, (int)imap->imap_port);
 	}
 
-	/* TODO: There are more authorisation types, see mailcore2/MCIMAPSession.cpp, however, I'm not sure of they are really all needed */
-	/*if (imap->server_flags&DC_LP_AUTH_XOAUTH2)
+	/* from mailcore2/MCIMAPSession.cpp */
+	if (imap->server_flags&DC_LP_AUTH_OAUTH2)
 	{
-		//TODO: Support XOAUTH2, we "just" need to get the token someway. If we do so, there is no more need for the user to enable
-		//https://www.google.com/settings/security/lesssecureapps - however, maybe this is also not needed if the user had enabled 2-factor-authorisation.
-		if (mOAuth2Token==NULL) {
-			r = MAILIMAP_ERROR_STREAM;
+		// for DC_LP_AUTH_OAUTH2, user_pw is assumed to be the oauth_token
+		dc_log_info(imap->context, 0, "IMAP-OAuth2 connect...");
+		char* access_token = dc_get_oauth2_access_token(imap->context, imap->addr, imap->imap_pw, 0);
+		r = mailimap_oauth2_authenticate(imap->etpan, imap->imap_user, access_token);
+		if (dc_imap_is_error(imap, r)) {
+			free(access_token);
+			access_token = dc_get_oauth2_access_token(imap->context, imap->addr, imap->imap_pw, DC_REGENERATE);
+			r = mailimap_oauth2_authenticate(imap->etpan, imap->imap_user, access_token);
 		}
-		else {
-			r = mailimap_oauth2_authenticate(imap->etpan, imap->imap_use, mOAuth2Token);
-		}
+		free(access_token);
 	}
-	else*/
+	else
 	{
 		/* DC_LP_AUTH_NORMAL or no auth flag set */
 		r = mailimap_login(imap->etpan, imap->imap_user, imap->imap_pw);
@@ -847,6 +850,9 @@ static void unsetup_handle(dc_imap_t* imap)
 
 static void free_connect_param(dc_imap_t* imap)
 {
+	free(imap->addr);
+	imap->addr = NULL;
+
 	free(imap->imap_server);
 	imap->imap_server = NULL;
 
@@ -880,6 +886,7 @@ int dc_imap_connect(dc_imap_t* imap, const dc_loginparam_t* lp)
 		goto cleanup;
 	}
 
+	imap->addr         = dc_strdup(lp->addr);
 	imap->imap_server  = dc_strdup(lp->mail_server);
 	imap->imap_port    = lp->mail_port;
 	imap->imap_user    = dc_strdup(lp->mail_user);

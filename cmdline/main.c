@@ -67,17 +67,33 @@ static uintptr_t receive_event(dc_context_t* context, int event, uintptr_t data1
 			break;
 
 		case DC_EVENT_HTTP_GET:
+		case DC_EVENT_HTTP_POST:
 			{
+				char* url = dc_strdup((char*)data1);
+				char* param = strchr(url, '?');
+				if (param) {
+					*param = 0;
+					param++;
+				}
+				else {
+					param = "";
+				}
+
 				char* ret = NULL;
 				char* tempFile = dc_get_fine_pathNfilename(context, context->blobdir, "curl.result");
-				char* cmd = dc_mprintf("curl --silent --location --fail --insecure %s > %s", (char*)data1, tempFile); /* --location = follow redirects */
+				char* cmd = event==DC_EVENT_HTTP_GET?
+					dc_mprintf("curl --silent --location --fail --insecure %s%s%s > %s", url, param[0]? "?" : "", param, tempFile) :
+					dc_mprintf("curl --silent -d \"%s\" %s > %s", param, url, tempFile);
+
 				int error = system(cmd);
 				if (error == 0) { /* -1=system() error, !0=curl errors forced by -f, 0=curl success */
 					size_t bytes = 0;
 					dc_read_file(context, tempFile, (void**)&ret, &bytes);
 				}
+
 				free(cmd);
 				free(tempFile);
+				free(url);
 				return (uintptr_t)ret;
 			}
 
@@ -334,6 +350,27 @@ int main(int argc, char ** argv)
 		{
 			start_threads(context);
 			dc_configure(context);
+		}
+		else if (strcmp(cmd, "oauth2")==0)
+		{
+			char* addr = dc_get_config(context, "addr");
+			if (addr==NULL || addr[0]==0) {
+				printf("oauth2: set addr first.\n");
+			}
+			else {
+				char* oauth2_url = dc_get_oauth2_url(context, addr,
+					"chat.delta:/com.b44t.messenger");
+				if (oauth2_url==NULL) {
+					printf("OAuth2 not available for %s.\n", addr);
+				}
+				else {
+					printf("Open the following url, "
+						"set mail_pw to the generated token "
+						"and server_flags to 2:\n%s\n", oauth2_url);
+				}
+				free(oauth2_url);
+			}
+			free(addr);
 		}
 		else if (strcmp(cmd, "clear")==0)
 		{

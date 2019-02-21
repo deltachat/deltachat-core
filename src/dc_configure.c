@@ -6,6 +6,7 @@
 #include "dc_smtp.h"
 #include "dc_saxparser.h"
 #include "dc_job.h"
+#include "dc_oauth2.h"
 
 
 /*******************************************************************************
@@ -737,6 +738,21 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	}
 	dc_trim(param->addr);
 
+	if (param->server_flags & DC_LP_AUTH_OAUTH2)
+	{
+		// the used oauth2 addr may differ, check this.
+		// if dc_get_oauth2_addr() is not available in the oauth2 implementation,
+		// just use the given one.
+		PROGRESS(10)
+		char* oauth2_addr = dc_get_oauth2_addr(context, param->addr, param->mail_pw);
+		if (oauth2_addr) {
+			free(param->addr);
+			param->addr = oauth2_addr;
+			dc_sqlite3_set_config(context->sql, "addr", param->addr);
+		}
+		PROGRESS(20)
+	}
+
 	param_domain = strchr(param->addr, '@');
 	if (param_domain==NULL || param_domain[0]==0) {
 		dc_log_error(context, 0, "Bad email-address.");
@@ -765,8 +781,11 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	 && param->send_port   ==0
 	 && param->send_user   ==NULL
 	/*&&param->send_pw     ==NULL -- the password cannot be auto-configured and is no criterion for autoconfig or not */
-	 && param->server_flags==0)
+	 && (param->server_flags & (~DC_LP_AUTH_OAUTH2))==0 /* flags but OAuth2 avoid autoconfig */
+	 )
 	{
+		int keep_flags = param->server_flags & DC_LP_AUTH_OAUTH2;
+
 		/* A.  Search configurations from the domain used in the email-address, prefer encrypted */
 		if (param_autoconfig==NULL) {
 			char* url = dc_mprintf("https://autoconfig.%s/mail/config-v1.1.xml?emailaddress=%s", param_domain, param_addr_urlencoded);
@@ -833,17 +852,8 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 			/* althoug param_autoconfig's data are no longer needed from, it is important to keep the object as
 			we may enter "deep guessing" if we could not read a configuration */
 		}
-	}
 
-
-	/* 3.  Internal specials (eg. for uploading to chats-folder etc.)
-	 **************************************************************************/
-
-	if (strcasecmp(param_domain, "gmail.com")==0 || strcasecmp(param_domain, "googlemail.com")==0)
-	{
-		/* NB: Checking GMa'l too often (<10 Minutes) may result in blocking, says https://github.com/itprojects/InboxPager/blob/HEAD/README.md#gmail-configuration
-		Also note https://www.google.com/settings/security/lesssecureapps */
-		param->server_flags |= DC_LP_AUTH_XOAUTH2;
+		param->server_flags |= keep_flags;
 	}
 
 

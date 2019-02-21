@@ -28,6 +28,7 @@ lib_src = [
   'dc_mimeparser.c',
   'dc_msg.c',
   'dc_openssl.c',
+  'dc_oauth2.c',
   'dc_param.c',
   'dc_pgp.c',
   'dc_saxparser.c',
@@ -39,6 +40,7 @@ lib_src = [
   'dc_strencode.c',
   'dc_token.c',
   'dc_tools.c',
+  'dc_jsmn.c',
 ]
 
 lib_deps = [pthreads, zlib, openssl, sasl, sqlite, etpan, netpgp, math]

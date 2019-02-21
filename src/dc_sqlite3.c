@@ -758,9 +758,34 @@ int32_t dc_sqlite3_get_config_int(dc_sqlite3_t* sql, const char* key, int32_t de
 }
 
 
+int64_t dc_sqlite3_get_config_int64(dc_sqlite3_t* sql, const char* key, int64_t def)
+{
+    char* str = dc_sqlite3_get_config(sql, key, NULL);
+    if (str==NULL) {
+		return def;
+    }
+    int64_t ret = 0;
+    sscanf(str, "%"SCNd64, &ret);
+    free(str);
+    return ret;
+}
+
+
 int dc_sqlite3_set_config_int(dc_sqlite3_t* sql, const char* key, int32_t value)
 {
     char* value_str = dc_mprintf("%i", (int)value);
+    if (value_str==NULL) {
+		return 0;
+    }
+    int ret = dc_sqlite3_set_config(sql, key, value_str);
+    free(value_str);
+    return ret;
+}
+
+
+int dc_sqlite3_set_config_int64(dc_sqlite3_t* sql, const char* key, int64_t value)
+{
+    char* value_str = dc_mprintf("%"PRId64, (long)value);
     if (value_str==NULL) {
 		return 0;
     }

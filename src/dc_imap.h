@@ -34,6 +34,7 @@ struct _dc_imap
 {
 	/** @privatesection */
 
+	char*                 addr;
 	char*                 imap_server;
 	int                   imap_port;
 	char*                 imap_user;

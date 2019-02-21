@@ -64,6 +64,8 @@ struct _dc_context
 	int              perform_smtp_jobs_needed;
 	int              probe_smtp_network;   /**< if this flag is set, the smtp-job timeouts are bypassed and messages are sent until they fail */
 
+	pthread_mutex_t  oauth2_critical;
+
 	dc_callback_t    cb;                    /**< Internal */
 
 	char*            os_name;               /**< Internal, may be NULL */
