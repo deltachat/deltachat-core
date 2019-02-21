@@ -165,11 +165,15 @@ static void cb_receive_imf(dc_imap_t* imap, const char* imf_raw_not_terminated, 
  *     - If not mentioned otherweise, the callback should return 0.
  * @param userdata can be used by the client for any purpuse.  He finds it
  *     later in dc_get_userdata().
- * @param os_name is only for decorative use and is shown eg. in the `X-Mailer:` header
- *     in the form "Delta Chat <version> for <os_name>".
- *     You can give the name of the operating system and/or the used environment here.
- *     It is okay to give NULL, in this case `X-Mailer:` header is set to "Delta Chat <version>".
- * @return A context object with some public members. The object must be passed to the other context functions
+ * @param os_name is only for decorative use
+ *     and is shown eg. in the `X-Mailer:` header
+ *     in the form "Delta Chat Core <version>/<os_name>".
+ *     You can give the name of the app, the operating system,
+ *     the used environment and/or the version here.
+ *     It is okay to give NULL, in this case `X-Mailer:` header
+ *     is set to "Delta Chat Core <version>".
+ * @return A context object with some public members.
+ *     The object must be passed to the other context functions
  *     and must be freed using dc_context_unref() after usage.
  */
 dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_name)

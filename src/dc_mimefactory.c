@@ -487,9 +487,9 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 		/* Add a X-Mailer header. This is only informational for debugging and may be removed in the release.
 		We do not rely on this header as it may be removed by MTAs. */
 		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-Mailer"),
-			dc_mprintf("Delta Chat %s%s%s",
+			dc_mprintf("Delta Chat Core %s%s%s",
 			DC_VERSION_STR,
-			factory->context->os_name? " for " : "",
+			factory->context->os_name? "/" : "",
 			factory->context->os_name? factory->context->os_name : "")));
 
 		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Version"), strdup("1.0"))); /* mark message as being sent by a messenger */
