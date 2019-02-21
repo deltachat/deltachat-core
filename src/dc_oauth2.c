@@ -3,7 +3,80 @@
 #include "dc_jsmn.h"
 
 
-// TODO: refactor code so that it works with non-google oauth2 (outlook?, ??)
+typedef struct oauth2_t {
+	char* client_id;
+	char* get_code;
+	char* init_token;
+	char* refresh_token;
+	char* get_userinfo;
+} oauth2_t;
+
+
+static oauth2_t* get_info(const char* addr)
+{
+	oauth2_t*   oauth2 = NULL;
+	char*       addr_normalized = NULL;
+	const char* domain = NULL;
+
+	addr_normalized = dc_addr_normalize(addr);
+	domain = strchr(addr_normalized, '@');
+	if (domain==NULL || domain[0]==0) {
+		goto cleanup;
+	}
+	domain++;
+
+	if (strcasecmp(domain, "gmail.com")==0
+	 || strcasecmp(domain, "googlemail.com")==0)
+	{
+		oauth2 = calloc(1, sizeof(oauth2_t));
+		oauth2->client_id = "959970109878-4mvtgf6feshskf7695nfln6002mom908.apps.googleusercontent.com";
+		oauth2->get_code = "https://accounts.google.com/o/oauth2/auth"
+			"?client_id=$CLIENT_ID"
+			"&redirect_uri=$REDIRECT_URI"
+			"&response_type=code"
+			"&scope=https%3A%2F%2Fmail.google.com%2F%20email"
+			"&access_type=offline";
+		oauth2->init_token = "https://accounts.google.com/o/oauth2/token"
+			"?client_id=$CLIENT_ID"
+			"&redirect_uri=$REDIRECT_URI"
+			"&code=$CODE"
+			"&grant_type=authorization_code";
+		oauth2->refresh_token = "https://accounts.google.com/o/oauth2/token"
+			"?client_id=$CLIENT_ID"
+			"&redirect_uri=$REDIRECT_URI"
+			"&refresh_token=$REFRESH_TOKEN"
+			"&grant_type=refresh_token";
+		oauth2->get_userinfo = "https://www.googleapis.com/oauth2/v1/userinfo"
+			"?alt=json"
+			"&access_token=$ACCESS_TOKEN";
+	}
+	#if 0 // TODO: add at least init_token and refresh_token
+	else if (strcasecmp(domain, "yandex.com")==0)
+	{
+		oauth2 = calloc(1, sizeof(oauth2_t));
+		oauth2->client_id = "c4d0b6735fc8420a816d7e1303469341";
+		oauth2->get_code = "https://oauth.yandex.com/authorize"
+			"?client_id=$CLIENT_ID"
+			"&response_type=code"
+			"&scope=mail%3Aimap_full%20mail%3Asmtp"
+			"&force_confirm=true";
+	}
+	#endif
+
+cleanup:
+	free(addr_normalized);
+	return oauth2;
+}
+
+
+static void replace_in_uri(char** uri, const char* key, const char* value)
+{
+	if (uri && key && value) {
+		char* value_urlencoded = dc_urlencode(value);
+		dc_str_replace(uri, key, value_urlencoded);
+		free(value_urlencoded);
+	}
+}
 
 
 static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
@@ -73,53 +146,39 @@ char* dc_get_oauth2_url(dc_context_t* context, const char* addr,
                         const char* redirect_uri)
 {
 	#define CLIENT_ID     "959970109878-4mvtgf6feshskf7695nfln6002mom908.apps.googleusercontent.com"
-	#define AUTH_SCOPE    "https%3A%2F%2Fmail.google.com%2F%20email"
-
+	oauth2_t*   oauth2 = NULL;
 	char*       oauth2_url = NULL;
-	char*       addr_normalized = NULL;
-	char*       redirect_uri_urlencoded = NULL;
-	const char* domain = NULL;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC
 	 || redirect_uri==NULL || redirect_uri[0]==0) {
 		goto cleanup;
 	}
 
-	addr_normalized = dc_addr_normalize(addr);
-	domain = strchr(addr_normalized, '@');
-	if (domain==NULL || domain[0]==0) {
+	oauth2 = get_info(addr);
+	if (oauth2==NULL) {
 		goto cleanup;
 	}
-	domain++;
 
-	redirect_uri_urlencoded = dc_urlencode(redirect_uri);
 	dc_sqlite3_set_config(context->sql, "oauth2_pending_redirect_uri", redirect_uri);
 
-	if (strcasecmp(domain, "gmail.com")==0
-	 || strcasecmp(domain, "googlemail.com")==0) {
-		oauth2_url = dc_mprintf("https://accounts.google.com/o/oauth2/auth"
-			"?client_id=%s"
-			"&redirect_uri=%s"
-			"&response_type=code"
-			"&scope=%s"
-			"&access_type=offline",
-			CLIENT_ID, redirect_uri_urlencoded, AUTH_SCOPE);
-	}
+	oauth2_url = dc_strdup(oauth2->get_code);
+	replace_in_uri(&oauth2_url, "$CLIENT_ID", oauth2->client_id);
+	replace_in_uri(&oauth2_url, "$REDIRECT_URI", redirect_uri);
 
 cleanup:
-	free(addr_normalized);
-	free(redirect_uri_urlencoded);
+	free(oauth2);
 	return oauth2_url;
 }
 
 
-char* dc_get_oauth2_access_token(dc_context_t* context, const char* code, int flags)
+char* dc_get_oauth2_access_token(dc_context_t* context, const char* addr,
+                                 const char* code, int flags)
 {
+	oauth2_t*   oauth2 = NULL;
 	char*       access_token = NULL;
 	char*       refresh_token = NULL;
 	char*       refresh_token_for = NULL;
 	char*       redirect_uri = NULL;
-	char*       redirect_uri_urlencoded = NULL;
 	int         update_redirect_uri_on_success = 0;
 	char*       token_url = NULL;
 	time_t      expires_in = 0;
@@ -134,6 +193,11 @@ char* dc_get_oauth2_access_token(dc_context_t* context, const char* code, int fl
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC
 	 || code==NULL || code[0]==0) {
 		dc_log_warning(context, 0, "Internal OAuth2 error");
+		goto cleanup;
+	}
+
+	if ((oauth2=get_info(addr))==NULL) {
+		dc_log_warning(context, 0, "Internal OAuth2 error: 2");
 		goto cleanup;
 	}
 
@@ -154,32 +218,21 @@ char* dc_get_oauth2_access_token(dc_context_t* context, const char* code, int fl
 	if (refresh_token==NULL || strcmp(refresh_token_for, code)!=0)
 	{
 		dc_log_info(context, 0, "Generate OAuth2 refresh_token and access_token...");
-
 		redirect_uri = dc_sqlite3_get_config(context->sql, "oauth2_pending_redirect_uri", "unset");
-		redirect_uri_urlencoded = dc_urlencode(redirect_uri);
 		update_redirect_uri_on_success = 1;
-
-		token_url = dc_mprintf("https://accounts.google.com/o/oauth2/token"
-			"?client_id=%s"
-			"&grant_type=authorization_code"
-			"&code=%s"
-			"&redirect_uri=%s",
-			CLIENT_ID, code, redirect_uri_urlencoded);
+		token_url = dc_strdup(oauth2->init_token);
 	}
 	else
 	{
 		dc_log_info(context, 0, "Regenerate OAuth2 access_token by refresh_token...");
-
 		redirect_uri = dc_sqlite3_get_config(context->sql, "oauth2_redirect_uri", "unset");
-		redirect_uri_urlencoded = dc_urlencode(redirect_uri);
-
-		token_url = dc_mprintf("https://accounts.google.com/o/oauth2/token"
-			"?client_id=%s"
-			"&grant_type=refresh_token"
-			"&refresh_token=%s"
-			"&redirect_uri=%s",
-			CLIENT_ID, refresh_token, redirect_uri_urlencoded);
+		token_url = dc_strdup(oauth2->refresh_token);
 	}
+
+	replace_in_uri(&token_url, "$CLIENT_ID",     oauth2->client_id);
+	replace_in_uri(&token_url, "$REDIRECT_URI",  redirect_uri);
+	replace_in_uri(&token_url, "$CODE",          code);
+	replace_in_uri(&token_url, "$REFRESH_TOKEN", refresh_token);
 
 	json = (char*)context->cb(context, DC_EVENT_HTTP_POST, (uintptr_t)token_url, 0);
 	if (json==NULL) {
@@ -256,16 +309,17 @@ cleanup:
 	free(refresh_token);
 	free(refresh_token_for);
 	free(redirect_uri);
-	free(redirect_uri_urlencoded);
 	free(token_url);
 	free(json);
 	free(error);
 	free(error_description);
+	free(oauth2);
 	return access_token? access_token : dc_strdup(NULL);
 }
 
 
-static char* get_oauth2_addr(dc_context_t* context, char* access_token)
+static char* get_oauth2_addr(dc_context_t* context, const oauth2_t* oauth2,
+                             const char* access_token)
 {
 	char*       addr_out = NULL;
 	char*       userinfo_url = NULL;
@@ -275,21 +329,20 @@ static char* get_oauth2_addr(dc_context_t* context, char* access_token)
 	int         tok_cnt = 0;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC
-	 || access_token==NULL || access_token[0]==0) {
+	 || access_token==NULL || access_token[0]==0 || oauth2==NULL) {
 		goto cleanup;
 	}
 
-	userinfo_url = dc_mprintf(
-		"https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=%s",
-		access_token);
-	// returns sth. as
+	userinfo_url = dc_strdup(oauth2->get_userinfo);
+	replace_in_uri(&userinfo_url, "$ACCESS_TOKEN", access_token);
+
+	// should returns sth. as
 	// {
 	//   "id": "100000000831024152393",
 	//   "email": "NAME@gmail.com",
 	//   "verified_email": true,
 	//   "picture": "https://lh4.googleusercontent.com/-Gj5jh_9R0BY/AAAAAAAAAAI/AAAAAAAAAAA/IAjtjfjtjNA/photo.jpg"
 	// }
-
 	json = (char*)context->cb(context, DC_EVENT_HTTP_GET, (uintptr_t)userinfo_url, 0);
 	if (json==NULL) {
 		dc_log_warning(context, 0, "Error getting userinfo.");
@@ -320,24 +373,28 @@ cleanup:
 }
 
 
-char* dc_get_oauth2_addr(dc_context_t* context, const char* code)
+char* dc_get_oauth2_addr(dc_context_t* context, const char* addr,
+                         const char* code)
 {
-	char* access_token = NULL;
-	char* addr_out = NULL;
+	char*     access_token = NULL;
+	char*     addr_out = NULL;
+	oauth2_t* oauth2 = NULL;
 
-	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC
+	 || (oauth2=get_info(addr))==NULL || oauth2->get_userinfo==NULL) {
 		goto cleanup;
 	}
 
-	access_token = dc_get_oauth2_access_token(context, code, 0);
-	addr_out = get_oauth2_addr(context, access_token);
+	access_token = dc_get_oauth2_access_token(context, addr, code, 0);
+	addr_out = get_oauth2_addr(context, oauth2, access_token);
 	if (addr_out==NULL) {
 		free(access_token);
-		access_token = dc_get_oauth2_access_token(context, code, DC_REGENERATE);
-		addr_out = get_oauth2_addr(context, access_token);
+		access_token = dc_get_oauth2_access_token(context, addr, code, DC_REGENERATE);
+		addr_out = get_oauth2_addr(context, oauth2, access_token);
 	}
 
 cleanup:
 	free(access_token);
+	free(oauth2);
 	return addr_out;
 }

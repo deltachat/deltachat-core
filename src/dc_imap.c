@@ -775,11 +775,11 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 	{
 		// for DC_LP_AUTH_OAUTH2, user_pw is assumed to be the oauth_token
 		dc_log_info(imap->context, 0, "IMAP-OAuth2 connect...");
-		char* access_token = dc_get_oauth2_access_token(imap->context, imap->imap_pw, 0);
+		char* access_token = dc_get_oauth2_access_token(imap->context, imap->addr, imap->imap_pw, 0);
 		r = mailimap_oauth2_authenticate(imap->etpan, imap->imap_user, access_token);
 		if (dc_imap_is_error(imap, r)) {
 			free(access_token);
-			access_token = dc_get_oauth2_access_token(imap->context, imap->imap_pw, DC_REGENERATE);
+			access_token = dc_get_oauth2_access_token(imap->context, imap->addr, imap->imap_pw, DC_REGENERATE);
 			r = mailimap_oauth2_authenticate(imap->etpan, imap->imap_user, access_token);
 		}
 		free(access_token);
@@ -850,6 +850,9 @@ static void unsetup_handle(dc_imap_t* imap)
 
 static void free_connect_param(dc_imap_t* imap)
 {
+	free(imap->addr);
+	imap->addr = NULL;
+
 	free(imap->imap_server);
 	imap->imap_server = NULL;
 
@@ -883,6 +886,7 @@ int dc_imap_connect(dc_imap_t* imap, const dc_loginparam_t* lp)
 		goto cleanup;
 	}
 
+	imap->addr         = dc_strdup(lp->addr);
 	imap->imap_server  = dc_strdup(lp->mail_server);
 	imap->imap_port    = lp->mail_port;
 	imap->imap_user    = dc_strdup(lp->mail_user);

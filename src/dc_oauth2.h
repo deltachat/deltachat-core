@@ -10,8 +10,8 @@ extern "C" {
 
 // the following function may block due http-requests;
 // must not be called from the main thread or by the ui!
-char* dc_get_oauth2_access_token(dc_context_t*, const char* code, int flags);
-char* dc_get_oauth2_addr        (dc_context_t*, const char* code);
+char* dc_get_oauth2_access_token(dc_context_t*, const char* addr, const char* code, int flags);
+char* dc_get_oauth2_addr        (dc_context_t*, const char* addr, const char* code);
 
 
 #ifdef __cplusplus
