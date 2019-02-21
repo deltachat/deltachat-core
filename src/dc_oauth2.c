@@ -28,6 +28,7 @@ static oauth2_t* get_info(const char* addr)
 	if (strcasecmp(domain, "gmail.com")==0
 	 || strcasecmp(domain, "googlemail.com")==0)
 	{
+		// see https://developers.google.com/identity/protocols/OAuth2InstalledApp
 		oauth2 = calloc(1, sizeof(oauth2_t));
 		oauth2->client_id = "959970109878-4mvtgf6feshskf7695nfln6002mom908.apps.googleusercontent.com";
 		oauth2->get_code = "https://accounts.google.com/o/oauth2/auth"
@@ -50,9 +51,11 @@ static oauth2_t* get_info(const char* addr)
 			"?alt=json"
 			"&access_token=$ACCESS_TOKEN";
 	}
-	#if 0 // TODO: add at least init_token and refresh_token
-	else if (strcasecmp(domain, "yandex.com")==0)
+	else if (strcasecmp(domain, "yandex.com")==0
+	      || strcasecmp(domain, "yandex.ru")==0
+	      || strcasecmp(domain, "yandex.ua")==0)
 	{
+		// see https://tech.yandex.com/oauth/doc/dg/reference/auto-code-client-docpage/
 		oauth2 = calloc(1, sizeof(oauth2_t));
 		oauth2->client_id = "c4d0b6735fc8420a816d7e1303469341";
 		oauth2->get_code = "https://oauth.yandex.com/authorize"
@@ -60,8 +63,17 @@ static oauth2_t* get_info(const char* addr)
 			"&response_type=code"
 			"&scope=mail%3Aimap_full%20mail%3Asmtp"
 			"&force_confirm=true";
+		oauth2->init_token = "https://oauth.yandex.com/token"
+			"?grant_type=authorization_code"
+			"&code=$CODE"
+			"&client_id=$CLIENT_ID"
+			"&client_secret=58b8c6e94cf44fbe952da8511955dacf";
+		oauth2->refresh_token = "https://oauth.yandex.com/token"
+			"?grant_type=refresh_token"
+			"&refresh_token=$REFRESH_TOKEN"
+			"&client_id=$CLIENT_ID"
+			"&client_secret=58b8c6e94cf44fbe952da8511955dacf";
 	}
-	#endif
 
 cleanup:
 	free(addr_normalized);
@@ -236,7 +248,7 @@ char* dc_get_oauth2_access_token(dc_context_t* context, const char* addr,
 
 	json = (char*)context->cb(context, DC_EVENT_HTTP_POST, (uintptr_t)token_url, 0);
 	if (json==NULL) {
-		dc_log_warning(context, 0, "Error calling OAuth2 url");
+		dc_log_warning(context, 0, "Error calling OAuth2 at %s", token_url);
 		goto cleanup;
 	}
 
@@ -244,7 +256,7 @@ char* dc_get_oauth2_access_token(dc_context_t* context, const char* addr,
 	jsmn_init(&parser);
 	tok_cnt = jsmn_parse(&parser, json, strlen(json), tok, sizeof(tok)/sizeof(tok[0]));
 	if (tok_cnt<2 || tok[0].type!=JSMN_OBJECT) {
-		dc_log_warning(context, 0, "Failed to parse OAuth2 json");
+		dc_log_warning(context, 0, "Failed to parse OAuth2 json from %s", token_url);
 		goto cleanup;
 	}
 
