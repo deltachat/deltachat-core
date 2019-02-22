@@ -35,14 +35,14 @@ struct _dc_param
 #define DC_PARAM_ERRONEOUS_E2EE    'e'  /* for msgs: decrypted with validation errors or without mutual set, if neither 'c' nor 'e' are preset, the messages is only transport encrypted */
 #define DC_PARAM_FORCE_PLAINTEXT   'u'  /* for msgs: force unencrypted message, either DC_FP_ADD_AUTOCRYPT_HEADER (1), DC_FP_NO_AUTOCRYPT_HEADER (2) or 0 */
 #define DC_PARAM_WANTS_MDN         'r'  /* for msgs: an incoming message which requestes a MDN (aka read receipt) */
-#define DC_PARAM_FORWARDED         'a'  /* for msgs: 1 on the forwarded original */
-#define DC_PARAM_FWD_ORIGINAL      'o'  /* for msgs: ID of the forwarded original on the forwarded copy */
+#define DC_PARAM_FORWARDED         'a'  /* for msgs */
 #define DC_PARAM_CMD               'S'  /* for msgs */
 #define DC_PARAM_CMD_ARG           'E'  /* for msgs */
 #define DC_PARAM_CMD_ARG2          'F'  /* for msgs */
 #define DC_PARAM_CMD_ARG3          'G'  /* for msgs */
 #define DC_PARAM_CMD_ARG4          'H'  /* for msgs */
 #define DC_PARAM_ERROR             'L'  /* for msgs */
+#define DC_PARAM_PREP_FORWARDS     'P'  /* for msgs in PREPARING: space-separated list of message IDs of forwarded copies */
 
 #define DC_PARAM_SERVER_FOLDER     'Z'  /* for jobs */
 #define DC_PARAM_SERVER_UID        'z'  /* for jobs */

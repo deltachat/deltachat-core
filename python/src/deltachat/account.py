@@ -109,6 +109,14 @@ class Account(object):
         self.check_is_configured()
         return from_dc_charpointer(lib.dc_get_info(self._dc_context))
 
+    def get_blobdir(self):
+        """ return the directory for files.
+
+        All sent files are copied to this directory if necessary.
+        Place files there directly to avoid copying.
+        """
+        return from_dc_charpointer(lib.dc_get_blobdir(self._dc_context))
+
     def get_self_contact(self):
         """ return this account's identity as a :class:`deltachat.chatting.Contact`.
 

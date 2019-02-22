@@ -152,6 +152,40 @@ class Chat(object):
         msg_id = lib.dc_send_msg(self._dc_context, self.id, msg._dc_msg)
         return Message.from_db(self._dc_context, msg_id)
 
+    def prepare_file(self, path, mime_type=None, view_type="file"):
+        """ prepare a message for sending and return the resulting Message instance.
+
+        To actually send the message, call :meth:`send_prepared`.
+        The file must be inside the blob directory.
+
+        :param path: path to the file.
+        :param mime_type: the mime-type of this file, defaults to auto-detection.
+        :param view_type: passed to :meth:`MessageType.new`.
+        :raises: ValueError if message can not be prepared/chat does not exist.
+        :returns: the resulting :class:`Message` instance
+        """
+        path = as_dc_charpointer(path)
+        mtype = as_dc_charpointer(mime_type)
+        msg = Message.new(self._dc_context, view_type)
+        msg.set_file(path, mtype)
+        msg_id = lib.dc_prepare_msg(self._dc_context, self.id, msg._dc_msg)
+        if msg_id == 0:
+            raise ValueError("message could not be prepared, does chat exist?")
+        return Message.from_db(self._dc_context, msg_id)
+
+    def send_prepared(self, message):
+        """ send a previously prepared message.
+
+        :param message: a :class:`Message` instance previously returned by
+                        :meth:`prepare_file`.
+        :raises: ValueError if message can not be sent.
+        :returns: a :class:`deltachat.chatting.Message` instance with updated state
+        """
+        msg_id = lib.dc_send_msg(self._dc_context, 0, message._dc_msg)
+        if msg_id == 0:
+            raise ValueError("message could not be sent")
+        return message.from_db(self._dc_context, msg_id)
+
     def get_messages(self):
         """ return list of messages in this chat.
 

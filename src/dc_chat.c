@@ -2476,6 +2476,7 @@ static uint32_t prepare_msg_common(dc_context_t* context, uint32_t chat_id, dc_m
 	chat = dc_chat_new(context);
 	if (dc_chat_load_from_db(chat, chat_id)) {
 		msg->id = prepare_msg_raw(context, chat, msg, dc_create_smeared_timestamp(context), state);
+		msg->chat_id = chat_id;
 		/* potential error already logged */
 	}
 
@@ -2509,6 +2510,7 @@ cleanup:
  * dc_prepare_msg(context, chat_id, msg);
  * // ... after /file/to/send.mp4 is ready:
  * dc_send_msg(context, 0, msg);
+ * ~~~
  *
  * @memberof dc_context_t
  * @param context The context object as returned from dc_context_new().
@@ -2564,7 +2566,7 @@ uint32_t dc_prepare_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
  *     On succcess, msg_id of the object is set up,
  *     The function does not take ownership of the object,
  *     so you have to free it using dc_msg_unref() as usual.
- * @return The ID of the message that is about being sent.
+ * @return The ID of the message that is about to be sent.
  */
 uint32_t dc_send_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 {
@@ -2579,18 +2581,37 @@ uint32_t dc_send_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 		};
 	}
 	// update message state of separately prepared messages
+	else if (msg->state==DC_STATE_OUT_PREPARING) {
+		dc_update_msg_state(context, msg->id, DC_STATE_OUT_PENDING);
+	}
 	else {
-		sqlite3_stmt* stmt = dc_sqlite3_prepare(context->sql,
-			"UPDATE msgs SET state=" DC_STRINGIFY(DC_STATE_OUT_PENDING)
-			" WHERE id=?;");
-		sqlite3_bind_int(stmt, 1, msg->id);
-		sqlite3_step(stmt);
-		sqlite3_finalize(stmt);
+		return 0;
 	}
 
 	dc_job_add(context, DC_JOB_SEND_MSG_TO_SMTP, msg->id, NULL, 0);
 
-	context->cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg->id);
+	context->cb(context, DC_EVENT_MSGS_CHANGED, msg->chat_id, msg->id);
+
+	// recursively send any forwarded copies
+	if (!chat_id) {
+		char* forwards = dc_param_get(msg->param, DC_PARAM_PREP_FORWARDS, NULL);
+		if (forwards) {
+			char* p = forwards;
+			while (*p) {
+				int32_t id = strtol(p, &p, 10);
+				if (!id) break; // avoid hanging if user tampers with db
+				dc_msg_t* copy = dc_get_msg(context, id);
+				if (copy) {
+					dc_send_msg(context, 0, copy);
+				}
+				dc_msg_unref(copy);
+			}
+			dc_param_set(msg->param, DC_PARAM_PREP_FORWARDS, NULL);
+			dc_msg_save_param_to_disk(msg);
+		}
+		free(forwards);
+	}
+
 	return msg->id;
 }
 
@@ -2691,6 +2712,7 @@ void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt
 	char*          q3 = NULL;
 	sqlite3_stmt*  stmt = NULL;
 	time_t         curr_timestamp = 0;
+	dc_param_t*    original_param = dc_param_new();
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || msg_ids==NULL || msg_cnt<=0 || chat_id<=DC_CHAT_ID_LAST_SPECIAL) {
 		goto cleanup;
@@ -2719,6 +2741,8 @@ void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt
 				goto cleanup;
 			}
 
+			dc_param_set_packed(original_param, msg->param->packed);
+
 			// do not mark own messages as being forwarded.
 			// this allows sort of broadcasting
 			// by just forwarding messages to other chats.
@@ -2733,10 +2757,23 @@ void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt
 			uint32_t new_msg_id;
 			// PREPARING messages can't be forwarded immediately
 			if (msg->state==DC_STATE_OUT_PREPARING) {
-				if (!dc_param_exists(msg->param, DC_PARAM_FWD_ORIGINAL)) {
-					dc_param_set_int(msg->param, DC_PARAM_FWD_ORIGINAL, src_msg_id);
-				}
 				new_msg_id = prepare_msg_raw(context, chat, msg, curr_timestamp++, msg->state);
+
+				// to update the original message, perform in-place surgery
+				// on msg to avoid copying the entire structure, text, etc.
+				dc_param_t* save_param = msg->param;
+				msg->param = original_param;
+				msg->id = src_msg_id;
+				{
+					// append new id to the original's param.
+					char* old_fwd = dc_param_get(msg->param, DC_PARAM_PREP_FORWARDS, "");
+					char* new_fwd = dc_mprintf("%s %d", old_fwd, new_msg_id);
+					dc_param_set(msg->param, DC_PARAM_PREP_FORWARDS, new_fwd);
+					dc_msg_save_param_to_disk(msg);
+					free(new_fwd);
+					free(old_fwd);
+				}
+				msg->param = save_param;
 			}
 			else {
 				new_msg_id = prepare_msg_raw(context, chat, msg, curr_timestamp++, msg->state);
@@ -2765,4 +2802,5 @@ cleanup:
 	sqlite3_finalize(stmt);
 	free(idsstr);
 	sqlite3_free(q3);
+	dc_param_unref(original_param);
 }

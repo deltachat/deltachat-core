@@ -130,3 +130,10 @@ def wait_successful_IMAP_SMTP_connection(account):
         if evt_name == "DC_EVENT_SMTP_CONNECTED":
             smtp_ok = True
     print("** IMAP and SMTP logins successful", account)
+
+def wait_msgs_changed(account, chat_id, msg_id = None):
+    ev = account._evlogger.get_matching("DC_EVENT_MSGS_CHANGED")
+    assert ev[1] == chat_id
+    if msg_id is not None:
+        assert ev[2] == msg_id
+    return ev[2]
