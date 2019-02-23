@@ -849,6 +849,8 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 			}
 		}
 		send_EVENT_CHAT_MODIFIED = 1;
+
+		dc_reset_gossiped_timestamp(context, chat_id);
 	}
 
 	if (send_EVENT_CHAT_MODIFIED) {

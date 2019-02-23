@@ -441,7 +441,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 	int                    e2ee_guaranteed = 0;
 	int                    min_verified = DC_NOT_VERIFIED;
 	int                    force_plaintext = 0; // 1=add Autocrypt-header (needed eg. for handshaking), 2=no Autocrypte-header (used for MDN)
-	int                    do_gossip = 1;
+	int                    do_gossip = 0;
 	char*                  grpimage = NULL;
 	dc_e2ee_helper_t       e2ee_helper;
 	memset(&e2ee_helper, 0, sizeof(dc_e2ee_helper_t));
@@ -527,6 +527,13 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 			}
 		}
 
+		// beside key- and member-changes, force re-gossip every 48 hours
+		#define AUTO_REGOSSIP (2*24*60*60)
+		if (chat->gossiped_timestamp==0
+		 || chat->gossiped_timestamp+AUTO_REGOSSIP < time(NULL) ) {
+			do_gossip = 1;
+		}
+
 		/* build header etc. */
 		int command = dc_param_get_int(msg->param, DC_PARAM_CMD, 0);
 		if (DC_CHAT_TYPE_IS_MULTI(chat->type))
@@ -544,6 +551,8 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 			}
 			else if (command==DC_CMD_MEMBER_ADDED_TO_GROUP)
 			{
+				do_gossip = 1;
+
 				char* email_to_add = dc_param_get(msg->param, DC_PARAM_CMD_ARG, NULL);
 				if (email_to_add) {
 					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Member-Added"), email_to_add));
@@ -765,10 +774,14 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 		dc_e2ee_encrypt(factory->context, factory->recipients_addr,
 			force_plaintext, e2ee_guaranteed, min_verified,
 			do_gossip, message, &e2ee_helper);
+
 	}
 
 	if (e2ee_helper.encryption_successfull) {
 		factory->out_encrypted = 1;
+		if (do_gossip) {
+			factory->out_gossiped = 1;
+		}
 	}
 
 	/* create the full mail and return */

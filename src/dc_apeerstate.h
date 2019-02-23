@@ -48,6 +48,7 @@ struct _dc_apeerstate
 
 	#define        DC_SAVE_TIMESTAMPS 0x01
 	#define        DC_SAVE_ALL        0x02
+	#define        DC_FORCE_REGOSSIP  0x04
 	int            to_save;
 
 	#define        DC_DE_ENCRYPTION_PAUSED   0x01 // recoverable by an incoming encrypted mail

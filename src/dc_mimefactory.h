@@ -52,6 +52,7 @@ struct _dc_mimefactory {
 	// out: after a call to dc_mimefactory_render(), here's the data or the error
 	MMAPString*   out;
 	int           out_encrypted;
+	int           out_gossiped;
 	char*         error;
 
 	/* private */
