@@ -441,6 +441,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 	int                    e2ee_guaranteed = 0;
 	int                    min_verified = DC_NOT_VERIFIED;
 	int                    force_plaintext = 0; // 1=add Autocrypt-header (needed eg. for handshaking), 2=no Autocrypte-header (used for MDN)
+	int                    do_gossip = 1;
 	char*                  grpimage = NULL;
 	dc_e2ee_helper_t       e2ee_helper;
 	memset(&e2ee_helper, 0, sizeof(dc_e2ee_helper_t));
@@ -761,7 +762,9 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 	mailimf_fields_add(imf_fields, mailimf_field_new(MAILIMF_FIELD_SUBJECT, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, subject, NULL, NULL, NULL));
 
 	if (force_plaintext!=DC_FP_NO_AUTOCRYPT_HEADER) {
-		dc_e2ee_encrypt(factory->context, factory->recipients_addr, force_plaintext, e2ee_guaranteed, min_verified, message, &e2ee_helper);
+		dc_e2ee_encrypt(factory->context, factory->recipients_addr,
+			force_plaintext, e2ee_guaranteed, min_verified,
+			do_gossip, message, &e2ee_helper);
 	}
 
 	if (e2ee_helper.encryption_successfull) {

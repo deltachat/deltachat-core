@@ -290,6 +290,7 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
                     int force_unencrypted,
                     int e2ee_guaranteed, /*set if e2ee was possible on sending time; we should not degrade to transport*/
                     int min_verified,
+                    int do_gossip,
                     struct mailmime* in_out_message, dc_e2ee_helper_t* helper)
 {
 	int                     col = 0;
@@ -383,12 +384,14 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 			mailmime_get_content_message(), NULL, NULL, NULL, NULL, imffields_encrypted, part_to_encrypt);
 
 		/* gossip keys */
-		int iCnt = dc_array_get_cnt(peerstates);
-		if (iCnt > 1) {
-			for (int i = 0; i < iCnt; i++) {
-				char* p = dc_apeerstate_render_gossip_header((dc_apeerstate_t*)dc_array_get_ptr(peerstates, i), min_verified);
-				if (p) {
-					mailimf_fields_add(imffields_encrypted, mailimf_field_new_custom(strdup("Autocrypt-Gossip"), p/*takes ownership*/));
+		if (do_gossip) {
+			int iCnt = dc_array_get_cnt(peerstates);
+			if (iCnt > 1) {
+				for (int i = 0; i < iCnt; i++) {
+					char* p = dc_apeerstate_render_gossip_header((dc_apeerstate_t*)dc_array_get_ptr(peerstates, i), min_verified);
+					if (p) {
+						mailimf_fields_add(imffields_encrypted, mailimf_field_new_custom(strdup("Autocrypt-Gossip"), p/*takes ownership*/));
+					}
 				}
 			}
 		}
