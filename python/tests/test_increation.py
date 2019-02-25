@@ -1,11 +1,10 @@
 from __future__ import print_function
-import pytest
 import os
 import shutil
 from filecmp import cmp
 from deltachat import const
-#from datetime import datetime, timedelta
-from conftest import wait_configuration_progress, wait_successful_IMAP_SMTP_connection, wait_msgs_changed
+from conftest import wait_configuration_progress, wait_msgs_changed
+
 
 class TestInCreation:
     def test_forward_increation(self, acfactory, data, lp):
@@ -16,10 +15,10 @@ class TestInCreation:
 
         blobdir = ac1.get_blobdir()
 
-        c2 = ac1.create_contact(email = ac2.get_config("addr"))
+        c2 = ac1.create_contact(email=ac2.get_config("addr"))
         chat = ac1.create_chat_by_contact(c2)
         assert chat.id >= const.DC_CHAT_ID_LAST_SPECIAL
-        wait_msgs_changed(ac1, 0, 0) # why no chat id?
+        wait_msgs_changed(ac1, 0, 0)  # why no chat id?
 
         lp.sec("create a message with a file in creation")
         path = os.path.join(blobdir, "d.png")
@@ -30,7 +29,7 @@ class TestInCreation:
         lp.sec("forward the message while still in creation")
         chat2 = ac1.create_group_chat("newgroup")
         chat2.add_contact(c2)
-        wait_msgs_changed(ac1, 0, 0) # why not chat id?
+        wait_msgs_changed(ac1, 0, 0)  # why not chat id?
         ac1.forward_messages([prepared_original], chat2)
         forwarded_id = wait_msgs_changed(ac1, chat2.id)
         forwarded_msg = ac1.get_message_by_id(forwarded_id)
