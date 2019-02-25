@@ -15,7 +15,7 @@ static char* default_string(int id)
 		case DC_STR_MEMBER:                return dc_strdup("%1$s member(s)");
 		case DC_STR_CONTACT:               return dc_strdup("%1$s contact(s)");
 		case DC_STR_VOICEMESSAGE:          return dc_strdup("Voice message");
-		case DC_STR_DEADDROP:              return dc_strdup("Mailbox");
+		case DC_STR_DEADDROP:              return dc_strdup("Contact requests");
 		case DC_STR_IMAGE:                 return dc_strdup("Image");
 		case DC_STR_GIF:                   return dc_strdup("GIF");
 		case DC_STR_VIDEO:                 return dc_strdup("Video");
