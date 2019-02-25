@@ -42,23 +42,23 @@ typedef enum {
  * @return
  *      Pointer into the given string at the position after detected prefixes.
  */
-const char* find_subject_text_position(const char* subject);
+const char* dc_find_subject_text_position(const char* subject);
 
 /**
  * The program is aborted if the given string is a null pointer.
  */
-int is_prefix(const char* string, ptrdiff_t string_bytes_count);
+int dc_is_prefix(const char* string, ptrdiff_t string_bytes_count);
 
 /**
  * Returns a newly allocated string which must be freed by the caller.
  *
  * The program is aborted if the given string is a null pointer.
  */
-char* convert_prefix_letters_to_lower_case(const char* string, ptrdiff_t string_bytes_count);
+char* dc_convert_prefix_letters_to_lower_case(const char* string, ptrdiff_t string_bytes_count);
 
-int read_utf_8_character_bytes_count(char first_character_byte);
+int dc_read_utf_8_character_bytes_count(char first_character_byte);
 
-int is_bit_set(char byte, unsigned int bit_index);
+int dc_is_bit_set(char byte, unsigned int bit_index);
 
 /**
  * Returns a newly allocated structure which must be freed by the caller. The
@@ -66,14 +66,14 @@ int is_bit_set(char byte, unsigned int bit_index);
  *
  * The program is aborted if the given byte array is a null pointer.
  */
-bytes_array_bounds* map_to_utf_8_lower_case_if_known(const char* upper_case_character, int character_bytes_count);
+bytes_array_bounds* dc_map_to_utf_8_lower_case_if_known(const char* upper_case_character, int character_bytes_count);
 
 /**
  * The program is aborted if the given byte array is a null pointer.
  */
-const bicameral_utf_8_letter* search_for_bicameral_letter(const char* upper_case_character, int character_bytes_count);
+const bicameral_utf_8_letter* dc_search_for_bicameral_letter(const char* upper_case_character, int character_bytes_count);
 
-void* assuredly_allocate_zeroed_array(size_t entries_count, size_t entry_bytes_count);
+void* dc_assuredly_allocate_zeroed_array(size_t entries_count, size_t entry_bytes_count);
 
 /**
  * Returns the upper and lower case variants of non-ASCII characters in the
@@ -81,38 +81,38 @@ void* assuredly_allocate_zeroed_array(size_t entries_count, size_t entry_bytes_c
  * The list is fixed at compile time and new entries can be simply appended
  * as the function sorts it by upper case version upon first call.
  */
-const bicameral_utf_8_letters_array_bounds* get_prefix_letters();
+const bicameral_utf_8_letters_array_bounds* dc_get_prefix_letters();
 
 /**
  * The program is aborted if any of the given letter structure pointers or the
  * contained upper case character arrays is a null pointer.
  */
-int compare_utf_8_letters_by_upper_case(const void* left, const void* right);
+int dc_compare_utf_8_letters_by_upper_case(const void* left, const void* right);
 
 /**
  * Returns a list of the known subject prefixes.
  * The list is fixed at compile time and new entries can be simply appended
  * as the function sorts it upon first call.
  */
-const strings_array_bounds* get_prefixes();
+const strings_array_bounds* dc_get_prefixes();
 
 /**
  * The program is aborted if any of the given string pointers or strings is a
  * null pointer.
  */
-int compare_strings(const void* left, const void* right);
+int dc_compare_strings(const void* left, const void* right);
 
 /**
  * The program is aborted if the given string is a null pointer.
  */
-const char* find_first_non_space_position(const char* string);
+const char* dc_find_first_non_space_position(const char* string);
 
 /**
  * The program is aborted if the given pointer is a null pointer.
  */
-void assert_non_null_pointer(const void* pointer);
+void dc_assert_non_null_pointer(const void* pointer);
 
-void exit_with_error(const programming_error_code code, const char* message);
+void dc_exit_with_error(const programming_error_code code, const char* message);
 
 
 #ifdef __cplusplus
