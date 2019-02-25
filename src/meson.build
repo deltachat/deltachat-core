@@ -31,6 +31,7 @@ lib_src = [
   'dc_oauth2.c',
   'dc_param.c',
   'dc_pgp.c',
+  'dc_prefix_detection.c',
   'dc_saxparser.c',
   'dc_simplify.c',
   'dc_smtp.c',
