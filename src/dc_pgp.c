@@ -282,7 +282,7 @@ int dc_pgp_create_keypair(dc_context_t* context, const char* addr, dc_key_t* ret
   user_id = dc_mprintf("<%s>", addr);
 
   /* Create the actual key */
-  skey = rpgp_create_rsa_skey(2048, user_id);
+  skey = rpgp_create_rsa_skey(DC_KEYGEN_BITS, user_id);
 
   /* Serialize secret key into bytes */
   skey_bytes = rpgp_skey_to_bytes(skey);
