@@ -44,6 +44,9 @@ math = cc.find_library('m')
 # this as well.
 zlib = dependency('zlib', fallback: ['zlib', 'zlib_dep'])
 
+# add rpgp
+rpgp = cc.find_library('rpgp')
+
 if not get_option('monolith')
   # Normal build, detect dependencies from pkg-config
   openssl = dependency('openssl', fallback: ['openssl', 'dep'])

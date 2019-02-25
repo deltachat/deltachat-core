@@ -16,6 +16,7 @@ one :-) */
 
 #include <netpgp-extra.h>
 #include <openssl/rand.h>
+#include <librpgp.h>
 #include "dc_context.h"
 #include "dc_key.h"
 #include "dc_keyring.h"
@@ -271,6 +272,47 @@ static void add_subkey_binding_signature(pgp_subkeysig_t* p, pgp_key_t* primaryk
 
 int dc_pgp_create_keypair(dc_context_t* context, const char* addr, dc_key_t* ret_public_key, dc_key_t* ret_private_key)
 {
+  rpgp_signed_secret_key* skey;
+  rpgp_signed_public_key* pkey;
+  rpgp_cvec* skey_bytes;
+  rpgp_cvec* pkey_bytes;
+  char* user_id;
+
+  /* Create the user id */
+  user_id = dc_mprintf("<%s>", addr);
+
+  /* Create the actual key */
+  skey = rpgp_create_rsa_skey(2048, user_id);
+
+  /* Serialize secret key into bytes */
+  skey_bytes = rpgp_skey_to_bytes(skey);
+
+  /* Get the public key */
+  pkey = rpgp_skey_public_key(skey);
+
+  /* Serialize public key into bytes */
+  pkey_bytes = rpgp_pkey_to_bytes(pkey);
+
+  /* copy into the return secret key */
+  dc_key_set_from_binary(ret_private_key, rpgp_cvec_data(skey_bytes), rpgp_cvec_len(skey_bytes), DC_KEY_PRIVATE);
+
+  /* copy into the return public key */
+  dc_key_set_from_binary(ret_public_key, rpgp_cvec_data(pkey_bytes), rpgp_cvec_len(pkey_bytes), DC_KEY_PUBLIC);
+
+  /* cleanup */
+  rpgp_skey_drop(skey);
+  rpgp_cvec_drop(skey_bytes);
+  rpgp_pkey_drop(pkey);
+  rpgp_cvec_drop(pkey_bytes);
+  /* FIXME dont leak memory */
+  /*free(user_id);*/
+
+  return 1;
+}
+
+#if 0
+int dc_pgp_create_keypair(dc_context_t* context, const char* addr, dc_key_t* ret_public_key, dc_key_t* ret_private_key)
+{
 	int              success = 0;
 	pgp_key_t        seckey;
 	pgp_key_t        pubkey;
@@ -381,7 +423,7 @@ cleanup:
 	free(user_id);
 	return success;
 }
-
+#endif
 
 /*******************************************************************************
  * Check keys
