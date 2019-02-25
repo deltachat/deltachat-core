@@ -1095,7 +1095,7 @@ void dc_msg_set_text(dc_msg_t* msg, const char* text)
 
 /**
  * Set if the message is sent out encrypted or unencrypted.
- * This overwrites the heuristic which automatically desides if a message is encrypted or
+ * This overwrites the heuristic which automatically decides if a message is encrypted or
  * unencrypted. If set to encrypted here and encryption is not available later, the message
  * will not be sent out at all.
  * This does not alter any information in the database; this may be done by dc_send_msg() later.
