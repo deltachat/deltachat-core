@@ -209,7 +209,14 @@ void dc_lot_fill(dc_lot_t* lot, const dc_msg_t* msg, const dc_chat_t* chat, cons
 			lot->text1_meaning = 0;
 		}
 		else {
-			lot->text1 = dc_contact_get_first_name(contact);
+			// show full name for contact request, later on only the first name
+			if (chat!=NULL && chat->id==DC_CHAT_ID_DEADDROP) {
+				lot->text1 = dc_contact_get_display_name(contact);
+			}
+			else {
+				lot->text1 = dc_contact_get_first_name(contact);
+			}
+
 			lot->text1_meaning = DC_TEXT1_USERNAME;
 		}
 	}
