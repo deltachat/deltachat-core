@@ -189,7 +189,7 @@ int dc_msg_get_viewtype(const dc_msg_t* msg)
  * - DC_STATE_IN_SEEN (16) - Incoming message, really _seen_ by the user. Marked as read on IMAP and MDN may be send. Use dc_markseen_msgs() to mark messages as being seen.
  *
  * Outgoing message states:
- * - DC_STATE_OUT_PREPARING (21) - For files which need time to be prepared before they can be sent,
+ * - DC_STATE_OUT_PREPARING (18) - For files which need time to be prepared before they can be sent,
  *   the message enters this state before #DC_STATE_OUT_PENDING.
  * - DC_STATE_OUT_PENDING (20) - The user has send the "send" button but the
  *   message is not yet sent and is pending in some way. Maybe we're offline (no checkmark).
