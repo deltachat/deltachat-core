@@ -304,8 +304,7 @@ int dc_pgp_create_keypair(dc_context_t* context, const char* addr, dc_key_t* ret
   rpgp_cvec_drop(skey_bytes);
   rpgp_pkey_drop(pkey);
   rpgp_cvec_drop(pkey_bytes);
-  /* FIXME dont leak memory */
-  /*free(user_id);*/
+  free(user_id);
 
   return 1;
 }
