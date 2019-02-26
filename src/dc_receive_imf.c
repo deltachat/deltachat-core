@@ -1268,15 +1268,13 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 					chat_id = DC_CHAT_ID_TRASH;
 				}
 
-				/* degrade state for unknown senders and non-delta messages
-				(the latter may be removed if we run into spam problems, currently this is fine)
-				(noticed messages do count as being unread; therefore, the deaddrop will not popup in the chatlist) */
+				/* if the chat_id is blocked,
+				for unknown senders and non-delta messages set the state to NOTICED
+				to not result in a contact request (this would require the state FRESH) */
 				if (chat_id_blocked && state==DC_STATE_IN_FRESH)
 				{
 					if (incoming_origin < DC_ORIGIN_MIN_VERIFIED
-					 && mime_parser->is_send_by_messenger == 0
-					 && !dc_is_mvbox(context, server_folder))
-					{
+					 && msgrmsg==0) {
 						state = DC_STATE_IN_NOTICED;
 					}
 				}
@@ -1299,7 +1297,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 
 					if (chat_id==0)
 					{
-						int create_blocked = (mime_parser->is_send_by_messenger && !dc_is_contact_blocked(context, to_id))? DC_CHAT_NOT_BLOCKED : DC_CHAT_DEADDROP_BLOCKED;
+						int create_blocked = (msgrmsg && !dc_is_contact_blocked(context, to_id))? DC_CHAT_NOT_BLOCKED : DC_CHAT_DEADDROP_BLOCKED;
 						dc_create_or_lookup_nchat_by_contact_id(context, to_id, create_blocked, &chat_id, &chat_id_blocked);
 						if (chat_id && chat_id_blocked && !create_blocked) {
 							dc_unblock_chat(context, chat_id);
