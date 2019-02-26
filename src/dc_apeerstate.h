@@ -47,8 +47,7 @@ struct _dc_apeerstate
 	char*          verified_key_fingerprint;
 
 	#define        DC_SAVE_TIMESTAMPS 0x01
-	#define        DC_SAVE_ALL        0x02
-	#define        DC_FORCE_REGOSSIP  0x04
+	#define        DC_SAVE_ALL        0x02 // implies a call to dc_reset_gossiped_timestamp()
 	int            to_save;
 
 	#define        DC_DE_ENCRYPTION_PAUSED   0x01 // recoverable by an incoming encrypted mail
