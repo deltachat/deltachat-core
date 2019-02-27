@@ -1163,6 +1163,25 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				msgrmsg = 2; /* 2=no, but is reply to messenger message */
 			}
 
+			/* incoming non-chat messages may be discarded;
+			maybe this can be optimized later,
+			by checking the state before the message body is downloaded */
+			int allow_creation = 1;
+			if (msgrmsg==0) {
+				/* this message is a classic email -
+				not a chat-message nor a reply to one */
+				int show_emails = dc_sqlite3_get_config_int(context->sql,
+					"show_emails", DC_SHOW_EMAILS_DEFAULT);
+
+				if (show_emails==DC_SHOW_EMAILS_OFF) {
+					chat_id = DC_CHAT_ID_TRASH;
+					allow_creation = 0;
+				}
+				else if (show_emails==DC_SHOW_EMAILS_ACCEPTED_CONTACTS) {
+					allow_creation = 0;
+				}
+			}
+
 			/* check if the message introduces a new chat:
 			- outgoing messages introduce a chat with the first to: address if they are sent by a messenger
 			- incoming messages introduce a chat only for known contacts if they are sent by a messenger
@@ -1172,10 +1191,12 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				state = (flags&DC_IMAP_SEEN)? DC_STATE_IN_SEEN : DC_STATE_IN_FRESH;
 				to_id = DC_CONTACT_ID_SELF;
 
-				// handshake messages must be processed before chats are created (eg. contacs may be marked as verified)
-				assert( chat_id==0);
+				// handshake messages must be processed _before_ chats are created
+				// (eg. contacs may be marked as verified)
 				if (dc_mimeparser_lookup_field(mime_parser, "Secure-Join")) {
 					msgrmsg = 1; // avoid discarding by show_emails setting
+					chat_id = 0;
+					allow_creation = 1;
 					dc_sqlite3_commit(context->sql);
 						int handshake = dc_handle_securejoin_handshake(context, mime_parser, from_id);
 						if (handshake & DC_HANDSHAKE_STOP_NORMAL_PROCESSING) {
@@ -1184,25 +1205,6 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 							state = DC_STATE_IN_SEEN;
 						}
 					dc_sqlite3_begin_transaction(context->sql);
-				}
-
-				/* incoming non-chat messages may be discarded;
-				maybe this can be optimized later,
-				by checking the state before the message body is downloaded */
-				int allow_creation = 1;
-				if (msgrmsg==0) {
-					/* this message is a classic email -
-					not a chat-message nor a reply to one */
-					int show_emails = dc_sqlite3_get_config_int(context->sql,
-						"show_emails", DC_SHOW_EMAILS_DEFAULT);
-
-					if (show_emails==DC_SHOW_EMAILS_OFF) {
-						chat_id = DC_CHAT_ID_TRASH;
-						allow_creation = 0;
-					}
-					else if (show_emails==DC_SHOW_EMAILS_ACCEPTED_CONTACTS) {
-						allow_creation = 0;
-					}
 				}
 
 				/* test if there is a normal chat with the sender - if so, this allows us to create groups in the next step */
@@ -1288,14 +1290,14 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 
 					if (chat_id==0)
 					{
-						create_or_lookup_group(context, mime_parser, 1, DC_CHAT_NOT_BLOCKED, from_id, to_ids, &chat_id, &chat_id_blocked);
+						create_or_lookup_group(context, mime_parser, allow_creation, DC_CHAT_NOT_BLOCKED, from_id, to_ids, &chat_id, &chat_id_blocked);
 						if (chat_id && chat_id_blocked) {
 							dc_unblock_chat(context, chat_id);
 							chat_id_blocked = 0;
 						}
 					}
 
-					if (chat_id==0)
+					if (chat_id==0 && allow_creation)
 					{
 						int create_blocked = (msgrmsg && !dc_is_contact_blocked(context, to_id))? DC_CHAT_NOT_BLOCKED : DC_CHAT_DEADDROP_BLOCKED;
 						dc_create_or_lookup_nchat_by_contact_id(context, to_id, create_blocked, &chat_id, &chat_id_blocked);
