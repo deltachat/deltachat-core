@@ -1052,16 +1052,22 @@ dc_array_t* dc_get_chat_msgs(dc_context_t* context, uint32_t chat_id, uint32_t f
 
 	if (chat_id==DC_CHAT_ID_DEADDROP)
 	{
+		int show_emails = dc_sqlite3_get_config_int(context->sql,
+			"show_emails", DC_SHOW_EMAILS_DEFAULT);
+
 		stmt = dc_sqlite3_prepare(context->sql,
 			"SELECT m.id, m.timestamp"
 				" FROM msgs m"
 				" LEFT JOIN chats ON m.chat_id=chats.id"
 				" LEFT JOIN contacts ON m.from_id=contacts.id"
 				" WHERE m.from_id!=" DC_STRINGIFY(DC_CONTACT_ID_SELF)
+				"   AND m.from_id!=" DC_STRINGIFY(DC_CONTACT_ID_DEVICE)
 				"   AND m.hidden=0 "
 				"   AND chats.blocked=" DC_STRINGIFY(DC_CHAT_DEADDROP_BLOCKED)
 				"   AND contacts.blocked=0"
+				"   AND m.msgrmsg>=? "
 				" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
+		sqlite3_bind_int(stmt, 1, show_emails==DC_SHOW_EMAILS_ALL? 0 : 1);
 	}
 	else if (chat_id==DC_CHAT_ID_STARRED)
 	{
