@@ -44,9 +44,6 @@ math = cc.find_library('m')
 # this as well.
 zlib = dependency('zlib', fallback: ['zlib', 'zlib_dep'])
 
-# add rpgp
-rpgp = cc.find_library('rpgp')
-
 if not get_option('monolith')
   # Normal build, detect dependencies from pkg-config
   openssl = dependency('openssl', fallback: ['openssl', 'dep'])
@@ -110,7 +107,6 @@ else
   etpan = etpan_proj.get_variable('dep')
 endif
 
-
 # netpgp is always bundled
 netpgp_proj = subproject('netpgp',
                          default_options: ['static-pic-lib=true',
@@ -118,6 +114,16 @@ netpgp_proj = subproject('netpgp',
                                            'openssl-idea=disabled',
                                            'openssl-camellia=enabled'])
 netpgp = netpgp_proj.get_variable('dep')
+
+if get_option('rpgp')
+  # The rpgp pkg-config file is currently incorrect, so just try
+  # linking it instead for now.
+  #rpgp = dependency('rpgp')
+  rpgp = cc.find_library('rpgp')
+  add_project_arguments('-DDC_USE_RPGP', language: 'c')
+else
+  rpgp = dependency('', required: false)
+endif
 
 
 # Build the library, stored in `lib`.
