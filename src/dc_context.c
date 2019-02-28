@@ -516,7 +516,7 @@ static char* get_sys_config_str(const char* key)
  *                    show direct replies to chats only (default),
  *                    DC_SHOW_EMAILS_ACCEPTED_CONTACTS (1)=
  *                    also show all mails of confirmed contacts,
- *                    DC_SHOW_EMAILS_ALL (3, not: 2)=
+ *                    DC_SHOW_EMAILS_ALL (2)=
  *                    also show mails of unconfirmed contacts in the deaddrop.
  * - `save_mime_headers` = 1=save mime headers
  *                    and make dc_get_mime_headers() work for subsequent calls,

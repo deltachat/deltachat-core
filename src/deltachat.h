@@ -1125,7 +1125,7 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  */
 #define DC_SHOW_EMAILS_OFF               0
 #define DC_SHOW_EMAILS_ACCEPTED_CONTACTS 1
-#define DC_SHOW_EMAILS_ALL               3
+#define DC_SHOW_EMAILS_ALL               2
 
 
 /*
