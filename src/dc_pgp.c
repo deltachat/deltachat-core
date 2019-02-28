@@ -16,8 +16,10 @@ one :-) */
 
 #include <netpgp-extra.h>
 #include <openssl/rand.h>
-#include <librpgp.h>
 #include "dc_context.h"
+#ifdef DC_USE_RPGP
+#include <librpgp.h>
+#endif
 #include "dc_key.h"
 #include "dc_keyring.h"
 #include "dc_pgp.h"
