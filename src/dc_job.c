@@ -282,6 +282,10 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 	/* done */
 	dc_sqlite3_begin_transaction(context->sql);
 
+		if (mimefactory.out_gossiped) {
+			dc_set_gossiped_timestamp(context, mimefactory.msg->chat_id, time(NULL));
+		}
+
 		dc_update_msg_state(context, mimefactory.msg->id, DC_STATE_OUT_DELIVERED);
 		if (mimefactory.out_encrypted && dc_param_get_int(mimefactory.msg->param, DC_PARAM_GUARANTEE_E2EE, 0)==0) {
 			dc_param_set_int(mimefactory.msg->param, DC_PARAM_GUARANTEE_E2EE, 1); /* can upgrade to E2EE - fine! */

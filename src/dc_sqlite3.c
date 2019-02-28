@@ -539,6 +539,16 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 			}
 		#undef NEW_DB_VERSION
 
+		#define NEW_DB_VERSION 49
+			if (dbversion < NEW_DB_VERSION)
+			{
+				dc_sqlite3_execute(sql, "ALTER TABLE chats ADD COLUMN gossiped_timestamp INTEGER DEFAULT 0;");
+
+				dbversion = NEW_DB_VERSION;
+				dc_sqlite3_set_config_int(sql, "dbversion", NEW_DB_VERSION);
+			}
+		#undef NEW_DB_VERSION
+
 		// (2) updates that require high-level objects
 		// (the structure is complete now and all objects are usable)
 		// --------------------------------------------------------------------

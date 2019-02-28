@@ -197,6 +197,10 @@ int dc_apeerstate_save_to_db(const dc_apeerstate_t* peerstate, dc_sqlite3_t* sql
 		stmt = NULL;
 	}
 
+	if ((peerstate->to_save&DC_SAVE_ALL) || create) {
+		dc_reset_gossiped_timestamp(peerstate->context, 0);
+	}
+
 	success = 1;
 
 cleanup:
@@ -316,7 +320,7 @@ int dc_apeerstate_init_from_header(dc_apeerstate_t* peerstate, const dc_aheader_
 	peerstate->addr                = dc_strdup(header->addr);
 	peerstate->last_seen           = message_time;
 	peerstate->last_seen_autocrypt = message_time;
-	peerstate->to_save             = DC_SAVE_ALL;
+	peerstate->to_save            |= DC_SAVE_ALL;
 	peerstate->prefer_encrypt      = header->prefer_encrypt;
 
 	peerstate->public_key = dc_key_new();
@@ -336,7 +340,7 @@ int dc_apeerstate_init_from_gossip(dc_apeerstate_t* peerstate, const dc_aheader_
 	dc_apeerstate_empty(peerstate);
 	peerstate->addr                = dc_strdup(gossip_header->addr);
 	peerstate->gossip_timestamp    = message_time;
-	peerstate->to_save             = DC_SAVE_ALL;
+	peerstate->to_save            |= DC_SAVE_ALL;
 
 	peerstate->gossip_key = dc_key_new();
 	dc_key_set_from_key(peerstate->gossip_key, gossip_header->public_key);
@@ -358,7 +362,7 @@ int dc_apeerstate_degrade_encryption(dc_apeerstate_t* peerstate, time_t message_
 
 	peerstate->prefer_encrypt = DC_PE_RESET;
 	peerstate->last_seen      = message_time; /*last_seen_autocrypt is not updated as there was not Autocrypt:-header seen*/
-	peerstate->to_save        = DC_SAVE_ALL;
+	peerstate->to_save       |= DC_SAVE_ALL;
 
 	return 1;
 }

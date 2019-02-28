@@ -78,6 +78,7 @@ void dc_chat_empty(dc_chat_t* chat)
 	chat->grpid = NULL;
 
 	chat->blocked = 0;
+	chat->gossiped_timestamp = 0;
 
 	dc_param_set_packed(chat->param, NULL);
 }
@@ -410,7 +411,7 @@ static int set_from_stmt(dc_chat_t* chat, sqlite3_stmt* row)
 
 	dc_chat_empty(chat);
 
-	#define CHAT_FIELDS " c.id,c.type,c.name, c.grpid,c.param,c.archived, c.blocked "
+	#define CHAT_FIELDS " c.id,c.type,c.name, c.grpid,c.param,c.archived, c.blocked, c.gossiped_timestamp "
 	chat->id              =                    sqlite3_column_int  (row, row_offset++); /* the columns are defined in CHAT_FIELDS */
 	chat->type            =                    sqlite3_column_int  (row, row_offset++);
 	chat->name            =   dc_strdup((char*)sqlite3_column_text (row, row_offset++));
@@ -418,6 +419,7 @@ static int set_from_stmt(dc_chat_t* chat, sqlite3_stmt* row)
 	dc_param_set_packed(chat->param,    (char*)sqlite3_column_text (row, row_offset++));
 	chat->archived        =                    sqlite3_column_int  (row, row_offset++);
 	chat->blocked         =                    sqlite3_column_int  (row, row_offset++);
+	chat->gossiped_timestamp =                 sqlite3_column_int64(row, row_offset++);
 
 	/* correct the title of some special groups */
 	if (chat->id==DC_CHAT_ID_DEADDROP) {
@@ -480,6 +482,40 @@ int dc_chat_load_from_db(dc_chat_t* chat, uint32_t chat_id)
 cleanup:
 	sqlite3_finalize(stmt);
 	return success;
+}
+
+
+void dc_set_gossiped_timestamp(dc_context_t* context,
+                               uint32_t chat_id, time_t timestamp)
+{
+	sqlite3_stmt* stmt = NULL;
+
+	if (chat_id) {
+		dc_log_info(context, 0, "set gossiped_timestamp for chat #%i to %i.",
+			(int)chat_id, (int)timestamp);
+
+		stmt = dc_sqlite3_prepare(context->sql,
+			"UPDATE chats SET gossiped_timestamp=? WHERE id=?;");
+		sqlite3_bind_int64(stmt, 1, timestamp);
+		sqlite3_bind_int  (stmt, 2, chat_id);
+	}
+	else {
+		dc_log_info(context, 0, "set gossiped_timestamp for all chats to %i.",
+			(int)timestamp);
+
+		stmt = dc_sqlite3_prepare(context->sql,
+			"UPDATE chats SET gossiped_timestamp=?;");
+		sqlite3_bind_int64(stmt, 1, timestamp);
+	}
+
+	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+}
+
+
+void dc_reset_gossiped_timestamp(dc_context_t* context, uint32_t chat_id)
+{
+	dc_set_gossiped_timestamp(context, chat_id, 0);
 }
 
 
@@ -1929,6 +1965,8 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || contact==NULL || chat_id<=DC_CHAT_ID_LAST_SPECIAL) {
 		goto cleanup;
 	}
+
+	dc_reset_gossiped_timestamp(context, chat_id);
 
 	if (0==real_group_exists(context, chat_id) /*this also makes sure, not contacts are added to special or normal chats*/
 	 || (0==dc_real_contact_exists(context, contact_id) && contact_id!=DC_CONTACT_ID_SELF)

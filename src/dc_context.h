@@ -153,7 +153,9 @@ struct _dc_e2ee_helper {
 
 };
 
-void            dc_e2ee_encrypt      (dc_context_t*, const clist* recipients_addr, int force_plaintext, int e2ee_guaranteed, int min_verified, struct mailmime* in_out_message, dc_e2ee_helper_t*);
+void            dc_e2ee_encrypt      (dc_context_t*, const clist* recipients_addr,
+                                      int force_plaintext, int e2ee_guaranteed, int min_verified,
+                                      int do_gossip, struct mailmime* in_out_message, dc_e2ee_helper_t*);
 void            dc_e2ee_decrypt      (dc_context_t*, struct mailmime* in_out_message, dc_e2ee_helper_t*); /* returns 1 if sth. was decrypted, 0 in other cases */
 void            dc_e2ee_thanks       (dc_e2ee_helper_t*); /* frees data referenced by "mailmime" but not freed by mailmime_free(). After calling this function, in_out_message cannot be used any longer! */
 int             dc_ensure_secret_key_exists (dc_context_t*); /* makes sure, the private key exists, needed only for exporting keys and the case no message was sent before */
