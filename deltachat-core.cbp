@@ -16,7 +16,7 @@
 					<Add option="-g" />
 				</Compiler>
 				<Linker>
-					<Add option="-lz -lssl -lcrypto -pthread -lsasl2" />
+					<Add option="-lz -lssl -lcrypto -pthread -lsasl2 -lrpgp" />
 				</Linker>
 			</Target>
 			<Target title="Release">
