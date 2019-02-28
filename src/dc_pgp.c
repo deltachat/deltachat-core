@@ -167,6 +167,46 @@ cleanup:
  * Key generatation
  ******************************************************************************/
 
+#if DC_RPGP
+int dc_pgp_create_keypair(dc_context_t* context, const char* addr, dc_key_t* ret_public_key, dc_key_t* ret_private_key)
+{
+  rpgp_signed_secret_key* skey;
+  rpgp_signed_public_key* pkey;
+  rpgp_cvec* skey_bytes;
+  rpgp_cvec* pkey_bytes;
+  char* user_id;
+
+  /* Create the user id */
+  user_id = dc_mprintf("<%s>", addr);
+
+  /* Create the actual key */
+  skey = rpgp_create_rsa_skey(DC_KEYGEN_BITS, user_id);
+
+  /* Serialize secret key into bytes */
+  skey_bytes = rpgp_skey_to_bytes(skey);
+
+  /* Get the public key */
+  pkey = rpgp_skey_public_key(skey);
+
+  /* Serialize public key into bytes */
+  pkey_bytes = rpgp_pkey_to_bytes(pkey);
+
+  /* copy into the return secret key */
+  dc_key_set_from_binary(ret_private_key, rpgp_cvec_data(skey_bytes), rpgp_cvec_len(skey_bytes), DC_KEY_PRIVATE);
+
+  /* copy into the return public key */
+  dc_key_set_from_binary(ret_public_key, rpgp_cvec_data(pkey_bytes), rpgp_cvec_len(pkey_bytes), DC_KEY_PUBLIC);
+
+  /* cleanup */
+  rpgp_skey_drop(skey);
+  rpgp_cvec_drop(skey_bytes);
+  rpgp_pkey_drop(pkey);
+  rpgp_cvec_drop(pkey_bytes);
+  free(user_id);
+
+  return 1;
+}
+#else
 
 static unsigned add_key_prefs(pgp_create_sig_t *sig)
 {
@@ -269,47 +309,6 @@ static void add_subkey_binding_signature(pgp_subkeysig_t* p, pgp_key_t* primaryk
 	free(mem_sig); /* do not use pgp_memory_free() as this would also free mem_sig->buf which is owned by the packet */
 }
 
-
-int dc_pgp_create_keypair(dc_context_t* context, const char* addr, dc_key_t* ret_public_key, dc_key_t* ret_private_key)
-{
-  rpgp_signed_secret_key* skey;
-  rpgp_signed_public_key* pkey;
-  rpgp_cvec* skey_bytes;
-  rpgp_cvec* pkey_bytes;
-  char* user_id;
-
-  /* Create the user id */
-  user_id = dc_mprintf("<%s>", addr);
-
-  /* Create the actual key */
-  skey = rpgp_create_rsa_skey(DC_KEYGEN_BITS, user_id);
-
-  /* Serialize secret key into bytes */
-  skey_bytes = rpgp_skey_to_bytes(skey);
-
-  /* Get the public key */
-  pkey = rpgp_skey_public_key(skey);
-
-  /* Serialize public key into bytes */
-  pkey_bytes = rpgp_pkey_to_bytes(pkey);
-
-  /* copy into the return secret key */
-  dc_key_set_from_binary(ret_private_key, rpgp_cvec_data(skey_bytes), rpgp_cvec_len(skey_bytes), DC_KEY_PRIVATE);
-
-  /* copy into the return public key */
-  dc_key_set_from_binary(ret_public_key, rpgp_cvec_data(pkey_bytes), rpgp_cvec_len(pkey_bytes), DC_KEY_PUBLIC);
-
-  /* cleanup */
-  rpgp_skey_drop(skey);
-  rpgp_cvec_drop(skey_bytes);
-  rpgp_pkey_drop(pkey);
-  rpgp_cvec_drop(pkey_bytes);
-  free(user_id);
-
-  return 1;
-}
-
-#if 0
 int dc_pgp_create_keypair(dc_context_t* context, const char* addr, dc_key_t* ret_public_key, dc_key_t* ret_private_key)
 {
 	int              success = 0;

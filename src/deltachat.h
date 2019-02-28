@@ -14,6 +14,9 @@ extern "C" {
 #define DC_VERSION_STR "0.40.0"
 
 
+/* Set to 1 to enable use of rPGP instead of netpgp where available */
+#define DC_RPGP 1
+
 /**
  * @mainpage Getting started
  *
@@ -1190,4 +1193,3 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 }
 #endif
 #endif // __DELTACHAT_H__
-
