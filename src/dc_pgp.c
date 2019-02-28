@@ -167,7 +167,10 @@ cleanup:
  * Key generatation
  ******************************************************************************/
 
-#if DC_RPGP
+
+#ifdef DC_USE_RPGP
+
+
 int dc_pgp_create_keypair(dc_context_t* context, const char* addr, dc_key_t* ret_public_key, dc_key_t* ret_private_key)
 {
   rpgp_signed_secret_key* skey;
@@ -206,7 +209,10 @@ int dc_pgp_create_keypair(dc_context_t* context, const char* addr, dc_key_t* ret
 
   return 1;
 }
-#else
+
+
+#else // !DC_USE_RPGP
+
 
 static unsigned add_key_prefs(pgp_create_sig_t *sig)
 {
@@ -421,7 +427,10 @@ cleanup:
 	free(user_id);
 	return success;
 }
-#endif
+
+
+#endif // !DC_USE_RPGP
+
 
 /*******************************************************************************
  * Check keys
