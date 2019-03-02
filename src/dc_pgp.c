@@ -473,9 +473,9 @@ cleanup:
 #ifdef DC_USE_RPGP
 
 int dc_pgp_calc_fingerprint(const dc_key_t* raw_key, uint8_t** ret_fingerprint, size_t* ret_fingerprint_bytes) {
-	int             success = 0;
-        rpgp_public_or_secret_key* key;
-        rpgp_cvec* fingerprint;
+	int                        success = 0;
+        rpgp_public_or_secret_key* key = NULL;
+        rpgp_cvec*                 fingerprint = NULL;
 
 	if (raw_key==NULL || ret_fingerprint==NULL || *ret_fingerprint!=NULL || ret_fingerprint_bytes==NULL || *ret_fingerprint_bytes!=0
 	 || raw_key->binary==NULL || raw_key->bytes <= 0) {
@@ -488,21 +488,17 @@ int dc_pgp_calc_fingerprint(const dc_key_t* raw_key, uint8_t** ret_fingerprint, 
         /* calc the fingerprint */
         fingerprint = rpgp_key_fingerprint(key);
 
-        /* drop key */
-        rpgp_key_drop(key);
-
         /* copy into the result */
 	*ret_fingerprint_bytes = rpgp_cvec_len(fingerprint);
         *ret_fingerprint = malloc(*ret_fingerprint_bytes);
 
         memcpy(*ret_fingerprint, rpgp_cvec_data(fingerprint), *ret_fingerprint_bytes);
 
-        /* drop fingerprint */
-        rpgp_cvec_drop(fingerprint);
-
 	success = 1;
 
 cleanup:
+        if (key)         { rpgp_key_drop(key); }
+        if (fingerprint) { rpgp_cvec_drop(fingerprint); }
 	return success;
 }
 
@@ -549,6 +545,47 @@ cleanup:
 
 #endif // !DC_USE_RPGP
 
+#ifdef DC_USE_RPGP
+
+int dc_pgp_split_key(dc_context_t* context, const dc_key_t* private_in, dc_key_t* ret_public_key)
+{
+	int                     success = 0;
+        rpgp_signed_secret_key* key = NULL;
+        rpgp_signed_public_key* pub_key = NULL;
+        rpgp_cvec*              buf = NULL;
+
+
+	if (context==NULL || private_in==NULL || ret_public_key==NULL) {
+		goto cleanup;
+	}
+
+	if (private_in->type!=DC_KEY_PRIVATE) {
+		dc_log_warning(context, 0, "Split key: Given key is no private key.");
+		goto cleanup;
+	}
+
+        /* deserialize secret key */
+        key = rpgp_skey_from_bytes(private_in->binary, private_in->bytes);
+
+        /* convert to public key */
+        pub_key = rpgp_skey_public_key(key);
+
+        /* serialize public key */
+        buf = rpgp_pkey_to_bytes(pub_key);
+
+        /* create return value */
+	dc_key_set_from_binary(ret_public_key, rpgp_cvec_data(buf), rpgp_cvec_len(buf), DC_KEY_PUBLIC);
+	success = 1;
+
+cleanup:
+	if (key)      { rpgp_skey_drop(key); }
+	if (pub_key)  { rpgp_pkey_drop(pub_key);  }
+	if (buf)      { rpgp_cvec_drop(buf); }
+	return success;
+}
+
+#else
+
 int dc_pgp_split_key(dc_context_t* context, const dc_key_t* private_in, dc_key_t* ret_public_key)
 {
 	int             success = 0;
@@ -594,6 +631,8 @@ cleanup:
 	if (private_keys) { pgp_keyring_purge(private_keys); free(private_keys); }
 	return success;
 }
+
+#endif // !DC_USE_RPGP
 
 
 /*******************************************************************************
