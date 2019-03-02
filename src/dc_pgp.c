@@ -470,6 +470,38 @@ cleanup:
 }
 
 
+#ifdef DC_USE_RPGP
+
+int dc_pgp_calc_fingerprint(const dc_key_t* raw_key, uint8_t** ret_fingerprint, size_t* ret_fingerprint_bytes) {
+	int             success = 0;
+        rpgp_public_or_secret_key* key;
+        rpgp_cvec* fingerprint;
+
+	if (raw_key==NULL || ret_fingerprint==NULL || *ret_fingerprint!=NULL || ret_fingerprint_bytes==NULL || *ret_fingerprint_bytes!=0
+	 || raw_key->binary==NULL || raw_key->bytes <= 0) {
+		goto cleanup;
+	}
+
+        /* get the key into the right format */
+        key = rpgp_key_from_bytes(raw_key->binary, raw_key->bytes);
+
+        /* calc the fingerprint */
+        fingerprint = rpgp_key_fingerprint(key);
+
+        /* copy into the result */
+	*ret_fingerprint_bytes = rpgp_cvec_len(fingerprint);
+        *ret_fingerprint = malloc(*ret_fingerprint_bytes);
+
+        memcpy(*ret_fingerprint, rpgp_cvec_data(fingerprint), *ret_fingerprint_bytes);
+
+	success = 1;
+
+cleanup:
+	return success;
+}
+
+#else
+
 int dc_pgp_calc_fingerprint(const dc_key_t* raw_key, uint8_t** ret_fingerprint, size_t* ret_fingerprint_bytes)
 {
 	int             success = 0;
@@ -509,6 +541,7 @@ cleanup:
 	return success;
 }
 
+#endif // !DC_USE_RPGP
 
 int dc_pgp_split_key(dc_context_t* context, const dc_key_t* private_in, dc_key_t* ret_public_key)
 {
