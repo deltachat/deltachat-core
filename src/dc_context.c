@@ -38,6 +38,7 @@ static const char* config_keys[] = {
 	,"mvbox_move"
 	,"show_emails"
 	,"save_mime_headers"
+	,"purge_server_days"
 	,"configured_addr"
 	,"configured_mail_server"
 	,"configured_mail_user"
@@ -518,6 +519,8 @@ static char* get_sys_config_str(const char* key)
  *                    also show all mails of confirmed contacts,
  *                    DC_SHOW_EMAILS_ALL (2)=
  *                    also show mails of unconfirmed contacts in the deaddrop.
+ * - `purge_server_days` = N=purge messages older than N days from server,
+ *                    0=do not purge messages from server (default)
  * - `save_mime_headers` = 1=save mime headers
  *                    and make dc_get_mime_headers() work for subsequent calls,
  *                    0=do not save mime headers (default)
