@@ -1121,6 +1121,14 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 
 
 /*
+ * Values for dc_get|set_config("show_emails")
+ */
+#define DC_SHOW_EMAILS_OFF               0
+#define DC_SHOW_EMAILS_ACCEPTED_CONTACTS 1
+#define DC_SHOW_EMAILS_ALL               2
+
+
+/*
  * TODO: Strings need some doumentation about used placeholders.
  *
  * @defgroup DC_STR DC_STR

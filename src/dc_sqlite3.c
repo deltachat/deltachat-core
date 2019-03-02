@@ -213,6 +213,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 
 	if (!(flags&DC_OPEN_READONLY))
 	{
+		int exists_before_update = 0;
 		int dbversion_before_update = 0;
 
 		/* Init tables to dbversion=0 */
@@ -301,6 +302,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		}
 		else
 		{
+			exists_before_update = 1;
 			dbversion_before_update = dc_sqlite3_get_config_int(sql, "dbversion", 0);
 		}
 
@@ -543,6 +545,21 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 			if (dbversion < NEW_DB_VERSION)
 			{
 				dc_sqlite3_execute(sql, "ALTER TABLE chats ADD COLUMN gossiped_timestamp INTEGER DEFAULT 0;");
+
+				dbversion = NEW_DB_VERSION;
+				dc_sqlite3_set_config_int(sql, "dbversion", NEW_DB_VERSION);
+			}
+		#undef NEW_DB_VERSION
+
+		#define NEW_DB_VERSION 50
+			if (dbversion < NEW_DB_VERSION)
+			{
+				/* installations <= 0.100.1 used DC_SHOW_EMAILS_ALL implicitly;
+				keep this default and use DC_SHOW_EMAILS_NO
+				only for new installations */
+				if (exists_before_update) {
+					dc_sqlite3_set_config_int(sql, "show_emails", DC_SHOW_EMAILS_ALL);
+				}
 
 				dbversion = NEW_DB_VERSION;
 				dc_sqlite3_set_config_int(sql, "dbversion", NEW_DB_VERSION);

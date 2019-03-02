@@ -135,6 +135,7 @@ int             dc_is_mvbox          (dc_context_t*, const char* folder);
 #define DC_SENTBOX_WATCH_DEFAULT  1
 #define DC_MVBOX_WATCH_DEFAULT    1
 #define DC_MVBOX_MOVE_DEFAULT     1
+#define DC_SHOW_EMAILS_DEFAULT    DC_SHOW_EMAILS_OFF
 
 
 typedef struct _dc_e2ee_helper dc_e2ee_helper_t;
