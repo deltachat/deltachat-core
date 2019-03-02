@@ -488,11 +488,17 @@ int dc_pgp_calc_fingerprint(const dc_key_t* raw_key, uint8_t** ret_fingerprint, 
         /* calc the fingerprint */
         fingerprint = rpgp_key_fingerprint(key);
 
+        /* drop key */
+        rpgp_key_drop(key);
+
         /* copy into the result */
 	*ret_fingerprint_bytes = rpgp_cvec_len(fingerprint);
         *ret_fingerprint = malloc(*ret_fingerprint_bytes);
 
         memcpy(*ret_fingerprint, rpgp_cvec_data(fingerprint), *ret_fingerprint_bytes);
+
+        /* drop fingerprint */
+        rpgp_cvec_drop(fingerprint);
 
 	success = 1;
 
