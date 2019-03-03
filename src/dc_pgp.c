@@ -164,12 +164,6 @@ cleanup:
 	return success;
 }
 
-
-/*******************************************************************************
- * Key generatation
- ******************************************************************************/
-
-
 #ifdef DC_USE_RPGP
 
 /* returns 0 if there is no error, otherwise logs the error if a context is provided and returns 1*/
@@ -196,6 +190,14 @@ int dc_pgp_handle_rpgp_error(dc_context_t* context) {
   return success;
 }
 
+#endif /* DC_USE_RPGP */
+
+/*******************************************************************************
+ * Key generatation
+ ******************************************************************************/
+
+
+#ifdef DC_USE_RPGP
 
 int dc_pgp_create_keypair(dc_context_t* context, const char* addr, dc_key_t* ret_public_key, dc_key_t* ret_private_key)
 {
@@ -840,6 +842,123 @@ cleanup:
 }
 
 
+#if DC_USE_RPGP
+
+int dc_pgp_pk_decrypt( dc_context_t*       context,
+                       const void*         ctext,
+                       size_t              ctext_bytes,
+                       const dc_keyring_t* raw_private_keys_for_decryption,
+                       const dc_keyring_t* raw_public_keys_for_validation,
+                       int                 use_armor,
+                       void**              ret_plain,
+                       size_t*             ret_plain_bytes,
+                       dc_hash_t*          ret_signature_fingerprints)
+{
+	int                     i = 0;
+	int                     success = 0;
+        rpgp_message*           encrypted = NULL;
+        rpgp_message_decrypt_result*    decrypted = NULL;
+        int                     private_keys_len = 0;
+        int                     public_keys_len = 0;
+        rpgp_signed_secret_key* *private_keys = NULL;
+        rpgp_signed_public_key* *public_keys = NULL;
+
+	if (context==NULL || ctext==NULL || ctext_bytes==0 || ret_plain==NULL
+            || ret_plain_bytes==NULL || raw_private_keys_for_decryption==NULL
+            || raw_private_keys_for_decryption->count<=0
+            || use_armor==0 /* only support use_armor=1 */) {
+		goto cleanup;
+	}
+
+	*ret_plain        = NULL;
+	*ret_plain_bytes  = 0;
+        private_keys_len  = raw_private_keys_for_decryption->count;
+        private_keys      = malloc(sizeof(rpgp_signed_secret_key*) * private_keys_len);
+
+        if (raw_public_keys_for_validation) {
+          public_keys_len   = raw_public_keys_for_validation->count;
+          public_keys       = malloc(sizeof(rpgp_signed_public_key*) * public_keys_len);
+        }
+
+	/* setup secret keys for decryption */
+	for (i = 0; i < raw_private_keys_for_decryption->count; i++) {
+          private_keys[i] = rpgp_skey_from_bytes(raw_private_keys_for_decryption->keys[i]->binary,
+                                                 raw_private_keys_for_decryption->keys[i]->bytes);
+          if (dc_pgp_handle_rpgp_error(context)) {
+            goto cleanup;
+          }
+	}
+
+        /* setup public keys for validation */
+	if (raw_public_keys_for_validation) {
+          for (i = 0; i < raw_public_keys_for_validation->count; i++) {
+            public_keys[i] = rpgp_pkey_from_bytes(raw_public_keys_for_validation->keys[i]->binary,
+                                                  raw_public_keys_for_validation->keys[i]->bytes);
+            if (dc_pgp_handle_rpgp_error(context)) {
+              goto cleanup;
+            }
+          }
+	}
+
+	/* decrypt */
+	{
+          encrypted = rpgp_msg_from_armor(ctext, ctext_bytes);
+          if (dc_pgp_handle_rpgp_error(context)) {
+            goto cleanup;
+          }
+
+          decrypted = rpgp_msg_decrypt_no_pw(encrypted,
+                                             (const rpgp_signed_secret_key* const*)private_keys, private_keys_len,
+                                             (const rpgp_signed_public_key* const*)public_keys, public_keys_len);
+          if (dc_pgp_handle_rpgp_error(context)) {
+            goto cleanup;
+          }
+
+          rpgp_cvec* decrypted_bytes = rpgp_msg_to_bytes(decrypted->message_ptr);
+          if (dc_pgp_handle_rpgp_error(context)) {
+            goto cleanup;
+          }
+
+          *ret_plain_bytes = rpgp_cvec_len(decrypted_bytes);
+          *ret_plain = (void*)rpgp_cvec_data(decrypted_bytes);
+
+          // No drop as we only remove the struct
+          free(decrypted_bytes);
+
+          /* collect the keys of the valid signatures */
+          if (ret_signature_fingerprints) {
+            uint32_t j = 0;
+            uint32_t len = (uint32_t)decrypted->valid_ids_len;
+            for (; j < len; j++) {
+              char* fingerprint_hex = decrypted->valid_ids_ptr[j];
+
+              if (fingerprint_hex) {
+                dc_hash_insert(ret_signature_fingerprints, fingerprint_hex, strlen(fingerprint_hex), (void*)1);
+                free(fingerprint_hex);
+              }
+            }
+          }
+        }
+
+        success = 1;
+
+cleanup:
+        for (i = 0; i < private_keys_len; i++) {
+          rpgp_skey_drop(private_keys[i]);
+        }
+
+        for (i = 0; i < public_keys_len; i++) {
+          rpgp_pkey_drop(public_keys[i]);
+        }
+
+        if (encrypted) { rpgp_msg_drop(encrypted); }
+        if (decrypted) { rpgp_message_decrypt_result_drop(decrypted); }
+
+	return success;
+}
+
+#else
+
 int dc_pgp_pk_decrypt( dc_context_t*       context,
                        const void*         ctext,
                        size_t              ctext_bytes,
@@ -935,3 +1054,5 @@ cleanup:
 	free(recipients_key_ids);
 	return success;
 }
+
+#endif /* !DC_USE_RPGP */
