@@ -172,44 +172,90 @@ cleanup:
 
 #ifdef DC_USE_RPGP
 
+/* returns 0 if there is no error, otherwise logs the error if a context is provided and returns 1*/
+int dc_pgp_handle_rpgp_error(dc_context_t* context) {
+  int success = 0;
+  int len = 0;
+  char* msg = NULL;
+
+  len = rpgp_last_error_length();
+  if (len==0) {
+    goto cleanup;
+  }
+
+  msg = rpgp_last_error_message();
+  if (context != NULL) {
+    dc_log_info(context, 0, "[rpgp][error] %s", msg);
+  }
+
+  success = 1;
+
+ cleanup:
+  if (msg) { rpgp_string_drop(msg); }
+
+  return success;
+}
+
 
 int dc_pgp_create_keypair(dc_context_t* context, const char* addr, dc_key_t* ret_public_key, dc_key_t* ret_private_key)
 {
-  rpgp_signed_secret_key* skey;
-  rpgp_signed_public_key* pkey;
-  rpgp_cvec* skey_bytes;
-  rpgp_cvec* pkey_bytes;
-  char* user_id;
+  int                     success = 0;
+  rpgp_signed_secret_key* skey = NULL;
+  rpgp_signed_public_key* pkey = NULL;
+  rpgp_cvec*              skey_bytes = NULL;
+  rpgp_cvec*              pkey_bytes = NULL;
+  char*                   user_id = NULL;
 
   /* Create the user id */
   user_id = dc_mprintf("<%s>", addr);
 
   /* Create the actual key */
   skey = rpgp_create_rsa_skey(DC_KEYGEN_BITS, user_id);
+  if (dc_pgp_handle_rpgp_error(context)) {
+    goto cleanup;
+  }
 
   /* Serialize secret key into bytes */
   skey_bytes = rpgp_skey_to_bytes(skey);
+  if (dc_pgp_handle_rpgp_error(context)) {
+    goto cleanup;
+  }
 
   /* Get the public key */
   pkey = rpgp_skey_public_key(skey);
+  if (dc_pgp_handle_rpgp_error(context)) {
+    goto cleanup;
+  }
 
   /* Serialize public key into bytes */
   pkey_bytes = rpgp_pkey_to_bytes(pkey);
+  if (dc_pgp_handle_rpgp_error(context)) {
+    goto cleanup;
+  }
 
   /* copy into the return secret key */
   dc_key_set_from_binary(ret_private_key, rpgp_cvec_data(skey_bytes), rpgp_cvec_len(skey_bytes), DC_KEY_PRIVATE);
+  if (dc_pgp_handle_rpgp_error(context)) {
+    goto cleanup;
+  }
 
   /* copy into the return public key */
   dc_key_set_from_binary(ret_public_key, rpgp_cvec_data(pkey_bytes), rpgp_cvec_len(pkey_bytes), DC_KEY_PUBLIC);
+  if (dc_pgp_handle_rpgp_error(context)) {
+    goto cleanup;
+  }
+
+  success = 1;
 
   /* cleanup */
-  rpgp_skey_drop(skey);
-  rpgp_cvec_drop(skey_bytes);
-  rpgp_pkey_drop(pkey);
-  rpgp_cvec_drop(pkey_bytes);
-  free(user_id);
+ cleanup:
+  if (skey)       { rpgp_skey_drop(skey); }
+  if (skey_bytes) { rpgp_cvec_drop(skey_bytes); }
+  if (pkey)       { rpgp_pkey_drop(pkey); }
+  if (pkey_bytes) { rpgp_cvec_drop(pkey_bytes); }
+  if (user_id)    { free(user_id); }
 
-  return 1;
+  return success;
 }
 
 
@@ -438,6 +484,36 @@ cleanup:
  * Check keys
  ******************************************************************************/
 
+#ifdef DC_USE_RPGP
+int dc_pgp_is_valid_key(dc_context_t* context, const dc_key_t* raw_key)
+{
+	int                        key_is_valid = 0;
+        rpgp_public_or_secret_key* key = NULL;
+
+
+	if (context==NULL || raw_key==NULL || raw_key->binary==NULL || raw_key->bytes <= 0) {
+		goto cleanup;
+	}
+
+        key = rpgp_key_from_bytes(raw_key->binary, raw_key->bytes);
+        if (dc_pgp_handle_rpgp_error(context)) {
+          goto cleanup;
+        }
+
+	if (raw_key->type==DC_KEY_PUBLIC && rpgp_key_is_public(key)) {
+		key_is_valid = 1;
+	}
+	else if (raw_key->type==DC_KEY_PRIVATE && rpgp_key_is_secret(key)) {
+		key_is_valid = 1;
+	}
+
+cleanup:
+        if (key) { rpgp_key_drop(key); }
+
+	return key_is_valid;
+}
+
+#else
 
 int dc_pgp_is_valid_key(dc_context_t* context, const dc_key_t* raw_key)
 {
@@ -469,6 +545,7 @@ cleanup:
 	return key_is_valid;
 }
 
+#endif // !DC_USE_RPGP
 
 #ifdef DC_USE_RPGP
 
@@ -484,9 +561,17 @@ int dc_pgp_calc_fingerprint(const dc_key_t* raw_key, uint8_t** ret_fingerprint, 
 
         /* get the key into the right format */
         key = rpgp_key_from_bytes(raw_key->binary, raw_key->bytes);
+        if (dc_pgp_handle_rpgp_error(NULL)) {
+          goto cleanup;
+        }
+
 
         /* calc the fingerprint */
         fingerprint = rpgp_key_fingerprint(key);
+        if (dc_pgp_handle_rpgp_error(NULL)) {
+          goto cleanup;
+        }
+
 
         /* copy into the result */
 	*ret_fingerprint_bytes = rpgp_cvec_len(fingerprint);
@@ -566,12 +651,21 @@ int dc_pgp_split_key(dc_context_t* context, const dc_key_t* private_in, dc_key_t
 
         /* deserialize secret key */
         key = rpgp_skey_from_bytes(private_in->binary, private_in->bytes);
+        if (dc_pgp_handle_rpgp_error(context)) {
+          goto cleanup;
+        }
 
         /* convert to public key */
         pub_key = rpgp_skey_public_key(key);
+        if (dc_pgp_handle_rpgp_error(context)) {
+          goto cleanup;
+        }
 
         /* serialize public key */
         buf = rpgp_pkey_to_bytes(pub_key);
+        if (dc_pgp_handle_rpgp_error(context)) {
+          goto cleanup;
+        }
 
         /* create return value */
 	dc_key_set_from_binary(ret_public_key, rpgp_cvec_data(buf), rpgp_cvec_len(buf), DC_KEY_PUBLIC);
