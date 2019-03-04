@@ -39,12 +39,14 @@ class TestInCreation:
         shutil.copy(data.get_path("d.png"), path)
         sent_original = chat.send_prepared(prepared_original)
         assert sent_original.id == prepared_original.id
-        assert sent_original.get_state().is_out_pending()
+        state = sent_original.get_state()
+        assert state.is_out_pending() or state.is_out_delivered()
         wait_msgs_changed(ac1, chat.id, sent_original.id)
 
         lp.sec("expect the forwarded message to be sent now too")
         wait_msgs_changed(ac1, chat2.id, forwarded_id)
-        assert ac1.get_message_by_id(forwarded_id).get_state().is_out_pending()
+        state = ac1.get_message_by_id(forwarded_id).get_state()
+        assert state.is_out_pending() or state.is_out_delivered()
 
         lp.sec("wait for the messages to be delivered to SMTP")
         ev = ac1._evlogger.get_matching("DC_EVENT_MSG_DELIVERED")

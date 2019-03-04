@@ -948,6 +948,10 @@ void dc_housekeeping(dc_context_t* context)
 		DC_PARAM_FILE);
 
 	maybe_add_from_param(context, &files_in_use,
+		"SELECT param FROM jobs;",
+		DC_PARAM_FILE);
+
+	maybe_add_from_param(context, &files_in_use,
 		"SELECT param FROM chats;",
 		DC_PARAM_PROFILE_IMAGE);
 

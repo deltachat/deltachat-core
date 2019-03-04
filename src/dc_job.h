@@ -57,6 +57,8 @@ struct _dc_job
 void     dc_job_add                   (dc_context_t*, int action, int foreign_id, const char* param, int delay);
 void     dc_job_kill_action           (dc_context_t*, int action); /* delete all pending jobs with the given action */
 
+int      dc_job_send_msg              (dc_context_t*, uint32_t msg_id); /* special case for DC_JOB_SEND_MSG_TO_SMTP */
+
 #define  DC_DONT_TRY_AGAIN           0
 #define  DC_AT_ONCE                 -1
 #define  DC_INCREATION_POLL          2 // this value does not increase the number of tries

@@ -2428,7 +2428,7 @@ static uint32_t prepare_msg_common(dc_context_t* context, uint32_t chat_id, dc_m
 			goto cleanup;
 		}
 
-		if (dc_msg_is_increation(msg) && !dc_is_blobdir_path(context, pathNfilename)) {
+		if (state==DC_STATE_OUT_PREPARING && !dc_is_blobdir_path(context, pathNfilename)) {
 			dc_log_error(context, 0, "Files must be created in the blob-directory.");
 			goto cleanup;
 		}
@@ -2545,19 +2545,6 @@ uint32_t dc_prepare_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
  * dc_send_msg(context, chat_id, msg);
  * ~~~
  *
- * You can even call this function if the file to be sent is still in creation.
- * For this purpose, create a file with the additional extension `.increation`
- * beside the file to sent. Once you're done with creating the file, delete the
- * increation-file and the message will really be sent.
- * This is useful as the user can already send the next messages while
- * eg. the recoding of a video is not yet finished. Or the user can even forward
- * the message with the file being still in creation to other groups.
- *
- * Files being sent with the increation-method must be placed in the
- * blob directory, see dc_get_blobdir().
- * If the increation-method is not used - which is probably the normal case -
- * the file is copied to the blob directory if it is not yet there.
- *
  * @memberof dc_context_t
  * @param context The context object as returned from dc_context_new().
  * @param chat_id Chat ID to send the message to.
@@ -2588,7 +2575,10 @@ uint32_t dc_send_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 		return 0;
 	}
 
-	dc_job_add(context, DC_JOB_SEND_MSG_TO_SMTP, msg->id, NULL, 0);
+	// create message file and submit SMTP job
+	if (!dc_job_send_msg(context, msg->id)) {
+		return 0;
+	}
 
 	context->cb(context, DC_EVENT_MSGS_CHANGED, msg->chat_id, msg->id);
 
@@ -2777,7 +2767,7 @@ void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt
 			}
 			else {
 				new_msg_id = prepare_msg_raw(context, chat, msg, curr_timestamp++, msg->state);
-				dc_job_add(context, DC_JOB_SEND_MSG_TO_SMTP, new_msg_id, NULL, 0);
+				dc_job_send_msg(context, new_msg_id);
 			}
 
 			carray_add(created_db_entries, (void*)(uintptr_t)chat_id, NULL);

@@ -26,7 +26,7 @@ struct _dc_param
 };
 
 
-#define DC_PARAM_FILE              'f'  /* for msgs */
+#define DC_PARAM_FILE              'f'  /* for msgs and jobs */
 #define DC_PARAM_WIDTH             'w'  /* for msgs */
 #define DC_PARAM_HEIGHT            'h'  /* for msgs */
 #define DC_PARAM_DURATION          'd'  /* for msgs */
@@ -47,6 +47,7 @@ struct _dc_param
 #define DC_PARAM_SERVER_FOLDER     'Z'  /* for jobs */
 #define DC_PARAM_SERVER_UID        'z'  /* for jobs */
 #define DC_PARAM_ALSO_MOVE         'M'  /* for jobs */
+#define DC_PARAM_RECIPIENTS        'R'  /* for jobs: space-separated list of message recipients */
 
 #define DC_PARAM_UNPROMOTED        'U'  /* for groups */
 #define DC_PARAM_PROFILE_IMAGE     'i'  /* for groups and contacts */

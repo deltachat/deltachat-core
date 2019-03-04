@@ -658,6 +658,33 @@ int clist_search_string_nocase(const clist* haystack, const char* needle)
 }
 
 
+char* clist_join(const clist* list, char separator)
+{
+	size_t total = 0;
+	for (clistiter* iter=clist_begin(list); iter!=NULL; iter=clist_next(iter)) {
+		char* str = clist_content(iter);
+		total += strlen(str) + 1;  // the 1 is for separators and \0
+	}
+	if (total==0) {
+		return dc_strdup("");
+	}
+	char* result = malloc(total);
+	if (!result) {
+		exit(55); /* cannot allocate little memoty, unrecoverable error */
+	}
+	char* p = result;
+	for (clistiter* iter=clist_begin(list); iter!=NULL; iter=clist_next(iter)) {
+		const char* str = clist_content(iter);
+		size_t len = strlen(str);
+		memcpy(p, str, len);
+		p += len;
+		*(p++) = separator;
+	}
+	*(--p) = 0;
+	return result;
+}
+
+
 /*******************************************************************************
  * date/time tools
  ******************************************************************************/

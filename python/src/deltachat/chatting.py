@@ -184,7 +184,7 @@ class Chat(object):
         msg_id = lib.dc_send_msg(self._dc_context, 0, message._dc_msg)
         if msg_id == 0:
             raise ValueError("message could not be sent")
-        return message.from_db(self._dc_context, msg_id)
+        return Message.from_db(self._dc_context, msg_id)
 
     def get_messages(self):
         """ return list of messages in this chat.
