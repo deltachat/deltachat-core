@@ -612,6 +612,12 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 			}
 		}
 
+		if (dc_is_sending_locations_to_chat(msg->context, msg->chat_id)) {
+			mailimf_fields_add(imf_fields, mailimf_field_new_custom(
+				strdup("Chat-Location"),
+				dc_get_location_str(msg->context)));
+		}
+
 		if (grpimage)
 		{
 			dc_msg_t* meta = dc_msg_new_untyped(factory->context);

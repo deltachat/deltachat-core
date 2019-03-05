@@ -437,6 +437,8 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 				"groupname <name>\n"
 				"groupimage [<file>]\n"
 				"chatinfo\n"
+				"sendlocations <seconds>\n"
+				"setlocation <lat> <lng>\n"
 				"send <text>\n"
 				"sendimage <file> [<text>]\n"
 				"sendfile <file>\n"
@@ -885,7 +887,9 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 			if (contacts) {
 				dc_log_info(context, 0, "Memberlist:");
 				log_contactlist(context, contacts);
-				ret = dc_mprintf("%i contacts.", (int)dc_array_get_cnt(contacts));
+				ret = dc_mprintf("%i contacts\nLocation streaming: %i",
+					(int)dc_array_get_cnt(contacts),
+					dc_is_sending_locations_to_chat(context, dc_chat_get_id(sel_chat)));
 			}
 			else {
 				ret = COMMAND_FAILED;
@@ -893,6 +897,36 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 		}
 		else {
 			ret = dc_strdup("No chat selected.");
+		}
+	}
+	else if (strcmp(cmd, "sendlocations")==0)
+	{
+		if (sel_chat) {
+			if (arg1 && arg1[0]) {
+				int seconds = atoi(arg1);
+				dc_send_locations_to_chat(context, dc_chat_get_id(sel_chat), seconds);
+				ret = COMMAND_SUCCEEDED;
+			}
+			else {
+				ret = dc_strdup("ERROR: No timeout given.");
+			}
+		}
+		else {
+			ret = dc_strdup("No chat selected.");
+		}
+	}
+	else if (strcmp(cmd, "setlocation")==0) {
+		char* arg2 = NULL;
+		if (arg1) { arg2 = strrchr(arg1, ' '); }
+		if (arg1 && arg2) {
+			*arg2 = 0; arg2++;
+			double latitude = atof(arg1);
+			double longitude = atof(arg2);
+			dc_set_location(context, latitude, longitude, 0.0);
+			ret = COMMAND_SUCCEEDED;
+		}
+		else {
+			ret = dc_strdup("ERROR: Latitude or longitude not given.");
 		}
 	}
 	else if (strcmp(cmd, "send")==0)

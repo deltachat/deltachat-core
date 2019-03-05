@@ -360,6 +360,11 @@ char*           dc_get_securejoin_qr         (dc_context_t*, uint32_t chat_id);
 uint32_t        dc_join_securejoin           (dc_context_t*, const char* qr);
 
 
+// location streaming
+void dc_send_locations_to_chat       (dc_context_t*, uint32_t chat_id, int seconds);
+int  dc_is_sending_locations_to_chat (dc_context_t*, uint32_t chat_id);
+int  dc_set_location                 (dc_context_t*, double latitude, double longitude, double accuracy);
+
 /**
  * @class dc_array_t
  *
@@ -983,6 +988,17 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * @return 0
  */
 #define DC_EVENT_CONTACTS_CHANGED         2030
+
+
+
+/**
+ * Location of one or more contact has changed.
+ *
+ * @param data1 (int) contact_id of the contact for which the location has changed.
+ * @param data2 0
+ * @return 0
+ */
+#define DC_EVENT_LOCATION_CHANGED         2035
 
 
 /**

@@ -121,6 +121,8 @@ int             dc_is_inbox          (dc_context_t*, const char* folder);
 int             dc_is_sentbox        (dc_context_t*, const char* folder);
 int             dc_is_mvbox          (dc_context_t*, const char* folder);
 
+char*           dc_get_location_str  (dc_context_t*);
+
 #define         DC_BAK_PREFIX                "delta-chat"
 #define         DC_BAK_SUFFIX                "bak"
 
