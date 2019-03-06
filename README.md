@@ -107,7 +107,7 @@ meson
 # run `meson configure` to see the options, e.g.
 #    meson configure --default-library=static
 ninja
-sudo ninja install
+sudo -E ninja install
 sudo ldconfig
 ```
 
