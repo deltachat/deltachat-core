@@ -9,14 +9,15 @@
  *
  * @private @memberof dc_array_t
  * @param context The context object that should be stored in the array object. May be NULL.
+ * @param type 0 for a standard array of int or one of DC_ARRAY_*.
  * @param initsize Initial maximal size of the array. If you add more items, the internal data pointer is reallocated.
  * @return New array object of the requested size, the data should be set directly.
  */
-dc_array_t* dc_array_new(dc_context_t* context, size_t initsize)
+dc_array_t* dc_array_new_typed(dc_context_t* context, int type, size_t initsize)
 {
 	dc_array_t* array = NULL;
 
-	array = (dc_array_t*) malloc(sizeof(dc_array_t));
+	array = (dc_array_t*) calloc(1, sizeof(dc_array_t));
 	if (array==NULL) {
 		exit(47);
 	}
@@ -25,12 +26,19 @@ dc_array_t* dc_array_new(dc_context_t* context, size_t initsize)
 	array->context   = context;
 	array->count     = 0;
 	array->allocated = initsize<1? 1 : initsize;
+	array->type      = type;
 	array->array     = malloc(array->allocated * sizeof(uintptr_t));
 	if (array->array==NULL) {
 		exit(48);
 	}
 
 	return array;
+}
+
+
+dc_array_t* dc_array_new(dc_context_t* context, size_t initsize)
+{
+	return dc_array_new_typed(context, 0, initsize);
 }
 
 
@@ -47,6 +55,10 @@ void dc_array_unref(dc_array_t* array)
 {
 	if (array==NULL || array->magic!=DC_ARRAY_MAGIC) {
 		return;
+	}
+
+	if (array->type==DC_ARRAY_LOCATIONS) {
+		dc_array_free_ptr(array);
 	}
 
 	free(array->array);
@@ -292,6 +304,107 @@ void* dc_array_get_ptr(const dc_array_t* array, size_t index)
 	}
 
 	return (void*)array->array[index];
+}
+
+
+/**
+ * Return the latitude of the item at the given index.
+ *
+ * @memberof dc_array_t
+ * @param array The array object.
+ * @param index Index of the item. Must be between 0 and dc_array_get_cnt()-1.
+ * @return Latitude of the item at the given index.
+ *     0.0 if there is no latitude bound to the given item,
+ */
+double dc_array_get_latitude(const dc_array_t* array, size_t index)
+{
+	if (array==NULL || array->magic!=DC_ARRAY_MAGIC || index>=array->count
+	 || array->type!=DC_ARRAY_LOCATIONS || array->array[index]==0 ) {
+		return 0;
+	}
+
+	return ((struct _dc_location*)array->array[index])->latitude;
+}
+
+
+/**
+ * Return the longitude of the item at the given index.
+ *
+ * @memberof dc_array_t
+ * @param array The array object.
+ * @param index Index of the item. Must be between 0 and dc_array_get_cnt()-1.
+ * @return Latitude of the item at the given index.
+ *     0.0 if there is no longitude bound to the given item,
+ */
+double dc_array_get_longitude(const dc_array_t* array, size_t index)
+{
+	if (array==NULL || array->magic!=DC_ARRAY_MAGIC || index>=array->count
+	 || array->type!=DC_ARRAY_LOCATIONS || array->array[index]==0 ) {
+		return 0;
+	}
+
+	return ((struct _dc_location*)array->array[index])->longitude;
+}
+
+
+/**
+ * Return the accuracy of the item at the given index.
+ * See dc_set_location() for more information about the accuracy.
+ *
+ * @memberof dc_array_t
+ * @param array The array object.
+ * @param index Index of the item. Must be between 0 and dc_array_get_cnt()-1.
+ * @return Accuracy of the item at the given index.
+ *     0.0 if there is no longitude bound to the given item,
+ */
+double dc_array_get_accuracy(const dc_array_t* array, size_t index)
+{
+	if (array==NULL || array->magic!=DC_ARRAY_MAGIC || index>=array->count
+	 || array->type!=DC_ARRAY_LOCATIONS || array->array[index]==0 ) {
+		return 0;
+	}
+
+	return ((struct _dc_location*)array->array[index])->accuracy;
+}
+
+
+/**
+ * Return the timestamp of the item at the given index.
+ *
+ * @memberof dc_array_t
+ * @param array The array object.
+ * @param index Index of the item. Must be between 0 and dc_array_get_cnt()-1.
+ * @return Timestamp of the item at the given index.
+ *     0 if there is no timestamp bound to the given item,
+ */
+time_t dc_array_get_timestamp(const dc_array_t* array, size_t index)
+{
+	if (array==NULL || array->magic!=DC_ARRAY_MAGIC || index>=array->count
+	 || array->type!=DC_ARRAY_LOCATIONS || array->array[index]==0 ) {
+		return 0;
+	}
+
+	return ((struct _dc_location*)array->array[index])->timestamp;
+}
+
+
+/**
+ * Return the message-id of the item at the given index.
+ *
+ * @memberof dc_array_t
+ * @param array The array object.
+ * @param index Index of the item. Must be between 0 and dc_array_get_cnt()-1.
+ * @return Message-id of the item at the given index.
+ *     0 if there is no message-id bound to the given item,
+ */
+uint32_t dc_array_get_msg_id(const dc_array_t* array, size_t index)
+{
+	if (array==NULL || array->magic!=DC_ARRAY_MAGIC || index>=array->count
+	 || array->type!=DC_ARRAY_LOCATIONS || array->array[index]==0 ) {
+		return 0;
+	}
+
+	return ((struct _dc_location*)array->array[index])->msg_id;
 }
 
 

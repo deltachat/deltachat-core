@@ -25,7 +25,7 @@ void dc_send_locations_to_chat(dc_context_t* context, uint32_t chat_id,
 {
 	sqlite3_stmt* stmt = NULL;
 
-	if (context==0 || context->magic!=DC_CONTEXT_MAGIC || seconds<0) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || seconds<0) {
 		goto cleanup;
 	}
 
@@ -60,7 +60,7 @@ int dc_is_sending_locations_to_chat(dc_context_t* context, uint32_t chat_id)
 	sqlite3_stmt* stmt = NULL;
 	time_t        send_until = 0;
 
-	if (context==0 || context->magic!=DC_CONTEXT_MAGIC) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
 		goto cleanup;
 	}
 
@@ -108,7 +108,7 @@ int dc_set_location(dc_context_t* context,
 {
 	sqlite3_stmt* stmt = NULL;
 
-	if (context==0 || context->magic!=DC_CONTEXT_MAGIC
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC
 	 || (latitude==0.0 && longitude==0.0)) {
 		goto cleanup;
 	}
@@ -140,7 +140,7 @@ char* dc_get_location_str(dc_context_t* context)
 	double        longitude = 0.0;
 	double        accuracy = 0.0;
 
-	if (context==0 || context->magic!=DC_CONTEXT_MAGIC) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
 		goto cleanup;
 	}
 
@@ -160,4 +160,84 @@ char* dc_get_location_str(dc_context_t* context)
 cleanup:
 	sqlite3_finalize(stmt);
     return dc_mprintf("%f %f %f", latitude, longitude, accuracy);
+}
+
+
+/**
+ * Get last location for a contact in a given chat.
+ * The number of returned locations can be retrieved using dc_array_get_cnt(),
+ * to get information for each location,
+ * use dc_array_get_latitude(), dc_array_get_longitude(),
+ * dc_array_get_accuracy(), dc_array_get_timestamp() and dc_array_get_msg_id().
+ * The latter returns 0 if there is no message bound to the location.
+ *
+ * @memberof dc_context_t
+ * @param context The context object.
+ * @param chat_id Chat id to get location information for.
+ * @param contact_id Contact id to get location information for.
+ *     Must be a member of the given chat.
+ * @return Array of locations, NULL is never returned.
+ *     The returned array must be freed using dc_array_unref().
+ */
+dc_array_t* dc_get_locations(dc_context_t* context, uint32_t chat_id, uint32_t  contact_id)
+{
+	#define MAX_AGE   (3*60*60) // truncate list after 3 hours ...
+	#define MIN_ITEMS 100       // ... but add at least the 100 last items
+	#define LOC_LIMIT "1000"    // hard limit, must be larger than MIN_ITEMS
+
+	dc_array_t*   ret = dc_array_new_typed(context, DC_ARRAY_LOCATIONS, 500);
+	sqlite3_stmt* stmt = NULL;
+	time_t        newest = 0;
+
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		goto cleanup;
+	}
+
+	if (contact_id==DC_CONTACT_ID_SELF) {
+		#define LOC_FIELDS "latitude, longitude, accuracy, timestamp, msg_id"
+		stmt = dc_sqlite3_prepare(context->sql,
+				"SELECT " LOC_FIELDS
+				" FROM locations "
+				" WHERE from_id=? "
+				" ORDER BY timestamp DESC, id DESC "
+				" LIMIT " LOC_LIMIT);
+		sqlite3_bind_int(stmt, 1, DC_CONTACT_ID_SELF);
+	}
+	else {
+		stmt = dc_sqlite3_prepare(context->sql,
+				"SELECT " LOC_FIELDS
+				" FROM locations "
+				" WHERE chat_id=? "
+				"   AND from_id=? "
+				" ORDER BY timestamp DESC, id DESC "
+				" LIMIT " LOC_LIMIT);
+		sqlite3_bind_int(stmt, 1, chat_id);
+		sqlite3_bind_int(stmt, 2, contact_id);
+	}
+
+	while (sqlite3_step(stmt)==SQLITE_ROW) {
+        struct _dc_location* loc = calloc(1, sizeof(struct _dc_location));
+        if (loc==NULL) {
+			goto cleanup;
+        }
+
+		loc->latitude   = sqlite3_column_double(stmt, 0);
+		loc->longitude  = sqlite3_column_double(stmt, 1);
+		loc->accuracy   = sqlite3_column_double(stmt, 2);
+		loc->timestamp  = sqlite3_column_int64 (stmt, 3);
+		loc->msg_id     = sqlite3_column_int   (stmt, 4);
+		dc_array_add_ptr(ret, loc);
+
+		if (newest==0) {
+			newest = loc->timestamp;
+		}
+
+		if (newest-loc->timestamp > MAX_AGE
+		 && ret->count > MIN_ITEMS) {
+			break;
+		}
+	}
+
+cleanup:
+	return ret;
 }

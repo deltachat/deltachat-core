@@ -361,9 +361,11 @@ uint32_t        dc_join_securejoin           (dc_context_t*, const char* qr);
 
 
 // location streaming
-void dc_send_locations_to_chat       (dc_context_t*, uint32_t chat_id, int seconds);
-int  dc_is_sending_locations_to_chat (dc_context_t*, uint32_t chat_id);
-int  dc_set_location                 (dc_context_t*, double latitude, double longitude, double accuracy);
+void        dc_send_locations_to_chat       (dc_context_t*, uint32_t chat_id, int seconds);
+int         dc_is_sending_locations_to_chat (dc_context_t*, uint32_t chat_id);
+int         dc_set_location                 (dc_context_t*, double latitude, double longitude, double accuracy);
+dc_array_t* dc_get_locations                (dc_context_t*, uint32_t chat_id, uint32_t  contact_id);
+
 
 /**
  * @class dc_array_t
@@ -373,8 +375,6 @@ int  dc_set_location                 (dc_context_t*, double latitude, double lon
  * The items of the array are typically IDs.
  * To free an array object, use dc_array_unref().
  */
-dc_array_t*      dc_array_new                (dc_context_t*, size_t initsize);
-void             dc_array_empty              (dc_array_t*);
 void             dc_array_unref              (dc_array_t*);
 
 void             dc_array_add_uint           (dc_array_t*, uintptr_t);
@@ -385,6 +385,11 @@ size_t           dc_array_get_cnt            (const dc_array_t*);
 uintptr_t        dc_array_get_uint           (const dc_array_t*, size_t index);
 uint32_t         dc_array_get_id             (const dc_array_t*, size_t index);
 void*            dc_array_get_ptr            (const dc_array_t*, size_t index);
+double           dc_array_get_latitude       (const dc_array_t*, size_t index);
+double           dc_array_get_longitude      (const dc_array_t*, size_t index);
+double           dc_array_get_accuracy       (const dc_array_t*, size_t index);
+time_t           dc_array_get_timestamp      (const dc_array_t*, size_t index);
+uint32_t         dc_array_get_msg_id         (const dc_array_t*, size_t index);
 
 int              dc_array_search_id          (const dc_array_t*, uint32_t needle, size_t* indx);
 const uintptr_t* dc_array_get_raw            (const dc_array_t*);

@@ -580,7 +580,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 							" chat_id INTEGER DEFAULT 0,"
 							" from_id INTEGER DEFAULT 0,"
 							" msg_id INTEGER DEFAULT 0);");
-				dc_sqlite3_execute(sql, "CREATE INDEX locations_index1 ON locations (msg_id);");
+				dc_sqlite3_execute(sql, "CREATE INDEX locations_index1 ON locations (from_id);");
 				dc_sqlite3_execute(sql, "CREATE INDEX locations_index2 ON locations (timestamp);");
 				dc_sqlite3_execute(sql, "ALTER TABLE chats ADD COLUMN locations_send_until INTEGER DEFAULT 0;");
 				dc_sqlite3_execute(sql, "ALTER TABLE chats ADD COLUMN locations_last_sent INTEGER DEFAULT 0;");
