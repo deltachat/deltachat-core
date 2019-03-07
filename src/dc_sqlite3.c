@@ -584,6 +584,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 				dc_sqlite3_execute(sql, "CREATE INDEX locations_index2 ON locations (timestamp);");
 				dc_sqlite3_execute(sql, "ALTER TABLE chats ADD COLUMN locations_send_until INTEGER DEFAULT 0;");
 				dc_sqlite3_execute(sql, "ALTER TABLE chats ADD COLUMN locations_last_sent INTEGER DEFAULT 0;");
+				dc_sqlite3_execute(sql, "CREATE INDEX chats_index3 ON chats (locations_send_until);");
 
 				dbversion = NEW_DB_VERSION;
 				dc_sqlite3_set_config_int(sql, "dbversion", NEW_DB_VERSION);

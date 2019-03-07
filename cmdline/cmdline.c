@@ -928,7 +928,9 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 			if (arg1 && arg1[0]) {
 				int seconds = atoi(arg1);
 				dc_send_locations_to_chat(context, dc_chat_get_id(sel_chat), seconds);
-				ret = COMMAND_SUCCEEDED;
+				ret = dc_mprintf("Locations will be sent to Chat#%i for %i seconds. "
+					"Use 'setlocation <lat> <lng>' to play around.",
+					dc_chat_get_id(sel_chat), seconds);
 			}
 			else {
 				ret = dc_strdup("ERROR: No timeout given.");
@@ -945,8 +947,8 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 			*arg2 = 0; arg2++;
 			double latitude = atof(arg1);
 			double longitude = atof(arg2);
-			dc_set_location(context, latitude, longitude, 0.0);
-			ret = COMMAND_SUCCEEDED;
+			int continue_streaming = dc_set_location(context, latitude, longitude, 0.0);
+			ret = dc_strdup(continue_streaming? "Success, streaming should be continued." : "Success, streaming can be stoppped.");
 		}
 		else {
 			ret = dc_strdup("ERROR: Latitude or longitude not given.");

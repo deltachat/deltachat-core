@@ -107,6 +107,7 @@ int dc_set_location(dc_context_t* context,
                     double latitude, double longitude, double accuracy)
 {
 	sqlite3_stmt* stmt = NULL;
+	int           continue_streaming = 1;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC
 	 || (latitude==0.0 && longitude==0.0)) {
@@ -123,12 +124,22 @@ int dc_set_location(dc_context_t* context,
 	sqlite3_bind_int64 (stmt, 4, time(NULL));
 	sqlite3_bind_int   (stmt, 5, DC_CONTACT_ID_SELF);
 	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+	stmt = NULL;
 
 	context->cb(context, DC_EVENT_LOCATION_CHANGED, DC_CONTACT_ID_SELF, 0);
 
+	stmt = dc_sqlite3_prepare(context->sql,
+		"SELECT id FROM chats WHERE locations_send_until>?;");
+	sqlite3_bind_int64(stmt, 1, time(NULL));
+	if (sqlite3_step(stmt)!=SQLITE_ROW) {
+		continue_streaming = 0;
+	}
+
+
 cleanup:
 	sqlite3_finalize(stmt);
-	return 1; // TODO: check state
+	return continue_streaming;
 }
 
 
