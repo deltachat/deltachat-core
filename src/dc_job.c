@@ -227,7 +227,7 @@ static int dc_add_smtp_job(dc_context_t* context, int action, dc_mimefactory_t* 
 	}
 
 	// store recipients in job param
-	recipients = clist_join(mimefactory->recipients_addr, ' ');
+	recipients = clist_join(mimefactory->recipients_addr, 0x1e);
 	dc_param_set(param, DC_PARAM_FILE, pathNfilename);
 	dc_param_set(param, DC_PARAM_RECIPIENTS, recipients);
 
@@ -366,7 +366,7 @@ static void dc_job_do_DC_JOB_SEND(dc_context_t* context, dc_job_t* job)
 	if (!recipients) {
 		goto cleanup;
 	}
-	for (char* r = strtok_r(recipients, " ", &saveptr); r; r = strtok_r(NULL, " ", &saveptr)) {
+	for (char* r = strtok_r(recipients, "\x1e", &saveptr); r; r = strtok_r(NULL, "\x1e", &saveptr)) {
 		clist_append(recipients_list, r);
 	}
 
