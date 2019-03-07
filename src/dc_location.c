@@ -143,6 +143,16 @@ cleanup:
 }
 
 
+static char* get_kml_timestamp(time_t utc)
+{
+	// Returns a string formatted as YYYY-MM-DDTHH:MM:SSZ. The trailing `Z` indicates UTC.
+	struct tm wanted_struct;
+	memcpy(&wanted_struct, gmtime(&utc), sizeof(struct tm));
+	return dc_mprintf("%04i-%02i-%02iT%02i:%02i:%02iZ",
+		(int)wanted_struct.tm_year+1900, (int)wanted_struct.tm_mon+1, (int)wanted_struct.tm_mday,
+		(int)wanted_struct.tm_hour, (int)wanted_struct.tm_min, (int)wanted_struct.tm_sec);
+}
+
 
 char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id)
 {
@@ -150,7 +160,7 @@ char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id)
 	double           latitude = 0.0;
 	double           longitude = 0.0;
 	double           accuracy = 0.0;
-	time_t           timestamp = 0;
+	char*            timestamp = NULL;
 	dc_strbuilder_t  ret;
 	dc_strbuilder_init(&ret, 1000);
 
@@ -175,17 +185,20 @@ char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id)
 		latitude  = sqlite3_column_double(stmt, 0);
 		longitude = sqlite3_column_double(stmt, 1);
 		accuracy  = sqlite3_column_double(stmt, 2);
-		timestamp = sqlite3_column_int64 (stmt, 3);
+		timestamp = get_kml_timestamp(sqlite3_column_int64 (stmt, 3));
 
 		dc_strbuilder_catf(&ret,
 			"<Placemark>"
-				"<Timestamp><when>%i</when></Timestamp>" // TODO: timestamp must be formatted as 2005-08-21T09:01:00Z
+				"<Timestamp><when>%s</when></Timestamp>"
 				"<Point><coordinates accuracy=\"%f\">%f,%f,0</coordinates></Point>"
 			"</Placemark>\n",
-			(int)timestamp,
+			timestamp,
 			accuracy,
 			latitude,
 			longitude);
+
+		free(timestamp);
+		timestamp = NULL;
 	}
 
 	dc_strbuilder_cat(&ret,
