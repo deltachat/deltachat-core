@@ -144,16 +144,24 @@ cleanup:
 
 
 
-char* dc_get_location_str(dc_context_t* context)
+char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id)
 {
-	sqlite3_stmt* stmt = NULL;
-	double        latitude = 0.0;
-	double        longitude = 0.0;
-	double        accuracy = 0.0;
+	sqlite3_stmt*    stmt = NULL;
+	double           latitude = 0.0;
+	double           longitude = 0.0;
+	double           accuracy = 0.0;
+	time_t           timestamp = 0;
+	dc_strbuilder_t  ret;
+	dc_strbuilder_init(&ret, 1000);
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
 		goto cleanup;
 	}
+
+	dc_strbuilder_cat(&ret,
+		"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+		"<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n"
+		"<Document>\n");
 
 	stmt = dc_sqlite3_prepare(context->sql,
 			"SELECT latitude, longitude, accuracy, timestamp "
@@ -162,20 +170,36 @@ char* dc_get_location_str(dc_context_t* context)
 			"   AND timestamp=(SELECT MAX(timestamp) FROM locations WHERE from_id=?) ");
 	sqlite3_bind_int   (stmt, 1, DC_CONTACT_ID_SELF);
 	sqlite3_bind_int   (stmt, 2, DC_CONTACT_ID_SELF);
-	if (sqlite3_step(stmt)==SQLITE_ROW) {
+	while (sqlite3_step(stmt)==SQLITE_ROW)
+	{
 		latitude  = sqlite3_column_double(stmt, 0);
 		longitude = sqlite3_column_double(stmt, 1);
 		accuracy  = sqlite3_column_double(stmt, 2);
+		timestamp = sqlite3_column_int64 (stmt, 3);
+
+		dc_strbuilder_catf(&ret,
+			"<Placemark>"
+				"<Timestamp><when>%i</when></Timestamp>" // TODO: timestamp must be formatted as 2005-08-21T09:01:00Z
+				"<Point><coordinates accuracy=\"%f\">%f,%f,0</coordinates></Point>"
+			"</Placemark>\n",
+			(int)timestamp,
+			accuracy,
+			latitude,
+			longitude);
 	}
+
+	dc_strbuilder_cat(&ret,
+		"</Document>\n"
+		"</kml>");
 
 cleanup:
 	sqlite3_finalize(stmt);
-    return dc_mprintf("%f %f %f", latitude, longitude, accuracy);
+    return ret.buf;
 }
 
 
 /**
- * Get last location for a contact in a given chat.
+ * Get last locations for a contact in a given chat.
  * The number of returned locations can be retrieved using dc_array_get_cnt(),
  * to get information for each location,
  * use dc_array_get_latitude(), dc_array_get_longitude(),
