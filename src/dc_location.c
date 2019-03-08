@@ -215,6 +215,13 @@ dc_kml_t* dc_kml_parse(dc_context_t* context,
 		goto cleanup;
 	}
 
+	if (content_bytes > 1*1024*1024) {
+		dc_log_warning(context, 0,
+			"A kml-files with %i bytes is larger than reasonably expected.",
+			content_bytes);
+		goto cleanup;
+	}
+
 	content_nullterminated = dc_null_terminate(content, content_bytes);
 	if (content_nullterminated==NULL) {
 		goto cleanup;
@@ -242,6 +249,63 @@ void dc_kml_unref(dc_kml_t* kml)
 	dc_array_unref(kml->locations);
 	free(kml->addr);
 	free(kml);
+}
+
+
+int dc_save_locations(dc_context_t* context,
+                      uint32_t chat_id, uint32_t contact_id,
+                      const dc_array_t* locations)
+{
+	int           saved_locations = 0;
+	sqlite3_stmt* stmt_test = NULL;
+	sqlite3_stmt* stmt_insert = NULL;
+
+	if (context==NULL ||  context->magic!=DC_CONTEXT_MAGIC
+	 || chat_id<=DC_CHAT_ID_LAST_SPECIAL || locations==NULL) {
+		goto cleanup;
+	}
+
+	if (contact_id==DC_CONTACT_ID_SELF) {
+		// incoming locations from a multi-device setup are ignored currently,
+		// otherise, this could go easily result in a mess if once device
+		// is at home and the other goes around.
+		// however, if needed and resources are there,
+		// this special situation, could be improved someday.
+		goto cleanup;
+	}
+
+	stmt_test = dc_sqlite3_prepare(context->sql,
+		"SELECT id FROM locations WHERE timestamp=? AND from_id=?");
+
+	stmt_insert = dc_sqlite3_prepare(context->sql,
+		"INSERT INTO locations "
+		" (timestamp, from_id, chat_id, latitude, longitude, accuracy)"
+		" VALUES (?,?,?,?,?,?);");
+
+	for (int i=0; i<dc_array_get_cnt(locations); i++)
+	{
+		dc_location_t* location = dc_array_get_ptr(locations, i);
+
+		sqlite3_reset     (stmt_test);
+		sqlite3_bind_int64(stmt_test, 1, location->timestamp);
+		sqlite3_bind_int  (stmt_test, 2, contact_id);
+		if (sqlite3_step(stmt_test)!=SQLITE_ROW)
+		{
+			sqlite3_reset      (stmt_insert);
+			sqlite3_bind_int64 (stmt_insert, 1, location->timestamp);
+			sqlite3_bind_int   (stmt_insert, 2, contact_id);
+			sqlite3_bind_int   (stmt_insert, 3, chat_id);
+			sqlite3_bind_double(stmt_insert, 4, location->latitude);
+			sqlite3_bind_double(stmt_insert, 5, location->longitude);
+			sqlite3_bind_double(stmt_insert, 6, location->accuracy);
+			sqlite3_step(stmt_insert);
+		}
+	}
+
+cleanup:
+	sqlite3_finalize(stmt_test);
+	sqlite3_finalize(stmt_insert);
+	return saved_locations;
 }
 
 
