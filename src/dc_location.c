@@ -63,8 +63,8 @@ char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id)
 			"</Placemark>\n",
 			timestamp,
 			accuracy,
-			latitude,
-			longitude);
+			longitude, // reverse order!
+			latitude);
 
 		free(timestamp);
 		timestamp = NULL;
@@ -170,13 +170,13 @@ static void kml_text_cb(void* userdata, const char* text, int len)
 		else if (kml->tag&TAG_COORDINATES) {
 			char* comma = strchr(val, ',');
 			if (comma) {
-				char* lat = val;
-				char* lng = comma+1;
+				char* longitude = val; // reverse order!
+				char* latitude = comma+1;
 				*comma = 0;
-				comma = strchr(lng, ',');
+				comma = strchr(latitude, ',');
 				if (comma) { *comma = 0; }
-				kml->curr.latitude = atof(lat);
-				kml->curr.longitude = atof(lng);
+				kml->curr.latitude = atof(latitude);
+				kml->curr.longitude = atof(longitude);
 			}
 		}
 
