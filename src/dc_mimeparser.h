@@ -64,6 +64,7 @@ struct _dc_mimeparser
 
 	int                    is_system_message;
 
+	struct _dc_kml*        kml;
 };
 
 

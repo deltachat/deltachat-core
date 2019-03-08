@@ -142,7 +142,7 @@ typedef struct _dc_kml
 } dc_kml_t;
 
 char*           dc_get_location_kml  (dc_context_t*, uint32_t chat_id);
-dc_kml_t*       dc_kml_parse         (dc_context_t*, const char* file_content);
+dc_kml_t*       dc_kml_parse         (dc_context_t*, const char* content, size_t content_bytes);
 void            dc_kml_unref         (dc_kml_t*);
 
 

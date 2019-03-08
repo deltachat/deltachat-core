@@ -102,14 +102,14 @@ static void kml_starttag_cb(void* userdata, const char* tag, char** attr)
 {
 	dc_kml_t* kml = (dc_kml_t*)userdata;
 
-	if (strcmp(tag, "Document")==0)
+	if (strcmp(tag, "document")==0)
 	{
 		const char* addr = dc_attr_find(attr, "addr");
 		if (addr) {
 			kml->addr = dc_strdup(addr);
 		}
 	}
-	else if (strcmp(tag, "Placemark")==0)
+	else if (strcmp(tag, "placemark")==0)
 	{
 		kml->tag            = TAG_PLACEMARK;
 		kml->curr.timestamp = 0;
@@ -117,7 +117,7 @@ static void kml_starttag_cb(void* userdata, const char* tag, char** attr)
 		kml->curr.longitude = 0.0;
 		kml->curr.accuracy  = 0.0;
 	}
-	else if (strcmp(tag, "Timestamp")==0 && kml->tag&TAG_PLACEMARK)
+	else if (strcmp(tag, "timestamp")==0 && kml->tag&TAG_PLACEMARK)
 	{
 		kml->tag = TAG_PLACEMARK|TAG_TIMESTAMP;
 	}
@@ -125,7 +125,7 @@ static void kml_starttag_cb(void* userdata, const char* tag, char** attr)
 	{
 		kml->tag = TAG_PLACEMARK|TAG_TIMESTAMP|TAG_WHEN;
 	}
-	else if (strcmp(tag, "Point")==0 && kml->tag&TAG_PLACEMARK)
+	else if (strcmp(tag, "point")==0 && kml->tag&TAG_PLACEMARK)
 	{
 		kml->tag = TAG_PLACEMARK|TAG_POINT;
 	}
@@ -152,19 +152,20 @@ static void kml_text_cb(void* userdata, const char* text, int len)
 		dc_str_replace(&val, "\t", "");
 		dc_str_replace(&val, " ", "");
 
-		if (kml->tag&TAG_WHEN) {
-			int year = 0, month = 0, day = 0, hour = 0, minute = 0, second = 0;
-			if (sscanf(val, "%04i-%02i-%02iT%02i:%02i:%02i",
-					   &year, &month, &day, &hour, &minute, &second)>=3) {
-				struct tm tmval;
-				memset(&tmval, 0, sizeof(struct tm));
-				tmval.tm_sec  = second;
-				tmval.tm_min  = minute;
-				tmval.tm_hour = hour;
-				tmval.tm_mday = day;
-				tmval.tm_mon  = month - 1;
-				tmval.tm_mon  = year;
-				kml->curr.timestamp = mkgmtime(&tmval);
+		if (kml->tag&TAG_WHEN && strlen(val)>=19) {
+			struct tm tmval;
+			memset(&tmval, 0, sizeof(struct tm));
+			// YYYY-MM-DDTHH:MM:SS
+			// 0   4  7  10 13 16 19
+			val[4]  = 0; tmval.tm_year = atoi(val) - 1900;
+			val[7]  = 0; tmval.tm_mon  = atoi(val+5) - 1;
+			val[10] = 0; tmval.tm_mday = atoi(val+8);
+			val[13] = 0; tmval.tm_hour = atoi(val+11);
+			val[16] = 0; tmval.tm_min  = atoi(val+14);
+			val[19] = 0; tmval.tm_sec  = atoi(val+17);
+			kml->curr.timestamp = mkgmtime(&tmval);
+			if (kml->curr.timestamp>time(NULL)) {
+				kml->curr.timestamp = time(NULL);
 			}
 		}
 		else if (kml->tag&TAG_COORDINATES) {
@@ -189,7 +190,7 @@ static void kml_endtag_cb(void* userdata, const char* tag)
 {
 	dc_kml_t* kml = (dc_kml_t*)userdata;
 
-	if (strcmp(tag, "Placemark")==0)
+	if (strcmp(tag, "placemark")==0)
 	{
 		if (kml->tag&TAG_PLACEMARK && kml->curr.timestamp
 		 && kml->curr.latitude && kml->curr.longitude)
@@ -203,12 +204,19 @@ static void kml_endtag_cb(void* userdata, const char* tag)
 }
 
 
-dc_kml_t* dc_kml_parse(dc_context_t* context, const char* file_content)
+dc_kml_t* dc_kml_parse(dc_context_t* context,
+                       const char* content, size_t content_bytes)
 {
 	dc_kml_t*      kml = calloc(1, sizeof(dc_kml_t));
+	char*          content_nullterminated = NULL;
 	dc_saxparser_t saxparser;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		goto cleanup;
+	}
+
+	content_nullterminated = dc_null_terminate(content, content_bytes);
+	if (content_nullterminated==NULL) {
 		goto cleanup;
 	}
 
@@ -217,9 +225,10 @@ dc_kml_t* dc_kml_parse(dc_context_t* context, const char* file_content)
 	dc_saxparser_init            (&saxparser, kml);
 	dc_saxparser_set_tag_handler (&saxparser, kml_starttag_cb, kml_endtag_cb);
 	dc_saxparser_set_text_handler(&saxparser, kml_text_cb);
-	dc_saxparser_parse           (&saxparser, file_content);
+	dc_saxparser_parse           (&saxparser, content_nullterminated);
 
 cleanup:
+	free(content_nullterminated);
 	return kml;
 }
 
