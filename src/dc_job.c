@@ -227,7 +227,7 @@ static int dc_add_smtp_job(dc_context_t* context, int action, dc_mimefactory_t* 
 	}
 
 	// store recipients in job param
-	recipients = clist_join(mimefactory->recipients_addr, 0x1e);
+	recipients = dc_str_from_clist(mimefactory->recipients_addr, "\x1e");
 	dc_param_set(param, DC_PARAM_FILE, pathNfilename);
 	dc_param_set(param, DC_PARAM_RECIPIENTS, recipients);
 
@@ -336,8 +336,7 @@ static void dc_job_do_DC_JOB_SEND(dc_context_t* context, dc_job_t* job)
 	void*         buf = NULL;
 	size_t        buf_bytes = 0;
 	char*         recipients = NULL;
-	clist*        recipients_list = clist_new();
-	char*         saveptr = NULL;
+	clist*        recipients_list = NULL;
 	sqlite3_stmt* stmt = NULL;
 
 	/* connect to SMTP server, if not yet done */
@@ -355,6 +354,7 @@ static void dc_job_do_DC_JOB_SEND(dc_context_t* context, dc_job_t* job)
 	/* load message data */
 	filename = dc_param_get(job->param, DC_PARAM_FILE, NULL);
 	if (!filename) {
+		dc_log_warning(context, 0, "Missing file name for job %d", job->job_id);
 		goto cleanup;
 	}
 	if (!dc_read_file(context, filename, &buf, &buf_bytes)) {
@@ -364,11 +364,10 @@ static void dc_job_do_DC_JOB_SEND(dc_context_t* context, dc_job_t* job)
 	/* get the list of recipients */
 	recipients = dc_param_get(job->param, DC_PARAM_RECIPIENTS, NULL);
 	if (!recipients) {
+		dc_log_warning(context, 0, "Missing recipients for job %d", job->job_id);
 		goto cleanup;
 	}
-	for (char* r = strtok_r(recipients, "\x1e", &saveptr); r; r = strtok_r(NULL, "\x1e", &saveptr)) {
-		clist_append(recipients_list, r);
-	}
+	recipients_list = dc_str_to_clist(recipients, "\x1e");
 
 	/* send message */
 	{
@@ -405,7 +404,10 @@ static void dc_job_do_DC_JOB_SEND(dc_context_t* context, dc_job_t* job)
 
 cleanup:
 	sqlite3_finalize(stmt);
-	clist_free(recipients_list); // not clist_free_content() because strtok_r() returns pointers into recipients
+	if (recipients_list) {
+		clist_free_content(recipients_list);
+		clist_free(recipients_list);
+	}
 	free(recipients);
 	free(buf);
 	free(filename);

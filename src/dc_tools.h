@@ -54,7 +54,6 @@ char*   encode_base64              (const char * in, int len);
 /* clist tools */
 void    clist_free_content         (const clist*); /* calls free() for each item content */
 int     clist_search_string_nocase (const clist*, const char* str);
-char*   clist_join                 (const clist*, char separator);
 
 /* date/time tools */
 #define                    DC_INVALID_TIMESTAMP               (-1)
