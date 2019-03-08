@@ -3,6 +3,84 @@
 #include "dc_job.h"
 
 
+/*******************************************************************************
+ * handle kml-files, tools
+ ******************************************************************************/
+
+
+static char* get_kml_timestamp(time_t utc)
+{
+	// Returns a string formatted as YYYY-MM-DDTHH:MM:SSZ. The trailing `Z` indicates UTC.
+	struct tm wanted_struct;
+	memcpy(&wanted_struct, gmtime(&utc), sizeof(struct tm));
+	return dc_mprintf("%04i-%02i-%02iT%02i:%02i:%02iZ",
+		(int)wanted_struct.tm_year+1900, (int)wanted_struct.tm_mon+1, (int)wanted_struct.tm_mday,
+		(int)wanted_struct.tm_hour, (int)wanted_struct.tm_min, (int)wanted_struct.tm_sec);
+}
+
+
+char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id)
+{
+	sqlite3_stmt*    stmt = NULL;
+	double           latitude = 0.0;
+	double           longitude = 0.0;
+	double           accuracy = 0.0;
+	char*            timestamp = NULL;
+	dc_strbuilder_t  ret;
+	dc_strbuilder_init(&ret, 1000);
+
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		goto cleanup;
+	}
+
+	dc_strbuilder_cat(&ret,
+		"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+		"<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n"
+		"<Document>\n");
+
+	stmt = dc_sqlite3_prepare(context->sql,
+			"SELECT latitude, longitude, accuracy, timestamp "
+			" FROM locations "
+			" WHERE from_id=? "
+			"   AND timestamp=(SELECT MAX(timestamp) FROM locations WHERE from_id=?) ");
+	sqlite3_bind_int   (stmt, 1, DC_CONTACT_ID_SELF);
+	sqlite3_bind_int   (stmt, 2, DC_CONTACT_ID_SELF);
+	while (sqlite3_step(stmt)==SQLITE_ROW)
+	{
+		latitude  = sqlite3_column_double(stmt, 0);
+		longitude = sqlite3_column_double(stmt, 1);
+		accuracy  = sqlite3_column_double(stmt, 2);
+		timestamp = get_kml_timestamp(sqlite3_column_int64 (stmt, 3));
+
+		dc_strbuilder_catf(&ret,
+			"<Placemark>"
+				"<Timestamp><when>%s</when></Timestamp>"
+				"<Point><coordinates accuracy=\"%f\">%f,%f</coordinates></Point>"
+			"</Placemark>\n",
+			timestamp,
+			accuracy,
+			latitude,
+			longitude);
+
+		free(timestamp);
+		timestamp = NULL;
+	}
+
+	dc_strbuilder_cat(&ret,
+		"</Document>\n"
+		"</kml>");
+
+cleanup:
+	sqlite3_finalize(stmt);
+    return ret.buf;
+}
+
+
+/*******************************************************************************
+ * high-level ui-functions
+ ******************************************************************************/
+
+
 /**
  * Enable or disable location streaming for a chat.
  * Locations are sent to all members of the chat for the given number of seconds;
@@ -140,74 +218,6 @@ int dc_set_location(dc_context_t* context,
 cleanup:
 	sqlite3_finalize(stmt);
 	return continue_streaming;
-}
-
-
-static char* get_kml_timestamp(time_t utc)
-{
-	// Returns a string formatted as YYYY-MM-DDTHH:MM:SSZ. The trailing `Z` indicates UTC.
-	struct tm wanted_struct;
-	memcpy(&wanted_struct, gmtime(&utc), sizeof(struct tm));
-	return dc_mprintf("%04i-%02i-%02iT%02i:%02i:%02iZ",
-		(int)wanted_struct.tm_year+1900, (int)wanted_struct.tm_mon+1, (int)wanted_struct.tm_mday,
-		(int)wanted_struct.tm_hour, (int)wanted_struct.tm_min, (int)wanted_struct.tm_sec);
-}
-
-
-char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id)
-{
-	sqlite3_stmt*    stmt = NULL;
-	double           latitude = 0.0;
-	double           longitude = 0.0;
-	double           accuracy = 0.0;
-	char*            timestamp = NULL;
-	dc_strbuilder_t  ret;
-	dc_strbuilder_init(&ret, 1000);
-
-	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
-		goto cleanup;
-	}
-
-	dc_strbuilder_cat(&ret,
-		"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-		"<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n"
-		"<Document>\n");
-
-	stmt = dc_sqlite3_prepare(context->sql,
-			"SELECT latitude, longitude, accuracy, timestamp "
-			" FROM locations "
-			" WHERE from_id=? "
-			"   AND timestamp=(SELECT MAX(timestamp) FROM locations WHERE from_id=?) ");
-	sqlite3_bind_int   (stmt, 1, DC_CONTACT_ID_SELF);
-	sqlite3_bind_int   (stmt, 2, DC_CONTACT_ID_SELF);
-	while (sqlite3_step(stmt)==SQLITE_ROW)
-	{
-		latitude  = sqlite3_column_double(stmt, 0);
-		longitude = sqlite3_column_double(stmt, 1);
-		accuracy  = sqlite3_column_double(stmt, 2);
-		timestamp = get_kml_timestamp(sqlite3_column_int64 (stmt, 3));
-
-		dc_strbuilder_catf(&ret,
-			"<Placemark>"
-				"<Timestamp><when>%s</when></Timestamp>"
-				"<Point><coordinates accuracy=\"%f\">%f,%f,0</coordinates></Point>"
-			"</Placemark>\n",
-			timestamp,
-			accuracy,
-			latitude,
-			longitude);
-
-		free(timestamp);
-		timestamp = NULL;
-	}
-
-	dc_strbuilder_cat(&ret,
-		"</Document>\n"
-		"</kml>");
-
-cleanup:
-	sqlite3_finalize(stmt);
-    return ret.buf;
 }
 
 
