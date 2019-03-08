@@ -20,6 +20,7 @@ static char* get_kml_timestamp(time_t utc)
 
 char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id)
 {
+	int              success = 0;
 	sqlite3_stmt*    stmt = NULL;
 	double           latitude = 0.0;
 	double           longitude = 0.0;
@@ -73,10 +74,15 @@ char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id)
 		"</Document>\n"
 		"</kml>");
 
+	success = 1;
+
 cleanup:
 	sqlite3_finalize(stmt);
 	free(self_addr);
-	return ret.buf;
+	if (!success) {
+		free(ret.buf);
+	}
+	return success? ret.buf : NULL;
 }
 
 
