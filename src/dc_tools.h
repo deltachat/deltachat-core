@@ -62,6 +62,7 @@ time_t                     dc_timestamp_from_date             (struct mailimf_da
 char*                      dc_timestamp_to_str                (time_t); /* the return value must be free()'d */
 struct mailimap_date_time* dc_timestamp_to_mailimap_date_time (time_t);
 long                       dc_gm2local_offset                 (void);
+time_t                     mkgmtime                           (struct tm*);
 
 /* timesmearing */
 time_t dc_smeared_time               (dc_context_t*);

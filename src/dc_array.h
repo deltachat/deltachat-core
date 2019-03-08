@@ -19,16 +19,6 @@ struct _dc_array
 };
 
 
-struct _dc_location
-{
-	#define DC_ARRAY_LOCATIONS  1
-	double   latitude;
-	double   longitude;
-	double   accuracy;
-	time_t   timestamp;
-	uint32_t msg_id;
-};
-
 dc_array_t*      dc_array_new                 (dc_context_t*, size_t initsize);
 dc_array_t*      dc_array_new_typed           (dc_context_t*, int type, size_t initsize);
 void             dc_array_empty               (dc_array_t*);

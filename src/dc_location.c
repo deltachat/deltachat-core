@@ -1,10 +1,9 @@
 #include "dc_context.h"
-#include "dc_mimeparser.h"
-#include "dc_job.h"
+#include "dc_saxparser.h"
 
 
 /*******************************************************************************
- * handle kml-files, tools
+ * create kml-files
  ******************************************************************************/
 
 
@@ -26,6 +25,7 @@ char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id)
 	double           longitude = 0.0;
 	double           accuracy = 0.0;
 	char*            timestamp = NULL;
+	char*            self_addr = NULL;
 	dc_strbuilder_t  ret;
 	dc_strbuilder_init(&ret, 1000);
 
@@ -33,10 +33,13 @@ char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id)
 		goto cleanup;
 	}
 
-	dc_strbuilder_cat(&ret,
+	self_addr = dc_sqlite3_get_config(context->sql, "configured_addr", "");
+
+	dc_strbuilder_catf(&ret,
 		"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 		"<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n"
-		"<Document>\n");
+		"<Document addr=\"%s\">\n",
+		self_addr);
 
 	stmt = dc_sqlite3_prepare(context->sql,
 			"SELECT latitude, longitude, accuracy, timestamp "
@@ -72,7 +75,158 @@ char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id)
 
 cleanup:
 	sqlite3_finalize(stmt);
-    return ret.buf;
+	free(self_addr);
+	return ret.buf;
+}
+
+
+/*******************************************************************************
+ * parse kml-files
+ ******************************************************************************/
+
+
+#define TAG_PLACEMARK   0x01
+#define TAG_TIMESTAMP   0x02
+#define TAG_WHEN        0x04
+#define TAG_POINT       0x08
+#define TAG_COORDINATES 0x10
+
+
+static void kml_starttag_cb(void* userdata, const char* tag, char** attr)
+{
+	dc_kml_t* kml = (dc_kml_t*)userdata;
+
+	if (strcmp(tag, "Document")==0)
+	{
+		const char* addr = dc_attr_find(attr, "addr");
+		if (addr) {
+			kml->addr = dc_strdup(addr);
+		}
+	}
+	else if (strcmp(tag, "Placemark")==0)
+	{
+		kml->tag            = TAG_PLACEMARK;
+		kml->curr.timestamp = 0;
+		kml->curr.latitude  = 0;
+		kml->curr.longitude = 0.0;
+		kml->curr.accuracy  = 0.0;
+	}
+	else if (strcmp(tag, "Timestamp")==0 && kml->tag&TAG_PLACEMARK)
+	{
+		kml->tag = TAG_PLACEMARK|TAG_TIMESTAMP;
+	}
+	else if (strcmp(tag, "when")==0 && kml->tag&TAG_TIMESTAMP)
+	{
+		kml->tag = TAG_PLACEMARK|TAG_TIMESTAMP|TAG_WHEN;
+	}
+	else if (strcmp(tag, "Point")==0 && kml->tag&TAG_PLACEMARK)
+	{
+		kml->tag = TAG_PLACEMARK|TAG_POINT;
+	}
+	else if (strcmp(tag, "coordinates")==0 && kml->tag&TAG_POINT)
+	{
+		kml->tag = TAG_PLACEMARK|TAG_POINT|TAG_COORDINATES;
+		const char* accuracy = dc_attr_find(attr, "accuracy");
+		if (accuracy) {
+			kml->curr.accuracy = atof(accuracy);
+		}
+	}
+}
+
+
+static void kml_text_cb(void* userdata, const char* text, int len)
+{
+	dc_kml_t* kml = (dc_kml_t*)userdata;
+
+	if (kml->tag&(TAG_WHEN|TAG_COORDINATES))
+	{
+		char* val = dc_strdup(text);
+		dc_str_replace(&val, "\n", "");
+		dc_str_replace(&val, "\r", "");
+		dc_str_replace(&val, "\t", "");
+		dc_str_replace(&val, " ", "");
+
+		if (kml->tag&TAG_WHEN) {
+			int year = 0, month = 0, day = 0, hour = 0, minute = 0, second = 0;
+			if (sscanf(val, "%04i-%02i-%02iT%02i:%02i:%02i",
+					   &year, &month, &day, &hour, &minute, &second)>=3) {
+				struct tm tmval;
+				memset(&tmval, 0, sizeof(struct tm));
+				tmval.tm_sec  = second;
+				tmval.tm_min  = minute;
+				tmval.tm_hour = hour;
+				tmval.tm_mday = day;
+				tmval.tm_mon  = month - 1;
+				tmval.tm_mon  = year;
+				kml->curr.timestamp = mkgmtime(&tmval);
+			}
+		}
+		else if (kml->tag&TAG_COORDINATES) {
+			char* comma = strchr(val, ',');
+			if (comma) {
+				char* lat = val;
+				char* lng = comma+1;
+				*comma = 0;
+				comma = strchr(lng, ',');
+				if (comma) { *comma = 0; }
+				kml->curr.latitude = atof(lat);
+				kml->curr.longitude = atof(lng);
+			}
+		}
+
+		free(val);
+	}
+}
+
+
+static void kml_endtag_cb(void* userdata, const char* tag)
+{
+	dc_kml_t* kml = (dc_kml_t*)userdata;
+
+	if (strcmp(tag, "Placemark")==0)
+	{
+		if (kml->tag&TAG_PLACEMARK && kml->curr.timestamp
+		 && kml->curr.latitude && kml->curr.longitude)
+		{
+			dc_location_t* location = calloc(1, sizeof(dc_location_t));
+			*location = kml->curr;
+			dc_array_add_ptr(kml->locations, location);
+		}
+		kml->tag = 0;
+	}
+}
+
+
+dc_kml_t* dc_kml_parse(dc_context_t* context, const char* file_content)
+{
+	dc_kml_t*      kml = calloc(1, sizeof(dc_kml_t));
+	dc_saxparser_t saxparser;
+
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		goto cleanup;
+	}
+
+	kml->locations = dc_array_new_typed(context, DC_ARRAY_LOCATIONS, 100);
+
+	dc_saxparser_init            (&saxparser, kml);
+	dc_saxparser_set_tag_handler (&saxparser, kml_starttag_cb, kml_endtag_cb);
+	dc_saxparser_set_text_handler(&saxparser, kml_text_cb);
+	dc_saxparser_parse           (&saxparser, file_content);
+
+cleanup:
+	return kml;
+}
+
+
+void dc_kml_unref(dc_kml_t* kml)
+{
+	if (kml==NULL) {
+		return;
+	}
+
+	dc_array_unref(kml->locations);
+	free(kml->addr);
+	free(kml);
 }
 
 

@@ -121,8 +121,32 @@ int             dc_is_inbox          (dc_context_t*, const char* folder);
 int             dc_is_sentbox        (dc_context_t*, const char* folder);
 int             dc_is_mvbox          (dc_context_t*, const char* folder);
 
-char*           dc_get_location_kml  (dc_context_t*, uint32_t chat_id);
 
+// location handling
+typedef struct _dc_location
+{
+	#define DC_ARRAY_LOCATIONS  1
+	double   latitude;
+	double   longitude;
+	double   accuracy;
+	time_t   timestamp;
+	uint32_t msg_id;
+} dc_location_t;
+
+typedef struct _dc_kml
+{
+	char*         addr;
+	dc_array_t*   locations;
+	int           tag;
+	dc_location_t curr;
+} dc_kml_t;
+
+char*           dc_get_location_kml  (dc_context_t*, uint32_t chat_id);
+dc_kml_t*       dc_kml_parse         (dc_context_t*, const char* file_content);
+void            dc_kml_unref         (dc_kml_t*);
+
+
+// backups
 #define         DC_BAK_PREFIX                "delta-chat"
 #define         DC_BAK_SUFFIX                "bak"
 
