@@ -401,6 +401,9 @@ cleanup:
  * The location is sent to all chats where location streaming is enabled
  * using dc_send_locations_to_chat().
  *
+ * Typically results in the event #DC_EVENT_LOCATION_CHANGED with
+ * contact_id set to DC_CONTACT_ID_SELF.
+ *
  * @memberof dc_context_t
  * @param context The context object.
  * @param latitude North-south position of the location.
@@ -530,5 +533,36 @@ dc_array_t* dc_get_locations(dc_context_t* context, uint32_t chat_id, uint32_t  
 	}
 
 cleanup:
+	sqlite3_finalize(stmt);
 	return ret;
+}
+
+
+/**
+ * Delete all locations on the current device.
+ * Locations already sent cannot be deleted.
+ *
+ * Typically results in the event #DC_EVENT_LOCATION_CHANGED
+ * with contact_id set to 0.
+ *
+ * @memberof dc_context_t
+ * @param context The context object.
+ * @return None.
+ */
+void dc_delete_all_locations(dc_context_t* context)
+{
+	sqlite3_stmt* stmt = NULL;
+
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		goto cleanup;
+	}
+
+	stmt = dc_sqlite3_prepare(context->sql,
+		"DELETE FROM locations;");
+	sqlite3_step(stmt);
+
+	context->cb(context, DC_EVENT_LOCATION_CHANGED, 0, 0);
+
+cleanup:
+	sqlite3_finalize(stmt);
 }

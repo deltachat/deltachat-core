@@ -458,6 +458,7 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 				"chatinfo\n"
 				"sendlocations <seconds>\n"
 				"setlocation <lat> <lng>\n"
+				"dellocations\n"
 				"getlocations\n"
 				"send <text>\n"
 				"sendimage <file> [<text>]\n"
@@ -953,6 +954,10 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 		else {
 			ret = dc_strdup("ERROR: Latitude or longitude not given.");
 		}
+	}
+	else if (strcmp(cmd, "dellocations")==0) {
+		dc_delete_all_locations(context);
+		ret = COMMAND_SUCCEEDED;
 	}
 	else if (strcmp(cmd, "send")==0)
 	{

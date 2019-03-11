@@ -365,6 +365,7 @@ void        dc_send_locations_to_chat       (dc_context_t*, uint32_t chat_id, in
 int         dc_is_sending_locations_to_chat (dc_context_t*, uint32_t chat_id);
 int         dc_set_location                 (dc_context_t*, double latitude, double longitude, double accuracy);
 dc_array_t* dc_get_locations                (dc_context_t*, uint32_t chat_id, uint32_t  contact_id);
+void        dc_delete_all_locations         (dc_context_t*);
 
 
 /**
@@ -1000,6 +1001,8 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
  * Location of one or more contact has changed.
  *
  * @param data1 (int) contact_id of the contact for which the location has changed.
+ *     If the locations of several contacts have been changed,
+ *     eg. after calling dc_delete_all_locations(), this parameter is set to 0.
  * @param data2 0
  * @return 0
  */
