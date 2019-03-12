@@ -201,7 +201,7 @@ char* dc_decrypt_setup_file(dc_context_t* context, const char* passphrase, const
 	size_t        binary_bytes = 0;
 	size_t        indx = 0;
 	void*         plain = NULL;
-	size_t*       plain_bytes = NULL;
+	size_t        plain_bytes = 0;
 	char*         payload = NULL;
 
 	/* extract base64 from filecontent */
