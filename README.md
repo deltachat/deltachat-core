@@ -122,6 +122,11 @@ standard.  It is possible your system uses
 `/usr/local/lib/x86_64-linux-gnu` which should be auto-detected and
 just work as well.
 
+The library is build using netpgp by default (shipped in /libs).
+By adding `-Drpgp=true` to the build command, rpgp is used instead
+(https://github.com/dignifiedquire/rpgp,
+needs to be installed on the system or available as a lib)
+
 
 ### Building without system-level dependencies 
 

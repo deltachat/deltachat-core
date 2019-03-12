@@ -27,7 +27,7 @@ one :-) */
 #include "dc_hash.h"
 
 
-#if DC_USE_RPGP
+#ifdef DC_USE_RPGP
 void dc_pgp_init(void)
 {
 }
@@ -56,7 +56,7 @@ void dc_pgp_exit(void)
 {
 }
 
-#if DC_USE_RPGP
+#ifdef DC_USE_RPGP
 
 void dc_pgp_rand_seed(dc_context_t* context, const void* buf, size_t bytes) {}
 
@@ -962,7 +962,7 @@ cleanup:
 #endif // !DC_USE_RPGP
 
 
-#if DC_USE_RPGP
+#ifdef DC_USE_RPGP
 
 int dc_pgp_pk_decrypt( dc_context_t*       context,
                        const void*         ctext,
@@ -1184,7 +1184,7 @@ cleanup:
  ******************************************************************************/
 
 
-#if DC_USE_RPGP
+#ifdef DC_USE_RPGP
 int dc_pgp_symm_encrypt(dc_context_t* context,
                         const char* passphrase,
                         const void* plain, size_t plain_bytes,
@@ -1330,7 +1330,7 @@ cleanup:
 
 #endif /* !DC_USE_RPGP */
 
-#if DC_USE_RPGP
+#ifdef DC_USE_RPGP
 
 int dc_pgp_symm_decrypt(dc_context_t* context,
                         const char* passphrase,
