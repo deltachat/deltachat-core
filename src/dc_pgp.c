@@ -1172,6 +1172,42 @@ cleanup:
  ******************************************************************************/
 
 
+#if DC_USE_RPGP
+int dc_pgp_symm_encrypt(dc_context_t* context,
+                        const char* passphrase,
+                        const void* plain, size_t plain_bytes,
+                        char** ret_ctext_armored)
+{
+	int                    success = 0;
+        rpgp_message* decrypted = NULL;
+
+	if (context==NULL || passphrase==NULL || plain==NULL || plain_bytes==0
+	 || ret_ctext_armored==NULL ) {
+		goto cleanup;
+	}
+
+
+        decrypted = rpgp_encrypt_bytes_with_password(plain, plain_bytes, passphrase);
+        if (dc_pgp_handle_rpgp_error(context)) {
+          goto cleanup;
+        }
+
+
+        *ret_ctext_armored = rpgp_msg_to_armored_str(decrypted);
+        if (dc_pgp_handle_rpgp_error(context)) {
+          goto cleanup;
+        }
+
+	success = 1;
+
+cleanup:
+        if (decrypted) { rpgp_msg_drop(decrypted); }
+
+	return success;
+}
+
+#else
+
 int dc_pgp_symm_encrypt(dc_context_t* context,
                         const char* passphrase,
                         const void* plain, size_t plain_bytes,
@@ -1280,6 +1316,50 @@ cleanup:
 	return success;
 }
 
+#endif /* !DC_USE_RPGP */
+
+#if DC_USE_RPGP
+
+int dc_pgp_symm_decrypt(dc_context_t* context,
+                        const char* passphrase,
+                        const void* ctext, size_t ctext_bytes,
+                        void** ret_plain_text, size_t* ret_plain_bytes)
+{
+	int           success = 0;
+        rpgp_message* encrypted = NULL;
+        rpgp_message* decrypted = NULL;
+
+        encrypted = rpgp_msg_from_bytes(ctext, ctext_bytes);
+        if (dc_pgp_handle_rpgp_error(context)) {
+          goto cleanup;
+        }
+
+        decrypted = rpgp_msg_decrypt_with_password(encrypted, passphrase);
+        if (dc_pgp_handle_rpgp_error(context)) {
+          goto cleanup;
+        }
+
+        rpgp_cvec* decrypted_bytes = rpgp_msg_to_bytes(decrypted);
+        if (dc_pgp_handle_rpgp_error(context)) {
+          goto cleanup;
+        }
+
+        *ret_plain_text = (void*)rpgp_cvec_data(decrypted_bytes);
+        *ret_plain_bytes = rpgp_cvec_len(decrypted_bytes);
+
+        // No drop as we only remove the struct
+        free(decrypted_bytes);
+
+	success = 1;
+
+cleanup:
+	if (encrypted) { rpgp_msg_drop(encrypted); }
+        if (decrypted) { rpgp_msg_drop(decrypted); }
+
+        return success;
+}
+
+#else
 
 int dc_pgp_symm_decrypt(dc_context_t* context,
                         const char* passphrase,
@@ -1309,3 +1389,4 @@ cleanup:
 	if (outmem) { pgp_memory_free(outmem); }
     return success;
 }
+#endif // !DC_USE_RPGP
