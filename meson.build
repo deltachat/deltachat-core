@@ -107,13 +107,6 @@ else
   etpan = etpan_proj.get_variable('dep')
 endif
 
-# netpgp is always bundled
-netpgp_proj = subproject('netpgp',
-                         default_options: ['static-pic-lib=true',
-                                           'bzip2=disabled',
-                                           'openssl-idea=disabled',
-                                           'openssl-camellia=enabled'])
-netpgp = netpgp_proj.get_variable('dep')
 
 if get_option('rpgp')
   # The rpgp pkg-config file is currently incorrect, so just try
@@ -121,8 +114,18 @@ if get_option('rpgp')
   #rpgp = dependency('rpgp')
   rpgp = cc.find_library('rpgp')
   add_project_arguments('-DDC_USE_RPGP', language: 'c')
+
+  netpgp = dependency('', required: false)
 else
   rpgp = dependency('', required: false)
+
+  # netpgp is always bundled
+  netpgp_proj = subproject('netpgp',
+                         default_options: ['static-pic-lib=true',
+                                           'bzip2=disabled',
+                                           'openssl-idea=disabled',
+                                           'openssl-camellia=enabled'])
+  netpgp = netpgp_proj.get_variable('dep')
 endif
 
 

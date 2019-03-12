@@ -1,5 +1,9 @@
 #include <assert.h>
+#if DC_USE_RPGP
+#include <librpgp.h>
+#else
 #include <netpgp-extra.h>
+#endif
 #include "dc_context.h"
 #include "dc_mimeparser.h"
 #include "dc_mimefactory.h"
@@ -396,7 +400,7 @@ static char* create_adhoc_grp_id(dc_context_t* context, dc_array_t* member_ids /
 	char*           addr = NULL;
 	int             i = 0;
 	int             iCnt = 0;
-	uint8_t*        binary_hash = NULL;
+	rpgp_cvec*      binary_hash = NULL;
 	char*           ret = NULL;
 	dc_strbuilder_t member_cs;
 	dc_strbuilder_init(&member_cs, 0);
@@ -422,26 +426,19 @@ static char* create_adhoc_grp_id(dc_context_t* context, dc_array_t* member_ids /
 	}
 
 	/* make sha-256 from the string */
-	{
-		pgp_hash_t hasher;
-		pgp_hash_sha256(&hasher);
-		hasher.init(&hasher);
-		hasher.add(&hasher, (const uint8_t*)member_cs.buf, strlen(member_cs.buf));
-		binary_hash = malloc(hasher.size);
-		hasher.finish(&hasher, binary_hash);
-	}
+        binary_hash = rpgp_hash_sha256((const uint8_t*)member_cs.buf, strlen(member_cs.buf));
 
 	/* output the first 8 bytes as 16 hex-characters - CAVE: if the lenght changes here, also adapt dc_extract_grpid_from_rfc724_mid() */
 	ret = calloc(1, 256);
 	for (i = 0; i < 8; i++) {
-		sprintf(&ret[i*2], "%02x", (int)binary_hash[i]);
+          sprintf(&ret[i*2], "%02x", (int)rpgp_cvec_data(binary_hash)[i]);
 	}
 
 	/* cleanup */
+	if (binary_hash) { rpgp_cvec_drop(binary_hash);}
 	dc_array_free_ptr(member_addrs);
 	dc_array_unref(member_addrs);
 	free(member_ids_str);
-	free(binary_hash);
 	sqlite3_finalize(stmt);
 	sqlite3_free(q3);
 	free(member_cs.buf);

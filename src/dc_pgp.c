@@ -14,11 +14,12 @@ So, we do not see a simple alternative - but everyone is welcome to implement
 one :-) */
 
 
-#include <netpgp-extra.h>
-#include <openssl/rand.h>
 #include "dc_context.h"
 #ifdef DC_USE_RPGP
 #include <librpgp.h>
+#else
+#include <netpgp-extra.h>
+#include <openssl/rand.h>
 #endif
 #include "dc_key.h"
 #include "dc_keyring.h"
@@ -26,9 +27,15 @@ one :-) */
 #include "dc_hash.h"
 
 
+#if DC_USE_RPGP
+void dc_pgp_init(void)
+{
+}
+
+#else
+
 static int      s_io_initialized = 0;
 static pgp_io_t s_io;
-
 
 void dc_pgp_init(void)
 {
@@ -43,12 +50,17 @@ void dc_pgp_init(void)
 
 	s_io_initialized = 1;
 }
-
+#endif
 
 void dc_pgp_exit(void)
 {
 }
 
+#if DC_USE_RPGP
+
+void dc_pgp_rand_seed(dc_context_t* context, const void* buf, size_t bytes) {}
+
+#else
 
 void dc_pgp_rand_seed(dc_context_t* context, const void* buf, size_t bytes)
 {
@@ -58,7 +70,7 @@ void dc_pgp_rand_seed(dc_context_t* context, const void* buf, size_t bytes)
 
 	RAND_seed(buf, bytes);
 }
-
+#endif
 
 /* Split data from PGP Armored Data as defined in https://tools.ietf.org/html/rfc4880#section-6.2.
 The given buffer is modified and the returned pointers just point inside the modified buffer,
