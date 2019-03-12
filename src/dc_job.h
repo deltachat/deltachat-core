@@ -21,8 +21,10 @@ extern "C" {
 
 
 // jobs in the SMTP-thread
-#define DC_JOB_SEND_MDN              5010    // low priority ...
-#define DC_JOB_SEND_MSG_TO_SMTP      5900    // ... high priority
+#define DC_JOB_SEND_MDN_OLD          5010    // low priority ...
+#define DC_JOB_SEND_MDN              5011
+#define DC_JOB_SEND_MSG_TO_SMTP_OLD  5900
+#define DC_JOB_SEND_MSG_TO_SMTP      5901    // ... high priority
 
 
 // timeouts until actions are aborted.
