@@ -781,7 +781,8 @@ int dc_pgp_pk_encrypt( dc_context_t*       context,
         if (raw_private_key_for_signing) {
           private_key = rpgp_skey_from_bytes(raw_private_key_for_signing->binary,
                                              raw_private_key_for_signing->bytes);
-          if (dc_pgp_handle_rpgp_error(context)) {
+          if (private_key == NULL || dc_pgp_handle_rpgp_error(context)) {
+            dc_log_warning(context, 0, "No key for signing found.");
             goto cleanup;
           }
         }
@@ -801,7 +802,6 @@ int dc_pgp_pk_encrypt( dc_context_t*       context,
           clock_t start = clock();
 
           if (private_key==NULL) {
-            dc_log_warning(context, 0, "No key for signing found.");
 
             encrypted = rpgp_encrypt_bytes_to_keys(plain_text, plain_bytes,
                                                    (const rpgp_signed_public_key* const*)public_keys, public_keys_len);
