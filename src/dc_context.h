@@ -5,7 +5,7 @@ extern "C" {
 #endif
 
 
-/* Set to 1 to enable use of rPGP instead of netpgp where available;
+/* define DC_USE_RPGP to enable use of rPGP instead of netpgp where available;
 preferrably, this should be done in the project configuration currently */
 //#define DC_USE_RPGP 1
 

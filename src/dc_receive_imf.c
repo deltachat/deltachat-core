@@ -1,10 +1,10 @@
 #include <assert.h>
+#include "dc_context.h"
 #ifdef DC_USE_RPGP
 #include <librpgp.h>
 #else
 #include <netpgp-extra.h>
 #endif
-#include "dc_context.h"
 #include "dc_mimeparser.h"
 #include "dc_mimefactory.h"
 #include "dc_imap.h"

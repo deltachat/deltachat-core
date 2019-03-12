@@ -28,14 +28,16 @@ one :-) */
 
 
 #ifdef DC_USE_RPGP
+
 void dc_pgp_init(void)
 {
 }
 
-#else
+#else // !DC_USE_RPGP
 
 static int      s_io_initialized = 0;
 static pgp_io_t s_io;
+
 
 void dc_pgp_init(void)
 {
@@ -50,17 +52,20 @@ void dc_pgp_init(void)
 
 	s_io_initialized = 1;
 }
-#endif
+
+#endif // !DC_USE_RPGP
+
 
 void dc_pgp_exit(void)
 {
 }
 
+
 #ifdef DC_USE_RPGP
 
 void dc_pgp_rand_seed(dc_context_t* context, const void* buf, size_t bytes) {}
 
-#else
+#else // !DC_USE_RPGP
 
 void dc_pgp_rand_seed(dc_context_t* context, const void* buf, size_t bytes)
 {
@@ -70,7 +75,8 @@ void dc_pgp_rand_seed(dc_context_t* context, const void* buf, size_t bytes)
 
 	RAND_seed(buf, bytes);
 }
-#endif
+#endif // !DC_USE_RPGP
+
 
 /* Split data from PGP Armored Data as defined in https://tools.ietf.org/html/rfc4880#section-6.2.
 The given buffer is modified and the returned pointers just point inside the modified buffer,
@@ -204,6 +210,7 @@ int dc_pgp_handle_rpgp_error(dc_context_t* context) {
 
 #endif /* DC_USE_RPGP */
 
+
 /*******************************************************************************
  * Key generatation
  ******************************************************************************/
@@ -272,9 +279,7 @@ int dc_pgp_create_keypair(dc_context_t* context, const char* addr, dc_key_t* ret
   return success;
 }
 
-
 #else // !DC_USE_RPGP
-
 
 static unsigned add_key_prefs(pgp_create_sig_t *sig)
 {
@@ -490,7 +495,6 @@ cleanup:
 	return success;
 }
 
-
 #endif // !DC_USE_RPGP
 
 
@@ -498,7 +502,9 @@ cleanup:
  * Check keys
  ******************************************************************************/
 
+
 #ifdef DC_USE_RPGP
+
 int dc_pgp_is_valid_key(dc_context_t* context, const dc_key_t* raw_key)
 {
 	int                        key_is_valid = 0;
@@ -527,7 +533,7 @@ cleanup:
 	return key_is_valid;
 }
 
-#else
+#else // !DC_USE_RPGP
 
 int dc_pgp_is_valid_key(dc_context_t* context, const dc_key_t* raw_key)
 {
@@ -560,6 +566,7 @@ cleanup:
 }
 
 #endif // !DC_USE_RPGP
+
 
 #ifdef DC_USE_RPGP
 
@@ -601,7 +608,7 @@ cleanup:
 	return success;
 }
 
-#else
+#else // !DC_USE_RPGP
 
 int dc_pgp_calc_fingerprint(const dc_key_t* raw_key, uint8_t** ret_fingerprint, size_t* ret_fingerprint_bytes)
 {
@@ -643,6 +650,7 @@ cleanup:
 }
 
 #endif // !DC_USE_RPGP
+
 
 #ifdef DC_USE_RPGP
 
@@ -692,7 +700,7 @@ cleanup:
 	return success;
 }
 
-#else
+#else // !DC_USE_RPGP
 
 int dc_pgp_split_key(dc_context_t* context, const dc_key_t* private_in, dc_key_t* ret_public_key)
 {
@@ -746,6 +754,7 @@ cleanup:
 /*******************************************************************************
  * Public key encrypt/decrypt
  ******************************************************************************/
+
 
 #ifdef DC_USE_RPGP
 
@@ -852,7 +861,7 @@ cleanup:
         return success;
 }
 
-#else
+#else // !DC_USE_RPGP
 
 int dc_pgp_pk_encrypt( dc_context_t*       context,
                        const void*         plain_text,
@@ -1077,7 +1086,7 @@ cleanup:
 	return success;
 }
 
-#else
+#else // !DC_USE_RPGP
 
 int dc_pgp_pk_decrypt( dc_context_t*       context,
                        const void*         ctext,
@@ -1175,8 +1184,7 @@ cleanup:
 	return success;
 }
 
-#endif /* !DC_USE_RPGP */
-
+#endif // !DC_USE_RPGP
 
 
 /*******************************************************************************
@@ -1185,6 +1193,7 @@ cleanup:
 
 
 #ifdef DC_USE_RPGP
+
 int dc_pgp_symm_encrypt(dc_context_t* context,
                         const char* passphrase,
                         const void* plain, size_t plain_bytes,
@@ -1218,7 +1227,7 @@ cleanup:
 	return success;
 }
 
-#else
+#else // !DC_USE_RPGP
 
 int dc_pgp_symm_encrypt(dc_context_t* context,
                         const char* passphrase,
@@ -1328,7 +1337,8 @@ cleanup:
 	return success;
 }
 
-#endif /* !DC_USE_RPGP */
+#endif // !DC_USE_RPGP
+
 
 #ifdef DC_USE_RPGP
 
@@ -1371,7 +1381,7 @@ cleanup:
         return success;
 }
 
-#else
+#else // !DC_USE_RPGP
 
 int dc_pgp_symm_decrypt(dc_context_t* context,
                         const char* passphrase,
@@ -1401,4 +1411,5 @@ cleanup:
 	if (outmem) { pgp_memory_free(outmem); }
     return success;
 }
+
 #endif // !DC_USE_RPGP
