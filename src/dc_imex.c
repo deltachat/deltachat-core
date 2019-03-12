@@ -3,7 +3,6 @@
 #include <unistd.h> /* for sleep() */
 #include <openssl/rand.h>
 #include <libetpan/mmapstring.h>
-#include <netpgp-extra.h>
 #include "dc_context.h"
 #include "dc_mimeparser.h"
 #include "dc_loginparam.h"
@@ -90,15 +89,6 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 	dc_key_t*              curr_private_key = dc_key_new();
 
 	char                   passphrase_begin[8];
-	uint8_t                salt[PGP_SALT_SIZE];
-	pgp_crypt_t            crypt_info;
-	uint8_t*               key = NULL;
-
-	pgp_output_t*          payload_output = NULL;
-	pgp_memory_t*          payload_mem = NULL;
-
-	pgp_output_t*          encr_output = NULL;
-	pgp_memory_t*          encr_mem = NULL;
 	char*                  encr_string = NULL;
 
 	char*                  ret_setupfilecontent = NULL;
@@ -127,87 +117,12 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 				goto cleanup;
 			}
 
-		//printf("\n~~~~~~~~~~~~~~~~~~~~SETUP-PAYLOAD~~~~~~~~~~~~~~~~~~~~\n%s~~~~~~~~~~~~~~~~~~~~/SETUP-PAYLOAD~~~~~~~~~~~~~~~~~~~~\n",key_asc); // DEBUG OUTPUT
-
-
-		/* put the payload into a literal data packet which will be encrypted then, see RFC 4880, 5.7 :
-		"When it has been decrypted, it contains other packets (usually a literal data packet or compressed data
-		packet, but in theory other Symmetrically Encrypted Data packets or sequences of packets that form whole OpenPGP messages)" */
-
-		pgp_setup_memory_write(&payload_output, &payload_mem, 128);
-		pgp_write_litdata(payload_output, (const uint8_t*)payload_key_asc, strlen(payload_key_asc), PGP_LDT_BINARY);
+		if(!dc_pgp_symm_encrypt(context, passphrase, payload_key_asc, strlen(payload_key_asc), &encr_string)) {
+			goto cleanup;
+		}
 
 		free(payload_key_asc);
 	}
-
-
-	/* create salt for the key */
-	pgp_random(salt, PGP_SALT_SIZE);
-
-	/* S2K */
-	#define SYMM_ALGO PGP_SA_AES_128
-	if (!pgp_crypt_any(&crypt_info, SYMM_ALGO)) {
-		goto cleanup;
-	}
-
-	int s2k_spec = PGP_S2KS_ITERATED_AND_SALTED; // 0=simple, 1=salted, 3=salted+iterated
-	int s2k_iter_id = 96; // 0=1024 iterations, 96=65536 iterations
-	#define HASH_ALG  PGP_HASH_SHA256
-	if ((key = pgp_s2k_do(passphrase, crypt_info.keysize, s2k_spec, HASH_ALG, salt, s2k_iter_id))==NULL) {
-		goto cleanup;
-	}
-
-	/* encrypt the payload using the key using AES-128 and put it into
-	OpenPGP's "Symmetric-Key Encrypted Session Key" (Tag 3, https://tools.ietf.org/html/rfc4880#section-5.3) followed by
-	OpenPGP's "Symmetrically Encrypted Data Packet" (Tag 18, https://tools.ietf.org/html/rfc4880#section-5.13 , better than Tag 9) */
-
-	pgp_setup_memory_write(&encr_output, &encr_mem, 128);
-	pgp_writer_push_armor_msg(encr_output);
-
-	/* Tag 3 - PGP_PTAG_CT_SK_SESSION_KEY */
-	pgp_write_ptag     (encr_output, PGP_PTAG_CT_SK_SESSION_KEY);
-	pgp_write_length   (encr_output, 1/*version*/
-	                               + 1/*symm. algo*/
-	                               + 1/*s2k_spec*/
-	                               + 1/*S2 hash algo*/
-	                               + ((s2k_spec==PGP_S2KS_SALTED || s2k_spec==PGP_S2KS_ITERATED_AND_SALTED)? PGP_SALT_SIZE : 0)/*the salt*/
-	                               + ((s2k_spec==PGP_S2KS_ITERATED_AND_SALTED)? 1 : 0)/*number of iterations*/);
-
-	pgp_write_scalar   (encr_output, 4, 1);                  // 1 octet: version
-	pgp_write_scalar   (encr_output, SYMM_ALGO, 1);          // 1 octet: symm. algo
-
-	pgp_write_scalar   (encr_output, s2k_spec, 1);           // 1 octet: s2k_spec
-	pgp_write_scalar   (encr_output, HASH_ALG, 1);           // 1 octet: S2 hash algo
-	if (s2k_spec==PGP_S2KS_SALTED || s2k_spec==PGP_S2KS_ITERATED_AND_SALTED) {
-	  pgp_write        (encr_output, salt, PGP_SALT_SIZE);   // 8 octets: the salt
-	}
-	if (s2k_spec==PGP_S2KS_ITERATED_AND_SALTED) {
-	  pgp_write_scalar (encr_output, s2k_iter_id, 1);        // 1 octet: number of iterations
-	}
-
-	// for(int j=0; j<AES_KEY_LENGTH; j++) { printf("%02x", key[j]); } printf("\n----------------\n");
-
-	/* Tag 18 - PGP_PTAG_CT_SE_IP_DATA */
-	//pgp_write_symm_enc_data((const uint8_t*)payload_mem->buf, payload_mem->length, PGP_SA_AES_128, key, encr_output); //-- would generate Tag 9
-	{
-		uint8_t* iv = calloc(1, crypt_info.blocksize); if (iv==NULL) { goto cleanup; }
-		crypt_info.set_iv(&crypt_info, iv);
-		free(iv);
-
-		crypt_info.set_crypt_key(&crypt_info, &key[0]);
-		pgp_encrypt_init(&crypt_info);
-
-		pgp_write_se_ip_pktset(encr_output, payload_mem->buf, payload_mem->length, &crypt_info);
-
-		crypt_info.decrypt_finish(&crypt_info);
-	}
-
-	/* done with symmetric key block */
-	pgp_writer_close(encr_output);
-	encr_string = dc_null_terminate((const char*)encr_mem->buf, encr_mem->length);
-
-	//printf("\n~~~~~~~~~~~~~~~~~~~~SYMMETRICALLY ENCRYPTED~~~~~~~~~~~~~~~~~~~~\n%s~~~~~~~~~~~~~~~~~~~~/SYMMETRICALLY ENCRYPTED~~~~~~~~~~~~~~~~~~~~\n",encr_string); // DEBUG OUTPUT
-
 
 	/* add additional header to armored block */
 
@@ -255,17 +170,9 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 cleanup:
 	sqlite3_finalize(stmt);
 
-	if (payload_output) { pgp_output_delete(payload_output); }
-	if (payload_mem) { pgp_memory_free(payload_mem); }
-
-	if (encr_output) { pgp_output_delete(encr_output); }
-	if (encr_mem) { pgp_memory_free(encr_mem); }
-
 	dc_key_unref(curr_private_key);
 	free(encr_string);
 	free(self_addr);
-
-	free(key);
 
 	return ret_setupfilecontent;
 }
@@ -293,8 +200,8 @@ char* dc_decrypt_setup_file(dc_context_t* context, const char* passphrase, const
 	char*         binary = NULL;
 	size_t        binary_bytes = 0;
 	size_t        indx = 0;
-	pgp_io_t      io;
-	pgp_memory_t* outmem = NULL;
+	void*         plain = NULL;
+	size_t        plain_bytes = 0;
 	char*         payload = NULL;
 
 	/* extract base64 from filecontent */
@@ -311,19 +218,15 @@ char* dc_decrypt_setup_file(dc_context_t* context, const char* passphrase, const
 	}
 
 	/* decrypt symmetrically */
-	memset(&io, 0, sizeof(pgp_io_t));
-	io.outs = stdout;
-	io.errs = stderr;
-	io.res  = stderr;
-	if ((outmem=pgp_decrypt_buf(&io, binary, binary_bytes, NULL, NULL, 0, 0, passphrase))==NULL) {
+	if (!dc_pgp_symm_decrypt(context, passphrase, binary, binary_bytes, &plain, &plain_bytes)) {
 		goto cleanup;
 	}
-	payload = strndup((const char*)outmem->buf, outmem->length);
+	payload = strndup((const char*)plain, plain_bytes);
 
 cleanup:
+	free(plain);
 	free(fc_buf);
 	if (binary) { mmap_string_unref(binary); }
-	if (outmem) { pgp_memory_free(outmem); }
 	return payload;
 }
 

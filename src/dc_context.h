@@ -5,6 +5,11 @@ extern "C" {
 #endif
 
 
+/* define DC_USE_RPGP to enable use of rPGP instead of netpgp where available;
+preferrably, this should be done in the project configuration currently */
+//#define DC_USE_RPGP 1
+
+
 /* Includes that are used frequently.  This file may also be used to create predefined headers. */
 #include <stdlib.h>
 #include <string.h>

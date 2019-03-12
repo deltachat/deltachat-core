@@ -759,6 +759,11 @@ char* dc_get_info(dc_context_t* context)
 	int              prv_key_cnt = 0;
 	int              pub_key_cnt = 0;
 	dc_key_t*        self_public = dc_key_new();
+	int              rpgp_enabled = 0;
+
+	#ifdef DC_USE_RPGP
+		rpgp_enabled = 1;
+	#endif
 
 	dc_strbuilder_t  ret;
 	dc_strbuilder_init(&ret, 0);
@@ -820,6 +825,7 @@ char* dc_get_info(dc_context_t* context)
 		"sqlite_thread_safe=%i\n"
 		"libetpan_version=%i.%i\n"
 		"openssl_version=%i.%i.%i%c\n"
+		"rpgp_enabled=%i\n"
 		"compile_date=" __DATE__ ", " __TIME__ "\n"
 		"arch=%i\n"
 		"number_of_chats=%i\n"
@@ -851,6 +857,7 @@ char* dc_get_info(dc_context_t* context)
 		, sqlite3_threadsafe()
 		, libetpan_get_version_major(), libetpan_get_version_minor()
 		, (int)(OPENSSL_VERSION_NUMBER>>28), (int)(OPENSSL_VERSION_NUMBER>>20)&0xFF, (int)(OPENSSL_VERSION_NUMBER>>12)&0xFF, (char)('a'-1+((OPENSSL_VERSION_NUMBER>>4)&0xFF))
+		, rpgp_enabled
 		, sizeof(void*)*8
 		, chats
 		, real_msgs

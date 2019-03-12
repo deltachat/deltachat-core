@@ -43,7 +43,7 @@ lib_src = [
   'dc_jsmn.c',
 ]
 
-lib_deps = [pthreads, zlib, openssl, sasl, sqlite, etpan, netpgp, math]
+lib_deps = [pthreads, zlib, openssl, sasl, sqlite, etpan, netpgp, math, rpgp]
 lib_inc = include_directories('.')
 
 if host_machine.system() == 'darwin'

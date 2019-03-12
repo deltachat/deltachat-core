@@ -16,7 +16,7 @@
 					<Add option="-g" />
 				</Compiler>
 				<Linker>
-					<Add option="-lz -lssl -lcrypto -pthread -lsasl2" />
+					<Add option="-lz -lssl -lcrypto -pthread -lsasl2 -lrpgp" />
 				</Linker>
 			</Target>
 			<Target title="Release">
@@ -37,6 +37,7 @@
 			<Add option="-fexceptions -Wno-unused-function -Wno-misleading-indentation -Wno-deprecated-declarations" />
 			<Add option="-DHAVE_CONFIG_H" />
 			<Add option="-DDC_USE_MIME_DEBUG" />
+			<Add option="-DDC_USE_RPGP" />
 			<Add option="-DHAVE_ICONV" />
 			<Add option="-DSQLITE_OMIT_LOAD_EXTENSION" />
 			<Add directory="libs/libetpan/src" />

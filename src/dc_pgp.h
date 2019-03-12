@@ -32,6 +32,10 @@ int  dc_pgp_split_key        (dc_context_t*, const dc_key_t* private_in, dc_key_
 int  dc_pgp_pk_encrypt       (dc_context_t*, const void* plain, size_t plain_bytes, const dc_keyring_t*, const dc_key_t* sign_key, int use_armor, void** ret_ctext, size_t* ret_ctext_bytes);
 int  dc_pgp_pk_decrypt       (dc_context_t*, const void* ctext, size_t ctext_bytes, const dc_keyring_t*, const dc_keyring_t* validate_keys, int use_armor, void** plain, size_t* plain_bytes, dc_hash_t* ret_signature_fingerprints);
 
+/* symm. encryption */
+int  dc_pgp_symm_encrypt     (dc_context_t* context, const char* passphrase, const void* plain, size_t plain_bytes, char** ret_ctext_armored);
+int  dc_pgp_symm_decrypt     (dc_context_t* context, const char* passphrase, const void* ctext, size_t ctext_bytes, void** ret_plain_text, size_t* ret_plain_bytes);
+
 
 #ifdef __cplusplus
 } /* /extern "C" */

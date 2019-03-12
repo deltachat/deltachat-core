@@ -1190,4 +1190,3 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 }
 #endif
 #endif // __DELTACHAT_H__
-
