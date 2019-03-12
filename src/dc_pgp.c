@@ -735,6 +735,112 @@ cleanup:
  * Public key encrypt/decrypt
  ******************************************************************************/
 
+#ifdef DC_USE_RPGP
+
+int dc_pgp_pk_encrypt( dc_context_t*       context,
+                       const void*         plain_text,
+                       size_t              plain_bytes,
+                       const dc_keyring_t* raw_public_keys_for_encryption,
+                       const dc_key_t*     raw_private_key_for_signing,
+                       int                 use_armor,
+                       void**              ret_ctext,
+                       size_t*             ret_ctext_bytes)
+{
+	int                     i = 0;
+	int                     success = 0;
+        int                     public_keys_len = 0;
+        rpgp_signed_public_key* *public_keys = NULL;
+        rpgp_signed_secret_key* private_key = NULL;
+        rpgp_message*           encrypted = NULL;
+
+	if (context==NULL || plain_text==NULL || plain_bytes==0 || ret_ctext==NULL || ret_ctext_bytes==NULL
+	 || raw_public_keys_for_encryption==NULL || raw_public_keys_for_encryption->count<=0
+         || use_armor==0 /* only support use_armor=1 */) {
+          goto cleanup;
+	}
+
+	*ret_ctext        = NULL;
+	*ret_ctext_bytes  = 0;
+        public_keys_len  = raw_public_keys_for_encryption->count;
+        public_keys      = malloc(sizeof(rpgp_signed_public_key*) * public_keys_len);
+
+
+	/* setup secret key for signing */
+        if (raw_private_key_for_signing) {
+          private_key = rpgp_skey_from_bytes(raw_private_key_for_signing->binary,
+                                             raw_private_key_for_signing->bytes);
+          if (dc_pgp_handle_rpgp_error(context)) {
+            goto cleanup;
+          }
+        }
+
+        /* setup public keys for encryption */
+        for (i = 0; i < public_keys_len; i++) {
+          public_keys[i] = rpgp_pkey_from_bytes(raw_public_keys_for_encryption->keys[i]->binary,
+                                                raw_public_keys_for_encryption->keys[i]->bytes);
+          if (dc_pgp_handle_rpgp_error(context)) {
+            goto cleanup;
+          }
+	}
+
+	/* sign & encrypt */
+	{
+          clock_t     op_clocks = 0;
+          clock_t start = clock();
+
+          if (private_key==NULL) {
+            dc_log_warning(context, 0, "No key for signing found.");
+
+            encrypted = rpgp_encrypt_bytes_to_keys(plain_text, plain_bytes,
+                                                   (const rpgp_signed_public_key* const*)public_keys, public_keys_len);
+            if (dc_pgp_handle_rpgp_error(context)) {
+              dc_log_warning(context, 0, "Encryption failed.");
+              goto cleanup;
+            }
+
+            op_clocks = clock()-start;
+            dc_log_info(context, 0, "Message encrypted in %.3f ms.", (double)(op_clocks)*1000.0/CLOCKS_PER_SEC);
+          } else {
+            encrypted = rpgp_sign_encrypt_bytes_to_keys(plain_text, plain_bytes,
+                                                        (const rpgp_signed_public_key* const*)public_keys, public_keys_len,
+                                                        private_key);
+            if (dc_pgp_handle_rpgp_error(context)) {
+              dc_log_warning(context, 0, "Signing and encrypting failed.");
+              goto cleanup;
+            }
+
+            op_clocks = clock()-start;
+            dc_log_info(context, 0, "Message signed and encrypted in %.3f ms.", (double)(op_clocks)*1000.0/CLOCKS_PER_SEC);
+          }
+
+          /* convert message to armored bytes and return values */
+          rpgp_cvec* armored = rpgp_msg_to_armored(encrypted);
+          if (dc_pgp_handle_rpgp_error(context)) {
+            goto cleanup;
+          }
+
+          *ret_ctext       = (void*)rpgp_cvec_data(armored);
+          *ret_ctext_bytes = rpgp_cvec_len(armored);
+
+          // No drop as we only remove the struct
+          free(armored);
+        }
+
+        success = 1;
+
+cleanup:
+        if (private_key) { rpgp_skey_drop(private_key); }
+
+        for (i = 0; i < public_keys_len; i++) {
+          rpgp_pkey_drop(public_keys[i]);
+        }
+
+        if (encrypted) { rpgp_msg_drop(encrypted); }
+
+        return success;
+}
+
+#else
 
 int dc_pgp_pk_encrypt( dc_context_t*       context,
                        const void*         plain_text,
@@ -840,6 +946,8 @@ cleanup:
 	if (dummy_keys)   { pgp_keyring_purge(dummy_keys); free(dummy_keys); }
 	return success;
 }
+
+#endif // !DC_USE_RPGP
 
 
 #if DC_USE_RPGP
