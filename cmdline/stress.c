@@ -1015,7 +1015,8 @@ void stress_functions(dc_context_t* context)
 			void* plain = NULL;
 			int ok = dc_pgp_pk_decrypt(context, ctext_signed, ctext_signed_bytes, keyring, public_keyring/*for validate*/, 1, &plain, &plain_bytes, NULL);
 			assert( ok && plain && plain_bytes>0 );
-			assert( strcmp(plain, original_text)==0 );
+			assert( plain_bytes == strlen(original_text) );
+			assert( strncmp(plain, original_text, plain_bytes)==0 );
 			free(plain);
 
 			dc_keyring_unref(keyring);
