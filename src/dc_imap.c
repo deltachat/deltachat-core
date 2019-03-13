@@ -202,7 +202,7 @@ static char* unquote_rfc724_mid(const char* in)
 }
 
 
-static const char* peek_rfc724_mid(struct mailimap_msg_att* msg_att)
+static char* get_rfc724_mid(struct mailimap_msg_att* msg_att)
 {
 	if (msg_att==NULL) {
 		return NULL;
@@ -221,7 +221,29 @@ static const char* peek_rfc724_mid(struct mailimap_msg_att* msg_att)
 				{
 					struct mailimap_envelope* env = item->att_data.att_static->att_data.att_env;
 					if (env && env->env_message_id) {
-						return env->env_message_id;
+						return dc_strdup(env->env_message_id);
+					}
+				}
+				else if (item->att_data.att_static->att_type==MAILIMAP_MSG_ATT_BODY_SECTION)
+				{
+					const char* text     = item->att_data.att_static->att_data.att_body_section->sec_body_part;
+					size_t      text_len = item->att_data.att_static->att_data.att_body_section->sec_length;
+					size_t      dummy = 0;
+					struct mailimf_fields* fields = NULL;
+					if (mailimf_optional_fields_parse(text, text_len, &dummy, &fields)==MAILIMF_NO_ERROR && fields) {
+						for (clistiter* cur1 = clist_begin(fields->fld_list); cur1!=NULL ; cur1=clist_next(cur1))
+						{
+							struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
+							if (field->fld_type==MAILIMF_FIELD_OPTIONAL_FIELD) {
+								const char* field_name = field->fld_data.fld_optional_field->fld_name;
+								if (strcasecmp(field_name, "Message-ID")==0) {
+									char* ret = dc_strdup(field->fld_data.fld_optional_field->fld_value);
+									mailimf_fields_free(fields);
+									return ret;
+								}
+							}
+						}
+						mailimf_fields_free(fields);
 					}
 				}
 			}
@@ -492,7 +514,9 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 		uint32_t cur_uid = peek_uid(msg_att);
 		if (cur_uid > lastseenuid /* `UID FETCH <lastseenuid+1>:*` may include lastseenuid if "*"==lastseenuid - and also smaller uids may be returned! */)
 		{
-			char* rfc724_mid = unquote_rfc724_mid(peek_rfc724_mid(msg_att));
+			char* temp = get_rfc724_mid(msg_att);
+			char* rfc724_mid = unquote_rfc724_mid(temp);
+			free(temp);
 
 			read_cnt++;
 			if (!imap->precheck_imf(imap, rfc724_mid, folder, cur_uid)) {
@@ -1006,16 +1030,16 @@ dc_imap_t* dc_imap_new(dc_get_config_t get_config, dc_set_config_t set_config,
 
 	/* create some useful objects */
 
-	// object to fetch UID and Message-Id
-	//
-	// TODO: we're using `FETCH ... (... ENVELOPE)` currently,
-	//   mainly because peek_rfc724_mid() can handle this structure
-	//   and it is easier wrt to libEtPan.
-	//   however, if the other ENVELOPE fields are known to be not needed in the near future,
-	//   this could be changed to `FETCH ... (... BODY[HEADER.FIELDS (MESSAGE-ID)])`
+	// object to prefetch
+	// (results in `FETCH ... (... BODY[HEADER.FIELDS (MESSAGE-ID)])`
+	// `ENVELOPE` returns too much, eg. large Autocrypt headers)
 	imap->fetch_type_prefetch = mailimap_fetch_type_new_fetch_att_list_empty();
 	mailimap_fetch_type_new_fetch_att_list_add(imap->fetch_type_prefetch, mailimap_fetch_att_new_uid());
-	mailimap_fetch_type_new_fetch_att_list_add(imap->fetch_type_prefetch, mailimap_fetch_att_new_envelope());
+	clist* hdrlist = clist_new();
+	clist_append(hdrlist, strdup("Message-ID"));
+	clist_append(hdrlist, strdup("Chat-Version"));
+	mailimap_fetch_type_new_fetch_att_list_add(imap->fetch_type_prefetch,
+		mailimap_fetch_att_new_body_section(mailimap_section_new_header_fields(mailimap_header_list_new(hdrlist))));
 
 	// object to fetch flags and body
 	imap->fetch_type_body = mailimap_fetch_type_new_fetch_att_list_empty();
@@ -1299,7 +1323,7 @@ int dc_imap_delete_msg(dc_imap_t* imap, const char* rfc724_mid, const char* fold
 	*/
 	{
 		clistiter* cur = NULL;
-		const char* is_quoted_rfc724_mid = NULL;
+		char* is_quoted_rfc724_mid = NULL;
 
 		struct mailimap_set* set = mailimap_set_new_single(server_uid);
 			r = mailimap_uid_fetch(imap->etpan, set, imap->fetch_type_prefetch, &fetch_result);
@@ -1312,13 +1336,15 @@ int dc_imap_delete_msg(dc_imap_t* imap, const char* rfc724_mid, const char* fold
 		}
 
 		if( (cur=clist_begin(fetch_result))==NULL
-		 || (is_quoted_rfc724_mid=peek_rfc724_mid((struct mailimap_msg_att*)clist_content(cur)))==NULL
+		 || (is_quoted_rfc724_mid=get_rfc724_mid((struct mailimap_msg_att*)clist_content(cur)))==NULL
 		 || (is_rfc724_mid=unquote_rfc724_mid(is_quoted_rfc724_mid))==NULL
 		 || strcmp(is_rfc724_mid, rfc724_mid)!=0)
 		{
 			dc_log_warning(imap->context, 0, "Cannot delete on IMAP, %s/%i does not match %s.", folder, (int)server_uid, rfc724_mid);
 			server_uid = 0;
 		}
+
+		free(is_quoted_rfc724_mid);
 	}
 
 	/* mark the message for deletion */
