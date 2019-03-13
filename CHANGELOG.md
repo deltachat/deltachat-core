@@ -8,6 +8,23 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes anywhere in the Delta Chat ecosystem,
 see https://delta.chat/en/changelog
 
+## v0.41.0
+
+* optionally support RPGP by the global define `DC_USE_RPGP`
+* new `show_emails` config option taking one of the `DC_SHOW_EMAILS_*` values;
+  defaults to `DC_SHOW_EMAILS_OFF` for new installations
+  and to `DC_SHOW_EMAILS_ALL` for existing installations
+* more reliable moving of chat messages to the DeltaChat folder
+* oauth2 optionally supported via `dc_get_oauth2_url()`;
+  currently gmail and yandex are supported
+* added `DC_EVENT_HTTP_POST` and `DC_LP_AUTH_OAUTH2`; needed for oauth2
+* probing STARTTLS on ports 993, 143 and 25
+* gossip keys only after changes or once every few days
+* add core-version to X-Mailer header
+
+The changes have been done by Björn Petersen, Floris Bruynooghe,
+Friedel Ziegelmayer and Holger Krekel
+
 ## v0.40.0
 
 * do not truncate messenger messages
