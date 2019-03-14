@@ -582,6 +582,8 @@ static void export_key_to_asc_file(dc_context_t* context, const char* dir, int i
 	dc_delete_file(context, file_name);
 	if (dc_key_render_asc_to_file(key, file_name, context)) {
 		context->cb(context, DC_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)file_name, 0);
+	}
+	else {
 		dc_log_error(context, 0, "Cannot write key to %s", file_name);
 	}
 	free(file_name);
