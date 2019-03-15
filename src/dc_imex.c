@@ -569,9 +569,11 @@ cleanup:
  ******************************************************************************/
 
 
-static void export_key_to_asc_file(dc_context_t* context, const char* dir, int id, const dc_key_t* key, int is_default)
+static int export_key_to_asc_file(dc_context_t* context, const char* dir, int id, const dc_key_t* key, int is_default)
 {
-	char* file_name;
+	int   success = 0;
+	char* file_name = NULL;
+
 	if (is_default) {
 		file_name = dc_mprintf("%s/%s-key-default.asc", dir, key->type==DC_KEY_PUBLIC? "public" : "private");
 	}
@@ -580,39 +582,51 @@ static void export_key_to_asc_file(dc_context_t* context, const char* dir, int i
 	}
 	dc_log_info(context, 0, "Exporting key %s", file_name);
 	dc_delete_file(context, file_name);
-	if (dc_key_render_asc_to_file(key, file_name, context)) {
-		context->cb(context, DC_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)file_name, 0);
-	}
-	else {
+	if (!dc_key_render_asc_to_file(key, file_name, context)) {
 		dc_log_error(context, 0, "Cannot write key to %s", file_name);
+		goto cleanup;
 	}
+
+	context->cb(context, DC_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)file_name, 0);
+	success = 1;
+
+cleanup:
 	free(file_name);
+	return success;
 }
 
 
 static int export_self_keys(dc_context_t* context, const char* dir)
 {
 	int           success = 0;
+	int           export_errors = 0;
 	sqlite3_stmt* stmt = NULL;
 	int           id = 0;
 	int           is_default = 0;
 	dc_key_t*     public_key = dc_key_new();
 	dc_key_t*     private_key = dc_key_new();
 
-		if ((stmt=dc_sqlite3_prepare(context->sql, "SELECT id, public_key, private_key, is_default FROM keypairs;"))==NULL) {
-			goto cleanup;
+	if ((stmt=dc_sqlite3_prepare(context->sql, "SELECT id, public_key, private_key, is_default FROM keypairs;"))==NULL) {
+		goto cleanup;
+	}
+
+	while (sqlite3_step(stmt)==SQLITE_ROW) {
+		id = sqlite3_column_int(         stmt, 0 );
+		dc_key_set_from_stmt(public_key,  stmt, 1, DC_KEY_PUBLIC);
+		dc_key_set_from_stmt(private_key, stmt, 2, DC_KEY_PRIVATE);
+		is_default = sqlite3_column_int( stmt, 3 );
+		if(!export_key_to_asc_file(context, dir, id, public_key,  is_default)) {
+			export_errors++;
 		}
 
-		while (sqlite3_step(stmt)==SQLITE_ROW) {
-			id = sqlite3_column_int(         stmt, 0 );
-			dc_key_set_from_stmt(public_key,  stmt, 1, DC_KEY_PUBLIC);
-			dc_key_set_from_stmt(private_key, stmt, 2, DC_KEY_PRIVATE);
-			is_default = sqlite3_column_int( stmt, 3 );
-			export_key_to_asc_file(context, dir, id, public_key,  is_default);
-			export_key_to_asc_file(context, dir, id, private_key, is_default);
+		if (!export_key_to_asc_file(context, dir, id, private_key, is_default)) {
+			export_errors++;
 		}
+	}
 
+	if (export_errors==0) {
 		success = 1;
+	}
 
 cleanup:
 	sqlite3_finalize(stmt);
