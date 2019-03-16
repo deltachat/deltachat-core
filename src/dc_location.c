@@ -27,6 +27,10 @@ char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id)
 	double           accuracy = 0.0;
 	char*            timestamp = NULL;
 	char*            self_addr = NULL;
+	time_t           now = time(NULL);
+	time_t           locations_send_begin = 0;
+	time_t           locations_send_until = 0;
+	int              location_count = 0;
 	dc_strbuilder_t  ret;
 	dc_strbuilder_init(&ret, 1000);
 
@@ -34,8 +38,27 @@ char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id)
 		goto cleanup;
 	}
 
+	// get info about the contact and the chat
 	self_addr = dc_sqlite3_get_config(context->sql, "configured_addr", "");
 
+	stmt = dc_sqlite3_prepare(context->sql,
+		"SELECT locations_send_begin, locations_send_until "
+		"  FROM chats "
+		" WHERE id=?;");
+	sqlite3_bind_int(stmt, 1, chat_id);
+	if (sqlite3_step(stmt)!=SQLITE_ROW) {
+		goto cleanup;
+	}
+	locations_send_begin = sqlite3_column_int64(stmt, 0);
+	locations_send_until = sqlite3_column_int64(stmt, 1);
+	sqlite3_finalize(stmt);
+	stmt = NULL;
+
+	if (locations_send_begin==0 || now>locations_send_until) {
+		goto cleanup;
+	}
+
+	// build kml file
 	dc_strbuilder_catf(&ret,
 		"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 		"<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n"
@@ -46,9 +69,11 @@ char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id)
 			"SELECT latitude, longitude, accuracy, timestamp "
 			" FROM locations "
 			" WHERE from_id=? "
+			"   AND timestamp>=? "
 			"   AND timestamp=(SELECT MAX(timestamp) FROM locations WHERE from_id=?) ");
 	sqlite3_bind_int   (stmt, 1, DC_CONTACT_ID_SELF);
-	sqlite3_bind_int   (stmt, 2, DC_CONTACT_ID_SELF);
+	sqlite3_bind_int   (stmt, 2, locations_send_begin);
+	sqlite3_bind_int   (stmt, 3, DC_CONTACT_ID_SELF);
 	while (sqlite3_step(stmt)==SQLITE_ROW)
 	{
 		latitude  = sqlite3_column_double(stmt, 0);
@@ -66,8 +91,14 @@ char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id)
 			longitude, // reverse order!
 			latitude);
 
+		location_count++;
+
 		free(timestamp);
 		timestamp = NULL;
+	}
+
+	if (location_count==0) {
+		goto cleanup;
 	}
 
 	dc_strbuilder_cat(&ret,
@@ -335,6 +366,7 @@ void dc_send_locations_to_chat(dc_context_t* context, uint32_t chat_id,
                                int seconds)
 {
 	sqlite3_stmt* stmt = NULL;
+	time_t        now = time(NULL);
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || seconds<0) {
 		goto cleanup;
@@ -342,10 +374,12 @@ void dc_send_locations_to_chat(dc_context_t* context, uint32_t chat_id,
 
 	stmt = dc_sqlite3_prepare(context->sql,
 		"UPDATE chats "
-		" SET locations_send_until=? "
+		"   SET locations_send_begin=?, "
+		"       locations_send_until=? "
 		" WHERE id=?");
-	sqlite3_bind_int64(stmt, 1, time(NULL)+seconds);
-	sqlite3_bind_int  (stmt, 2, chat_id);
+	sqlite3_bind_int64(stmt, 1, now);
+	sqlite3_bind_int64(stmt, 2, now+seconds);
+	sqlite3_bind_int  (stmt, 3, chat_id);
 	sqlite3_step(stmt);
 
 	// TODO: send a status message

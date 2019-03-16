@@ -566,7 +566,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 			}
 		#undef NEW_DB_VERSION
 
-		#define NEW_DB_VERSION 51
+		#define NEW_DB_VERSION 52
 			if (dbversion < NEW_DB_VERSION)
 			{
 				// the messages containing _only_ locations
@@ -582,6 +582,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 							" msg_id INTEGER DEFAULT 0);");
 				dc_sqlite3_execute(sql, "CREATE INDEX locations_index1 ON locations (from_id);");
 				dc_sqlite3_execute(sql, "CREATE INDEX locations_index2 ON locations (timestamp);");
+				dc_sqlite3_execute(sql, "ALTER TABLE chats ADD COLUMN locations_send_begin INTEGER DEFAULT 0;");
 				dc_sqlite3_execute(sql, "ALTER TABLE chats ADD COLUMN locations_send_until INTEGER DEFAULT 0;");
 				dc_sqlite3_execute(sql, "ALTER TABLE chats ADD COLUMN locations_last_sent INTEGER DEFAULT 0;");
 				dc_sqlite3_execute(sql, "CREATE INDEX chats_index3 ON chats (locations_send_until);");
