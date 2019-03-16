@@ -33,6 +33,8 @@ static void log_vprintf(dc_context_t* context, int event, int data1, const char*
 	}
 
 	context->cb(context, event, (uintptr_t)data1, (uintptr_t)msg);
+
+	free(msg);
 }
 
 
