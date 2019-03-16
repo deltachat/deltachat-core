@@ -117,6 +117,21 @@ cleanup:
 }
 
 
+void dc_set_kml_sent_timestamp(dc_context_t* context,
+                               uint32_t chat_id, time_t timestamp)
+{
+	sqlite3_stmt* stmt = NULL;
+
+	stmt = dc_sqlite3_prepare(context->sql,
+		"UPDATE chats SET locations_last_sent=? WHERE id=?;");
+	sqlite3_bind_int64(stmt, 1, timestamp);
+	sqlite3_bind_int  (stmt, 2, chat_id);
+
+	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+}
+
+
 /*******************************************************************************
  * parse kml-files
  ******************************************************************************/

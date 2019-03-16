@@ -705,6 +705,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 
 				mailmime_smart_add_part(message, kml_mime_part);
 				parts++;
+				factory->out_locations_added = 1;
 			}
 		}
 	}

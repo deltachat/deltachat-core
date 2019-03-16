@@ -310,6 +310,10 @@ int dc_job_send_msg(dc_context_t* context, uint32_t msg_id)
 			dc_set_gossiped_timestamp(context, mimefactory.msg->chat_id, time(NULL));
 		}
 
+		if (mimefactory.out_locations_added) {
+			dc_set_kml_sent_timestamp(context, mimefactory.msg->chat_id, time(NULL));
+		}
+
 		if (mimefactory.out_encrypted && dc_param_get_int(mimefactory.msg->param, DC_PARAM_GUARANTEE_E2EE, 0)==0) {
 			dc_param_set_int(mimefactory.msg->param, DC_PARAM_GUARANTEE_E2EE, 1); /* can upgrade to E2EE - fine! */
 			dc_msg_save_param_to_disk(mimefactory.msg);

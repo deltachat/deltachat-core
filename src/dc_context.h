@@ -141,10 +141,11 @@ typedef struct _dc_kml
 	dc_location_t curr;
 } dc_kml_t;
 
-char*           dc_get_location_kml  (dc_context_t*, uint32_t chat_id);
-int             dc_save_locations    (dc_context_t*, uint32_t chat_id, uint32_t contact_id, const dc_array_t*);
-dc_kml_t*       dc_kml_parse         (dc_context_t*, const char* content, size_t content_bytes);
-void            dc_kml_unref         (dc_kml_t*);
+char*           dc_get_location_kml       (dc_context_t*, uint32_t chat_id);
+void            dc_set_kml_sent_timestamp (dc_context_t*, uint32_t chat_id, time_t);
+int             dc_save_locations         (dc_context_t*, uint32_t chat_id, uint32_t contact_id, const dc_array_t*);
+dc_kml_t*       dc_kml_parse              (dc_context_t*, const char* content, size_t content_bytes);
+void            dc_kml_unref              (dc_kml_t*);
 
 
 // backups
