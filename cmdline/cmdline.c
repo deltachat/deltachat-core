@@ -914,6 +914,8 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 				ret = dc_mprintf("%i contacts\nLocation streaming: %i",
 					(int)dc_array_get_cnt(contacts),
 					dc_is_sending_locations_to_chat(context, dc_chat_get_id(sel_chat)));
+
+				dc_array_unref(contacts);
 			}
 			else {
 				ret = COMMAND_FAILED;
