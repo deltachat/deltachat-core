@@ -30,6 +30,7 @@ char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id)
 	time_t           now = time(NULL);
 	time_t           locations_send_begin = 0;
 	time_t           locations_send_until = 0;
+	time_t           locations_last_sent = 0;
 	int              location_count = 0;
 	dc_strbuilder_t  ret;
 	dc_strbuilder_init(&ret, 1000);
@@ -42,7 +43,7 @@ char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id)
 	self_addr = dc_sqlite3_get_config(context->sql, "configured_addr", "");
 
 	stmt = dc_sqlite3_prepare(context->sql,
-		"SELECT locations_send_begin, locations_send_until "
+		"SELECT locations_send_begin, locations_send_until, locations_last_sent"
 		"  FROM chats "
 		" WHERE id=?;");
 	sqlite3_bind_int(stmt, 1, chat_id);
@@ -51,6 +52,7 @@ char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id)
 	}
 	locations_send_begin = sqlite3_column_int64(stmt, 0);
 	locations_send_until = sqlite3_column_int64(stmt, 1);
+	locations_last_sent  = sqlite3_column_int64(stmt, 2);
 	sqlite3_finalize(stmt);
 	stmt = NULL;
 
@@ -70,10 +72,12 @@ char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id)
 			" FROM locations "
 			" WHERE from_id=? "
 			"   AND timestamp>=? "
-			"   AND timestamp=(SELECT MAX(timestamp) FROM locations WHERE from_id=?) ");
+			"   AND (timestamp>=? OR timestamp=(SELECT MAX(timestamp) FROM locations WHERE from_id=?)) "
+			"   ORDER BY timestamp;");
 	sqlite3_bind_int   (stmt, 1, DC_CONTACT_ID_SELF);
-	sqlite3_bind_int   (stmt, 2, locations_send_begin);
-	sqlite3_bind_int   (stmt, 3, DC_CONTACT_ID_SELF);
+	sqlite3_bind_int64 (stmt, 2, locations_send_begin);
+	sqlite3_bind_int64 (stmt, 3, locations_last_sent);
+	sqlite3_bind_int   (stmt, 4, DC_CONTACT_ID_SELF);
 	while (sqlite3_step(stmt)==SQLITE_ROW)
 	{
 		latitude  = sqlite3_column_double(stmt, 0);
