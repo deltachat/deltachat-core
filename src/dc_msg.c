@@ -1191,6 +1191,38 @@ cleanup:
  ******************************************************************************/
 
 
+/*
+ * Check if there is a record for the given msg_id
+ * and that the record is not about to be deleted.
+ */
+int dc_msg_exists(dc_context_t* context, uint32_t msg_id)
+{
+	int           msg_exists = 0;
+	sqlite3_stmt* stmt = NULL;
+
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC
+	 || msg_id<=DC_MSG_ID_LAST_SPECIAL) {
+		goto cleanup;
+	}
+
+	stmt = dc_sqlite3_prepare(context->sql,
+		"SELECT chat_id FROM msgs WHERE id=?;");
+	sqlite3_bind_int(stmt, 1, msg_id);
+	if (sqlite3_step(stmt)==SQLITE_ROW)
+	{
+		uint32_t chat_id = sqlite3_column_int(stmt, 0);
+		if (chat_id!=DC_CHAT_ID_TRASH)
+		{
+			msg_exists = 1;
+		}
+	}
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return msg_exists;
+}
+
+
 void dc_update_msg_chat_id(dc_context_t* context, uint32_t msg_id, uint32_t chat_id)
 {
 	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->sql,
