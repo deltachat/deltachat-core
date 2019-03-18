@@ -269,6 +269,7 @@ uint32_t        dc_create_chat_by_msg_id     (dc_context_t*, uint32_t msg_id);
 uint32_t        dc_create_chat_by_contact_id (dc_context_t*, uint32_t contact_id);
 uint32_t        dc_get_chat_id_by_contact_id (dc_context_t*, uint32_t contact_id);
 
+uint32_t        dc_prepare_msg               (dc_context_t*, uint32_t chat_id, dc_msg_t*);
 uint32_t        dc_send_msg                  (dc_context_t*, uint32_t chat_id, dc_msg_t*);
 uint32_t        dc_send_text_msg             (dc_context_t*, uint32_t chat_id, const char* text_to_send);
 void            dc_set_draft                 (dc_context_t*, uint32_t chat_id, dc_msg_t*);
@@ -487,6 +488,7 @@ int             dc_chat_is_verified          (const dc_chat_t*);
 #define         DC_STATE_IN_FRESH            10
 #define         DC_STATE_IN_NOTICED          13
 #define         DC_STATE_IN_SEEN             16
+#define         DC_STATE_OUT_PREPARING       18
 #define         DC_STATE_OUT_DRAFT           19
 #define         DC_STATE_OUT_PENDING         20
 #define         DC_STATE_OUT_FAILED          24

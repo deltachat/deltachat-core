@@ -232,6 +232,11 @@ class MessageState(object):
         """
         return self._msgstate == const.DC_STATE_IN_SEEN
 
+    def is_out_preparing(self):
+        """Return True if Message is outgoing, but its file is being prepared.
+        """
+        return self._msgstate == const.DC_STATE_OUT_PREPARING
+
     def is_out_pending(self):
         """Return True if Message is outgoing, but is pending (no single checkmark).
         """
