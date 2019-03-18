@@ -432,6 +432,10 @@ static char* create_adhoc_grp_id(dc_context_t* context, dc_array_t* member_ids /
 	}
 
 	ret = calloc(1, 256);
+	if (ret==NULL) {
+		goto cleanup;
+	}
+
 	for (i = 0; i < 8; i++) {
 		sprintf(&ret[i*2], "%02x", (int)rpgp_cvec_data(binary_hash)[i]);
 	}
@@ -450,6 +454,10 @@ static char* create_adhoc_grp_id(dc_context_t* context, dc_array_t* member_ids /
 
 	/* output the first 8 bytes as 16 hex-characters - CAVE: if the lenght changes here, also adapt dc_extract_grpid_from_rfc724_mid() */
 	ret = calloc(1, 256);
+	if (ret==NULL) {
+		goto cleanup;
+	}
+
 	for (i = 0; i < 8; i++) {
 		sprintf(&ret[i*2], "%02x", (int)binary_hash[i]);
 	}
