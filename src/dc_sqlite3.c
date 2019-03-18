@@ -228,7 +228,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 			dc_sqlite3_execute(sql, "CREATE TABLE config (id INTEGER PRIMARY KEY, keyname TEXT, value TEXT);");
 			dc_sqlite3_execute(sql, "CREATE INDEX config_index1 ON config (keyname);");
 
-			dc_sqlite3_execute(sql, "CREATE TABLE contacts (id INTEGER PRIMARY KEY,"
+			dc_sqlite3_execute(sql, "CREATE TABLE contacts (id INTEGER PRIMARY KEY AUTOINCREMENT,"
 						" name TEXT DEFAULT '',"
 						" addr TEXT DEFAULT '' COLLATE NOCASE,"
 						" origin INTEGER DEFAULT 0,"
@@ -242,7 +242,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 				#error
 			#endif
 
-			dc_sqlite3_execute(sql, "CREATE TABLE chats (id INTEGER PRIMARY KEY, "
+			dc_sqlite3_execute(sql, "CREATE TABLE chats (id INTEGER PRIMARY KEY AUTOINCREMENT, "
 						" type INTEGER DEFAULT 0,"
 						" name TEXT DEFAULT '',"
 						" draft_timestamp INTEGER DEFAULT 0,"
@@ -261,7 +261,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 				#error
 			#endif
 
-			dc_sqlite3_execute(sql, "CREATE TABLE msgs (id INTEGER PRIMARY KEY,"
+			dc_sqlite3_execute(sql, "CREATE TABLE msgs (id INTEGER PRIMARY KEY AUTOINCREMENT,"
 						" rfc724_mid TEXT DEFAULT '',"     /* forever-global-unique Message-ID-string, unfortunately, this cannot be easily used to communicate via IMAP */
 						" server_folder TEXT DEFAULT '',"  /* folder as used on the server, the folder will change when messages are moved around. */
 						" server_uid INTEGER DEFAULT 0,"   /* UID as used on the server, the UID will change when messages are moved around, unique together with validity, see RFC 3501; the validity may differ from folder to folder.  We use the server_uid for "markseen" and to delete messages as we check against the message-id, we ignore the validity for these commands. */
