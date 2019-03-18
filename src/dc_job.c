@@ -208,13 +208,12 @@ cleanup:
 static int dc_add_smtp_job(dc_context_t* context, int action, dc_mimefactory_t* mimefactory)
 {
 	char*            pathNfilename = NULL;
-	char*            blobdir = dc_get_blobdir(context);
 	int              success = 0;
 	char*            recipients = NULL;
 	dc_param_t*      param = dc_param_new();
 
 	// find a free file name in the blob directory
-	pathNfilename = dc_get_fine_pathNfilename(context, blobdir, mimefactory->rfc724_mid);
+	pathNfilename = dc_get_fine_pathNfilename(context, "$BLOBDIR", mimefactory->rfc724_mid);
 	if (!pathNfilename) {
 		dc_log_error(context, 0, "Could not find free file name for message with ID <%s>.", mimefactory->rfc724_mid);
 		goto cleanup;
@@ -238,7 +237,6 @@ static int dc_add_smtp_job(dc_context_t* context, int action, dc_mimefactory_t* 
 cleanup:
 	dc_param_unref(param);
 	free(recipients);
-	free(blobdir);
 	free(pathNfilename);
 	return success;
 }
