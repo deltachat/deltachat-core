@@ -190,7 +190,8 @@ int dc_msg_get_viewtype(const dc_msg_t* msg)
  *
  * Outgoing message states:
  * - DC_STATE_OUT_PREPARING (18) - For files which need time to be prepared before they can be sent,
- *   the message enters this state before #DC_STATE_OUT_PENDING.
+ *   the message enters this state before DC_STATE_OUT_PENDING.
+ * - DC_STATE_OUT_DRAFT (19) - Message saved as draft using dc_set_draft()
  * - DC_STATE_OUT_PENDING (20) - The user has send the "send" button but the
  *   message is not yet sent and is pending in some way. Maybe we're offline (no checkmark).
  * - DC_STATE_OUT_FAILED (24) - _Unrecoverable_ error (_recoverable_ errors result in pending messages), you'll receive the event #DC_EVENT_MSG_FAILED.
