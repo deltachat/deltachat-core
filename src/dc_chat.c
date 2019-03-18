@@ -2220,7 +2220,7 @@ cleanup:
 }
 
 
-static uint32_t prepare_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc_msg_t* msg, time_t timestamp, int state)
+static uint32_t prepare_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc_msg_t* msg, time_t timestamp)
 {
 	char*         parent_rfc724_mid = NULL;
 	char*         parent_references = NULL;
@@ -2383,7 +2383,7 @@ static uint32_t prepare_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc
 	sqlite3_bind_int  (stmt,  4, to_id);
 	sqlite3_bind_int64(stmt,  5, timestamp);
 	sqlite3_bind_int  (stmt,  6, msg->type);
-	sqlite3_bind_int  (stmt,  7, state);
+	sqlite3_bind_int  (stmt,  7, msg->state);
 	sqlite3_bind_text (stmt,  8, msg->text? msg->text : "",  -1, SQLITE_STATIC);
 	sqlite3_bind_text (stmt,  9, msg->param->packed, -1, SQLITE_STATIC);
 	sqlite3_bind_int  (stmt, 10, msg->hidden);
@@ -2408,7 +2408,7 @@ cleanup:
 }
 
 
-static uint32_t prepare_msg_common(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg, int state)
+static uint32_t prepare_msg_common(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 {
 	char*      pathNfilename = NULL;
 	dc_chat_t* chat = NULL;
@@ -2428,7 +2428,7 @@ static uint32_t prepare_msg_common(dc_context_t* context, uint32_t chat_id, dc_m
 			goto cleanup;
 		}
 
-		if (state==DC_STATE_OUT_PREPARING && !dc_is_blobdir_path(context, pathNfilename)) {
+		if (msg->state==DC_STATE_OUT_PREPARING && !dc_is_blobdir_path(context, pathNfilename)) {
 			dc_log_error(context, 0, "Files must be created in the blob-directory.");
 			goto cleanup;
 		}
@@ -2475,7 +2475,10 @@ static uint32_t prepare_msg_common(dc_context_t* context, uint32_t chat_id, dc_m
 
 	chat = dc_chat_new(context);
 	if (dc_chat_load_from_db(chat, chat_id)) {
-		msg->id = prepare_msg_raw(context, chat, msg, dc_create_smeared_timestamp(context), state);
+		/* ensure the message is in a valid state */
+		if (msg->state!=DC_STATE_OUT_PREPARING) msg->state = DC_STATE_OUT_PENDING;
+
+		msg->id = prepare_msg_raw(context, chat, msg, dc_create_smeared_timestamp(context));
 		msg->chat_id = chat_id;
 		/* potential error already logged */
 	}
@@ -2491,7 +2494,7 @@ cleanup:
  * Prepare a message for sending.
  *
  * Call this function if the file to be sent is still in creation.
- * Once you're done with creating the file, call dc_send_msg() with chat_id of 0
+ * Once you're done with creating the file, call dc_send_msg() as usual
  * and the message will really be sent.
  *
  * This is useful as the user can already send the next messages while
@@ -2502,6 +2505,8 @@ cleanup:
  * blob directory, see dc_get_blobdir().
  * If the increation-method is not used - which is probably the normal case -
  * dc_send_msg() copies the file to the blob directory if it is not yet there.
+ * To distinguish the two cases, msg->state must be set properly. The easiest
+ * way to ensure this is to re-use the same object for both calls.
  *
  * Example:
  * ~~~
@@ -2509,14 +2514,14 @@ cleanup:
  * dc_msg_set_file(msg, "/file/to/send.mp4", NULL);
  * dc_prepare_msg(context, chat_id, msg);
  * // ... after /file/to/send.mp4 is ready:
- * dc_send_msg(context, 0, msg);
+ * dc_send_msg(context, chat_id, msg);
  * ~~~
  *
  * @memberof dc_context_t
  * @param context The context object as returned from dc_context_new().
  * @param chat_id Chat ID to send the message to.
  * @param msg Message object to send to the chat defined by the chat ID.
- *     On succcess, msg_id of the object is set up,
+ *     On succcess, msg_id and state of the object are set up,
  *     The function does not take ownership of the object,
  *     so you have to free it using dc_msg_unref() as usual.
  * @return The ID of the message that is being prepared.
@@ -2527,7 +2532,8 @@ uint32_t dc_prepare_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 		return 0;
 	}
 
-	return prepare_msg_common(context, chat_id, msg, DC_STATE_OUT_PREPARING);
+	msg->state = DC_STATE_OUT_PREPARING;
+	return prepare_msg_common(context, chat_id, msg);
 }
 
 /**
@@ -2548,12 +2554,12 @@ uint32_t dc_prepare_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
  * @memberof dc_context_t
  * @param context The context object as returned from dc_context_new().
  * @param chat_id Chat ID to send the message to.
- *     If dc_prepare_msg() was called before, this parameter must be 0.
+ *     If dc_prepare_msg() was called before, this parameter can be 0.
  * @param msg Message object to send to the chat defined by the chat ID.
  *     On succcess, msg_id of the object is set up,
  *     The function does not take ownership of the object,
  *     so you have to free it using dc_msg_unref() as usual.
- * @return The ID of the message that is about to be sent.
+ * @return The ID of the message that is about to be sent. 0 in case of errors.
  */
 uint32_t dc_send_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 {
@@ -2562,17 +2568,17 @@ uint32_t dc_send_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 	}
 
 	// automatically prepare normal messages
-	if (chat_id) {
-		if (!prepare_msg_common(context, chat_id, msg, DC_STATE_OUT_PENDING)) {
+	if (msg->state!=DC_STATE_OUT_PREPARING) {
+		if (!prepare_msg_common(context, chat_id, msg)) {
 			return 0;
 		};
 	}
 	// update message state of separately prepared messages
-	else if (msg->state==DC_STATE_OUT_PREPARING) {
-		dc_update_msg_state(context, msg->id, DC_STATE_OUT_PENDING);
-	}
 	else {
-		return 0;
+		if (chat_id!=0 && chat_id!=msg->chat_id) {
+			return 0;
+		}
+		dc_update_msg_state(context, msg->id, DC_STATE_OUT_PENDING);
 	}
 
 	// create message file and submit SMTP job
@@ -2747,7 +2753,7 @@ void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt
 			uint32_t new_msg_id;
 			// PREPARING messages can't be forwarded immediately
 			if (msg->state==DC_STATE_OUT_PREPARING) {
-				new_msg_id = prepare_msg_raw(context, chat, msg, curr_timestamp++, msg->state);
+				new_msg_id = prepare_msg_raw(context, chat, msg, curr_timestamp++);
 
 				// to update the original message, perform in-place surgery
 				// on msg to avoid copying the entire structure, text, etc.
@@ -2766,7 +2772,8 @@ void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt
 				msg->param = save_param;
 			}
 			else {
-				new_msg_id = prepare_msg_raw(context, chat, msg, curr_timestamp++, msg->state);
+				msg->state = DC_STATE_OUT_PENDING;
+				new_msg_id = prepare_msg_raw(context, chat, msg, curr_timestamp++);
 				dc_job_send_msg(context, new_msg_id);
 			}
 
