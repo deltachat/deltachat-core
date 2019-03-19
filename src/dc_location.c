@@ -380,19 +380,54 @@ static void schedule_MAYBE_SEND_LOCATIONS(dc_context_t* context, int flags)
 
 void dc_job_do_DC_JOB_MAYBE_SEND_LOCATIONS(dc_context_t* context, dc_job_t* job)
 {
-	sqlite3_stmt* stmt = NULL;
+	sqlite3_stmt* stmt_chats = NULL;
+	sqlite3_stmt* stmt_locations = NULL;
 	time_t        now = time(NULL);
 	int           continue_streaming = 1;
 
 	dc_log_info(context, 0, " ----------------- MAYBE_SEND_LOCATIONS -------------- ");
 
-	stmt = dc_sqlite3_prepare(context->sql,
-		"SELECT id, locations_last_sent "
+	stmt_chats = dc_sqlite3_prepare(context->sql,
+		"SELECT id, locations_send_begin, locations_last_sent "
 		"  FROM chats "
 		"  WHERE locations_send_until>?;"); // this should be the same condition as for the return value dc_set_location()
-	sqlite3_bind_int64(stmt, 1, now);
-	while (sqlite3_step(stmt)!=SQLITE_ROW) {
+	sqlite3_bind_int64(stmt_chats, 1, now);
+	while (sqlite3_step(stmt_chats)==SQLITE_ROW)
+	{
+		uint32_t chat_id              = sqlite3_column_int  (stmt_chats, 0);
+		time_t   locations_send_begin = sqlite3_column_int64(stmt_chats, 1);
+		time_t   locations_last_sent  = sqlite3_column_int64(stmt_chats, 2);
+
 		continue_streaming = 1;
+
+		// be a bit tolerant as the timer may not align exactly with time(NULL)
+		if (now-locations_last_sent < (MAYBE_SEND_LOCATIONS_WAIT_SECONDS-3)) {
+			continue;
+		}
+
+		if (stmt_locations==NULL)  {
+			stmt_locations = dc_sqlite3_prepare(context->sql,
+					"SELECT id "
+					" FROM locations "
+					" WHERE from_id=? "
+					"   AND timestamp>=? "
+					"   AND timestamp>? "
+					"   ORDER BY timestamp;");
+		}
+		else {
+			sqlite3_reset(stmt_locations);
+		}
+		sqlite3_bind_int   (stmt_locations, 1, DC_CONTACT_ID_SELF);
+		sqlite3_bind_int64 (stmt_locations, 2, locations_send_begin);
+		sqlite3_bind_int64 (stmt_locations, 3, locations_last_sent);
+
+		// if there is no new location, there's nothing to send.
+		// however, maybe we want to bypass this test eg. 15 minutes
+        if (sqlite3_step(stmt_locations)!=SQLITE_ROW) {
+			continue;
+        }
+
+		dc_send_text_msg(context, chat_id, "-location-");
 	}
 
 	if (continue_streaming) {
@@ -401,7 +436,8 @@ void dc_job_do_DC_JOB_MAYBE_SEND_LOCATIONS(dc_context_t* context, dc_job_t* job)
 	}
 
 //cleanup:
-	sqlite3_finalize(stmt);
+	sqlite3_finalize(stmt_chats);
+	sqlite3_finalize(stmt_locations);
 }
 
 
