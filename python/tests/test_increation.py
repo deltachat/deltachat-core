@@ -25,6 +25,7 @@ class TestInCreation:
         open(path, 'a').close()
         prepared_original = chat.prepare_file(path)
         assert prepared_original.get_state().is_out_preparing()
+        wait_msgs_changed(ac1, chat.id, prepared_original.id)
 
         lp.sec("forward the message while still in creation")
         chat2 = ac1.create_group_chat("newgroup")

@@ -2533,7 +2533,11 @@ uint32_t dc_prepare_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 	}
 
 	msg->state = DC_STATE_OUT_PREPARING;
-	return prepare_msg_common(context, chat_id, msg);
+	uint32_t msg_id = prepare_msg_common(context, chat_id, msg);
+
+	context->cb(context, DC_EVENT_MSGS_CHANGED, msg->chat_id, msg->id);
+
+	return msg_id;
 }
 
 /**
