@@ -10,7 +10,7 @@ extern "C" {
 #define DC_SMTP_THREAD            5000
 
 
-// jobs in the INBOX-thread
+// jobs in the INBOX-thread, range from DC_IMAP_THREAD..DC_IMAP_THREAD+999
 #define DC_JOB_HOUSEKEEPING           105    // low priority ...
 #define DC_JOB_DELETE_MSG_ON_IMAP     110
 #define DC_JOB_MARKSEEN_MDN_ON_IMAP   120
@@ -20,8 +20,9 @@ extern "C" {
 #define DC_JOB_IMEX_IMAP              910    // ... high priority
 
 
-// jobs in the SMTP-thread
-#define DC_JOB_SEND_MDN_OLD          5010    // low priority ...
+// jobs in the SMTP-thread, range from DC_SMTP_THREAD..DC_SMTP_THREAD+999
+#define DC_JOB_MAYBE_SEND_LOCATIONS  5005    // low priority ...
+#define DC_JOB_SEND_MDN_OLD          5010
 #define DC_JOB_SEND_MDN              5011
 #define DC_JOB_SEND_MSG_TO_SMTP_OLD  5900
 #define DC_JOB_SEND_MSG_TO_SMTP      5901    // ... high priority
@@ -57,6 +58,7 @@ struct _dc_job
 
 
 void     dc_job_add                   (dc_context_t*, int action, int foreign_id, const char* param, int delay);
+int      dc_job_action_exists         (dc_context_t*, int action);
 void     dc_job_kill_action           (dc_context_t*, int action); /* delete all pending jobs with the given action */
 
 int      dc_job_send_msg              (dc_context_t*, uint32_t msg_id); /* special case for DC_JOB_SEND_MSG_TO_SMTP */

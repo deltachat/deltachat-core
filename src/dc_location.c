@@ -360,6 +360,52 @@ cleanup:
 
 
 /*******************************************************************************
+ * job to send locations out to all chats that want them
+ ******************************************************************************/
+
+
+#define MAYBE_SEND_LOCATIONS_WAIT_SECONDS 60
+
+
+static void schedule_MAYBE_SEND_LOCATIONS(dc_context_t* context, int flags)
+{
+	#define FORCE_SCHEDULE 0x01
+	if ((flags&FORCE_SCHEDULE)
+	 || !dc_job_action_exists(context, DC_JOB_MAYBE_SEND_LOCATIONS)) {
+		dc_job_add(context, DC_JOB_MAYBE_SEND_LOCATIONS, 0, NULL,
+			MAYBE_SEND_LOCATIONS_WAIT_SECONDS);
+	}
+}
+
+
+void dc_job_do_DC_JOB_MAYBE_SEND_LOCATIONS(dc_context_t* context, dc_job_t* job)
+{
+	sqlite3_stmt* stmt = NULL;
+	time_t        now = time(NULL);
+	int           continue_streaming = 1;
+
+	dc_log_info(context, 0, " ----------------- MAYBE_SEND_LOCATIONS -------------- ");
+
+	stmt = dc_sqlite3_prepare(context->sql,
+		"SELECT id, locations_last_sent "
+		"  FROM chats "
+		"  WHERE locations_send_until>?;"); // this should be the same condition as for the return value dc_set_location()
+	sqlite3_bind_int64(stmt, 1, now);
+	while (sqlite3_step(stmt)!=SQLITE_ROW) {
+		continue_streaming = 1;
+	}
+
+	if (continue_streaming) {
+		// force scheduing as there is at least one job - the current one
+		schedule_MAYBE_SEND_LOCATIONS(context, FORCE_SCHEDULE);
+	}
+
+//cleanup:
+	sqlite3_finalize(stmt);
+}
+
+
+/*******************************************************************************
  * high-level ui-functions
  ******************************************************************************/
 
@@ -402,6 +448,10 @@ void dc_send_locations_to_chat(dc_context_t* context, uint32_t chat_id,
 	sqlite3_step(stmt);
 
 	// TODO: send a status message
+
+	if (seconds) {
+		schedule_MAYBE_SEND_LOCATIONS(context, 0);
+	}
 
 cleanup:
 	sqlite3_finalize(stmt);
@@ -457,6 +507,12 @@ cleanup:
  * Typically results in the event #DC_EVENT_LOCATION_CHANGED with
  * contact_id set to DC_CONTACT_ID_SELF.
  *
+ * The UI should call this function on all location changes.
+ * The locations set by this function are not sent immediately,
+ * instead a message with the last locations is sent out every some minutes
+ * or when the user sends out a normal message,
+ * the last locations are attached.
+ *
  * @memberof dc_context_t
  * @param context The context object.
  * @param latitude North-south position of the location.
@@ -503,6 +559,9 @@ int dc_set_location(dc_context_t* context,
 		continue_streaming = 0;
 	}
 
+	if (continue_streaming) {
+		schedule_MAYBE_SEND_LOCATIONS(context, 0);
+	}
 
 cleanup:
 	sqlite3_finalize(stmt);
