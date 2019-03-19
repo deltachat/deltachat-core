@@ -96,6 +96,7 @@ The value is also used for CC:-summaries */
 
 
 // Context functions to work with messages
+int             dc_msg_exists                              (dc_context_t*, uint32_t msg_id);
 void            dc_update_msg_chat_id                      (dc_context_t*, uint32_t msg_id, uint32_t chat_id);
 void            dc_update_msg_state                        (dc_context_t*, uint32_t msg_id, int state);
 void            dc_update_msg_move_state                   (dc_context_t*, const char* rfc724_mid, dc_move_state_t);

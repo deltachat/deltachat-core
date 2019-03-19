@@ -367,6 +367,17 @@ static void dc_job_do_DC_JOB_SEND(dc_context_t* context, dc_job_t* job)
 	}
 	recipients_list = dc_str_to_clist(recipients, "\x1e");
 
+	/* if there is a msg-id and it does not exist in the db, cancel sending.
+	this happends if dc_delete_msgs() was called
+	before the generated mime was sent out */
+	if (job->foreign_id) {
+		if(!dc_msg_exists(context, job->foreign_id)) {
+			dc_log_warning(context, 0, "Message %i for job %i does not exist",
+				job->foreign_id, job->job_id);
+			goto cleanup;
+		}
+	}
+
 	/* send message */
 	{
 		if (!dc_smtp_send_msg(context->smtp, recipients_list, buf, buf_bytes)) {
