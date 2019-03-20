@@ -577,6 +577,13 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 			}
 		}
 
+		if (command==DC_CMD_LOCATION_STREAMING_SECONDS) {
+			int seconds = dc_param_get_int(msg->param, DC_PARAM_CMD_ARG, 0);
+			mailimf_fields_add(imf_fields, mailimf_field_new_custom(
+				strdup("Chat-Content"),
+				dc_mprintf("position-state; seconds=%i", seconds)));
+		}
+
 		if (command==DC_CMD_AUTOCRYPT_SETUP_MESSAGE) {
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Autocrypt-Setup-Message"), strdup("v1")));
 			placeholdertext = dc_stock_str(factory->context, DC_STR_AC_SETUP_MSG_BODY);

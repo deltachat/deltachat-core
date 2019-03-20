@@ -29,6 +29,8 @@ static char* default_string(int id)
 		case DC_STR_MSGADDMEMBER:          return dc_strdup("Member %1$s added.");
 		case DC_STR_MSGDELMEMBER:          return dc_strdup("Member %1$s removed.");
 		case DC_STR_MSGGROUPLEFT:          return dc_strdup("Group left.");
+		case DC_STR_MSGLOCATIONENABLED:    return dc_strdup("Location streaming enabled.");
+		case DC_STR_MSGLOCATIONDISABLED:   return dc_strdup("Location streaming disabled.");
 		case DC_STR_MSGACTIONBYUSER:       return dc_strdup("%1$s by %2$s.");
 		case DC_STR_MSGACTIONBYME:         return dc_strdup("%1$s by me.");
 		case DC_STR_E2E_AVAILABLE:         return dc_strdup("End-to-end encryption available.");
