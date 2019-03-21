@@ -52,6 +52,17 @@ class Account(object):
             raise KeyError("{!r} not a valid config key, existing keys: {!r}".format(
                            name, self._configkeys))
 
+    def get_info(self):
+        """ return dictionary of built config parameters. """
+        lines = from_dc_charpointer(lib.dc_get_info(self._dc_context))
+        d = {}
+        for line in lines.split("\n"):
+            if not line.strip():
+                continue
+            key, value = line.split("=", 1)
+            d[key.lower()] = value
+        return d
+
     def set_config(self, name, value):
         """ set configuration values.
 
