@@ -87,6 +87,13 @@ the Python wheel with the bindings which bundle this::
 
 The wheels will be in ``python/wheelhouse``.
 
+Updating secrets for Travis
+----------------------------
+
+for example to encrypt liveconfig testing credentials::
+
+   $ travis encrypt-file liveconfig-travis
+
 
 Troubleshooting
 ---------------

@@ -340,8 +340,11 @@ class EventHandler(object):
     _dc_context = attr.ib(validator=v.instance_of(ffi.CData))
 
     def read_url(self, url):
+        # for our testing purposes we don't care about certificates
+        # it seems that our requests-install in Travis does not
+        # properly do https-requests
         try:
-            r = requests.get(url)
+            r = requests.get(url, verify=False)
         except requests.ConnectionError:
             return ''
         else:
