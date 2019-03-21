@@ -702,7 +702,9 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 		}
 
 		if (dc_is_sending_locations_to_chat(msg->context, msg->chat_id)) {
-			char* kml_file = dc_get_location_kml(msg->context, msg->chat_id);
+			uint32_t last_added_location_id = 0;
+			char* kml_file = dc_get_location_kml(msg->context, msg->chat_id,
+				&last_added_location_id);
 			if (kml_file) {
 				struct mailmime_content* content_type = mailmime_content_new_with_str("application/vnd.google-earth.kml+xml");
 				struct mailmime_fields* mime_fields = mailmime_fields_new_filename(MAILMIME_DISPOSITION_TYPE_ATTACHMENT,
@@ -712,7 +714,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 
 				mailmime_smart_add_part(message, kml_mime_part);
 				parts++;
-				factory->out_locations_added = 1;
+				factory->out_last_added_location_id = last_added_location_id;
 			}
 		}
 	}
