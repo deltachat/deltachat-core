@@ -5,6 +5,7 @@ import time
 from deltachat import Account
 from deltachat import props
 from deltachat.capi import lib
+import tempfile
 
 
 def pytest_addoption(parser):
@@ -12,6 +13,22 @@ def pytest_addoption(parser):
         "--liveconfig", action="store", default=None,
         help="a file with >=2 lines where each line "
              "contains NAME=VALUE config settings for one account"
+    )
+
+
+def pytest_report_header(config, startdir):
+    t = tempfile.mktemp()
+    try:
+        ac = Account(t)
+        info = ac.get_info()
+        del ac
+    finally:
+        os.remove(t)
+    return "Deltachat core={} rpgp={} openssl={} sqlite={}".format(
+        info["deltachat_core_version"],
+        info["rpgp_enabled"],
+        info['openssl_version'],
+        info['sqlite_version'],
     )
 
 
