@@ -577,6 +577,13 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 			}
 		}
 
+		if (command==DC_CMD_LOCATION_STREAMING_SECONDS) {
+			int seconds = dc_param_get_int(msg->param, DC_PARAM_CMD_ARG, 0);
+			mailimf_fields_add(imf_fields, mailimf_field_new_custom(
+				strdup("Chat-Content"),
+				dc_mprintf("position-state; seconds=%i", seconds)));
+		}
+
 		if (command==DC_CMD_AUTOCRYPT_SETUP_MESSAGE) {
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Autocrypt-Setup-Message"), strdup("v1")));
 			placeholdertext = dc_stock_str(factory->context, DC_STR_AC_SETUP_MSG_BODY);
@@ -692,6 +699,21 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 		if (meta_part) {
 			mailmime_smart_add_part(message, meta_part); /* meta parts are only added if there are other parts */
 			parts++;
+		}
+
+		if (dc_is_sending_locations_to_chat(msg->context, msg->chat_id)) {
+			char* kml_file = dc_get_location_kml(msg->context, msg->chat_id);
+			if (kml_file) {
+				struct mailmime_content* content_type = mailmime_content_new_with_str("application/vnd.google-earth.kml+xml");
+				struct mailmime_fields* mime_fields = mailmime_fields_new_filename(MAILMIME_DISPOSITION_TYPE_ATTACHMENT,
+					dc_strdup("location.kml"), MAILMIME_MECHANISM_8BIT);
+				struct mailmime* kml_mime_part = mailmime_new_empty(content_type, mime_fields);
+				mailmime_set_body_text(kml_mime_part, kml_file, strlen(kml_file));
+
+				mailmime_smart_add_part(message, kml_mime_part);
+				parts++;
+				factory->out_locations_added = 1;
+			}
 		}
 	}
 	else if (factory->loaded==DC_MF_MDN_LOADED)

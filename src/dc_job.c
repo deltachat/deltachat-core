@@ -310,6 +310,10 @@ int dc_job_send_msg(dc_context_t* context, uint32_t msg_id)
 			dc_set_gossiped_timestamp(context, mimefactory.msg->chat_id, time(NULL));
 		}
 
+		if (mimefactory.out_locations_added) {
+			dc_set_kml_sent_timestamp(context, mimefactory.msg->chat_id, time(NULL));
+		}
+
 		if (mimefactory.out_encrypted && dc_param_get_int(mimefactory.msg->param, DC_PARAM_GUARANTEE_E2EE, 0)==0) {
 			dc_param_set_int(mimefactory.msg->param, DC_PARAM_GUARANTEE_E2EE, 1); /* can upgrade to E2EE - fine! */
 			dc_msg_save_param_to_disk(mimefactory.msg);
@@ -518,6 +522,22 @@ static time_t get_next_wakeup_time(dc_context_t* context, int thread)
 }
 
 
+int dc_job_action_exists(dc_context_t* context, int action)
+{
+	int           job_exists = 0;
+	sqlite3_stmt* stmt = NULL;
+
+	stmt = dc_sqlite3_prepare(context->sql,
+		"SELECT id FROM jobs WHERE action=?;");
+	sqlite3_bind_int  (stmt, 1, action);
+
+	job_exists = (sqlite3_step(stmt)==SQLITE_ROW);
+
+	sqlite3_finalize(stmt);
+	return job_exists;
+}
+
+
 void dc_job_add(dc_context_t* context, int action, int foreign_id, const char* param, int delay_seconds)
 {
 	time_t        timestamp = time(NULL);
@@ -680,6 +700,7 @@ static void dc_job_perform(dc_context_t* context, int thread, int probe_network)
 				case DC_JOB_SEND_MDN:             dc_job_do_DC_JOB_SEND                 (context, &job); break;
 				case DC_JOB_CONFIGURE_IMAP:       dc_job_do_DC_JOB_CONFIGURE_IMAP       (context, &job); break;
 				case DC_JOB_IMEX_IMAP:            dc_job_do_DC_JOB_IMEX_IMAP            (context, &job); break;
+				case DC_JOB_MAYBE_SEND_LOCATIONS: dc_job_do_DC_JOB_MAYBE_SEND_LOCATIONS (context, &job); break;
 				case DC_JOB_HOUSEKEEPING:         dc_housekeeping                       (context);       break;
 			}
 

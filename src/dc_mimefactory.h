@@ -14,6 +14,7 @@ typedef struct _dc_mimefactory dc_mimefactory_t;
 #define DC_CMD_MEMBER_REMOVED_FROM_GROUP   5
 #define DC_CMD_AUTOCRYPT_SETUP_MESSAGE     6
 #define DC_CMD_SECUREJOIN_MESSAGE          7
+#define DC_CMD_LOCATION_STREAMING_SECONDS  8
 
 
 typedef enum {
@@ -53,6 +54,7 @@ struct _dc_mimefactory {
 	MMAPString*   out;
 	int           out_encrypted;
 	int           out_gossiped;
+	int           out_locations_added;
 	char*         error;
 
 	/* private */

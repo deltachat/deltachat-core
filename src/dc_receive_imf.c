@@ -1577,6 +1577,23 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 
 		}
 
+		if (mime_parser->kml && chat_id > DC_CHAT_ID_LAST_SPECIAL)
+		{
+			/******************************************************************
+			 * save locations
+			 *****************************************************************/
+
+			dc_contact_t* contact = dc_get_contact(context, from_id);
+			if (mime_parser->kml->addr
+			 && strcasecmp(contact->addr, mime_parser->kml->addr)==0)
+			{
+				if (dc_save_locations(context, chat_id, from_id, mime_parser->kml->locations)) {
+					context->cb(context, DC_EVENT_LOCATION_CHANGED, from_id, 0);
+				}
+			}
+			dc_contact_unref(contact);
+		}
+
 		if (add_delete_job && carray_count(created_db_entries)>=2) {
 			dc_job_add(context, DC_JOB_DELETE_MSG_ON_IMAP, (int)(uintptr_t)carray_get(created_db_entries, 1), NULL, 0);
 		}

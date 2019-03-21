@@ -940,6 +940,9 @@ void dc_mimeparser_empty(dc_mimeparser_t* mimeparser)
 	mimeparser->decrypting_failed = 0;
 
 	dc_e2ee_thanks(mimeparser->e2ee_helper);
+
+	dc_kml_unref(mimeparser->kml);
+	mimeparser->kml = NULL;
 }
 
 
@@ -1189,6 +1192,13 @@ static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* mimeparser, s
 					else {
 						goto cleanup;
 					}
+				}
+
+				if (strncmp(desired_filename, "location", 8)==0
+				 && strncmp(desired_filename+strlen(desired_filename)-4, ".kml", 4)==0) {
+					mimeparser->kml = dc_kml_parse(mimeparser->context,
+						decoded_data, decoded_data_bytes);
+					goto cleanup;
 				}
 
 				dc_replace_bad_utf8_chars(desired_filename);

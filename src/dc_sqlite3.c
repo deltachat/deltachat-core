@@ -566,6 +566,32 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 			}
 		#undef NEW_DB_VERSION
 
+		#define NEW_DB_VERSION 52
+			if (dbversion < NEW_DB_VERSION)
+			{
+				// the messages containing _only_ locations
+				// are also added to the database as _hidden_.
+				dc_sqlite3_execute(sql, "CREATE TABLE locations ("
+							" id INTEGER PRIMARY KEY,"
+							" latitude REAL DEFAULT 0.0,"
+							" longitude REAL DEFAULT 0.0,"
+							" accuracy REAL DEFAULT 0.0,"
+							" timestamp INTEGER DEFAULT 0,"
+							" chat_id INTEGER DEFAULT 0,"
+							" from_id INTEGER DEFAULT 0,"
+							" msg_id INTEGER DEFAULT 0);");
+				dc_sqlite3_execute(sql, "CREATE INDEX locations_index1 ON locations (from_id);");
+				dc_sqlite3_execute(sql, "CREATE INDEX locations_index2 ON locations (timestamp);");
+				dc_sqlite3_execute(sql, "ALTER TABLE chats ADD COLUMN locations_send_begin INTEGER DEFAULT 0;");
+				dc_sqlite3_execute(sql, "ALTER TABLE chats ADD COLUMN locations_send_until INTEGER DEFAULT 0;");
+				dc_sqlite3_execute(sql, "ALTER TABLE chats ADD COLUMN locations_last_sent INTEGER DEFAULT 0;");
+				dc_sqlite3_execute(sql, "CREATE INDEX chats_index3 ON chats (locations_send_until);");
+
+				dbversion = NEW_DB_VERSION;
+				dc_sqlite3_set_config_int(sql, "dbversion", NEW_DB_VERSION);
+			}
+		#undef NEW_DB_VERSION
+
 		// (2) updates that require high-level objects
 		// (the structure is complete now and all objects are usable)
 		// --------------------------------------------------------------------

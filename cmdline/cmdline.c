@@ -302,13 +302,17 @@ static void log_msglist(dc_context_t* context, dc_array_t* msglist)
 }
 
 
-static void log_contactlist(dc_context_t* context, dc_array_t* contacts)
+static void log_contactlist(dc_context_t* context, dc_array_t* contacts,
+                            uint32_t add_locations_for_chat)
 {
-	int              i, cnt = dc_array_get_cnt(contacts);
 	dc_contact_t*    contact = NULL;
 	dc_apeerstate_t* peerstate = dc_apeerstate_new(context);
 
-	for (i = 0; i < cnt; i++) {
+	if (!dc_array_search_id(contacts, DC_CONTACT_ID_SELF, NULL)) {
+		dc_array_add_id(contacts, DC_CONTACT_ID_SELF);
+	}
+
+	for (int i = 0; i < dc_array_get_cnt(contacts); i++) {
 		uint32_t contact_id = dc_array_get_id(contacts, i);
 		char* line = NULL;
 		char* line2 = NULL;
@@ -333,13 +337,28 @@ static void log_contactlist(dc_context_t* context, dc_array_t* contacts)
 			dc_contact_unref(contact);
 			free(name);
 			free(addr);
+			dc_log_info(context, 0, "Contact#%i: %s%s", (int)contact_id, line, line2? line2:"");
+			free(line);
+			free(line2);
+
+			if (add_locations_for_chat) {
+				dc_array_t* loc = dc_get_locations(context, add_locations_for_chat, contact_id);
+				for (int j=0; j<dc_array_get_cnt(loc); j++) {
+					char* timestr = dc_timestamp_to_str(dc_array_get_timestamp(loc, j));
+					dc_log_info(context, 0, "%s: lat=%f lng=%f acc=%f msg_id=%i",
+						timestr,
+						dc_array_get_latitude(loc, j),
+						dc_array_get_longitude(loc, j),
+						dc_array_get_accuracy(loc, j),
+						dc_array_get_msg_id(loc, j));
+					free(timestr);
+				}
+				if (dc_array_get_cnt(loc)==0) {
+					dc_log_info(context, 0, "No locations.");
+				}
+				dc_array_unref(loc);
+			}
 		}
-		else {
-			line = dc_strdup("Read error.");
-		}
-		dc_log_info(context, 0, "Contact#%i: %s%s", (int)contact_id, line, line2? line2:"");
-		free(line);
-		free(line2);
 	}
 
 	dc_apeerstate_unref(peerstate);
@@ -437,6 +456,10 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 				"groupname <name>\n"
 				"groupimage [<file>]\n"
 				"chatinfo\n"
+				"sendlocations <seconds>\n"
+				"setlocation <lat> <lng>\n"
+				"dellocations\n"
+				"getlocations\n"
 				"send <text>\n"
 				"sendimage <file> [<text>]\n"
 				"sendfile <file>\n"
@@ -878,14 +901,21 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 			ret = dc_strdup("No chat selected.");
 		}
 	}
-	else if (strcmp(cmd, "chatinfo")==0)
+	else if (strcmp(cmd, "chatinfo")==0 || strcmp(cmd, "getlocations")==0)
 	{
 		if (sel_chat) {
 			dc_array_t* contacts = dc_get_chat_contacts(context, dc_chat_get_id(sel_chat));
 			if (contacts) {
 				dc_log_info(context, 0, "Memberlist:");
-				log_contactlist(context, contacts);
-				ret = dc_mprintf("%i contacts.", (int)dc_array_get_cnt(contacts));
+
+				log_contactlist(context, contacts,
+					strcmp(cmd, "getlocations")==0? dc_chat_get_id(sel_chat) : 0);
+
+				ret = dc_mprintf("%i contacts\nLocation streaming: %i",
+					(int)dc_array_get_cnt(contacts),
+					dc_is_sending_locations_to_chat(context, dc_chat_get_id(sel_chat)));
+
+				dc_array_unref(contacts);
 			}
 			else {
 				ret = COMMAND_FAILED;
@@ -894,6 +924,42 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 		else {
 			ret = dc_strdup("No chat selected.");
 		}
+	}
+	else if (strcmp(cmd, "sendlocations")==0)
+	{
+		if (sel_chat) {
+			if (arg1 && arg1[0]) {
+				int seconds = atoi(arg1);
+				dc_send_locations_to_chat(context, dc_chat_get_id(sel_chat), seconds);
+				ret = dc_mprintf("Locations will be sent to Chat#%i for %i seconds. "
+					"Use 'setlocation <lat> <lng>' to play around.",
+					dc_chat_get_id(sel_chat), seconds);
+			}
+			else {
+				ret = dc_strdup("ERROR: No timeout given.");
+			}
+		}
+		else {
+			ret = dc_strdup("No chat selected.");
+		}
+	}
+	else if (strcmp(cmd, "setlocation")==0) {
+		char* arg2 = NULL;
+		if (arg1) { arg2 = strrchr(arg1, ' '); }
+		if (arg1 && arg2) {
+			*arg2 = 0; arg2++;
+			double latitude = atof(arg1);
+			double longitude = atof(arg2);
+			int continue_streaming = dc_set_location(context, latitude, longitude, 0.0);
+			ret = dc_strdup(continue_streaming? "Success, streaming should be continued." : "Success, streaming can be stoppped.");
+		}
+		else {
+			ret = dc_strdup("ERROR: Latitude or longitude not given.");
+		}
+	}
+	else if (strcmp(cmd, "dellocations")==0) {
+		dc_delete_all_locations(context);
+		ret = COMMAND_SUCCEEDED;
 	}
 	else if (strcmp(cmd, "send")==0)
 	{
@@ -1109,7 +1175,7 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 	{
 		dc_array_t* contacts = dc_get_contacts(context, strcmp(cmd, "listverified")==0? DC_GCL_VERIFIED_ONLY|DC_GCL_ADD_SELF : DC_GCL_ADD_SELF, arg1);
 		if (contacts) {
-			log_contactlist(context, contacts);
+			log_contactlist(context, contacts, 0);
 			ret = dc_mprintf("%i contacts.", (int)dc_array_get_cnt(contacts));
 			dc_array_unref(contacts);
 		}
