@@ -102,7 +102,7 @@ def acfactory(pytestconfig, tmpdir, request):
             tmpdb = tmpdir.join("livedb%d" % self.live_count)
             ac = Account(tmpdb.strpath, logid="ac{}".format(self.live_count))
             ac._evlogger.init_time = self.init_time
-            ac._evlogger.set_timeout(60)
+            ac._evlogger.set_timeout(120)
             ac.configure(**configdict)
             ac.start_threads()
             self._finalizers.append(ac.stop_threads)
