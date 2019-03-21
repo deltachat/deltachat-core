@@ -7,7 +7,7 @@ set -v
 
 cd $TRAVIS_BUILD_DIR/python
 
-openssl aes-256-cbc -K $encrypted_fd8d0295d62e_key -iv $encrypted_fd8d0295d62e_iv -in travis-liveconfig.enc -out travis-liveconfig -d
+openssl aes-256-cbc -K $encrypted_8a7f7373f4a3_key -iv $encrypted_8a7f7373f4a3_iv -in python/liveconfig-travis.enc -out python/liveconfig-travis -d
 
-tox -- --liveconfig travis-liveconfig tests
+tox -- --liveconfig liveconfig-travis tests
 
