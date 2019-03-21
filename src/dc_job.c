@@ -310,8 +310,9 @@ int dc_job_send_msg(dc_context_t* context, uint32_t msg_id)
 			dc_set_gossiped_timestamp(context, mimefactory.msg->chat_id, time(NULL));
 		}
 
-		if (mimefactory.out_locations_added) {
+		if (mimefactory.out_last_added_location_id) {
 			dc_set_kml_sent_timestamp(context, mimefactory.msg->chat_id, time(NULL));
+			dc_set_msg_location_id(context, mimefactory.msg->id, mimefactory.out_last_added_location_id);
 		}
 
 		if (mimefactory.out_encrypted && dc_param_get_int(mimefactory.msg->param, DC_PARAM_GUARANTEE_E2EE, 0)==0) {

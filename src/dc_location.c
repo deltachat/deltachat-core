@@ -19,14 +19,11 @@ static char* get_kml_timestamp(time_t utc)
 }
 
 
-char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id)
+char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id,
+                          uint32_t* last_added_location_id)
 {
 	int              success = 0;
 	sqlite3_stmt*    stmt = NULL;
-	double           latitude = 0.0;
-	double           longitude = 0.0;
-	double           accuracy = 0.0;
-	char*            timestamp = NULL;
 	char*            self_addr = NULL;
 	time_t           now = time(NULL);
 	time_t           locations_send_begin = 0;
@@ -69,7 +66,7 @@ char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id)
 		self_addr);
 
 	stmt = dc_sqlite3_prepare(context->sql,
-			"SELECT latitude, longitude, accuracy, timestamp "
+			"SELECT id, latitude, longitude, accuracy, timestamp "
 			" FROM locations "
 			" WHERE from_id=? "
 			"   AND timestamp>=? "
@@ -81,10 +78,11 @@ char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id)
 	sqlite3_bind_int   (stmt, 4, DC_CONTACT_ID_SELF);
 	while (sqlite3_step(stmt)==SQLITE_ROW)
 	{
-		latitude  = sqlite3_column_double(stmt, 0);
-		longitude = sqlite3_column_double(stmt, 1);
-		accuracy  = sqlite3_column_double(stmt, 2);
-		timestamp = get_kml_timestamp(sqlite3_column_int64 (stmt, 3));
+		uint32_t location_id = sqlite3_column_int(stmt, 0);
+		double   latitude    = sqlite3_column_double(stmt, 1);
+		double   longitude   = sqlite3_column_double(stmt, 2);
+		double   accuracy    = sqlite3_column_double(stmt, 3);
+		char*    timestamp   = get_kml_timestamp(sqlite3_column_int64 (stmt, 4));
 
 		dc_strbuilder_catf(&ret,
 			"<Placemark>"
@@ -97,6 +95,10 @@ char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id)
 			latitude);
 
 		location_count++;
+
+		if (last_added_location_id) {
+			*last_added_location_id = location_id;
+		}
 
 		free(timestamp);
 		timestamp = NULL;
@@ -131,6 +133,20 @@ void dc_set_kml_sent_timestamp(dc_context_t* context,
 		"UPDATE chats SET locations_last_sent=? WHERE id=?;");
 	sqlite3_bind_int64(stmt, 1, timestamp);
 	sqlite3_bind_int  (stmt, 2, chat_id);
+
+	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+}
+
+
+void dc_set_msg_location_id(dc_context_t* context, uint32_t msg_id, uint32_t location_id)
+{
+	sqlite3_stmt* stmt = NULL;
+
+	stmt = dc_sqlite3_prepare(context->sql,
+		"UPDATE msgs SET location_id=? WHERE id=?;");
+	sqlite3_bind_int64(stmt, 1, location_id);
+	sqlite3_bind_int  (stmt, 2, msg_id);
 
 	sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
@@ -304,7 +320,7 @@ void dc_kml_unref(dc_kml_t* kml)
 
 
 int dc_save_locations(dc_context_t* context,
-                      uint32_t chat_id, uint32_t contact_id,
+                      uint32_t chat_id, uint32_t msg_id, uint32_t contact_id,
                       const dc_array_t* locations)
 {
 	int           saved_locations = 0;
@@ -656,22 +672,24 @@ dc_array_t* dc_get_locations(dc_context_t* context, uint32_t chat_id, uint32_t  
 	}
 
 	if (contact_id==DC_CONTACT_ID_SELF) {
-		#define LOC_FIELDS "latitude, longitude, accuracy, timestamp, msg_id"
+		#define LOC_FIELDS "l.latitude, l.longitude, l.accuracy, l.timestamp, m.id"
 		stmt = dc_sqlite3_prepare(context->sql,
 				"SELECT " LOC_FIELDS
-				" FROM locations "
-				" WHERE from_id=? "
-				" ORDER BY timestamp DESC, id DESC "
+				" FROM locations l "
+				" LEFT JOIN msgs m ON l.id=m.location_id "
+				" WHERE l.from_id=? "
+				" ORDER BY l.timestamp DESC, l.id DESC "
 				" LIMIT " LOC_LIMIT);
 		sqlite3_bind_int(stmt, 1, DC_CONTACT_ID_SELF);
 	}
 	else {
 		stmt = dc_sqlite3_prepare(context->sql,
 				"SELECT " LOC_FIELDS
-				" FROM locations "
-				" WHERE chat_id=? "
-				"   AND from_id=? "
-				" ORDER BY timestamp DESC, id DESC "
+				" FROM locations l "
+				" LEFT JOIN msgs m ON l.id=m.location_id "
+				" WHERE l.chat_id=? "
+				"   AND l.from_id=? "
+				" ORDER BY l.timestamp DESC, l.id DESC "
 				" LIMIT " LOC_LIMIT);
 		sqlite3_bind_int(stmt, 1, chat_id);
 		sqlite3_bind_int(stmt, 2, contact_id);

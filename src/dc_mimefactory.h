@@ -54,7 +54,7 @@ struct _dc_mimefactory {
 	MMAPString*   out;
 	int           out_encrypted;
 	int           out_gossiped;
-	int           out_locations_added;
+	uint32_t      out_last_added_location_id;
 	char*         error;
 
 	/* private */
