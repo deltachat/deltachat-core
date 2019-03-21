@@ -34,6 +34,10 @@ void dc_sqlite3_log_error(dc_sqlite3_t* sql, const char* msg_format, ...)
 	char*       msg = NULL;
 	va_list     va;
 
+	if (sql==NULL || msg_format==NULL) {
+		return;
+	}
+
 	va_start(va, msg_format);
 	msg = sqlite3_vmprintf(msg_format, va);
 
@@ -566,7 +570,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 			}
 		#undef NEW_DB_VERSION
 
-		#define NEW_DB_VERSION 52
+		#define NEW_DB_VERSION 53
 			if (dbversion < NEW_DB_VERSION)
 			{
 				// the messages containing _only_ locations
