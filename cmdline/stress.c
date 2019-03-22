@@ -370,6 +370,13 @@ void stress_functions(dc_context_t* context)
 		assert( atol("")==0 ); /* we rely on this eg. in dc_sqlite3_get_config() */
 		assert( atoi("")==0 );
 
+		double f = atof("1.23");
+		assert( f>1.22 && f<1.24 );
+
+		char* s = dc_mprintf("%0.2f", 1.23);
+		assert( strcmp(s, "1.23")==0 );
+		free(s);
+
 		assert( !dc_may_be_valid_addr(NULL) );
 		assert( !dc_may_be_valid_addr("") );
 		assert(  dc_may_be_valid_addr("user@domain.tld") );
