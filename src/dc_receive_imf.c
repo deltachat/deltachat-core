@@ -1408,6 +1408,11 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 					continue;
 				}
 
+				if (mime_parser->kml && icnt==1 && part->msg
+				 && (strcmp(part->msg, "-location-")==0 || part->msg[0]==0)) {
+					hidden = 1;
+				}
+
 				if (part->type==DC_MSG_TEXT) {
 					txt_raw = dc_mprintf("%s\n\n%s", mime_parser->subject? mime_parser->subject : "", part->msg_raw);
 				}
