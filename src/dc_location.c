@@ -701,11 +701,12 @@ dc_array_t* dc_get_locations(dc_context_t* context, uint32_t chat_id, uint32_t  
 			goto cleanup;
         }
 
-		loc->latitude   = sqlite3_column_double(stmt, 0);
-		loc->longitude  = sqlite3_column_double(stmt, 1);
-		loc->accuracy   = sqlite3_column_double(stmt, 2);
-		loc->timestamp  = sqlite3_column_int64 (stmt, 3);
-		loc->msg_id     = sqlite3_column_int   (stmt, 4);
+		loc->location_id = sqlite3_column_double(stmt, 0);
+		loc->latitude    = sqlite3_column_double(stmt, 1);
+		loc->longitude   = sqlite3_column_double(stmt, 2);
+		loc->accuracy    = sqlite3_column_double(stmt, 3);
+		loc->timestamp   = sqlite3_column_int64 (stmt, 4);
+		loc->msg_id      = sqlite3_column_int   (stmt, 5);
 		dc_array_add_ptr(ret, loc);
 
 		if (newest==0) {
