@@ -366,6 +366,8 @@ int dc_save_locations(dc_context_t* context,
 			sqlite3_bind_double(stmt_insert, 5, location->longitude);
 			sqlite3_bind_double(stmt_insert, 6, location->accuracy);
 			sqlite3_step(stmt_insert);
+
+			saved_locations++;
 		}
 	}
 
