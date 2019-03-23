@@ -342,7 +342,7 @@ static void log_contactlist(dc_context_t* context, dc_array_t* contacts,
 			free(line2);
 
 			if (add_locations_for_chat) {
-				dc_array_t* loc = dc_get_locations(context, add_locations_for_chat, contact_id);
+				dc_array_t* loc = dc_get_locations(context, add_locations_for_chat, contact_id, time(NULL)-2*60*60, 0);
 				for (int j=0; j<dc_array_get_cnt(loc); j++) {
 					char* timestr = dc_timestamp_to_str(dc_array_get_timestamp(loc, j));
 					dc_log_info(context, 0, "%s: lat=%f lng=%f acc=%f msg_id=%i location_id=%i",

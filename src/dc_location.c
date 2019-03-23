@@ -652,17 +652,24 @@ cleanup:
  * @memberof dc_context_t
  * @param context The context object.
  * @param chat_id Chat id to get location information for.
+ *     0 to get all known locations for a contact,
+ *     independently of the chat.
  * @param contact_id Contact id to get location information for.
  *     Must be a member of the given chat.
+ * @param timestamp_start Start of timespan to return.
+ *     Must be given in number of seconds since 00:00 hours, Jan 1, 1970 UTC.
+ * @param timestamp_end End of timespan to return.
+ *     Must be given in number of seconds since 00:00 hours, Jan 1, 1970 UTC.
+ *     0 for "all up to now".
  * @return Array of locations, NULL is never returned.
+ *     The array is sorted decending;
+ *     the first entry in the array is the location with the newest timestamp.
  *     The returned array must be freed using dc_array_unref().
  */
-dc_array_t* dc_get_locations(dc_context_t* context, uint32_t chat_id, uint32_t  contact_id)
+dc_array_t* dc_get_locations(dc_context_t* context,
+                             uint32_t chat_id, uint32_t  contact_id,
+                             time_t timestamp_from, time_t timestamp_to)
 {
-	#define MAX_AGE   (3*60*60) // truncate list after 3 hours ...
-	#define MIN_ITEMS 100       // ... but add at least the 100 last items
-	#define LOC_LIMIT "1000"    // hard limit, must be larger than MIN_ITEMS
-
 	dc_array_t*   ret = dc_array_new_typed(context, DC_ARRAY_LOCATIONS, 500);
 	sqlite3_stmt* stmt = NULL;
 	time_t        newest = 0;
@@ -672,28 +679,28 @@ dc_array_t* dc_get_locations(dc_context_t* context, uint32_t chat_id, uint32_t  
 	}
 
 	if (contact_id==DC_CONTACT_ID_SELF) {
-		#define LOC_FIELDS "l.latitude, l.longitude, l.accuracy, l.timestamp, m.id"
-		stmt = dc_sqlite3_prepare(context->sql,
-				"SELECT " LOC_FIELDS
-				" FROM locations l "
-				" LEFT JOIN msgs m ON l.id=m.location_id "
-				" WHERE l.from_id=? "
-				" ORDER BY l.timestamp DESC, l.id DESC "
-				" LIMIT " LOC_LIMIT);
-		sqlite3_bind_int(stmt, 1, DC_CONTACT_ID_SELF);
+		// maybe we want to show the self location only when really streamed to others,
+		// however, for this this is easier and fine.
+		chat_id = 0;
 	}
-	else {
-		stmt = dc_sqlite3_prepare(context->sql,
-				"SELECT " LOC_FIELDS
-				" FROM locations l "
-				" LEFT JOIN msgs m ON l.id=m.location_id "
-				" WHERE l.chat_id=? "
-				"   AND l.from_id=? "
-				" ORDER BY l.timestamp DESC, l.id DESC "
-				" LIMIT " LOC_LIMIT);
-		sqlite3_bind_int(stmt, 1, chat_id);
-		sqlite3_bind_int(stmt, 2, contact_id);
+
+	if (timestamp_to==0) {
+		timestamp_to = time(NULL) + 10/*messages may be inserted by another thread just now*/;
 	}
+
+	stmt = dc_sqlite3_prepare(context->sql,
+			"SELECT l.id, l.latitude, l.longitude, l.accuracy, l.timestamp, m.id "
+			" FROM locations l "
+			" LEFT JOIN msgs m ON l.id=m.location_id "
+			" WHERE (? OR l.chat_id=?) "
+			"   AND l.from_id=? "
+			"   AND l.timestamp>=? AND l.timestamp<=? "
+			" ORDER BY l.timestamp DESC, l.id DESC;");
+	sqlite3_bind_int(stmt, 1, chat_id==0? 1 : 0);
+	sqlite3_bind_int(stmt, 2, chat_id);
+	sqlite3_bind_int(stmt, 3, contact_id);
+	sqlite3_bind_int(stmt, 4, timestamp_from);
+	sqlite3_bind_int(stmt, 5, timestamp_to);
 
 	while (sqlite3_step(stmt)==SQLITE_ROW) {
         struct _dc_location* loc = calloc(1, sizeof(struct _dc_location));
@@ -711,11 +718,6 @@ dc_array_t* dc_get_locations(dc_context_t* context, uint32_t chat_id, uint32_t  
 
 		if (newest==0) {
 			newest = loc->timestamp;
-		}
-
-		if (newest-loc->timestamp > MAX_AGE
-		 && ret->count > MIN_ITEMS) {
-			break;
 		}
 	}
 
