@@ -285,6 +285,10 @@ uint32_t dc_array_get_id(const dc_array_t* array, size_t index)
 		return 0;
 	}
 
+	if (array->type==DC_ARRAY_LOCATIONS) {
+		return ((struct _dc_location*)array->array[index])->location_id;
+	}
+
 	return (uint32_t)array->array[index];
 }
 

@@ -126,6 +126,7 @@ int             dc_is_mvbox          (dc_context_t*, const char* folder);
 typedef struct _dc_location
 {
 	#define DC_ARRAY_LOCATIONS  1
+	uint32_t location_id;
 	double   latitude;
 	double   longitude;
 	double   accuracy;

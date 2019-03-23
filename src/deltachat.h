@@ -364,7 +364,7 @@ uint32_t        dc_join_securejoin           (dc_context_t*, const char* qr);
 void        dc_send_locations_to_chat       (dc_context_t*, uint32_t chat_id, int seconds);
 int         dc_is_sending_locations_to_chat (dc_context_t*, uint32_t chat_id);
 int         dc_set_location                 (dc_context_t*, double latitude, double longitude, double accuracy);
-dc_array_t* dc_get_locations                (dc_context_t*, uint32_t chat_id, uint32_t  contact_id);
+dc_array_t* dc_get_locations                (dc_context_t*, uint32_t chat_id, uint32_t contact_id, time_t timestamp_begin, time_t timestamp_end);
 void        dc_delete_all_locations         (dc_context_t*);
 
 

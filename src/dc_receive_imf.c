@@ -1585,6 +1585,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 
 			dc_contact_t* contact = dc_get_contact(context, from_id);
 			if (mime_parser->kml->addr
+			 && contact && contact->addr
 			 && strcasecmp(contact->addr, mime_parser->kml->addr)==0)
 			{
 				if (dc_save_locations(context, chat_id, insert_msg_id, from_id, mime_parser->kml->locations)) {
