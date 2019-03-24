@@ -76,8 +76,7 @@ harm is running it again::
 
    $ pwd               # Make sure the current working directory is the
    .../deltachat-core  # top of the deltachat-core project checkout.
-   $ docker build -t deltachat-wheel python/wheelbuilder/
-
+   $ docker build -t deltachat/wheel python/wheelbuilder/
 
 Now you should have an image called `dcwhl` listed if you run `docker
 images`.  This image can now be used to build both libdeltachat.so and
