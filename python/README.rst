@@ -6,34 +6,47 @@ This package provides bindings to the deltachat-core_ C-library
 which provides imap/smtp/crypto handling as well as chat/group/messages
 handling to Android, Desktop and IO user interfaces.
 
-Install
-=======
+Installing pre-built packages (linux-only)
+==========================================
 
-You may also want to build a wheel using docker instead of manually
-building deltachat-core.  See below for this.
+If you have a linux system you, may install
+``deltachat`` and all of its dependencies like this:
 
-1. First you need to `install the delta-core C-library
-   <https://github.com/deltachat/deltachat-core/blob/master/README.md>`_.
-
-2. `Install virtualenv <https://virtualenv.pypa.io/en/stable/installation/>`_
-   if you don't have it, then create and use a fresh clean python environment::
+1. `Install virtualenv <https://virtualenv.pypa.io/en/stable/installation/>`_,
+   then create a fresh python environment and activate it in your shell::
 
         virtualenv -p python3 venv
         source venv/bin/activate
 
-   Afterwards invoking ``python`` or ``pip install`` will only modify files
-   in your ``venv`` directory.
+   Afterwards, invoking ``python`` or ``pip install`` will only
+   modify files in your ``venv`` directory and leave your system installation
+   alone.
 
-3. Install the bindings with pip::
+2. Install the wheel for linux::
 
         pip install deltachat
 
-   Afterwards you should be able to successfully import the bindings::
+    Verify it worked by typing::
 
         python -c "import deltachat"
 
-You may now look at `examples <https://py.delta.chat/examples.html>`_.
 
+Installing bindings from source
+===============================
+
+If you can't use "binary" method above then you will need
+to `install the delta-core C-library <https://github.com/deltachat/deltachat-core/blob/master/README.md>`_ before you invoke the ``pip install deltachat`` command above.
+
+.. note::
+
+    If you can help with provide a way to automate the building of wheels
+    for Mac or Windows, please provide a PR here or open an issue.
+
+
+Code examples
+=============
+
+You may look at `examples <https://py.delta.chat/examples.html>`_.
 
 
 Running tests
@@ -45,15 +58,19 @@ Get a checkout of the `deltachat-core github repository`_ and type::
     pip install tox
     tox
 
-If you want to run functional tests that run against real
-e-mail accounts, generate a "liveconfig" file where each
-lines contains account settings, for example::
+If you want to run functional tests with real
+e-mail test accounts, generate a "liveconfig" file where each
+lines contains test account settings, for example::
 
     # 'liveconfig' file specifying imap/smtp accounts
     addr=some-email@example.org mail_pw=password
     addr=other-email@example.org mail_pw=otherpassword
 
-And then run the tests with this live-accounts config file::
+The "keyword=value" style allows to specify any
+`deltachat account config setting <https://c.delta.chat/classdc__context__t.html#aff3b894f6cfca46cab5248fdffdf083d>`_ so you can also specify smtp or imap servers, ports, ssl modes etc.
+Typically DC's automatic configuration allows to not specify these settings.
+
+You can now run tests with this ``liveconfig`` file::
 
     tox -- --liveconfig liveconfig
 
@@ -68,23 +85,38 @@ Building manylinux1 wheels
 Building portable manylinux1 wheels which come with libdeltachat.so
 and all it's dependencies is easy using the provided docker tooling.
 
-You will need docker, the first builds a custom docker image.  This is
-slow initially but normally updates are cached by docker.  If no
-changes were made to the dependencies this step is not needed at all
-even, though as mentioned docker will cache the results so there's no
-harm is running it again::
+using docker pull / premade images
+------------------------------------
 
-   $ pwd               # Make sure the current working directory is the
-   .../deltachat-core  # top of the deltachat-core project checkout.
+We publish a build environment under the ``deltachat/wheel`` tag so
+that you can pull it from the ``hub.docker.com`` site's "deltachat"
+organization::
+
+    $ docker pull deltachat/wheel
+
+The ``deltachat/wheel`` image can be used to build both libdeltachat.so
+and the Python wheels::
+
+    $ docker run --rm -it -v $(pwd):/io/ deltachat-wheel /io/python/wheelbuilder/build-wheels.sh
+
+This command runs a script within the image, after mounting ``$(pwd)`` as ``/io`` within
+the docker image.  The script is specified as a path within the docker image's filesystem.
+The resulting wheel files will be in ``python/wheelhouse``.
+
+
+Optionally build your own docker image
+--------------------------------------
+
+If you want to build your own custom docker image you can do this::
+
+   $ cd deltachat-core # cd to deltachat-core checkout directory
    $ docker build -t deltachat/wheel python/wheelbuilder/
 
-Now you should have an image called `dcwhl` listed if you run `docker
-images`.  This image can now be used to build both libdeltachat.so and
-the Python wheel with the bindings which bundle this::
+This will use the ``python/wheelbuilder/Dockerfile`` to build
+up docker image called ``deltachat/wheel``.  You can afterwards
+find it with::
 
-   $ docker run --rm -it -v $(pwd):/io/ deltachat-wheel /io/python/wheelbuilder/build-wheels.sh
-
-The wheels will be in ``python/wheelhouse``.
+   $ docker images
 
 
 Troubleshooting

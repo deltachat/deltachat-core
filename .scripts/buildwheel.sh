@@ -14,6 +14,7 @@ devpi use dc/$TRAVIS_BRANCH || {
     devpi index -c $TRAVIS_BRANCH 
     devpi use dc/$TRAVIS_BRANCH
 }
+devpi index $TRAVIS_BRANCH bases=/root/pypi
 
 devpi upload --from-dir python/wheelhouse
 
