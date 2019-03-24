@@ -31,6 +31,16 @@ If you have a linux system you, may install
         python -c "import deltachat"
 
 
+Installing a wheel from a github branch
+---------------------------------------
+
+For Linux, we automatically build wheels for all PRs
+and push them to a devpi/pypi index which case be used
+with ``pip``.  For example, to install the latest "master" built::
+
+    pip install -i https://m.devpi.net/dc/master deltachat
+
+
 Installing bindings from source
 ===============================
 
