@@ -332,15 +332,6 @@ int dc_save_locations(dc_context_t* context,
 		goto cleanup;
 	}
 
-	if (contact_id==DC_CONTACT_ID_SELF) {
-		// incoming locations from a multi-device setup are ignored currently,
-		// otherise, this could go easily result in a mess if once device
-		// is at home and the other goes around.
-		// however, if needed and resources are there,
-		// this special situation, could be improved someday.
-		goto cleanup;
-	}
-
 	stmt_test = dc_sqlite3_prepare(context->sql,
 		"SELECT id FROM locations WHERE timestamp=? AND from_id=?");
 
