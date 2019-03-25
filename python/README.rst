@@ -10,8 +10,7 @@ Installing pre-built packages (linux-only)
 ==========================================
 
 If you have a linux system you may install the ``deltachat`` binary "wheel" package
-without any "build-from-source" steps.  There are no other platforms yet
-with automated
+without any "build-from-source" steps.
 
 1. `Install virtualenv <https://virtualenv.pypa.io/en/stable/installation/>`_,
    then create a fresh python environment and activate it in your shell::
@@ -32,12 +31,11 @@ with automated
         python -c "import deltachat"
 
 
-Installing a wheel from a github branch
+Installing a wheel from a PR/branch
 ---------------------------------------
 
-For Linux, we automatically build wheels for all PRs
-and push them to a devpi/pypi index which case be used
-with ``pip``.  For example, to install the latest "master" built::
+For Linux, we automatically build wheels for all github PR branches
+and push them to a python package index. To install the latest github master::
 
     pip install -i https://m.devpi.net/dc/master deltachat
 
@@ -46,12 +44,15 @@ Installing bindings from source
 ===============================
 
 If you can't use "binary" method above then you will need
-to `install the delta-core C-library <https://github.com/deltachat/deltachat-core/blob/master/README.md>`_ before you invoke the ``pip install deltachat`` command above.
+to `install the delta-core C-library <https://github.com/deltachat/deltachat-core/blob/master/README.md>`_ and then invoke installation of the source bindings::
+
+    pip install --no-binary deltachat
 
 .. note::
 
-    If you can help with provide a way to automate the building of wheels
-    for Mac or Windows, please provide a PR here or open an issue.
+    If you can help to automate the building of wheels for Mac or Windows,
+    that'd be much appreciated! please then get
+    `in contact with us <https://delta.chat/en/contribute>`_.
 
 
 Code examples

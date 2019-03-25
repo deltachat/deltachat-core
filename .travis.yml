@@ -24,6 +24,10 @@ addons:
     - python3.5-dev
     - python-software-properties
     - doxygen
+
+services:
+  - docker
+
 install:
   - export CC=gcc-7
   - export CXX=g++-7
@@ -36,7 +40,7 @@ install:
   - tar xfv cyrus-sasl2_2.1.27~101-g0780600+dfsg.orig.tar.xz
   - pushd cyrus-sasl2-2.1.27~101-g0780600+dfsg.orig && ./autogen.sh && make && sudo
       make install && popd
-script:
+
 script:
   - export BRANCH=${TRAVIS_PULL_REQUEST_BRANCH:-$TRAVIS_BRANCH}
   - echo "BRANCH=$BRANCH"
