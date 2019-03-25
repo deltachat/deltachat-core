@@ -37,6 +37,9 @@ install:
   - pushd cyrus-sasl2-2.1.27~101-g0780600+dfsg.orig && ./autogen.sh && make && sudo
       make install && popd
 script:
+script:
+  - export BRANCH=${TRAVIS_PULL_REQUEST_BRANCH:-$TRAVIS_BRANCH}
+  - echo "BRANCH=$BRANCH"
   - doxygen --version
   - mkdir -p builddir && pushd builddir
   - meson $MESONARGS && ninja -v && sudo ninja install

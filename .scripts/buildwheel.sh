@@ -13,11 +13,11 @@ docker run --rm -it -v $(pwd):/io deltachat/wheel /io/python/wheelbuilder/build-
 devpi use https://m.devpi.net
 devpi login dc --password $DEVPI_LOGIN
 
-devpi use dc/$TRAVIS_BRANCH || {
-    devpi index -c $TRAVIS_BRANCH 
-    devpi use dc/$TRAVIS_BRANCH
+devpi use dc/$BRANCH || {
+    devpi index -c $BRANCH 
+    devpi use dc/$BRANCH
 }
-devpi index $TRAVIS_BRANCH bases=/root/pypi
+devpi index $BRANCH bases=/root/pypi
 
 devpi upload --from-dir python/wheelhouse
 
