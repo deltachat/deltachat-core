@@ -2,7 +2,7 @@
 set -e -x
 
 ## Build the library
-meson /builddir /io
+meson -Drpgp=true /builddir /io
 pushd /builddir
 ninja
 ninja install

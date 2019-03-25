@@ -109,3 +109,12 @@ RUN cd libetpan-${ETPAN_VERSION} && \
 RUN cd libetpan-${ETPAN_VERSION} && make
 RUN cd libetpan-${ETPAN_VERSION} && make install
 RUN ldconfig -v
+
+# Install Rust nightly 
+RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly -y
+ENV PATH=/root/.cargo/bin:$PATH
+RUN rustc --version
+RUN true \
+    && git clone https://github.com/dignifiedquire/rpgp.git \
+    && cd rpgp/pgp-ffi \
+    && make install

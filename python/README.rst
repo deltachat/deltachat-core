@@ -9,8 +9,9 @@ handling to Android, Desktop and IO user interfaces.
 Installing pre-built packages (linux-only)
 ==========================================
 
-If you have a linux system you, may install
-``deltachat`` and all of its dependencies like this:
+If you have a linux system you may install the ``deltachat`` binary "wheel" package
+without any "build-from-source" steps.  There are no other platforms yet
+with automated
 
 1. `Install virtualenv <https://virtualenv.pypa.io/en/stable/installation/>`_,
    then create a fresh python environment and activate it in your shell::
@@ -107,7 +108,7 @@ organization::
 The ``deltachat/wheel`` image can be used to build both libdeltachat.so
 and the Python wheels::
 
-    $ docker run --rm -it -v $(pwd):/io/ deltachat-wheel /io/python/wheelbuilder/build-wheels.sh
+    $ docker run --rm -it -v $(pwd):/io/ deltachat/wheel /io/python/wheelbuilder/build-wheels.sh
 
 This command runs a script within the image, after mounting ``$(pwd)`` as ``/io`` within
 the docker image.  The script is specified as a path within the docker image's filesystem.
