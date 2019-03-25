@@ -114,6 +114,9 @@ RUN ldconfig -v
 RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly -y
 ENV PATH=/root/.cargo/bin:$PATH
 RUN rustc --version
+
+# Install RPGP from github -- this currently downloads 500MB
+# see reported issue: https://github.com/dignifiedquire/rpgp/issues/30 
 RUN true \
     && git clone https://github.com/dignifiedquire/rpgp.git \
     && cd rpgp/pgp-ffi \
