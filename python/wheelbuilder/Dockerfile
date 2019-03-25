@@ -56,7 +56,7 @@ RUN ldconfig -v
 # Install cyrus-sasl
 ENV SASL_VERSION 2.1.27
 ENV SASL_SHA256 26866b1549b00ffd020f188a43c258017fa1c382b3ddadd8201536f72efb05d5
-RUN curl -O ftp://ftp.cyrusimap.org/cyrus-sasl/cyrus-sasl-${SASL_VERSION}.tar.gz
+RUN curl -O https://www.cyrusimap.org/releases/cyrus-sasl-${SASL_VERSION}.tar.gz
 RUN echo "${SASL_SHA256}  cyrus-sasl-${SASL_VERSION}.tar.gz" | sha256sum -c -
 RUN tar zxf cyrus-sasl-${SASL_VERSION}.tar.gz
 RUN cd cyrus-sasl-${SASL_VERSION} && \
@@ -109,3 +109,15 @@ RUN cd libetpan-${ETPAN_VERSION} && \
 RUN cd libetpan-${ETPAN_VERSION} && make
 RUN cd libetpan-${ETPAN_VERSION} && make install
 RUN ldconfig -v
+
+# Install Rust nightly 
+RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly -y
+ENV PATH=/root/.cargo/bin:$PATH
+RUN rustc --version
+
+# Install RPGP from github -- this currently downloads 500MB
+# see reported issue: https://github.com/dignifiedquire/rpgp/issues/30 
+RUN true \
+    && git clone https://github.com/dignifiedquire/rpgp.git \
+    && cd rpgp/pgp-ffi \
+    && make install
