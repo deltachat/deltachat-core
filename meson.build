@@ -109,12 +109,10 @@ endif
 
 
 if get_option('rpgp')
-  # The rpgp pkg-config file is currently incorrect, so just try
-  # linking it instead for now.
-  #rpgp = dependency('rpgp')
-  rpgp = cc.find_library('rpgp')
+  rpgp = dependency('rpgp')
   add_project_arguments('-DDC_USE_RPGP', language: 'c')
 
+  # when rpgp is active, netpgp is not needed 
   netpgp = dependency('', required: false)
 else
   rpgp = dependency('', required: false)
