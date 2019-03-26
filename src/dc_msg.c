@@ -189,6 +189,9 @@ int dc_msg_get_viewtype(const dc_msg_t* msg)
  * - DC_STATE_IN_SEEN (16) - Incoming message, really _seen_ by the user. Marked as read on IMAP and MDN may be send. Use dc_markseen_msgs() to mark messages as being seen.
  *
  * Outgoing message states:
+ * - DC_STATE_OUT_PREPARING (18) - For files which need time to be prepared before they can be sent,
+ *   the message enters this state before DC_STATE_OUT_PENDING.
+ * - DC_STATE_OUT_DRAFT (19) - Message saved as draft using dc_set_draft()
  * - DC_STATE_OUT_PENDING (20) - The user has send the "send" button but the
  *   message is not yet sent and is pending in some way. Maybe we're offline (no checkmark).
  * - DC_STATE_OUT_FAILED (24) - _Unrecoverable_ error (_recoverable_ errors result in pending messages), you'll receive the event #DC_EVENT_MSG_FAILED.
@@ -1021,41 +1024,24 @@ char* dc_msg_get_summarytext_by_raw(int type, const char* text, dc_param_t* para
 
 
 /**
- * Check if a message is still in creation.  The UI can mark files as being
- * in creation by simply creating a file `<filename>.increation`. If
- * `<filename>` is created completely then, the user should just delete
- * `<filename>.increation`.
+ * Check if a message is still in creation.  A message is in creation between
+ * the calls to dc_prepare_msg() and dc_send_msg().
  *
  * Typically, this is used for videos that are recoded by the UI before
  * they can be sent.
  *
  * @memberof dc_msg_t
  * @param msg The message object
- * @return 1=message is still in creation (`<filename>.increation` exists),
+ * @return 1=message is still in creation (dc_send_msg() was not called yet),
  *     0=message no longer in creation
  */
 int dc_msg_is_increation(const dc_msg_t* msg)
 {
-	int is_increation = 0;
-
 	if (msg==NULL || msg->magic!=DC_MSG_MAGIC || msg->context==NULL) {
 		return 0;
 	}
 
-	if (DC_MSG_NEEDS_ATTACHMENT(msg->type))
-	{
-		char* pathNfilename = dc_param_get(msg->param, DC_PARAM_FILE, NULL);
-		if (pathNfilename) {
-			char* totest = dc_mprintf("%s.increation", pathNfilename);
-			if (dc_file_exist(msg->context, totest)) {
-				is_increation = 1;
-			}
-			free(totest);
-			free(pathNfilename);
-		}
-	}
-
-	return is_increation;
+	return DC_MSG_NEEDS_ATTACHMENT(msg->type) && msg->state==DC_STATE_OUT_PREPARING;
 }
 
 
@@ -1205,6 +1191,38 @@ cleanup:
  ******************************************************************************/
 
 
+/*
+ * Check if there is a record for the given msg_id
+ * and that the record is not about to be deleted.
+ */
+int dc_msg_exists(dc_context_t* context, uint32_t msg_id)
+{
+	int           msg_exists = 0;
+	sqlite3_stmt* stmt = NULL;
+
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC
+	 || msg_id<=DC_MSG_ID_LAST_SPECIAL) {
+		goto cleanup;
+	}
+
+	stmt = dc_sqlite3_prepare(context->sql,
+		"SELECT chat_id FROM msgs WHERE id=?;");
+	sqlite3_bind_int(stmt, 1, msg_id);
+	if (sqlite3_step(stmt)==SQLITE_ROW)
+	{
+		uint32_t chat_id = sqlite3_column_int(stmt, 0);
+		if (chat_id!=DC_CHAT_ID_TRASH)
+		{
+			msg_exists = 1;
+		}
+	}
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return msg_exists;
+}
+
+
 void dc_update_msg_chat_id(dc_context_t* context, uint32_t msg_id, uint32_t chat_id)
 {
 	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->sql,
@@ -1241,7 +1259,7 @@ void dc_update_msg_move_state(dc_context_t* context, const char* rfc724_mid, dc_
 
 
 /**
- * Changes the state of PENDING or DELIVERED messages to DC_STATE_OUT_FAILED.
+ * Changes the state of PREPARING, PENDING or DELIVERED messages to DC_STATE_OUT_FAILED.
  * Moreover, the message error text can be updated.
  * Finally, the given error text is also logged using dc_log_error().
  *
@@ -1256,7 +1274,10 @@ void dc_set_msg_failed(dc_context_t* context, uint32_t msg_id, const char* error
 		goto cleanup;
 	}
 
-	if (DC_STATE_OUT_PENDING==msg->state || DC_STATE_OUT_DELIVERED==msg->state) {
+	if (DC_STATE_OUT_PREPARING==msg->state ||
+	    DC_STATE_OUT_PENDING  ==msg->state ||
+	    DC_STATE_OUT_DELIVERED==msg->state)
+	{
 		msg->state = DC_STATE_OUT_FAILED;
 	}
 
@@ -1530,6 +1551,7 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 		case DC_STATE_OUT_FAILED:    p = dc_strdup("Failed");          break;
 		case DC_STATE_OUT_MDN_RCVD:  p = dc_strdup("Read");            break;
 		case DC_STATE_OUT_PENDING:   p = dc_strdup("Pending");         break;
+		case DC_STATE_OUT_PREPARING: p = dc_strdup("Preparing");       break;
 		default:                     p = dc_mprintf("%i", msg->state); break;
 	}
 	dc_strbuilder_catf(&ret, "State: %s", p);
@@ -1872,7 +1894,10 @@ int dc_mdn_from_ext(dc_context_t* context, uint32_t from_id, const char* rfc724_
 	sqlite3_finalize(stmt);
 	stmt = NULL;
 
-	if (msg_state!=DC_STATE_OUT_PENDING && msg_state!=DC_STATE_OUT_DELIVERED) {
+	if (msg_state!=DC_STATE_OUT_PREPARING &&
+	    msg_state!=DC_STATE_OUT_PENDING &&
+	    msg_state!=DC_STATE_OUT_DELIVERED)
+	{
 		goto cleanup; /* eg. already marked as MDNS_RCVD. however, it is importent, that the message ID is set above as this will allow the caller eg. to move the message away */
 	}
 

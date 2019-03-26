@@ -7,6 +7,13 @@ from conftest import wait_configuration_progress, wait_successful_IMAP_SMTP_conn
 
 
 class TestOfflineAccount:
+    def test_getinfo(self, acfactory):
+        ac1 = acfactory.get_unconfigured_account()
+        d = ac1.get_info()
+        assert d["compile_date"]
+        assert d["arch"]
+        assert d["number_of_chats"] == "0"
+
     def test_is_not_configured(self, acfactory):
         ac1 = acfactory.get_unconfigured_account()
         assert not ac1.is_configured()
@@ -276,7 +283,7 @@ class TestOnlineAccount:
         lp.step("1")
         ac1._evlogger.get_matching("DC_EVENT_MSG_READ")
         lp.step("2")
-        ac1._evlogger.get_info_matching("Message marked as seen")
+        # ac1._evlogger.get_info_matching("Message marked as seen")
         assert msg_out.get_state().is_out_mdn_received()
 
     def test_saved_mime_on_received_message(self, acfactory, lp):

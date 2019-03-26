@@ -121,6 +121,37 @@ int             dc_is_inbox          (dc_context_t*, const char* folder);
 int             dc_is_sentbox        (dc_context_t*, const char* folder);
 int             dc_is_mvbox          (dc_context_t*, const char* folder);
 
+
+// location handling
+typedef struct _dc_location
+{
+	#define DC_ARRAY_LOCATIONS  1
+	uint32_t location_id;
+	double   latitude;
+	double   longitude;
+	double   accuracy;
+	time_t   timestamp;
+	uint32_t msg_id;
+} dc_location_t;
+
+typedef struct _dc_kml
+{
+	char*         addr;
+	dc_array_t*   locations;
+	int           tag;
+	dc_location_t curr;
+} dc_kml_t;
+
+char*           dc_get_location_kml       (dc_context_t*, uint32_t chat_id, uint32_t* last_added_location_id);
+void            dc_set_kml_sent_timestamp (dc_context_t*, uint32_t chat_id, time_t);
+void            dc_set_msg_location_id    (dc_context_t*, uint32_t msg_id, uint32_t location_id);
+int             dc_save_locations         (dc_context_t*, uint32_t chat_id, uint32_t msg_id, uint32_t contact_id, const dc_array_t*);
+dc_kml_t*       dc_kml_parse              (dc_context_t*, const char* content, size_t content_bytes);
+void            dc_kml_unref              (dc_kml_t*);
+void            dc_job_do_DC_JOB_MAYBE_SEND_LOCATIONS (dc_context_t*, dc_job_t*);
+
+
+// backups
 #define         DC_BAK_PREFIX                "delta-chat"
 #define         DC_BAK_SUFFIX                "bak"
 

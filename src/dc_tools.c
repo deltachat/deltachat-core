@@ -677,7 +677,7 @@ static int tmcomp(struct tm * atmp, struct tm * btmp) /* from mailcore2 */
 }
 
 
-static time_t mkgmtime(struct tm * tmp) /* from mailcore2 */
+time_t mkgmtime(struct tm * tmp) /* from mailcore2 */
 {
     int       dir = 0;
     int       bits = 0;
@@ -730,6 +730,7 @@ time_t dc_timestamp_from_date(struct mailimf_date_time * date_time) /* from mail
     int       zone_min = 0;
     int       zone_hour = 0;
 
+    memset(&tmval, 0, sizeof(struct tm));
     tmval.tm_sec  = date_time->dt_sec;
     tmval.tm_min  = date_time->dt_min;
     tmval.tm_hour = date_time->dt_hour;

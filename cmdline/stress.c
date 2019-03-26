@@ -192,6 +192,32 @@ void stress_functions(dc_context_t* context)
 		dc_simplify_unref(simplify);
 	}
 
+	{
+		const char* xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+		                  "<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n"
+		                  "<Document addr=\"user@example.org\">\n"
+		                  "<Placemark><Timestamp><when>2019-03-06T21:09:57Z</when></Timestamp><Point><coordinates accuracy=\"32.000000\">9.423110,53.790302</coordinates></Point></Placemark>\n"
+		                  "<PlaceMARK>\n<Timestamp><WHEN > \n\t2018-12-13T22:11:12Z\t</wHeN></Timestamp><Point><coordinates aCCuracy=\"2.500000\"> 19.423110 \t , \n 63.790302\n </coordinates></Point></Placemark>\n"
+		                  "</Document>\n"
+		                  "</kml>";
+		dc_kml_t* kml = dc_kml_parse(context, xml, strlen(xml));
+
+		assert( kml->addr && strcmp(kml->addr, "user@example.org")==0 );
+		assert( dc_array_get_cnt(kml->locations)==2 );
+
+		double lat = dc_array_get_latitude (kml->locations, 0); assert (lat>53.6 && lat<53.8);
+		double lng = dc_array_get_longitude(kml->locations, 0); assert (lng> 9.3 && lng< 9.5);
+		double acc = dc_array_get_accuracy (kml->locations, 0); assert (acc>31.9 && acc<32.1);
+		assert( dc_array_get_timestamp(kml->locations, 0)==1551906597 );
+
+		lat = dc_array_get_latitude (kml->locations, 1); assert (lat>63.6 && lat<63.8);
+		lng = dc_array_get_longitude(kml->locations, 1); assert (lng>19.3 && lng<19.5);
+		acc = dc_array_get_accuracy (kml->locations, 1); assert (acc> 2.4 && acc< 2.6);
+		assert( dc_array_get_timestamp(kml->locations, 1)==1544739072 );
+
+		dc_kml_unref(kml);
+	}
+
 	/* test file functions
 	 **************************************************************************/
 
@@ -343,6 +369,13 @@ void stress_functions(dc_context_t* context)
 	{
 		assert( atol("")==0 ); /* we rely on this eg. in dc_sqlite3_get_config() */
 		assert( atoi("")==0 );
+
+		double f = atof("1.23");
+		assert( f>1.22 && f<1.24 );
+
+		char* s = dc_mprintf("%0.2f", 1.23);
+		assert( strcmp(s, "1.23")==0 );
+		free(s);
 
 		assert( !dc_may_be_valid_addr(NULL) );
 		assert( !dc_may_be_valid_addr("") );

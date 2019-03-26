@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 
-#define DC_VERSION_STR "0.41.0"
+#define DC_VERSION_STR "0.42.0-dev"
 
 
 /**
@@ -269,6 +269,7 @@ uint32_t        dc_create_chat_by_msg_id     (dc_context_t*, uint32_t msg_id);
 uint32_t        dc_create_chat_by_contact_id (dc_context_t*, uint32_t contact_id);
 uint32_t        dc_get_chat_id_by_contact_id (dc_context_t*, uint32_t contact_id);
 
+uint32_t        dc_prepare_msg               (dc_context_t*, uint32_t chat_id, dc_msg_t*);
 uint32_t        dc_send_msg                  (dc_context_t*, uint32_t chat_id, dc_msg_t*);
 uint32_t        dc_send_text_msg             (dc_context_t*, uint32_t chat_id, const char* text_to_send);
 void            dc_set_draft                 (dc_context_t*, uint32_t chat_id, dc_msg_t*);
@@ -359,6 +360,14 @@ char*           dc_get_securejoin_qr         (dc_context_t*, uint32_t chat_id);
 uint32_t        dc_join_securejoin           (dc_context_t*, const char* qr);
 
 
+// location streaming
+void        dc_send_locations_to_chat       (dc_context_t*, uint32_t chat_id, int seconds);
+int         dc_is_sending_locations_to_chat (dc_context_t*, uint32_t chat_id);
+int         dc_set_location                 (dc_context_t*, double latitude, double longitude, double accuracy);
+dc_array_t* dc_get_locations                (dc_context_t*, uint32_t chat_id, uint32_t contact_id, time_t timestamp_begin, time_t timestamp_end);
+void        dc_delete_all_locations         (dc_context_t*);
+
+
 /**
  * @class dc_array_t
  *
@@ -367,8 +376,6 @@ uint32_t        dc_join_securejoin           (dc_context_t*, const char* qr);
  * The items of the array are typically IDs.
  * To free an array object, use dc_array_unref().
  */
-dc_array_t*      dc_array_new                (dc_context_t*, size_t initsize);
-void             dc_array_empty              (dc_array_t*);
 void             dc_array_unref              (dc_array_t*);
 
 void             dc_array_add_uint           (dc_array_t*, uintptr_t);
@@ -379,6 +386,11 @@ size_t           dc_array_get_cnt            (const dc_array_t*);
 uintptr_t        dc_array_get_uint           (const dc_array_t*, size_t index);
 uint32_t         dc_array_get_id             (const dc_array_t*, size_t index);
 void*            dc_array_get_ptr            (const dc_array_t*, size_t index);
+double           dc_array_get_latitude       (const dc_array_t*, size_t index);
+double           dc_array_get_longitude      (const dc_array_t*, size_t index);
+double           dc_array_get_accuracy       (const dc_array_t*, size_t index);
+time_t           dc_array_get_timestamp      (const dc_array_t*, size_t index);
+uint32_t         dc_array_get_msg_id         (const dc_array_t*, size_t index);
 
 int              dc_array_search_id          (const dc_array_t*, uint32_t needle, size_t* indx);
 const uintptr_t* dc_array_get_raw            (const dc_array_t*);
@@ -487,6 +499,7 @@ int             dc_chat_is_verified          (const dc_chat_t*);
 #define         DC_STATE_IN_FRESH            10
 #define         DC_STATE_IN_NOTICED          13
 #define         DC_STATE_IN_SEEN             16
+#define         DC_STATE_OUT_PREPARING       18
 #define         DC_STATE_OUT_DRAFT           19
 #define         DC_STATE_OUT_PENDING         20
 #define         DC_STATE_OUT_FAILED          24
@@ -983,6 +996,19 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 #define DC_EVENT_CONTACTS_CHANGED         2030
 
 
+
+/**
+ * Location of one or more contact has changed.
+ *
+ * @param data1 (int) contact_id of the contact for which the location has changed.
+ *     If the locations of several contacts have been changed,
+ *     eg. after calling dc_delete_all_locations(), this parameter is set to 0.
+ * @param data2 0
+ * @return 0
+ */
+#define DC_EVENT_LOCATION_CHANGED         2035
+
+
 /**
  * Inform about the configuration progress started by dc_configure().
  *
@@ -1179,7 +1205,9 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 #define DC_STR_SERVER_RESPONSE            61
 #define DC_STR_MSGACTIONBYUSER            62
 #define DC_STR_MSGACTIONBYME              63
-#define DC_STR_COUNT                      64
+#define DC_STR_MSGLOCATIONENABLED         64
+#define DC_STR_MSGLOCATIONDISABLED        65
+#define DC_STR_COUNT                      65
 
 /*
  * @}

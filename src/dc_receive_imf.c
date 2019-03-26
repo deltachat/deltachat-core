@@ -432,6 +432,10 @@ static char* create_adhoc_grp_id(dc_context_t* context, dc_array_t* member_ids /
 	}
 
 	ret = calloc(1, 256);
+	if (ret==NULL) {
+		goto cleanup;
+	}
+
 	for (i = 0; i < 8; i++) {
 		sprintf(&ret[i*2], "%02x", (int)rpgp_cvec_data(binary_hash)[i]);
 	}
@@ -450,6 +454,10 @@ static char* create_adhoc_grp_id(dc_context_t* context, dc_array_t* member_ids /
 
 	/* output the first 8 bytes as 16 hex-characters - CAVE: if the lenght changes here, also adapt dc_extract_grpid_from_rfc724_mid() */
 	ret = calloc(1, 256);
+	if (ret==NULL) {
+		goto cleanup;
+	}
+
 	for (i = 0; i < 8; i++) {
 		sprintf(&ret[i*2], "%02x", (int)binary_hash[i]);
 	}
@@ -1400,6 +1408,11 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 					continue;
 				}
 
+				if (mime_parser->kml && icnt==1 && part->msg
+				 && (strcmp(part->msg, "-location-")==0 || part->msg[0]==0)) {
+					hidden = 1;
+				}
+
 				if (part->type==DC_MSG_TEXT) {
 					txt_raw = dc_mprintf("%s\n\n%s", mime_parser->subject? mime_parser->subject : "", part->msg_raw);
 				}
@@ -1567,6 +1580,24 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 
 			} /* for() */
 
+		}
+
+		if (mime_parser->kml && chat_id > DC_CHAT_ID_LAST_SPECIAL)
+		{
+			/******************************************************************
+			 * save locations
+			 *****************************************************************/
+
+			dc_contact_t* contact = dc_get_contact(context, from_id);
+			if (mime_parser->kml->addr
+			 && contact && contact->addr
+			 && strcasecmp(contact->addr, mime_parser->kml->addr)==0)
+			{
+				if (dc_save_locations(context, chat_id, insert_msg_id, from_id, mime_parser->kml->locations)) {
+					context->cb(context, DC_EVENT_LOCATION_CHANGED, from_id, 0);
+				}
+			}
+			dc_contact_unref(contact);
 		}
 
 		if (add_delete_job && carray_count(created_db_entries)>=2) {

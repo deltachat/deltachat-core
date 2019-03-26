@@ -34,6 +34,10 @@ void dc_sqlite3_log_error(dc_sqlite3_t* sql, const char* msg_format, ...)
 	char*       msg = NULL;
 	va_list     va;
 
+	if (sql==NULL || msg_format==NULL) {
+		return;
+	}
+
 	va_start(va, msg_format);
 	msg = sqlite3_vmprintf(msg_format, va);
 
@@ -228,7 +232,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 			dc_sqlite3_execute(sql, "CREATE TABLE config (id INTEGER PRIMARY KEY, keyname TEXT, value TEXT);");
 			dc_sqlite3_execute(sql, "CREATE INDEX config_index1 ON config (keyname);");
 
-			dc_sqlite3_execute(sql, "CREATE TABLE contacts (id INTEGER PRIMARY KEY,"
+			dc_sqlite3_execute(sql, "CREATE TABLE contacts (id INTEGER PRIMARY KEY AUTOINCREMENT,"
 						" name TEXT DEFAULT '',"
 						" addr TEXT DEFAULT '' COLLATE NOCASE,"
 						" origin INTEGER DEFAULT 0,"
@@ -242,7 +246,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 				#error
 			#endif
 
-			dc_sqlite3_execute(sql, "CREATE TABLE chats (id INTEGER PRIMARY KEY, "
+			dc_sqlite3_execute(sql, "CREATE TABLE chats (id INTEGER PRIMARY KEY AUTOINCREMENT, "
 						" type INTEGER DEFAULT 0,"
 						" name TEXT DEFAULT '',"
 						" draft_timestamp INTEGER DEFAULT 0,"
@@ -261,7 +265,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 				#error
 			#endif
 
-			dc_sqlite3_execute(sql, "CREATE TABLE msgs (id INTEGER PRIMARY KEY,"
+			dc_sqlite3_execute(sql, "CREATE TABLE msgs (id INTEGER PRIMARY KEY AUTOINCREMENT,"
 						" rfc724_mid TEXT DEFAULT '',"     /* forever-global-unique Message-ID-string, unfortunately, this cannot be easily used to communicate via IMAP */
 						" server_folder TEXT DEFAULT '',"  /* folder as used on the server, the folder will change when messages are moved around. */
 						" server_uid INTEGER DEFAULT 0,"   /* UID as used on the server, the UID will change when messages are moved around, unique together with validity, see RFC 3501; the validity may differ from folder to folder.  We use the server_uid for "markseen" and to delete messages as we check against the message-id, we ignore the validity for these commands. */
@@ -560,6 +564,42 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 				if (exists_before_update) {
 					dc_sqlite3_set_config_int(sql, "show_emails", DC_SHOW_EMAILS_ALL);
 				}
+
+				dbversion = NEW_DB_VERSION;
+				dc_sqlite3_set_config_int(sql, "dbversion", NEW_DB_VERSION);
+			}
+		#undef NEW_DB_VERSION
+
+		#define NEW_DB_VERSION 53
+			if (dbversion < NEW_DB_VERSION)
+			{
+				// the messages containing _only_ locations
+				// are also added to the database as _hidden_.
+				dc_sqlite3_execute(sql, "CREATE TABLE locations ("
+							" id INTEGER PRIMARY KEY AUTOINCREMENT,"
+							" latitude REAL DEFAULT 0.0,"
+							" longitude REAL DEFAULT 0.0,"
+							" accuracy REAL DEFAULT 0.0,"
+							" timestamp INTEGER DEFAULT 0,"
+							" chat_id INTEGER DEFAULT 0,"
+							" from_id INTEGER DEFAULT 0);");
+				dc_sqlite3_execute(sql, "CREATE INDEX locations_index1 ON locations (from_id);");
+				dc_sqlite3_execute(sql, "CREATE INDEX locations_index2 ON locations (timestamp);");
+				dc_sqlite3_execute(sql, "ALTER TABLE chats ADD COLUMN locations_send_begin INTEGER DEFAULT 0;");
+				dc_sqlite3_execute(sql, "ALTER TABLE chats ADD COLUMN locations_send_until INTEGER DEFAULT 0;");
+				dc_sqlite3_execute(sql, "ALTER TABLE chats ADD COLUMN locations_last_sent INTEGER DEFAULT 0;");
+				dc_sqlite3_execute(sql, "CREATE INDEX chats_index3 ON chats (locations_send_until);");
+
+				dbversion = NEW_DB_VERSION;
+				dc_sqlite3_set_config_int(sql, "dbversion", NEW_DB_VERSION);
+			}
+		#undef NEW_DB_VERSION
+
+		#define NEW_DB_VERSION 54
+			if (dbversion < NEW_DB_VERSION)
+			{
+				dc_sqlite3_execute(sql, "ALTER TABLE msgs ADD COLUMN location_id INTEGER DEFAULT 0;");
+				dc_sqlite3_execute(sql, "CREATE INDEX msgs_index6 ON msgs (location_id);");
 
 				dbversion = NEW_DB_VERSION;
 				dc_sqlite3_set_config_int(sql, "dbversion", NEW_DB_VERSION);
@@ -945,6 +985,10 @@ void dc_housekeeping(dc_context_t* context)
 		"SELECT param FROM msgs "
 		" WHERE chat_id!=" DC_STRINGIFY(DC_CHAT_ID_TRASH)
 		"   AND type!=" DC_STRINGIFY(DC_MSG_TEXT) ";",
+		DC_PARAM_FILE);
+
+	maybe_add_from_param(context, &files_in_use,
+		"SELECT param FROM jobs;",
 		DC_PARAM_FILE);
 
 	maybe_add_from_param(context, &files_in_use,

@@ -412,6 +412,8 @@ int dc_key_render_asc_to_file(const dc_key_t* key, const char* file, dc_context_
 		goto cleanup;
 	}
 
+	success = 1;
+
 cleanup:
 	free(file_content);
 	return success;

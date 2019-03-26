@@ -109,6 +109,10 @@ static uintptr_t receive_event(dc_context_t* context, int event, uintptr_t data1
 			printf(ANSI_YELLOW "{{Received DC_EVENT_CONTACTS_CHANGED()}}\n" ANSI_NORMAL);
 			break;
 
+		case DC_EVENT_LOCATION_CHANGED:
+			printf(ANSI_YELLOW "{{Received DC_EVENT_LOCATION_CHANGED(contact=%i)}}\n" ANSI_NORMAL, (int)data1);
+			break;
+
 		case DC_EVENT_CONFIGURE_PROGRESS:
 			printf(ANSI_YELLOW "{{Received DC_EVENT_CONFIGURE_PROGRESS(%i ‰)}}\n" ANSI_NORMAL, (int)data1);
 			break;

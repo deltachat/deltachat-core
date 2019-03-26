@@ -1,5 +1,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <locale.h>
 #include <unistd.h>
 #include <openssl/opensslv.h>
 #include <assert.h>
@@ -180,6 +181,15 @@ static void cb_receive_imf(dc_imap_t* imap, const char* imf_raw_not_terminated, 
 dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_name)
 {
 	dc_context_t* context = NULL;
+
+	// set locale to make printf("%d") and atof() work with a point-decimal-separator.
+	// as setlocale() may not be thread-safe and one call is sufficient for all
+	//
+	static int s_locale_initialized = 0;
+	if (!s_locale_initialized) {
+		s_locale_initialized = 1;
+		setlocale(LC_ALL|~LC_NUMERIC, "C");
+	}
 
 	if ((context=calloc(1, sizeof(dc_context_t)))==NULL) {
 		exit(23); /* cannot allocate little memory, unrecoverable error */
