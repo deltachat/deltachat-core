@@ -109,7 +109,8 @@ endif
 
 
 if get_option('rpgp')
-  rpgp = dependency('rpgp')
+  rpgp = cc.find_library('rpgp')
+  # rpgp = dependency('rpgp') -> pkg-config does not seem to work
   add_project_arguments('-DDC_USE_RPGP', language: 'c')
 
   # when rpgp is active, netpgp is not needed 
