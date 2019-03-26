@@ -57,10 +57,11 @@ script:
   - pip install tox devpi-client
   - if [ -e /usr/local/lib/x86_64-linux-gnu/libdeltachat.so ]; then ldd /usr/local/lib/x86_64-linux-gnu/libdeltachat.so;
       fi
+  - if [ -n "$WHEEL" ]; then bash $TRAVIS_BUILD_DIR/.scripts/buildwheel.sh ; fi
   - if [ -n "$TESTS" ]; then tox; fi
   - if [ -n "$DOCS" ]; then tox -e doc; fi
-  - if [ -n "$WHEEL" ]; then bash $TRAVIS_BUILD_DIR/.scripts/buildwheel.sh ; fi
   - popd
+  - if [ -n "$TESTS" ]; then ninja -C builddir test; fi
 deploy:
   provider: script
   skip_cleanup: true
