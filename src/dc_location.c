@@ -71,6 +71,7 @@ char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id,
 			" WHERE from_id=? "
 			"   AND timestamp>=? "
 			"   AND (timestamp>=? OR timestamp=(SELECT MAX(timestamp) FROM locations WHERE from_id=?)) "
+			"   GROUP BY timestamp "
 			"   ORDER BY timestamp;");
 	sqlite3_bind_int   (stmt, 1, DC_CONTACT_ID_SELF);
 	sqlite3_bind_int64 (stmt, 2, locations_send_begin);
@@ -319,13 +320,14 @@ void dc_kml_unref(dc_kml_t* kml)
 }
 
 
-int dc_save_locations(dc_context_t* context,
-                      uint32_t chat_id, uint32_t msg_id, uint32_t contact_id,
-                      const dc_array_t* locations)
+uint32_t dc_save_locations(dc_context_t* context,
+                           uint32_t chat_id, uint32_t contact_id,
+                           const dc_array_t* locations)
 {
-	int           saved_locations = 0;
 	sqlite3_stmt* stmt_test = NULL;
 	sqlite3_stmt* stmt_insert = NULL;
+	time_t        newest_timestamp = 0;
+	uint32_t      newest_location_id = 0;
 
 	if (context==NULL ||  context->magic!=DC_CONTEXT_MAGIC
 	 || chat_id<=DC_CHAT_ID_LAST_SPECIAL || locations==NULL) {
@@ -357,15 +359,20 @@ int dc_save_locations(dc_context_t* context,
 			sqlite3_bind_double(stmt_insert, 5, location->longitude);
 			sqlite3_bind_double(stmt_insert, 6, location->accuracy);
 			sqlite3_step(stmt_insert);
+		}
 
-			saved_locations++;
+		if (location->timestamp > newest_timestamp) {
+			newest_timestamp = location->timestamp;
+			newest_location_id = dc_sqlite3_get_rowid2(context->sql, "locations",
+				"timestamp", location->timestamp,
+				"from_id", contact_id);
 		}
 	}
 
 cleanup:
 	sqlite3_finalize(stmt_test);
 	sqlite3_finalize(stmt_insert);
-	return saved_locations;
+	return newest_location_id;
 }
 
 
@@ -594,42 +601,46 @@ cleanup:
 int dc_set_location(dc_context_t* context,
                     double latitude, double longitude, double accuracy)
 {
-	sqlite3_stmt* stmt = NULL;
-	int           continue_streaming = 1;
+	sqlite3_stmt* stmt_chats = NULL;
+	sqlite3_stmt* stmt_insert = NULL;
+	int           continue_streaming = 0;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC
 	 || (latitude==0.0 && longitude==0.0)) {
+		continue_streaming = 1;
 		goto cleanup;
 	}
 
-	stmt = dc_sqlite3_prepare(context->sql,
-			"INSERT INTO locations "
-			" (latitude, longitude, accuracy, timestamp, from_id)"
-			" VALUES (?,?,?,?,?);");
-	sqlite3_bind_double(stmt, 1, latitude);
-	sqlite3_bind_double(stmt, 2, longitude);
-	sqlite3_bind_double(stmt, 3, accuracy);
-	sqlite3_bind_int64 (stmt, 4, time(NULL));
-	sqlite3_bind_int   (stmt, 5, DC_CONTACT_ID_SELF);
-	sqlite3_step(stmt);
-	sqlite3_finalize(stmt);
-	stmt = NULL;
-
-	context->cb(context, DC_EVENT_LOCATION_CHANGED, DC_CONTACT_ID_SELF, 0);
-
-	stmt = dc_sqlite3_prepare(context->sql,
+	stmt_chats = dc_sqlite3_prepare(context->sql,
 		"SELECT id FROM chats WHERE locations_send_until>?;");
-	sqlite3_bind_int64(stmt, 1, time(NULL));
-	if (sqlite3_step(stmt)!=SQLITE_ROW) {
-		continue_streaming = 0;
+	sqlite3_bind_int64(stmt_chats, 1, time(NULL));
+	while (sqlite3_step(stmt_chats)==SQLITE_ROW)
+	{
+		uint32_t chat_id = sqlite3_column_int(stmt_chats, 0);
+
+		stmt_insert = dc_sqlite3_prepare(context->sql,
+				"INSERT INTO locations "
+				" (latitude, longitude, accuracy, timestamp, chat_id, from_id)"
+				" VALUES (?,?,?,?,?,?);");
+		sqlite3_bind_double(stmt_insert, 1, latitude);
+		sqlite3_bind_double(stmt_insert, 2, longitude);
+		sqlite3_bind_double(stmt_insert, 3, accuracy);
+		sqlite3_bind_int64 (stmt_insert, 4, time(NULL));
+		sqlite3_bind_int   (stmt_insert, 5, chat_id);
+		sqlite3_bind_int   (stmt_insert, 6, DC_CONTACT_ID_SELF);
+		sqlite3_step(stmt_insert);
+
+		continue_streaming = 1;
 	}
 
 	if (continue_streaming) {
+		context->cb(context, DC_EVENT_LOCATION_CHANGED, DC_CONTACT_ID_SELF, 0);
 		schedule_MAYBE_SEND_LOCATIONS(context, 0);
 	}
 
 cleanup:
-	sqlite3_finalize(stmt);
+	sqlite3_finalize(stmt_chats);
+	sqlite3_finalize(stmt_insert);
 	return continue_streaming;
 }
 
@@ -669,12 +680,6 @@ dc_array_t* dc_get_locations(dc_context_t* context,
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
 		goto cleanup;
-	}
-
-	if (contact_id==DC_CONTACT_ID_SELF) {
-		// maybe we want to show the self location only when really streamed to others,
-		// however, for this this is easier and fine.
-		chat_id = 0;
 	}
 
 	if (timestamp_to==0) {
