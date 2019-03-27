@@ -80,15 +80,15 @@ char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id,
 	while (sqlite3_step(stmt)==SQLITE_ROW)
 	{
 		uint32_t location_id = sqlite3_column_int(stmt, 0);
-		double   latitude    = sqlite3_column_double(stmt, 1);
-		double   longitude   = sqlite3_column_double(stmt, 2);
-		double   accuracy    = sqlite3_column_double(stmt, 3);
+		char*    latitude    = dc_ftoa(sqlite3_column_double(stmt, 1));
+		char*    longitude   = dc_ftoa(sqlite3_column_double(stmt, 2));
+		char*    accuracy    = dc_ftoa(sqlite3_column_double(stmt, 3));
 		char*    timestamp   = get_kml_timestamp(sqlite3_column_int64 (stmt, 4));
 
 		dc_strbuilder_catf(&ret,
 			"<Placemark>"
 				"<Timestamp><when>%s</when></Timestamp>"
-				"<Point><coordinates accuracy=\"%f\">%f,%f</coordinates></Point>"
+				"<Point><coordinates accuracy=\"%s\">%s,%s</coordinates></Point>"
 			"</Placemark>\n",
 			timestamp,
 			accuracy,
@@ -101,8 +101,10 @@ char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id,
 			*last_added_location_id = location_id;
 		}
 
+		free(latitude);
+		free(longitude);
+		free(accuracy);
 		free(timestamp);
-		timestamp = NULL;
 	}
 
 	if (location_count==0) {
@@ -202,7 +204,7 @@ static void kml_starttag_cb(void* userdata, const char* tag, char** attr)
 		kml->tag = TAG_PLACEMARK|TAG_POINT|TAG_COORDINATES;
 		const char* accuracy = dc_attr_find(attr, "accuracy");
 		if (accuracy) {
-			kml->curr.accuracy = atof(accuracy);
+			kml->curr.accuracy = dc_atof(accuracy);
 		}
 	}
 }
@@ -244,8 +246,8 @@ static void kml_text_cb(void* userdata, const char* text, int len)
 				*comma = 0;
 				comma = strchr(latitude, ',');
 				if (comma) { *comma = 0; }
-				kml->curr.latitude = atof(latitude);
-				kml->curr.longitude = atof(longitude);
+				kml->curr.latitude = dc_atof(latitude);
+				kml->curr.longitude = dc_atof(longitude);
 			}
 		}
 
