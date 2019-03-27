@@ -59,7 +59,7 @@ script:
       fi
   - if [ -n "$TESTS" ]; then tox; fi
   - if [ -n "$DOCS" ]; then tox -e doc; fi
-  - if [ -n "$WHEEL" ]; then bash $TRAVIS_BUILD_DIR/.scripts/buildwheel.sh ; fi
+  - bash $TRAVIS_BUILD_DIR/.scripts/travisbuild.sh 
   - popd
 deploy:
   provider: script
