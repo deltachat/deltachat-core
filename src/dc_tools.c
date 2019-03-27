@@ -608,15 +608,17 @@ int dc_str_to_color(const char* str)
 {
 	char* str_lower = dc_strlower(str);
 
+	/* the colors must fulfill some criterions as:
+	- contrast to black and to white
+	- work as a text-color
+	- being noticable on a typical map
+	- harmonize together while being different enough
+	(therefore, we cannot just use random rgb colors :) */
 	static uint32_t colors[] = {
-		0xe56555,
-		0xf28c48,
-		0x8e85ee,
-		0x76c84d,
-		0x5bb6cc,
-		0x549cdd,
-		0xd25c99,
-		0xb37800
+		0xe56555, 0xf28c48, 0x8e85ee, 0x76c84d,
+		0x5bb6cc, 0x549cdd, 0xd25c99, 0xb37800,
+		0xf23030, 0x39B249, 0xBB243B, 0x964078,
+		0x66874F, 0x308AB9, 0x127ed0, 0xBE450C
 	};
 
 	int checksum = 0;
