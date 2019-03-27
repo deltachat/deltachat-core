@@ -4,24 +4,35 @@
 #
 set -e -x
 
-REPODIR=`dirname "$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"`
+# clean-build and install core
+export CORE_BUILD_DIR=/.docker-corebuild
+[ -d "$CORE_BUILD_DIR" ] && rm -rf "$CORE_BUILD_DIR"
 
-# build and install core
-cd $REPODIR
-meson -Drpgp=true builddir /mnt
-pushd builddir
+meson -Drpgp=true "$CORE_BUILD_DIR" .
+    
+pushd $CORE_BUILD_DIR 
 ninja
 ninja install
 ldconfig -v
 popd
 
-# run tests
+# run ninja and python tests
 
 if [ -n "$TESTS" ]; then 
-    bash $REPODIR/.scripts/run_tests.sh
+    echo ----------------
+    echo run ninja tests
+    echo ----------------
+
+    # ninja test
+
+    echo ----------------
+    echo run python tests
+    echo ----------------
+
+    pushd python
+    pip install tox 
+    tox 
+    popd
 fi
-
-
-
 
 
