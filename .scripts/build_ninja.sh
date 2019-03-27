@@ -10,8 +10,11 @@ curl -L -o ninja-linux-$NINJA_VERSION.zip \
 echo "${NINJA_SHA256}  ninja-linux-${NINJA_VERSION}.zip" | sha256sum -c -  
 unzip ninja-linux-${NINJA_VERSION}.zip 
 mv ninja /usr/bin/ninja 
-/opt/python/cp37-cp37m/bin/pip install meson 
 
-cd /usr/bin && ln -s /opt/_internal/cpython-3.7.*/bin/meson
+# we use the python3.5 environment as the base environment 
+/opt/python/cp35-cp35m/bin/pip install meson tox
 
+pushd /usr/bin
 
+ln -s /opt/_internal/cpython-3.5.*/bin/meson 
+ln -s /opt/_internal/cpython-3.5.*/bin/tox

@@ -33,7 +33,7 @@ RUN mkdir tmp1 && cd tmp1 && bash /scripts/build_libetpan.sh && cd .. && rm -r t
 
 # Install Rust nightly 
 RUN true \
-    && curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly -y
+    && curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly-2019-03-23 -y
 ENV PATH=/root/.cargo/bin:$PATH
 RUN rustc --version
 

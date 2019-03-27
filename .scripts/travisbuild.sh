@@ -3,7 +3,7 @@
 
 set -e -x
 
-export DOCKERIMAGE=deltachat/test1
+export DOCKERIMAGE=deltachat/test5
 
 # docker pull $DOCKERIMAGE
 
