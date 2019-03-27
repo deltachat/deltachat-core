@@ -2,9 +2,6 @@
 
 set -e -x
 
-docker pull deltachat/wheel 
-rm -rf python/wheelhouse/*
-cd $TRAVIS_BUILD_DIR
 docker run --rm -it -v $(pwd):/io deltachat/wheel /io/python/wheelbuilder/build-wheels.sh
 
 # create an index at the community "devpi" python packaging site

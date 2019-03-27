@@ -1,14 +1,6 @@
 #!/bin/bash
 set -e -x
 
-## Build the library
-meson -Drpgp=true /builddir /io
-pushd /builddir
-ninja
-ninja install
-ldconfig -v
-popd
-
 ## Compile wheels
 for PYBIN in /opt/python/*/bin; do
     "${PYBIN}/pip" install cffi requests attrs six pytest

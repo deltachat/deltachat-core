@@ -57,7 +57,6 @@ script:
   - pip install tox devpi-client
   - if [ -e /usr/local/lib/x86_64-linux-gnu/libdeltachat.so ]; then ldd /usr/local/lib/x86_64-linux-gnu/libdeltachat.so;
       fi
-  - if [ -n "$TESTS" ]; then tox; fi
   - if [ -n "$DOCS" ]; then tox -e doc; fi
   - bash $TRAVIS_BUILD_DIR/.scripts/travisbuild.sh 
   - popd
