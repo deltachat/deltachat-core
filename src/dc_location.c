@@ -319,13 +319,14 @@ void dc_kml_unref(dc_kml_t* kml)
 }
 
 
-int dc_save_locations(dc_context_t* context,
-                      uint32_t chat_id, uint32_t msg_id, uint32_t contact_id,
-                      const dc_array_t* locations)
+uint32_t dc_save_locations(dc_context_t* context,
+                           uint32_t chat_id, uint32_t contact_id,
+                           const dc_array_t* locations)
 {
-	int           saved_locations = 0;
 	sqlite3_stmt* stmt_test = NULL;
 	sqlite3_stmt* stmt_insert = NULL;
+	time_t        newest_timestamp = 0;
+	uint32_t      newest_location_id = 0;
 
 	if (context==NULL ||  context->magic!=DC_CONTEXT_MAGIC
 	 || chat_id<=DC_CHAT_ID_LAST_SPECIAL || locations==NULL) {
@@ -357,15 +358,20 @@ int dc_save_locations(dc_context_t* context,
 			sqlite3_bind_double(stmt_insert, 5, location->longitude);
 			sqlite3_bind_double(stmt_insert, 6, location->accuracy);
 			sqlite3_step(stmt_insert);
+		}
 
-			saved_locations++;
+		if (location->timestamp > newest_timestamp) {
+			newest_timestamp = location->timestamp;
+			newest_location_id = dc_sqlite3_get_rowid2(context->sql, "locations",
+				"timestamp", location->timestamp,
+				"from_id", contact_id);
 		}
 	}
 
 cleanup:
 	sqlite3_finalize(stmt_test);
 	sqlite3_finalize(stmt_insert);
-	return saved_locations;
+	return newest_location_id;
 }
 
 

@@ -141,6 +141,27 @@ uint32_t dc_sqlite3_get_rowid(dc_sqlite3_t* sql, const char* table, const char* 
 }
 
 
+uint32_t dc_sqlite3_get_rowid2(dc_sqlite3_t* sql, const char* table,
+                               const char* field, uint64_t value,
+                               const char* field2, uint32_t value2)
+{
+	// same as dc_sqlite3_get_rowid() with a key over two columns
+	uint32_t id = 0;
+
+	// see https://www.sqlite.org/printf.html for sqlite-printf modifiers
+	char* q3 = sqlite3_mprintf(
+		"SELECT id FROM %s WHERE %s=%lli AND %s=%i ORDER BY id DESC;",
+		table, field, value, field2, value2);
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(sql, q3);
+	if (SQLITE_ROW==sqlite3_step(stmt)) {
+		id = sqlite3_column_int(stmt, 0);
+	}
+	sqlite3_finalize(stmt);
+	sqlite3_free(q3);
+	return id;
+}
+
+
 dc_sqlite3_t* dc_sqlite3_new(dc_context_t* context)
 {
 	dc_sqlite3_t* sql = NULL;

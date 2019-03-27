@@ -1593,7 +1593,10 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 			 && contact && contact->addr
 			 && strcasecmp(contact->addr, mime_parser->kml->addr)==0)
 			{
-				if (dc_save_locations(context, chat_id, insert_msg_id, from_id, mime_parser->kml->locations)) {
+				uint32_t newest_location_id = dc_save_locations(context,
+								chat_id, from_id, mime_parser->kml->locations);
+				if (newest_location_id) {
+					dc_set_msg_location_id(context, insert_msg_id, newest_location_id);
 					context->cb(context, DC_EVENT_LOCATION_CHANGED, from_id, 0);
 				}
 			}
