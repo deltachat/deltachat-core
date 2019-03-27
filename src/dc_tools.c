@@ -56,6 +56,36 @@ int dc_atoi_null_is_0(const char* s)
 }
 
 
+double dc_atof(const char* str)
+{
+	// hack around atof() that may accept only `,` as decimal point on mac
+	char* test = dc_mprintf("%f", 1.2);
+	test[2] = 0;
+
+	char* str_locale = dc_strdup(str);
+	dc_str_replace(&str_locale, ".", test+1);
+	double f = atof(str_locale);
+
+	free(test);
+	free(str_locale);
+	return f;
+}
+
+
+char* dc_ftoa(double f)
+{
+	// hack around printf(%f) that may return `,` as decimal point on mac
+	char* test = dc_mprintf("%f", 1.2);
+	test[2] = 0;
+
+	char* str = dc_mprintf("%f", f);
+	dc_str_replace(&str, test+1, ".");
+
+	free(test);
+	return str;
+}
+
+
 void dc_ltrim(char* buf)
 {
 	size_t               len = 0;
