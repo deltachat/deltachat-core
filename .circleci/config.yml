@@ -4,21 +4,15 @@ jobs:
   build:
     docker:
       - image: deltachat/doxygen 
+      - image: deltachat/test7
     steps:
       - checkout
-      - run: scripts/doxygen.sh
-  #test:
-  #  docker:
-  #    - image: circleci/<language>:<version TAG>
-  #  steps:
-  #    - checkout
-  #    - run: <command>
+      - run: scripts/travisbuild.sh
 
 workflows:
   version: 2
   build_and_test:
     jobs:
       - build
-      #- test
 
 

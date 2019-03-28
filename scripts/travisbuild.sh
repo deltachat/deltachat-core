@@ -4,7 +4,7 @@
 set -e -x
 
 export DOCKERIMAGE=${DOCKERIMAGE:-deltachat/test7}
-export BRANCH=${BRANCH:-test7}
+export BRANCH=${CIRCLE_BRANCH:-test7}
 
 # run doxygen on c-source (needed by later doc-generation steps).
 # XXX modifies the host filesystem docs/xml and docs/html directories
