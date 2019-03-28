@@ -676,6 +676,30 @@ cleanup:
  *     The array is sorted decending;
  *     the first entry in the array is the location with the newest timestamp.
  *     The returned array must be freed using dc_array_unref().
+ *
+ * Examples:
+ * ~~~
+ * // get locations from the last hour for a global map
+ * dc_array_t* loc = dc_get_locations(context, 0, 0, time(NULL)-60*60, 0);
+ * for (int i=0; i<dc_array_get_cnt(); i++) {
+ *     double lat = dc_array_get_latitude(loc, i);
+ *     ...
+ * }
+ * dc_array_unref(loc);
+ *
+ * // get locations from a contact for a global map
+ * dc_array_t* loc = dc_get_locations(context, 0, contact_id, 0, 0);
+ * ...
+ *
+ * // get all locations known for a given chat
+ * dc_array_t* loc = dc_get_locations(context, chat_id, 0, 0, 0);
+ * ...
+ *
+ * // get locations from a single contact for a given chat
+ * dc_array_t* loc = dc_get_locations(context, chat_id, contact_id, 0, 0);
+ * ...
+ * ~~~
+
  */
 dc_array_t* dc_get_locations(dc_context_t* context,
                              uint32_t chat_id, uint32_t  contact_id,
