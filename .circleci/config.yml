@@ -2,11 +2,11 @@
 version: 2
 jobs:
   build:
-    docker:
-      - image: deltachat/doxygen 
-      - image: deltachat/test7
+    machine: True
     steps:
       - checkout
+      - run: docker pull deltachat/doxygen 
+      - run: docker pull deltachat/test7
       - run: scripts/travisbuild.sh
 
 workflows:
