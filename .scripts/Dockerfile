@@ -7,7 +7,7 @@ ENV PKG_CONFIG_PATH /usr/local/lib64/pkgconfig:/usr/local/lib/pkgconfig
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK 1
 
-# Install meson and ninja
+# Install ninja
 ADD build_ninja.sh /scripts/build_ninja.sh
 RUN mkdir tmp1 && cd tmp1 && bash /scripts/build_ninja.sh && cd .. && rm -r tmp1
 
@@ -30,6 +30,10 @@ RUN mkdir tmp1 && cd tmp1 && bash /scripts/build_sasl.sh && cd .. && rm -r tmp1
 # Install libetpan
 ADD build_libetpan.sh /scripts/build_libetpan.sh
 RUN mkdir tmp1 && cd tmp1 && bash /scripts/build_libetpan.sh && cd .. && rm -r tmp1
+
+# Install python tools (meson, tox, ...)
+ADD build_python.sh /scripts/build_python.sh
+RUN mkdir tmp1 && cd tmp1 && bash /scripts/build_python.sh && cd .. && rm -r tmp1
 
 # Install Rust nightly 
 ADD build_rust.sh /scripts/build_rust.sh
