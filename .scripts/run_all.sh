@@ -83,11 +83,11 @@ fi
 
 
 if [ -n "$DOCS" ]; then 
-    echo -----------------------
-    echo generating doxygen docs
-    echo -----------------------
-
-    (cd docs && doxygen)
+#    echo -----------------------
+#    echo generating doxygen docs
+#    echo -----------------------
+#
+#    (cd docs && doxygen)
 
     echo -----------------------
     echo generating python docs
