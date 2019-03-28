@@ -30,11 +30,11 @@ printf " %sAuthentication no\n" ChallengeResponse Password KbdInteractive >> ~/.
 # Perform the actual deploy to py.delta.chat
 rsync -avz \
   -e "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
-  $TRAVIS_BUILD_DIR/python/doc/_build/html/ \
+  python/doc/_build/html/ \
   ${DEPLOY_USER}@${DEPLOY_SERVER}:build/${TRAVIS_BRANCH/\//_}
 
 # Perform the actual deploy to c.delta.chat
 rsync -avz \
   -e "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
-  $TRAVIS_BUILD_DIR/docs/html/ \
+  docs/html/ \
   ${DEPLOY_USER}@${DEPLOY_SERVER}:build-c/${TRAVIS_BRANCH/\//_}

@@ -50,8 +50,11 @@ if [ -n "$TESTS" ]; then
     if [ -n "$WHEELS" ] ; then 
         # remove all wheels 
         rm -rf wheelhouse
+        
+        echo -----------------------
+        echo build wheels 
+        echo -----------------------
 
-        # Build wheels 
         for PYBIN in .tox/py??/bin ; do 
             "${PYBIN}/pip" wheel . -w wheelhouse/
         done
@@ -59,7 +62,11 @@ if [ -n "$TESTS" ]; then
         for whl in wheelhouse/deltachat*.whl; do
             auditwheel repair "$whl" -w wheelhouse
         done
-        # upload wheels 
+
+        echo -----------------------
+        echo upload wheels 
+        echo -----------------------
+
         devpi use https://m.devpi.net
         devpi login dc --password $DEVPI_LOGIN
 
@@ -82,5 +89,9 @@ if [ -n "$DOCS" ]; then
 
     (cd docs && doxygen)
 
+    echo -----------------------
+    echo generating python docs
+    echo -----------------------
     (cd python && tox -e doc) 
+
 fi
