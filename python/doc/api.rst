@@ -36,19 +36,19 @@ Chat
 Message
 -------
 
-.. autoclass:: deltachat.chatting.Message
+.. autoclass:: deltachat.message.Message
     :members:
 
 MessageType
 ------------
 
-.. autoclass:: deltachat.chatting.MessageType
+.. autoclass:: deltachat.message.MessageType
     :members:
 
 MessageState
 ------------
 
-.. autoclass:: deltachat.chatting.MessageState
+.. autoclass:: deltachat.message.MessageState
     :members:
 
 
