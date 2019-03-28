@@ -302,8 +302,7 @@ static void log_msglist(dc_context_t* context, dc_array_t* msglist)
 }
 
 
-static void log_contactlist(dc_context_t* context, dc_array_t* contacts,
-                            uint32_t add_locations_for_chat)
+static void log_contactlist(dc_context_t* context, dc_array_t* contacts)
 {
 	dc_contact_t*    contact = NULL;
 	dc_apeerstate_t* peerstate = dc_apeerstate_new(context);
@@ -340,25 +339,6 @@ static void log_contactlist(dc_context_t* context, dc_array_t* contacts,
 			dc_log_info(context, 0, "Contact#%i: %s%s", (int)contact_id, line, line2? line2:"");
 			free(line);
 			free(line2);
-
-			if (add_locations_for_chat) {
-				dc_array_t* loc = dc_get_locations(context, add_locations_for_chat, contact_id, time(NULL)-2*60*60, 0);
-				for (int j=0; j<dc_array_get_cnt(loc); j++) {
-					char* timestr = dc_timestamp_to_str(dc_array_get_timestamp(loc, j));
-					dc_log_info(context, 0, "%s: lat=%f lng=%f acc=%f msg_id=%i location_id=%i",
-						timestr,
-						dc_array_get_latitude(loc, j),
-						dc_array_get_longitude(loc, j),
-						dc_array_get_accuracy(loc, j),
-						dc_array_get_msg_id(loc, j),
-						dc_array_get_id(loc, j));
-					free(timestr);
-				}
-				if (dc_array_get_cnt(loc)==0) {
-					dc_log_info(context, 0, "No locations.");
-				}
-				dc_array_unref(loc);
-			}
 		}
 	}
 
@@ -460,7 +440,7 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 				"sendlocations <seconds>\n"
 				"setlocation <lat> <lng>\n"
 				"dellocations\n"
-				"getlocations\n"
+				"getlocations [<contact-id>]\n"
 				"send <text>\n"
 				"sendimage <file> [<text>]\n"
 				"sendfile <file>\n"
@@ -902,15 +882,14 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 			ret = dc_strdup("No chat selected.");
 		}
 	}
-	else if (strcmp(cmd, "chatinfo")==0 || strcmp(cmd, "getlocations")==0)
+	else if (strcmp(cmd, "chatinfo")==0)
 	{
 		if (sel_chat) {
 			dc_array_t* contacts = dc_get_chat_contacts(context, dc_chat_get_id(sel_chat));
 			if (contacts) {
 				dc_log_info(context, 0, "Memberlist:");
 
-				log_contactlist(context, contacts,
-					strcmp(cmd, "getlocations")==0? dc_chat_get_id(sel_chat) : 0);
+				log_contactlist(context, contacts);
 
 				ret = dc_mprintf("%i contacts\nLocation streaming: %i",
 					(int)dc_array_get_cnt(contacts),
@@ -925,6 +904,28 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 		else {
 			ret = dc_strdup("No chat selected.");
 		}
+	}
+	else if(strcmp(cmd, "getlocations")==0)
+	{
+		int contact_id = arg1? atoi(arg1) : 0;
+		dc_array_t* loc = dc_get_locations(context, dc_chat_get_id(sel_chat), contact_id, 0, 0);
+		for (int j=0; j<dc_array_get_cnt(loc); j++) {
+			char* timestr = dc_timestamp_to_str(dc_array_get_timestamp(loc, j));
+			dc_log_info(context, 0, "Loc#%i: %s: lat=%f lng=%f acc=%f contact_id=%i msg_id=%i",
+				dc_array_get_id(loc, j),
+				timestr,
+				dc_array_get_latitude(loc, j),
+				dc_array_get_longitude(loc, j),
+				dc_array_get_accuracy(loc, j),
+				dc_array_get_contact_id(loc, j),
+				dc_array_get_msg_id(loc, j));
+			free(timestr);
+		}
+		if (dc_array_get_cnt(loc)==0) {
+			dc_log_info(context, 0, "No locations.");
+		}
+		dc_array_unref(loc);
+		ret = COMMAND_SUCCEEDED;
 	}
 	else if (strcmp(cmd, "sendlocations")==0)
 	{
@@ -1176,7 +1177,7 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 	{
 		dc_array_t* contacts = dc_get_contacts(context, strcmp(cmd, "listverified")==0? DC_GCL_VERIFIED_ONLY|DC_GCL_ADD_SELF : DC_GCL_ADD_SELF, arg1);
 		if (contacts) {
-			log_contactlist(context, contacts, 0);
+			log_contactlist(context, contacts);
 			ret = dc_mprintf("%i contacts.", (int)dc_array_get_cnt(contacts));
 			dc_array_unref(contacts);
 		}

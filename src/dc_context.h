@@ -131,6 +131,7 @@ typedef struct _dc_location
 	double   longitude;
 	double   accuracy;
 	time_t   timestamp;
+	uint32_t contact_id;
 	uint32_t msg_id;
 } dc_location_t;
 

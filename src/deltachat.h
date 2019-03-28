@@ -390,6 +390,7 @@ double           dc_array_get_latitude       (const dc_array_t*, size_t index);
 double           dc_array_get_longitude      (const dc_array_t*, size_t index);
 double           dc_array_get_accuracy       (const dc_array_t*, size_t index);
 time_t           dc_array_get_timestamp      (const dc_array_t*, size_t index);
+uint32_t         dc_array_get_contact_id     (const dc_array_t*, size_t index);
 uint32_t         dc_array_get_msg_id         (const dc_array_t*, size_t index);
 
 int              dc_array_search_id          (const dc_array_t*, uint32_t needle, size_t* indx);
