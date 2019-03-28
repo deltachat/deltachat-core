@@ -10,9 +10,9 @@ high level API reference
   other classes)
 - :class:`deltachat.chatting.Contact`
 - :class:`deltachat.chatting.Chat`
-- :class:`deltachat.chatting.Message`
-- :class:`deltachat.chatting.MessageType`
-- :class:`deltachat.chatting.MessageState`
+- :class:`deltachat.message.Message`
+- :class:`deltachat.message.MessageType`
+- :class:`deltachat.message.MessageState`
 
 Account
 -------
