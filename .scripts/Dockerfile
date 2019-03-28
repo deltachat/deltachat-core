@@ -40,5 +40,6 @@ ADD build_rust.sh /scripts/build_rust.sh
 RUN mkdir tmp1 && cd tmp1 && bash /scripts/build_rust.sh && cd .. && rm -r tmp1
 
 # Install RPGP from current github (beware, this is static in the image) 
+# XXX: this needs to be installed Install 
 ADD build_rpgp.sh /scripts/build_rpgp.sh
 RUN mkdir tmp1 && cd tmp1 && bash /scripts/build_rpgp.sh && cd .. && rm -r tmp1
