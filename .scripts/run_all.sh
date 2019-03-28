@@ -24,7 +24,7 @@ export PYTHONDONTWRITEBYTECODE=1
 pushd /bin
 ln -s /opt/python/cp27-cp27m/bin/python2.7
 ln -s /opt/python/cp36-cp36m/bin/python3.6
-ln -s /opt/python/cp36-cp37m/bin/python3.7
+ln -s /opt/python/cp37-cp37m/bin/python3.7
 popd
 
 #

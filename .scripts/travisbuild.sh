@@ -3,7 +3,7 @@
 
 set -e -x
 
-export DOCKERIMAGE=${DOCKERIMAGE:deltachat/test7}
+export DOCKERIMAGE=${DOCKERIMAGE:-deltachat/test7}
 export BRANCH=${BRANCH:-test7}
 
 # docker pull $DOCKERIMAGE
