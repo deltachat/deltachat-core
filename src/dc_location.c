@@ -648,22 +648,27 @@ cleanup:
 
 
 /**
- * Get last locations for a contact in a given chat.
- * The number of returned locations can be retrieved using dc_array_get_cnt(),
- * to get information for each location,
+ * Get shared locations from the database.
+ * The locations can be filtered by the chat-id, the contact-id
+ * and by a timespan.
+ *
+ * The number of returned locations can be retrieved using dc_array_get_cnt().
+ * To get information for each location,
  * use dc_array_get_latitude(), dc_array_get_longitude(),
- * dc_array_get_accuracy(), dc_array_get_timestamp() and dc_array_get_msg_id().
+ * dc_array_get_accuracy(), dc_array_get_timestamp(), dc_array_get_contact_id()
+ * and dc_array_get_msg_id().
  * The latter returns 0 if there is no message bound to the location.
  *
  * @memberof dc_context_t
  * @param context The context object.
- * @param chat_id Chat id to get location information for.
- *     0 to get all known locations for a contact,
- *     independently of the chat.
+ * @param chat_id Chat-id to get location information for.
+ *     0 to get locations independently of the chat.
  * @param contact_id Contact id to get location information for.
- *     Must be a member of the given chat.
+ *     If also a chat-id is given, this should be a member of the given chat.
+ *     0 to get locations independently of the contact.
  * @param timestamp_start Start of timespan to return.
  *     Must be given in number of seconds since 00:00 hours, Jan 1, 1970 UTC.
+ *     0 for "start from the beginning".
  * @param timestamp_end End of timespan to return.
  *     Must be given in number of seconds since 00:00 hours, Jan 1, 1970 UTC.
  *     0 for "all up to now".
@@ -671,6 +676,30 @@ cleanup:
  *     The array is sorted decending;
  *     the first entry in the array is the location with the newest timestamp.
  *     The returned array must be freed using dc_array_unref().
+ *
+ * Examples:
+ * ~~~
+ * // get locations from the last hour for a global map
+ * dc_array_t* loc = dc_get_locations(context, 0, 0, time(NULL)-60*60, 0);
+ * for (int i=0; i<dc_array_get_cnt(); i++) {
+ *     double lat = dc_array_get_latitude(loc, i);
+ *     ...
+ * }
+ * dc_array_unref(loc);
+ *
+ * // get locations from a contact for a global map
+ * dc_array_t* loc = dc_get_locations(context, 0, contact_id, 0, 0);
+ * ...
+ *
+ * // get all locations known for a given chat
+ * dc_array_t* loc = dc_get_locations(context, chat_id, 0, 0, 0);
+ * ...
+ *
+ * // get locations from a single contact for a given chat
+ * dc_array_t* loc = dc_get_locations(context, chat_id, contact_id, 0, 0);
+ * ...
+ * ~~~
+
  */
 dc_array_t* dc_get_locations(dc_context_t* context,
                              uint32_t chat_id, uint32_t  contact_id,
@@ -689,18 +718,20 @@ dc_array_t* dc_get_locations(dc_context_t* context,
 	}
 
 	stmt = dc_sqlite3_prepare(context->sql,
-			"SELECT l.id, l.latitude, l.longitude, l.accuracy, l.timestamp, m.id "
+			"SELECT l.id, l.latitude, l.longitude, l.accuracy, l.timestamp, "
+			"       m.id, l.from_id "
 			" FROM locations l "
 			" LEFT JOIN msgs m ON l.id=m.location_id "
 			" WHERE (? OR l.chat_id=?) "
-			"   AND l.from_id=? "
+			"   AND (? OR l.from_id=?) "
 			"   AND l.timestamp>=? AND l.timestamp<=? "
 			" ORDER BY l.timestamp DESC, l.id DESC;");
 	sqlite3_bind_int(stmt, 1, chat_id==0? 1 : 0);
 	sqlite3_bind_int(stmt, 2, chat_id);
-	sqlite3_bind_int(stmt, 3, contact_id);
-	sqlite3_bind_int(stmt, 4, timestamp_from);
-	sqlite3_bind_int(stmt, 5, timestamp_to);
+	sqlite3_bind_int(stmt, 3, contact_id==0? 1 : 0);
+	sqlite3_bind_int(stmt, 4, contact_id);
+	sqlite3_bind_int(stmt, 5, timestamp_from);
+	sqlite3_bind_int(stmt, 6, timestamp_to);
 
 	while (sqlite3_step(stmt)==SQLITE_ROW) {
         struct _dc_location* loc = calloc(1, sizeof(struct _dc_location));
@@ -714,6 +745,7 @@ dc_array_t* dc_get_locations(dc_context_t* context,
 		loc->accuracy    = sqlite3_column_double(stmt, 3);
 		loc->timestamp   = sqlite3_column_int64 (stmt, 4);
 		loc->msg_id      = sqlite3_column_int   (stmt, 5);
+		loc->contact_id  = sqlite3_column_int   (stmt, 6);
 		dc_array_add_ptr(ret, loc);
 
 		if (newest==0) {

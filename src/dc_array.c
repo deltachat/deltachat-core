@@ -413,6 +413,26 @@ uint32_t dc_array_get_msg_id(const dc_array_t* array, size_t index)
 
 
 /**
+ * Return the contact-id of the item at the given index.
+ *
+ * @memberof dc_array_t
+ * @param array The array object.
+ * @param index Index of the item. Must be between 0 and dc_array_get_cnt()-1.
+ * @return Contact-id of the item at the given index.
+ *     0 if there is no contact-id bound to the given item,
+ */
+uint32_t dc_array_get_contact_id(const dc_array_t* array, size_t index)
+{
+	if (array==NULL || array->magic!=DC_ARRAY_MAGIC || index>=array->count
+	 || array->type!=DC_ARRAY_LOCATIONS || array->array[index]==0 ) {
+		return 0;
+	}
+
+	return ((struct _dc_location*)array->array[index])->contact_id;
+}
+
+
+/**
  * Check if a given ID is present in an array.
  *
  * @private @memberof dc_array_t
