@@ -6,6 +6,7 @@ set -e -x
 
 # perform clean build of core and install 
 export CORE_BUILD_DIR=.docker-corebuild
+export TOXWORKDIR=.docker-tox
 [ -d "$CORE_BUILD_DIR" ] && rm -rf "$CORE_BUILD_DIR"
 
 meson -Drpgp=true "$CORE_BUILD_DIR" .
@@ -44,7 +45,7 @@ if [ -n "$TESTS" ]; then
 
     pushd python 
     # first run all tests ...
-    tox -e py27,py35,py36,py37
+    tox --workdir "$TOXWORKDIR" -e py27,py35,py36,py37
 
     # then possibly upload wheels 
     if [ -n "$WHEELS" ] ; then 
@@ -92,6 +93,6 @@ if [ -n "$DOCS" ]; then
     echo -----------------------
     echo generating python docs
     echo -----------------------
-    (cd python && tox -e doc) 
+    (cd python && tox --workdir "$TOXWORKDIR" -e doc) 
 
 fi
