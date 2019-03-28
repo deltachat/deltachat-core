@@ -84,15 +84,33 @@ fi
 
 
 if [ -n "$DOCS" ]; then 
-#    echo -----------------------
-#    echo generating doxygen docs
-#    echo -----------------------
-#
-#    (cd docs && doxygen)
-
     echo -----------------------
     echo generating python docs
     echo -----------------------
     (cd python && tox --workdir "$TOXWORKDIR" -e doc) 
 
+    # try to set ssh identity for upload from env var (set e.g. via CircleCI) 
+    if [ ! -f ~/.ssh/delta_rsa ] ; then 
+        if [ -n "${DELTA_UPLOAD_SSH_KEY}" ] ; then 
+            mkdir -p ~/.ssh
+            echo "${DELTA_UPLOAD_SSH_KEY}" > ~/.ssh/delta_rsa
+            chmod 0700 ~/.ssh/delta_rsa
+        fi
+    fi
+
+    # if we have an upload key, do the upload
+    if [ -f ~/.ssh/delta_rsa ] ; then 
+        # sync branch docs to py.delta.chat
+        rsync -avz \
+          -e "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
+          python/doc/_build/html/ \
+          delta@py.delta.chat:build/${BRANCH}
+
+        # Perform the actual deploy to c.delta.chat
+        rsync -avz \
+          -e "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
+          docs/html/ \
+          delta@py.delta.chat:build-c/${BRANCH}
+    fi
+        
 fi

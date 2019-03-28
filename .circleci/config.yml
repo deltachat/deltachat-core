@@ -12,6 +12,8 @@ jobs:
             echo 'export DOCS=1' >> $BASH_ENV 
             echo 'export TESTS=1' >> $BASH_ENV 
             echo 'export WHEELS=1' >> $BASH_ENV
+            echo 'export DELTA_UPLOAD_SSH_KEY="${DELTA_UPLOAD_SSH_KEY}"' >> $BASH_ENV
+
       - run: scripts/travisbuild.sh
 
 workflows:
