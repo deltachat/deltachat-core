@@ -7,6 +7,10 @@ jobs:
       - checkout
       - run: docker pull deltachat/doxygen 
       - run: docker pull deltachat/test7
+      - run:
+          command: |
+            echo 'export DOCS=1' >> $BASH_ENV 
+            echo 'export TESTS=1' >> $BASH_ENV 
       - run: scripts/travisbuild.sh
 
 workflows:
