@@ -56,7 +56,7 @@ if [ -n "$TESTS" ]; then
         echo build wheels 
         echo -----------------------
 
-        for PYBIN in .tox/py??/bin ; do 
+        for PYBIN in $TOXWORKDIR/py??/bin ; do 
             "${PYBIN}/pip" wheel . -w wheelhouse/
         done
         # Bundle external shared libraries into the wheels
