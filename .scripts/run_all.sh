@@ -16,6 +16,17 @@ ninja install
 ldconfig -v
 popd
 
+
+# configure access to a base python and 
+# to several python interpreters needed by tox below
+export PATH=$PATH:/opt/python/cp35-cp35m/bin
+export PYTHONDONTWRITEBYTECODE=1
+pushd /bin
+ln -s /opt/python/cp27-cp27m/bin/python2.7
+ln -s /opt/python/cp36-cp36m/bin/python3.6
+ln -s /opt/python/cp36-cp37m/bin/python3.7
+popd
+
 # run ninja and python tests
 
 if [ -n "$TESTS" ]; then 
@@ -29,19 +40,16 @@ if [ -n "$TESTS" ]; then
     echo run python tests
     echo ----------------
 
-    export PATH=$PATH:/opt/python/cp35-cp35m/bin
-    pushd /bin
-    ln -s /opt/python/cp27-cp27m/bin/python2.7
-    ln -s /opt/python/cp36-cp36m/bin/python3.6
-    ln -s /opt/python/cp36-cp37m/bin/python3.7
-    popd
-
-    pushd python
-    # don't write out cached python files
-    export PYTHONDONTWRITEBYTECODE=1
-    # rm -rf tests/__pycache__ .tox
-    tox -e py27,py35,py36
-    popd
+    (cd python && tox -e py27,py35,py36)
 fi
 
 
+if [ -n "$DOCS" ]; then 
+    echo -----------------------
+    echo generating doxygen docs
+    echo -----------------------
+
+    (cd docs && doxygen)
+
+    (cd python && tox -e doc) 
+fi

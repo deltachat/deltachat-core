@@ -32,15 +32,9 @@ ADD build_libetpan.sh /scripts/build_libetpan.sh
 RUN mkdir tmp1 && cd tmp1 && bash /scripts/build_libetpan.sh && cd .. && rm -r tmp1
 
 # Install Rust nightly 
-RUN true \
-    && curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly-2019-03-23 -y
-ENV PATH=/root/.cargo/bin:$PATH
-RUN rustc --version
+ADD build_rust.sh /scripts/build_rust.sh
+RUN mkdir tmp1 && cd tmp1 && bash /scripts/build_rust.sh && cd .. && rm -r tmp1
 
-# Install RPGP from github 
-RUN true \
-    && git clone --depth 1 https://github.com/dignifiedquire/rpgp.git \
-    && cd rpgp/pgp-ffi \
-    && make install \
-    && cd ../.. \
-    && rm -r rpgp
+# Install RPGP from current github (beware, this is static in the image) 
+ADD build_rpgp.sh /scripts/build_rpgp.sh
+RUN mkdir tmp1 && cd tmp1 && bash /scripts/build_rpgp.sh && cd .. && rm -r tmp1
