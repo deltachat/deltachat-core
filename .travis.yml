@@ -22,13 +22,14 @@ script:
 - export BRANCH=${TRAVIS_PULL_REQUEST_BRANCH:-$TRAVIS_BRANCH}
 - echo "BRANCH=$BRANCH"
 - docker pull deltachat/test7
-- bash $TRAVIS_BUILD_DIR/.scripts/travisbuild.sh
+- docker pull deltachat/doxygen 
+- bash $TRAVIS_BUILD_DIR/scripts/travisbuild.sh
 
 # we don't move the deploy step inside docker because it misses ssh/rsync etc. 
 deploy:
 -  provider: script
 -  skip_cleanup: true
--  script: bash $TRAVIS_BUILD_DIR/.scripts/deploy.sh
+-  script: bash $TRAVIS_BUILD_DIR/scripts/deploy.sh
 -  on:
 -    all_branches: true
 -    condition: $DOCS

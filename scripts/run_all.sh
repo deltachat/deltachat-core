@@ -5,13 +5,13 @@
 set -e -x
 
 # perform clean build of core and install 
-export CORE_BUILD_DIR=.docker-corebuild
+export NINJA_BUILD_DIR=.docker-corebuild
 export TOXWORKDIR=.docker-tox
-[ -d "$CORE_BUILD_DIR" ] && rm -rf "$CORE_BUILD_DIR"
+[ -d "$NINJA_BUILD_DIR" ] && rm -rf "$NINJA_BUILD_DIR"
 
-meson -Drpgp=true "$CORE_BUILD_DIR" .
+meson -Drpgp=true "$NINJA_BUILD_DIR" .
     
-pushd $CORE_BUILD_DIR 
+pushd $NINJA_BUILD_DIR 
 ninja
 ninja install
 ldconfig -v

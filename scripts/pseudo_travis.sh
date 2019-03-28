@@ -5,4 +5,5 @@ set -e -x
 export TRAVIS_BUILD_DIR=$PWD
 
 cd $TRAVIS_BUILD_DIR
-bash .scripts/travisbuild.sh
+
+bash scripts/travisbuild.sh
