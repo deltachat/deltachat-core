@@ -40,11 +40,11 @@ and building binary wheels::
     
 ## ci_upload.sh (uploading artifacts on success) 
 
-- python docs to https://py.delta.chat/_unofficial_unreleased_docs/<BRANCH>
+- python docs to `https://py.delta.chat/_unofficial_unreleased_docs/<BRANCH>`
 
-- doxygen docs to https://c.delta.chat/_unofficial_unreleased_docs/<BRANCH>
+- doxygen docs to `https://c.delta.chat/_unofficial_unreleased_docs/<BRANCH>`
 
-- python wheels to https://m.devpi.net/dc/<BRANCH> 
+- python wheels to `https://m.devpi.net/dc/<BRANCH>`
   so that you install fully self-contained wheels like this:
   `pip install -U -i https://m.devpi.net/dc/<BRANCH> deltachat`
 
