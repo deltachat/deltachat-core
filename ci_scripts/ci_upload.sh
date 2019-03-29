@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [ -z "$DEVPI_LOGIN" ] ; then 
+    echo "required: password for 'dc' user on https://m.devpi/net/dc index"
+    exit 1
+fi
+
 set -xe
 
 export WORKSPACE=${1:-.}
@@ -7,10 +12,6 @@ export WORKSPACE=${1:-.}
 
 export BRANCH=${CIRCLE_BRANCH:?specify branch for uploading purposes}
 
-if [ -z "$DEVPI_LOGIN" ] ; then 
-    echo "required: password for 'dc' user on https://m.devpi/net/dc index"
-    exit 1
-fi
 
 export WHEELHOUSE="$WORKSPACE/python/.docker-tox/wheelhouse"
 

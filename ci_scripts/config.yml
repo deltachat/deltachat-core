@@ -7,18 +7,25 @@ jobs:
       - checkout
       - run: docker pull deltachat/doxygen 
       - run: docker pull deltachat/coredeps
-      - run:
-          command: |
-            echo 'export MESONARGS=""' >> $BASH_ENV 
-            echo 'export DOCS=1' >> $BASH_ENV 
-            echo 'export TESTS=1' >> $BASH_ENV 
-      - run: ci_scripts/ci_run.sh
+      - run: 
+          command: ci_scripts/ci_run.sh
+          environment:
+            MESONARGS: 
+            DOCS: 1
+            TESTS: 1
+
+      - run: 
+           name: copying docs and wheels to workspace 
+           command: |
+             mkdir -p workspace/python
+             cp -av docs workspace/
+             cp -av python/wheelhouse workspace/python/
+
       - persist_to_workspace: 
-          root: .
+          root: workspace 
           paths: 
-            - python/wheelhouse
-            - docs/xml
-            - docs/html
+            - python
+            - docs
 
   upload_docs_wheels:
     machine: True
