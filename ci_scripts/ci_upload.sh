@@ -3,9 +3,10 @@
 set -xe
 
 WORKSPACE=${1:-.}
+export BRANCH=${CIRCLE_BRANCH:-test7}
 
-echo ${DEVPI_LOGIN:?password for dc user on https://m.devpi/net/dc index}
-echo ${BRANCH:?specify target for deploy}
+x=${DEVPI_LOGIN:?password for dc user on https://m.devpi/net/dc index}
+x=${BRANCH:?specify target for deploy}
 
 if [ ! -d workspace ] ; then
     exit 1

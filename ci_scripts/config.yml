@@ -6,7 +6,7 @@ jobs:
     steps:
       - checkout
       - run: docker pull deltachat/doxygen 
-      - run: docker pull deltachat/test7
+      - run: docker pull deltachat/coredeps
       - run:
           command: |
             echo 'export MESONARGS=""' >> $BASH_ENV 
@@ -23,6 +23,9 @@ jobs:
   upload_docs_wheels:
     machine: True
     steps:
+      - run:
+          command: |
+            echo 'export MESONARGS=""' >> $BASH_ENV 
       - checkout
       - attach_workspace:
           at: workspace

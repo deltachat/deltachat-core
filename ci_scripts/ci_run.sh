@@ -16,5 +16,5 @@ fi
 # run everything else inside docker (TESTS, DOCS, WHEELS) 
 docker run -e BRANCH -e MESONARGS -e TESTS -e DOCS \
            --rm -it -v $(pwd):/mnt -w /mnt \
-           deltachat/test7 ci_scripts/run_all.sh
+           deltachat/coredeps ci_scripts/run_all.sh
 
