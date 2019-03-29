@@ -65,10 +65,10 @@ workflows:
       - build_static
       - build_forcefallback
       - deploy_all:
-        requires:
-        - build_test_docs_wheel
-        - build_monolith_tests
-        - build_static
-        - build_forcefallback
+          requires:
+              - build_test_docs_wheel
+              - build_monolith_tests
+              - build_static
+              - build_forcefallback
         
 
