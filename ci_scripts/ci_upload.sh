@@ -1,9 +1,12 @@
 #!/bin/bash
 
+set -xe
+
 export WORKSPACE=${1:-.}
 [ -d "$WORKSPACE" ] || echo "workspace dir '$WORKSPACE' does not exist" && exit 1
 
 export BRANCH=${CIRCLE_BRANCH:?specify branch for uploading purposes}
+
 if [ -z "$DEVPI_LOGIN" ] ; then 
     echo "required: password for 'dc' user on https://m.devpi/net/dc index"
     exit 1
@@ -13,7 +16,6 @@ export WHEELHOUSE="$WORKSPACE/python/.docker-tox/wheelhouse"
 
 [ -d "$WHEELHOUSE" ] || exit 1
 
-set -xe
 
 
 

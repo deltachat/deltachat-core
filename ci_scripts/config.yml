@@ -29,6 +29,7 @@ jobs:
       - checkout
       - attach_workspace:
           at: workspace
+      - run: ls -la workspace 
       - run: ci_scripts/ci_upload.sh workspace
 
   build_monolith_tests:
