@@ -38,7 +38,7 @@ jobs:
       - checkout
       - attach_workspace:
           at: workspace
-      - run: ls -la workspace 
+      - run: ls -laR workspace 
       - run: ci_scripts/ci_upload.sh workspace/c-docs workspace/py-docs workspace/wheelhouse
 
   build_monolith_tests:
