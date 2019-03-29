@@ -133,6 +133,7 @@ typedef struct _dc_location
 	time_t   timestamp;
 	uint32_t contact_id;
 	uint32_t msg_id;
+	uint32_t chat_id;
 } dc_location_t;
 
 typedef struct _dc_kml

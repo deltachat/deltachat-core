@@ -911,12 +911,13 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 		dc_array_t* loc = dc_get_locations(context, dc_chat_get_id(sel_chat), contact_id, 0, 0);
 		for (int j=0; j<dc_array_get_cnt(loc); j++) {
 			char* timestr = dc_timestamp_to_str(dc_array_get_timestamp(loc, j));
-			dc_log_info(context, 0, "Loc#%i: %s: lat=%f lng=%f acc=%f contact_id=%i msg_id=%i",
+			dc_log_info(context, 0, "Loc#%i: %s: lat=%f lng=%f acc=%f Chat#%i Contac#%i Msg#%i",
 				dc_array_get_id(loc, j),
 				timestr,
 				dc_array_get_latitude(loc, j),
 				dc_array_get_longitude(loc, j),
 				dc_array_get_accuracy(loc, j),
+				dc_array_get_chat_id(loc, j),
 				dc_array_get_contact_id(loc, j),
 				dc_array_get_msg_id(loc, j));
 			free(timestr);

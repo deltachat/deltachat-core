@@ -719,7 +719,7 @@ dc_array_t* dc_get_locations(dc_context_t* context,
 
 	stmt = dc_sqlite3_prepare(context->sql,
 			"SELECT l.id, l.latitude, l.longitude, l.accuracy, l.timestamp, "
-			"       m.id, l.from_id "
+			"       m.id, l.from_id, l.chat_id "
 			" FROM locations l "
 			" LEFT JOIN msgs m ON l.id=m.location_id "
 			" WHERE (? OR l.chat_id=?) "
@@ -746,6 +746,7 @@ dc_array_t* dc_get_locations(dc_context_t* context,
 		loc->timestamp   = sqlite3_column_int64 (stmt, 4);
 		loc->msg_id      = sqlite3_column_int   (stmt, 5);
 		loc->contact_id  = sqlite3_column_int   (stmt, 6);
+		loc->chat_id     = sqlite3_column_int   (stmt, 7);
 		dc_array_add_ptr(ret, loc);
 
 		if (newest==0) {
