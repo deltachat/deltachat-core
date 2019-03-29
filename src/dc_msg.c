@@ -950,6 +950,10 @@ void dc_msg_guess_msgtype_from_suffix(const char* pathNfilename, int* ret_msgtyp
 		*ret_msgtype = DC_MSG_GIF;
 		*ret_mime = dc_strdup("image/gif");
 	}
+	else if (strcmp(suffix, "vcf")==0 || strcmp(suffix, "vcard")==0) {
+		*ret_msgtype = DC_MSG_FILE;
+		*ret_mime = dc_strdup("text/vcard");
+	}
 
 cleanup:
 	free(suffix);
