@@ -727,6 +727,9 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 					dc_log_info(context, 0, "================================================================================");
 				}
 			}
+			if (dc_is_sending_locations_to_chat(context, 0)) {
+				dc_log_info(context, 0, "Location streaming enabled.");
+			}
 			ret = dc_mprintf("%i chats.", (int)cnt);
 			dc_chatlist_unref(chatlist);
 		}

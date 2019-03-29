@@ -533,39 +533,38 @@ cleanup:
 
 
 /**
- * Check if location streaming is enabled for a chat.
+ * Check if location streaming is enabled.
  * Location stream can be enabled or disabled using dc_send_locations_to_chat().
  *
  * @memberof dc_context_t
  * @param context The context object.
- * @param chat_id Chat id to check.
- * @return 1: location streaming is enabled for the given chat;
- *     0: location streaming is disabled for the given chat.
+ * @param chat_id >0: Check if location streaming is enabled for the given chat.
+ *     0: Check of location streaming is enabled for any chat.
+ * @return 1: location streaming is enabled for the given chat(s);
+ *     0: location streaming is disabled for the given chat(s).
  */
 int dc_is_sending_locations_to_chat(dc_context_t* context, uint32_t chat_id)
 {
 	int           is_sending_locations = 0;
 	sqlite3_stmt* stmt = NULL;
-	time_t        send_until = 0;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
 		goto cleanup;
 	}
 
 	stmt = dc_sqlite3_prepare(context->sql,
-		"SELECT locations_send_until "
+		"SELECT id "
 		" FROM chats "
-		" WHERE id=?");
-	sqlite3_bind_int(stmt, 1, chat_id);
+		" WHERE (? OR id=?)"
+		"   AND locations_send_until>?;");
+	sqlite3_bind_int  (stmt, 1, chat_id==0? 1 : 0);
+	sqlite3_bind_int  (stmt, 2, chat_id);
+	sqlite3_bind_int64(stmt, 3, time(NULL));
 	if (sqlite3_step(stmt)!=SQLITE_ROW) {
 		goto cleanup;
 	}
 
-	send_until = sqlite3_column_int64(stmt, 0);
-
-	if (time(NULL) < send_until) {
-		is_sending_locations = 1;
-	}
+	is_sending_locations = 1;
 
 cleanup:
 	sqlite3_finalize(stmt);
