@@ -14,11 +14,12 @@ jobs:
             echo 'export TESTS=1' >> $BASH_ENV 
       - run: scripts/build_all_with_docker.sh
       - persist_to_workspace: 
-        root: ./
-        paths: ./
+          root: ./
+          paths: ./
 
     deploy:
       machine: True
+
       - checkout
       - attach_workspace:
         at: workspace
