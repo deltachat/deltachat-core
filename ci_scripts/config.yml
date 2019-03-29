@@ -39,8 +39,11 @@ jobs:
       - attach_workspace:
           at: workspace
       - run: ls -la workspace 
-      - run: ["bash", "ci_scripts/ci_upload.sh", \
-              "workspace/c-docs", "workspace/py-docs", "workspace/wheelhouse"]
+      - run: >
+            ["bash", "ci_scripts/ci_upload.sh", 
+            "workspace/c-docs", 
+            "workspace/py-docs", 
+            "workspace/wheelhouse"]
 
   build_monolith_tests:
     machine: True
