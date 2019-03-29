@@ -1,40 +1,50 @@
 #!/bin/bash
 
-set -e
-set -u
-set -x
-set -v
+set -xe
 
 
-#Only attempt to deploy if we know the ssh key secrets, username and server
-if test -z ${encrypted_49475b8073e9_key:+decryp_key} ; then exit 0; fi
-if test -z ${encrypted_49475b8073e9_iv:+decrypt_iv} ; then exit 0; fi
-if test -z ${DEPLOY_USER:+username} ; then exit 0; fi
-if test -z ${DEPLOY_SERVER:+server} ; then exit 0; fi
+echo ${DEVPI_LOGIN:?password for dc user on https://m.devpi/net/dc index}
+echo ${BRANCH:?specify target for deploy}
 
-# Prepare the ssh homedir.
-#
-# Decrypting the ssh private key for deploying to the server.
-# See https://docs.travis-ci.com/user/encrypting-files/ for details.
-mkdir -p -m 0700 ~/.ssh
-openssl aes-256-cbc \
-  -K $encrypted_49475b8073e9_key \
-  -iv $encrypted_49475b8073e9_iv \
-  -in $TRAVIS_BUILD_DIR/.credentials/delta.id_rsa.enc \
-  -out ~/.ssh/id_rsa -d
-chmod 600 ~/.ssh/id_rsa
-printf "Host *\n" >> ~/.ssh/config
-printf " %sAuthentication no\n" ChallengeResponse Password KbdInteractive >> ~/.ssh/config
+if [ ! -d workspace ] ; then
+    exit 1
+fi
+
+export WHEELHOUSE=workspace/python/.docker-tox/wheelhouse
+
+[ -d "$WHEELHOUSE" ] || exit 1
 
 
-# Perform the actual deploy to py.delta.chat
+# python docs to py.delta.chat
 rsync -avz \
   -e "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
-  python/doc/_build/html/ \
-  ${DEPLOY_USER}@${DEPLOY_SERVER}:build/${TRAVIS_BRANCH/\//_}
+  workspace/python/doc/_build/html/ \
+  delta@py.delta.chat:build/${BRANCH}
 
-# Perform the actual deploy to c.delta.chat
+# C docs to c.delta.chat
 rsync -avz \
   -e "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
-  docs/html/ \
-  ${DEPLOY_USER}@${DEPLOY_SERVER}:build-c/${TRAVIS_BRANCH/\//_}
+  workspace/docs/html/ \
+  delta@py.delta.chat:build-c/${BRANCH}
+
+echo -----------------------
+echo upload wheels 
+echo -----------------------
+
+# Bundle external shared libraries into the wheels
+cd $WHEELHOUSE
+
+for whl in deltachat*.whl; do
+    auditwheel repair "$whl" -w wheelhouse
+done
+
+devpi use https://m.devpi.net
+devpi login dc --password $DEVPI_LOGIN
+
+devpi use dc/$BRANCH || {
+    devpi index -c $BRANCH 
+    devpi use dc/$BRANCH
+}
+devpi index $BRANCH bases=/root/pypi
+devpi upload deltachat*.whl
+

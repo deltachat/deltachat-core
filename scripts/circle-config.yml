@@ -1,0 +1,73 @@
+
+version: 2
+jobs:
+  build_test_and_wheel:
+    machine: True
+    steps:
+      - checkout
+      - run: docker pull deltachat/doxygen 
+      - run: docker pull deltachat/test7
+      - run:
+          command: |
+            echo 'export MESONARGS=""' >> $BASH_ENV 
+            echo 'export DOCS=1' >> $BASH_ENV 
+            echo 'export TESTS=1' >> $BASH_ENV 
+      - run: scripts/build_all_with_docker.sh
+      - persist_to_workspace: 
+        root: ./
+        paths: ./
+
+    deploy:
+      machine: True
+      - checkout
+      - attach_workspace:
+        at: workspace
+      - run: scripts/deploy.sh workspace
+
+  build_monolith_tests:
+    machine: True
+    steps:
+      - checkout
+      - run: docker pull deltachat/test7
+      - run:
+          command: |
+            echo 'export MESONARGS="-Dmonolith=true"' >> $BASH_ENV
+            echo 'export TESTS=1' >> $BASH_ENV 
+      - run: scripts/build_all_with_docker.sh
+
+  build_static:
+    machine: True
+    steps:
+      - checkout
+      - run: docker pull deltachat/test7
+      - run:
+          command: |
+            echo 'export MESONARGS="--default-library=static"' >> $BASH_ENV
+      - run: scripts/build_all_with_docker.sh
+
+  build_forcefallback: 
+    machine: True
+    steps:
+      - checkout
+      - run: docker pull deltachat/test7
+      - run:
+          command: |
+            echo 'export MESONARGS="--wrap-mode=forcefallback --default-library=static"' >> $BASH_ENV
+      - run: scripts/build_all_with_docker.sh
+
+workflows:
+  version: 2
+  build_test_and_wheel:
+    jobs:
+      - build_test_docs_wheel
+      - build_monolith_tests
+      - build_static
+      - build_forcefallback
+      - deploy:
+        requires:
+        - build_test_docs_wheel
+        - build_monolith_tests
+        - build_static
+        - build_forcefallback
+        
+

@@ -45,40 +45,10 @@ if [ -n "$TESTS" ]; then
 
     pushd python 
     # first run all tests ...
+    rm -rf tests/__pycache__
+    rm -rf src/deltachat/__pycache__
+    export PYTHONDONTWRITEBYTECODE=1
     tox --workdir "$TOXWORKDIR" -e py27,py35,py36,py37
-
-    # then possibly upload wheels 
-    if [ -n "$WHEELS" ] ; then 
-        # remove all wheels 
-        rm -rf wheelhouse
-        
-        echo -----------------------
-        echo build wheels 
-        echo -----------------------
-
-        for PYBIN in $TOXWORKDIR/py??/bin ; do 
-            "${PYBIN}/pip" wheel . -w wheelhouse/
-        done
-        # Bundle external shared libraries into the wheels
-        for whl in wheelhouse/deltachat*.whl; do
-            auditwheel repair "$whl" -w wheelhouse
-        done
-
-        echo -----------------------
-        echo upload wheels 
-        echo -----------------------
-
-        devpi use https://m.devpi.net
-        devpi login dc --password $DEVPI_LOGIN
-
-        devpi use dc/$BRANCH || {
-            devpi index -c $BRANCH 
-            devpi use dc/$BRANCH
-        }
-        devpi index $BRANCH bases=/root/pypi
-        devpi upload wheelhouse/deltachat*.whl
-    fi
-
     popd
 fi
 

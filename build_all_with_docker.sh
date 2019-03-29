@@ -8,7 +8,7 @@ export BRANCH=${CIRCLE_BRANCH:-test7}
     
 # run doxygen on c-source (needed by later doc-generation steps).
 # XXX modifies the host filesystem docs/xml and docs/html directories
-# XXX which you can then only remove with "sudo rm -rf docs/html docs/xml"
+# XXX which you can then only remove with sudo as they belong to root
 docker run --rm -it -v $PWD:/mnt -w /mnt/docs deltachat/doxygen doxygen
 
 # run everything else inside docker (TESTS, DOCS, WHEELS) 
