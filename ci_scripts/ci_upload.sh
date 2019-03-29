@@ -33,6 +33,7 @@ echo -----------------------
 # Bundle external shared libraries into the wheels
 pushd $WHEELHOUSEDIR
 
+pip install devpi-client
 devpi use https://m.devpi.net
 devpi login dc --password $DEVPI_LOGIN
 
