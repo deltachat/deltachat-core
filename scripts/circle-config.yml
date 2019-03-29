@@ -20,7 +20,7 @@ jobs:
             - docs/xml
             - docs/html
 
-  deploy_all:
+  upload_docs_wheels:
     machine: True
     steps:
       - checkout
@@ -67,7 +67,7 @@ workflows:
       - build_monolith_tests
       - build_static
       - build_forcefallback
-      - deploy_all:
+      - upload_docs_wheels:
           requires:
               - build_test_docs_wheel
               - build_monolith_tests
