@@ -33,10 +33,6 @@ echo -----------------------
 # Bundle external shared libraries into the wheels
 pushd $WHEELHOUSEDIR
 
-for whl in deltachat*.whl; do
-    auditwheel repair "$whl" -w wheelhouse
-done
-
 devpi use https://m.devpi.net
 devpi login dc --password $DEVPI_LOGIN
 
