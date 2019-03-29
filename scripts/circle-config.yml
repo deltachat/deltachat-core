@@ -17,9 +17,9 @@ jobs:
           root: ./
           paths: ./
 
-    deploy:
-      machine: True
-
+  deploy:
+    machine: True
+    steps:
       - checkout
       - attach_workspace:
         at: workspace
