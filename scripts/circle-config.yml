@@ -15,7 +15,10 @@ jobs:
       - run: scripts/build_all_with_docker.sh
       - persist_to_workspace: 
           root: ./
-          paths: ./
+          paths: 
+            - python/wheelhouse
+            - docs/xml
+            - docs/html
 
   deploy_all:
     machine: True
