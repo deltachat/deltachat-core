@@ -2,17 +2,15 @@
 
 set -xe
 
-WORKSPACE=${1:-.}
-export BRANCH=${CIRCLE_BRANCH:-test7}
+export WORKSPACE=${1:-.}
 
-x=${DEVPI_LOGIN:?password for dc user on https://m.devpi/net/dc index}
-x=${BRANCH:?specify target for deploy}
-
-if [ ! -d workspace ] ; then
+export BRANCH=${CIRCLE_BRANCH:?specify branch for uploading purposes}
+if [ -z "$DEVPI_LOGIN" ] ; then 
+    echo "required: password for 'dc' user on https://m.devpi/net/dc index"
     exit 1
 fi
 
-export WHEELHOUSE=workspace/python/.docker-tox/wheelhouse
+export WHEELHOUSE="$WORKSPACE/python/.docker-tox/wheelhouse"
 
 [ -d "$WHEELHOUSE" ] || exit 1
 
