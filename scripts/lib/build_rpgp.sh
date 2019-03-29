@@ -3,7 +3,7 @@ set -e -x
 
 # Install RPGP from github 
 export PATH=$PATH:$HOME/.cargo/bin
-git clone --depth 1 https://github.com/dignifiedquire/rpgp.git 
+git clone https://github.com/rpgp/rpgp.git 
 cd rpgp/pgp-ffi 
 make install 
 
