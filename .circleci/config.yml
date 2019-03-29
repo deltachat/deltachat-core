@@ -5,6 +5,10 @@ jobs:
     machine: True
     steps:
       - checkout
+      #- add_ssh_keys:
+      #    fingerprints:
+      #    - "b7:35:a6:4e:9b:0d:6d:d4:78:1e:9a:97:2a:66:6b:be"
+
       - run: docker pull deltachat/doxygen 
       - run: docker pull deltachat/test7
       - run:
@@ -12,9 +16,9 @@ jobs:
             echo 'export DOCS=1' >> $BASH_ENV 
             echo 'export TESTS=1' >> $BASH_ENV 
             echo 'export WHEELS=1' >> $BASH_ENV
-            echo 'export DELTA_UPLOAD_SSH_KEY="${DELTA_UPLOAD_SSH_KEY}"' >> $BASH_ENV
 
       - run: scripts/travisbuild.sh
+      - run: scripts/deploy.sh
 
 workflows:
   version: 2
