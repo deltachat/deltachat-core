@@ -1,7 +1,7 @@
 
 version: 2
 jobs:
-  build_test_and_wheel:
+  build_test_docs_wheel:
     machine: True
     steps:
       - checkout
@@ -58,7 +58,7 @@ jobs:
 
 workflows:
   version: 2
-  build_test_and_wheel:
+  build_all:
     jobs:
       - build_test_docs_wheel
       - build_monolith_tests
