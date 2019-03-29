@@ -2,6 +2,7 @@
 
 set -xe
 
+WORKSPACE=${1:-.}
 
 echo ${DEVPI_LOGIN:?password for dc user on https://m.devpi/net/dc index}
 echo ${BRANCH:?specify target for deploy}
@@ -18,13 +19,13 @@ export WHEELHOUSE=workspace/python/.docker-tox/wheelhouse
 # python docs to py.delta.chat
 rsync -avz \
   -e "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
-  workspace/python/doc/_build/html/ \
+  $WORKSPACE/python/doc/_build/html/ \
   delta@py.delta.chat:build/${BRANCH}
 
 # C docs to c.delta.chat
 rsync -avz \
   -e "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
-  workspace/docs/html/ \
+  $WORKSPACE/docs/html/ \
   delta@py.delta.chat:build-c/${BRANCH}
 
 echo -----------------------

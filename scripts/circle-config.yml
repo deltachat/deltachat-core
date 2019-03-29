@@ -25,7 +25,7 @@ jobs:
     steps:
       - checkout
       - attach_workspace:
-        at: workspace
+          at: workspace
       - run: scripts/deploy.sh workspace
 
   build_monolith_tests:
