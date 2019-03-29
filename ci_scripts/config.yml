@@ -12,7 +12,7 @@ jobs:
             echo 'export MESONARGS=""' >> $BASH_ENV 
             echo 'export DOCS=1' >> $BASH_ENV 
             echo 'export TESTS=1' >> $BASH_ENV 
-      - run: scripts/build_all_with_docker.sh
+      - run: ci_scripts/ci_run.sh
       - persist_to_workspace: 
           root: ./
           paths: 
@@ -26,7 +26,7 @@ jobs:
       - checkout
       - attach_workspace:
           at: workspace
-      - run: scripts/deploy.sh workspace
+      - run: ci_scripts/ci_upload.sh workspace
 
   build_monolith_tests:
     machine: True
@@ -37,7 +37,7 @@ jobs:
           command: |
             echo 'export MESONARGS="-Dmonolith=true"' >> $BASH_ENV
             echo 'export TESTS=1' >> $BASH_ENV 
-      - run: scripts/build_all_with_docker.sh
+      - run: ci_scripts/ci_run.sh
 
   build_static:
     machine: True
@@ -47,7 +47,7 @@ jobs:
       - run:
           command: |
             echo 'export MESONARGS="--default-library=static"' >> $BASH_ENV
-      - run: scripts/build_all_with_docker.sh
+      - run: ci_scripts/ci_run.sh
 
   build_forcefallback: 
     machine: True
@@ -57,7 +57,7 @@ jobs:
       - run:
           command: |
             echo 'export MESONARGS="--wrap-mode=forcefallback --default-library=static"' >> $BASH_ENV
-      - run: scripts/build_all_with_docker.sh
+      - run: ci_scripts/ci_run.sh
 
 workflows:
   version: 2
