@@ -7,29 +7,23 @@ fi
 
 set -xe
 
-export WORKSPACE=${1:-.}
-[ -d "$WORKSPACE" ] || echo "workspace dir '$WORKSPACE' does not exist" && exit 1
+DOXYDOCDIR=${1:?directory where doxygen docs to be found}
+PYDOCDIR=${2:?directory with python docs}
+WHEELHOUSEDIR=${3:?directory with pre-built wheels}
 
 export BRANCH=${CIRCLE_BRANCH:?specify branch for uploading purposes}
-
-
-export WHEELHOUSE="$WORKSPACE/python/.docker-tox/wheelhouse"
-
-[ -d "$WHEELHOUSE" ] || exit 1
-
-
 
 
 # python docs to py.delta.chat
 rsync -avz \
   -e "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
-  $WORKSPACE/python/doc/_build/html/ \
+  "$PYDOCDIR/html/" \
   delta@py.delta.chat:build/${BRANCH}
 
 # C docs to c.delta.chat
 rsync -avz \
   -e "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
-  $WORKSPACE/docs/html/ \
+  "$DOXYDOCDIR/html/" \
   delta@py.delta.chat:build-c/${BRANCH}
 
 echo -----------------------
@@ -37,7 +31,7 @@ echo upload wheels
 echo -----------------------
 
 # Bundle external shared libraries into the wheels
-cd $WHEELHOUSE
+pushd $WHEELHOUSEDIR
 
 for whl in deltachat*.whl; do
     auditwheel repair "$whl" -w wheelhouse
@@ -53,3 +47,4 @@ devpi use dc/$BRANCH || {
 devpi index $BRANCH bases=/root/pypi
 devpi upload deltachat*.whl
 
+popd

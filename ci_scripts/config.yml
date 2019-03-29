@@ -15,17 +15,19 @@ jobs:
             TESTS: 1
 
       - run: 
-           name: copying docs and wheels to workspace 
+           name: copying C docs, python docs and wheels to workspace 
            command: |
              mkdir -p workspace/python
-             cp -av docs workspace/
-             cp -av python/wheelhouse workspace/python/
+             cp -av docs workspace/c-docs
+             cp -av python/.docker-tox/wheelhouse workspace/
+             cp -av python/doc/_build/ workspace/py-docs
 
       - persist_to_workspace: 
           root: workspace 
           paths: 
             - python
             - docs
+            - python
 
   upload_docs_wheels:
     machine: True
@@ -37,7 +39,8 @@ jobs:
       - attach_workspace:
           at: workspace
       - run: ls -la workspace 
-      - run: ci_scripts/ci_upload.sh workspace
+      - run: ci_scripts/ci_upload.sh workspace/c-docs \
+             workspace/py-docs workspace/wheelhouse
 
   build_monolith_tests:
     machine: True
