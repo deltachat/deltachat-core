@@ -25,9 +25,9 @@ jobs:
       - persist_to_workspace: 
           root: workspace 
           paths: 
-            - python
-            - docs
-            - python
+            - c-docs
+            - py-docs
+            - wheelhouse
 
   upload_docs_wheels:
     machine: True
