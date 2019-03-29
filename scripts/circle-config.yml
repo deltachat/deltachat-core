@@ -17,7 +17,7 @@ jobs:
           root: ./
           paths: ./
 
-  deploy:
+  deploy_all:
     machine: True
     steps:
       - checkout
@@ -64,7 +64,7 @@ workflows:
       - build_monolith_tests
       - build_static
       - build_forcefallback
-      - deploy:
+      - deploy_all:
         requires:
         - build_test_docs_wheel
         - build_monolith_tests
