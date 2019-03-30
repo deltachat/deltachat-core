@@ -932,6 +932,7 @@ dc_array_t* dc_get_fresh_msgs(dc_context_t* context)
 		" LEFT JOIN contacts ct ON m.from_id=ct.id"
 		" LEFT JOIN chats c ON m.chat_id=c.id"
 		" WHERE m.state=?"
+		"   AND m.hidden=0"
 		"   AND m.chat_id>?"
 		"   AND ct.blocked=0"
 		"   AND (c.blocked=0 OR c.blocked=?)"
