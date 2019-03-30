@@ -1411,6 +1411,9 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				if (mime_parser->kml && icnt==1 && part->msg
 				 && (strcmp(part->msg, "-location-")==0 || part->msg[0]==0)) {
 					hidden = 1;
+					if (state==DC_STATE_IN_FRESH) {
+						state = DC_STATE_IN_NOTICED;
+					}
 				}
 
 				if (part->type==DC_MSG_TEXT) {
