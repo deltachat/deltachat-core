@@ -12,6 +12,19 @@ export NINJA_BUILD_DIR=.docker-corebuild
 export TOXWORKDIR=.docker-tox
 [ -d "$NINJA_BUILD_DIR" ] && rm -rf "$NINJA_BUILD_DIR"
 
+# build latest rpgp 
+# once it stabilizes want to shift it to the 
+# docker-coredeps/Dockerfile to have more explicit version control 
+mkdir -p .docker-rpgp 
+pushd .docker-rpgp
+export PATH=$PATH:$HOME/.cargo/bin
+git clone https://github.com/rpgp/rpgp.git 
+cd rpgp/pgp-ffi 
+make install 
+
+# after we installed the RPGP lib we don't need Rust anymore
+# rm -rf /root/.cargo /root.rustup
+
 meson -Drpgp=true "$NINJA_BUILD_DIR" .
     
 pushd $NINJA_BUILD_DIR 
