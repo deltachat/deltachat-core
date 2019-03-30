@@ -1,4 +1,5 @@
 
+
 set -e -x 
 
 # Install Rust 
