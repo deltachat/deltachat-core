@@ -1,6 +1,6 @@
 # Delta Chat Core Library
 
-[![Build Status](https://travis-ci.org/deltachat/deltachat-core.svg?branch=master)](https://travis-ci.org/deltachat/deltachat-core)
+[![CircleCI](https://circleci.com/gh/deltachat/deltachat-core.svg?style=svg)](https://circleci.com/gh/deltachat/deltachat-core)
 
 The _Delta Chat Core Library_ is written in cross-platform **C**,
 documented at <https://c.delta.chat>.  
@@ -9,12 +9,17 @@ The ``deltachat`` Python bindings can be found in the
 [python subdirectory](https://github.com/deltachat/deltachat-core/tree/master/python)
 and are documented at <https://py.delta.chat>.
 
+In the [ci_scripts directory](https://github.com/deltachat/deltachat-core/tree/master/ci_scripts/README.md)
+you'll find docker- and library-building scripts. 
+
 ## binary/distribution packages  (work-in-progress)
 
 There are work-in-progress efforts for creating (binary) packages which
 do not require that you build the library manually:
 
 - [libdeltachat-core-git archlinux package](https://aur.archlinux.org/packages/libdeltachat-core-git/>)
+
+- [python-wheel packaging](https://m.devpi.net/dc/master)
 
 - [Debian packaging](https://github.com/deltachat/deltachat-core/issues/299)
 
