@@ -40,6 +40,5 @@ ADD deps/build_rust.sh /builder/build_rust.sh
 RUN mkdir tmp1 && cd tmp1 && bash /builder/build_rust.sh && cd .. && rm -r tmp1
 
 # Install RPGP from current github (beware, will be static in the docker image) 
-# re-enable once RPGP has somewhat stable versions 
-# ADD deps/build_rpgp.sh /builder/build_rpgp.sh
-# RUN mkdir tmp1 && cd tmp1 && bash /builder/build_rpgp.sh && cd .. && rm -r tmp1
+ADD deps/build_rpgp.sh /builder/build_rpgp.sh
+RUN mkdir tmp1 && cd tmp1 && bash /builder/build_rpgp.sh && cd .. && rm -r tmp1
