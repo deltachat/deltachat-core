@@ -1,7 +1,7 @@
 
-# Continous Integration Scripts for Delta Chat
+# Continuous Integration Scripts for Delta Chat
 
-Continous Integration is run through CircleCI
+Continuous Integration is run through CircleCI
 but is largely independent of it. 
 
 
@@ -27,8 +27,8 @@ or you can build the docker images yourself locally
 to avoid the relatively large download:: 
  
     cd ci_scripts  # where all CI things are 
-    docker -t deltachat/coredeps docker-coredeps
-    docker -t deltachat/doxygen docker-doxygen 
+    docker build -t deltachat/coredeps docker-coredeps
+    docker build -t deltachat/doxygen docker-doxygen 
 
 ## ci_run.sh (main entrypoint called by circle-ci)
 
