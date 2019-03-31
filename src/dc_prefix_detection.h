@@ -93,6 +93,9 @@ int dc_compare_utf_8_letters_by_upper_case(const void* left, const void* right);
  * Returns a list of the known subject prefixes.
  * The list is fixed at compile time and new entries can be simply appended
  * as the function sorts it upon first call.
+ *
+ * If new entries contain non-ASCII characters, their upper and lower case
+ * variants must be registered in `dc_get_prefix_letters`.
  */
 const strings_array_bounds* dc_get_prefixes();
 
