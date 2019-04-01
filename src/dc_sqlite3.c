@@ -307,7 +307,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 			dc_sqlite3_execute(sql, "CREATE INDEX msgs_index4 ON msgs (state);");          /* for selecting the count of fresh messages (as there are normally only few unread messages, an index over the chat_id is not required for _this_ purpose */
 			dc_sqlite3_execute(sql, "INSERT INTO msgs (id,msgrmsg,txt) VALUES (1,0,'marker1'), (2,0,'rsvd'), (3,0,'rsvd'), (4,0,'rsvd'), (5,0,'rsvd'), (6,0,'rsvd'), (7,0,'rsvd'), (8,0,'rsvd'), (9,0,'daymarker');"); /* make sure, the reserved IDs are not used */
 
-			dc_sqlite3_execute(sql, "CREATE TABLE jobs (id INTEGER PRIMARY KEY,"
+			dc_sqlite3_execute(sql, "CREATE TABLE jobs (id INTEGER PRIMARY KEY AUTOINCREMENT,"
 						" added_timestamp INTEGER,"
 						" desired_timestamp INTEGER DEFAULT 0,"
 						" action INTEGER,"
