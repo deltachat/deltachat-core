@@ -113,7 +113,7 @@ class Chat(object):
 
         :param msg: unicode text
         :raises: ValueError if message can not be send/chat does not exist.
-        :returns: the resulting :class:`deltachat.chatting.Message` instance
+        :returns: the resulting :class:`deltachat.message.Message` instance
         """
         msg = as_dc_charpointer(text)
         msg_id = lib.dc_send_text_msg(self._dc_context, self.id, msg)
@@ -127,7 +127,7 @@ class Chat(object):
         :param path: path to the file.
         :param mime_type: the mime-type of this file, defaults to application/octet-stream.
         :raises: ValueError if message can not be send/chat does not exist.
-        :returns: the resulting :class:`deltachat.chatting.Message` instance
+        :returns: the resulting :class:`deltachat.message.Message` instance
         """
         path = as_dc_charpointer(path)
         mtype = as_dc_charpointer(mime_type)
@@ -143,7 +143,7 @@ class Chat(object):
 
         :param path: path to an image file.
         :raises: ValueError if message can not be send/chat does not exist.
-        :returns: the resulting :class:`deltachat.chatting.Message` instance
+        :returns: the resulting :class:`deltachat.message.Message` instance
         """
         if not os.path.exists(path):
             raise ValueError("path does not exist: {!r}".format(path))
@@ -179,7 +179,7 @@ class Chat(object):
         :param message: a :class:`Message` instance previously returned by
                         :meth:`prepare_file`.
         :raises: ValueError if message can not be sent.
-        :returns: a :class:`deltachat.chatting.Message` instance with updated state
+        :returns: a :class:`deltachat.message.Message` instance with updated state
         """
         msg_id = lib.dc_send_msg(self._dc_context, 0, message._dc_msg)
         if msg_id == 0:
@@ -189,7 +189,7 @@ class Chat(object):
     def get_messages(self):
         """ return list of messages in this chat.
 
-        :returns: list of :class:`deltachat.chatting.Message` objects for this chat.
+        :returns: list of :class:`deltachat.message.Message` objects for this chat.
         """
         dc_array = ffi.gc(
             lib.dc_get_chat_msgs(self._dc_context, self.id, 0, 0),

@@ -141,7 +141,7 @@ class Account(object):
 
         :param view_type: a string specifying "text", "video",
                           "image", "audio" or "file".
-        :returns: :class:`deltachat.chatting.Message` instance.
+        :returns: :class:`deltachat.message.Message` instance.
         """
         return Message.new(self._dc_context, view_type)
 
@@ -167,7 +167,7 @@ class Account(object):
                       whose name or e-mail matches query.
         :param only_verified: if true only return verified contacts.
         :param with_self: if true the self-contact is also returned.
-        :returns: list of :class:`deltachat.chatting.Message` objects.
+        :returns: list of :class:`deltachat.message.Message` objects.
         """
         flags = 0
         query = as_dc_charpointer(query)
@@ -256,7 +256,7 @@ class Account(object):
     def forward_messages(self, messages, chat):
         """ Forward list of messages to a chat.
 
-        :param messages: list of :class:`deltachat.chatting.Message` object.
+        :param messages: list of :class:`deltachat.message.Message` object.
         :param chat: :class:`deltachat.chatting.Chat` object.
         :returns: None
         """
@@ -266,7 +266,7 @@ class Account(object):
     def delete_messages(self, messages):
         """ delete messages (local and remote).
 
-        :param messages: list of :class:`deltachat.chatting.Message` object.
+        :param messages: list of :class:`deltachat.message.Message` object.
         :returns: None
         """
         msg_ids = [msg.id for msg in messages]
