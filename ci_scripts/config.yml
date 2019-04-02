@@ -32,9 +32,6 @@ jobs:
   upload_docs_wheels:
     machine: True
     steps:
-      - run:
-          command: |
-            echo 'export MESONARGS=""' >> $BASH_ENV 
       - checkout
       - attach_workspace:
           at: workspace
@@ -46,21 +43,21 @@ jobs:
     steps:
       - checkout
       - run: docker pull deltachat/coredeps
-      - run:
-          command: |
-            echo 'export MESONARGS="-Dmonolith=true"' >> $BASH_ENV
-            echo 'export TESTS=1' >> $BASH_ENV 
-      - run: ci_scripts/ci_run.sh
+      - run: 
+          environment:
+            MESONARGS: -Dmonolith=true
+            TESTS: 1
+          command: ci_scripts/ci_run.sh
 
   build_static:
     machine: True
     steps:
       - checkout
       - run: docker pull deltachat/coredeps
-      - run:
-          command: |
-            echo 'export MESONARGS="--default-library=static"' >> $BASH_ENV
-      - run: ci_scripts/ci_run.sh
+      - run: 
+          environment:
+            MESONARGS: --default-library=static 
+          command: ci_scripts/ci_run.sh
 
   build_forcefallback: 
     machine: True
@@ -68,9 +65,9 @@ jobs:
       - checkout
       - run: docker pull deltachat/coredeps
       - run:
-          command: |
-            echo 'export MESONARGS="--wrap-mode=forcefallback --default-library=static"' >> $BASH_ENV
-      - run: ci_scripts/ci_run.sh
+          environment:
+            MESONARGS: --wrap-mode=forcefallback --default-library=static
+          command: ci_scripts/ci_run.sh
 
 workflows:
   version: 2
