@@ -12,7 +12,7 @@ export NINJA_BUILD_DIR=.docker-corebuild
 export TOXWORKDIR=.docker-tox
 [ -d "$NINJA_BUILD_DIR" ] && rm -rf "$NINJA_BUILD_DIR"
 
-meson -Drpgp=true "$NINJA_BUILD_DIR" .
+meson $MESONARGS -Drpgp=true "$NINJA_BUILD_DIR" .
     
 pushd $NINJA_BUILD_DIR 
 ninja
