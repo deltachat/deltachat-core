@@ -665,10 +665,10 @@ cleanup:
  * @param contact_id Contact id to get location information for.
  *     If also a chat-id is given, this should be a member of the given chat.
  *     0 to get locations independently of the contact.
- * @param timestamp_start Start of timespan to return.
+ * @param timestamp_from Start of timespan to return.
  *     Must be given in number of seconds since 00:00 hours, Jan 1, 1970 UTC.
  *     0 for "start from the beginning".
- * @param timestamp_end End of timespan to return.
+ * @param timestamp_to End of timespan to return.
  *     Must be given in number of seconds since 00:00 hours, Jan 1, 1970 UTC.
  *     0 for "all up to now".
  * @return Array of locations, NULL is never returned.
