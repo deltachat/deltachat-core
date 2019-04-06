@@ -677,6 +677,89 @@ cleanup:
 }
 
 
+int dc_sqlite3_open_create_backup_db(dc_sqlite3_t* sql, const char* dbfile, int flags)
+{
+	/* This function opens a new db file like dc_sqlite3_open() but
+	 * only create create tables necessary for backup purpose.
+	 *
+	 * We only need tables 'backup_blobs' and 'config' (and this is created later - todo: change that)
+	 * 'backup_blobs' should be changed to sqlar structure later.
+	 */
+	if (dc_sqlite3_is_open(sql)) {
+		return 0; // a cleanup would close the database
+	}
+
+	if (sql==NULL || dbfile==NULL) {
+		goto cleanup;
+	}
+
+	if (sqlite3_threadsafe()==0) {
+		dc_log_error(sql->context, 0, "Sqlite3 compiled thread-unsafe; this is not supported.");
+		goto cleanup;
+	}
+
+	if (sql->cobj) {
+		dc_log_error(sql->context, 0, "Cannot open, database \"%s\" already opened.", dbfile);
+		goto cleanup;
+	}
+
+	// Force serialized mode (SQLITE_OPEN_FULLMUTEX) explicitly.
+	// So, most of the explicit lock/unlocks on dc_sqlite3_t object are no longer needed.
+	// However, locking is _also_ used for dc_context_t which _is_ still needed, so, we
+	// should remove locks only if we're really sure.
+	//
+	// `PRAGMA cache_size` and `PRAGMA page_size`: As we save BLOBs in external
+	// files, caching is not that important; we rely on the system defaults here
+	// (normally 2 MB cache, 1 KB page size on sqlite < 3.12.0, 4 KB for newer
+	// versions)
+	if (sqlite3_open_v2(dbfile, &sql->cobj,
+			SQLITE_OPEN_FULLMUTEX | ((flags&DC_OPEN_READONLY)? SQLITE_OPEN_READONLY : (SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE)),
+			NULL) != SQLITE_OK) {
+		dc_sqlite3_log_error(sql, "Cannot open database \"%s\".", dbfile); /* ususally, even for errors, the pointer is set up (if not, this is also checked by dc_sqlite3_log_error()) */
+		goto cleanup;
+	}
+
+	// let SQLite overwrite deleted content with zeros
+	dc_sqlite3_execute(sql, "PRAGMA secure_delete=on;");
+
+	// Only one process can make changes to the database at one time.
+	// busy_timeout defines, that if a seconds process wants write access, this second process will wait some milliseconds
+	// and try over until it gets write access or the given timeout is elapsed.
+	// If the second process does not get write access within the given timeout, sqlite3_step() will return the error SQLITE_BUSY.
+	// (without a busy_timeout, sqlite3_step() would return SQLITE_BUSY at once)
+	sqlite3_busy_timeout(sql->cobj, 10*1000);
+
+	if (!(flags&DC_OPEN_READONLY))
+	{
+		/* Init tables to dbversion=0 */
+		if (!dc_sqlite3_table_exists(sql, "config"))
+		{
+			dc_log_info(sql->context, 0, "First time init: creating tables in \"%s\".", dbfile);
+
+			// the row with the type `INTEGER PRIMARY KEY` is an alias to the 64-bit-ROWID present in every table
+			// we re-use this ID for our own purposes.
+			// (the last inserted ROWID can be accessed using sqlite3_last_insert_rowid(), which, however, is
+			// not recommended as not thread-safe, see above)
+			dc_sqlite3_execute(sql, "CREATE TABLE config (id INTEGER PRIMARY KEY, keyname TEXT, value TEXT);");
+			dc_sqlite3_execute(sql, "CREATE INDEX config_index1 ON config (keyname);");
+
+			if (!dc_sqlite3_table_exists(sql, "config"))
+			{
+				dc_sqlite3_log_error(sql, "Cannot create tables in new database \"%s\".", dbfile);
+				goto cleanup; /* cannot create the tables - maybe we cannot write? */
+			}
+		}
+	}
+
+	dc_log_info(sql->context, 0, "Opened \"%s\".", dbfile);
+	return 1;
+
+cleanup:
+	dc_sqlite3_close(sql);
+	return 0;
+}
+
+
 void dc_sqlite3_close(dc_sqlite3_t* sql)
 {
 	if (sql==NULL) {

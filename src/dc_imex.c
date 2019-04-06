@@ -893,6 +893,228 @@ cleanup:
 }
 
 
+static int export_backup2(dc_context_t* context, const char* dir)
+{
+	int            success = 0;
+	int            closed = 0;
+	char*          dest_pathNfilename = NULL;
+	dc_sqlite3_t*  dest_sql = NULL;
+	time_t         backup_start = time(NULL);
+	time_t         backup_end = 0;
+	DIR*           dir_handle = NULL;
+	struct dirent* dir_entry = NULL;
+	int            prefix_len = strlen(DC_BAK_PREFIX);
+	int            suffix_len = strlen(DC_BAK_SUFFIX);
+	char*          curr_pathNfilename = NULL;
+	void*          buf = NULL;
+	size_t         buf_bytes = 0;
+	sqlite3_stmt*  stmt = NULL;
+	int            total_files_cnt = 0;
+	int            processed_files_cnt = 0;
+	int            delete_dest_file = 0;
+	
+	#define        BACKUP_FILE_VERSION 2 /* version 1 is standard dc file version */
+	
+	/* get a fine backup file name (the name includes the date so that multiple backup instances are possible)
+	FIXME: we should write to a temporary file first and rename it on success. this would guarantee the backup is complete. however, currently it is not clear it the import exists in the long run (may be replaced by a restore-from-imap)*/
+	{
+		struct tm* timeinfo;
+		char buffer[256];
+		timeinfo = localtime(&backup_start);
+		strftime(buffer, 256, DC_BAK_PREFIX "-%Y-%m-%d." DC_BAK_SUFFIX, timeinfo);
+		if ((dest_pathNfilename=dc_get_fine_pathNfilename(context, "./", buffer))==NULL) {
+			dc_log_error(context, 0, "Cannot get backup file name.");
+			goto cleanup;
+		}
+	}
+
+	/* delete unreferenced files before export */
+	dc_housekeeping(context);
+
+	/* vacuum before export; this fixed failed vacuum's on previous import */
+	dc_sqlite3_try_execute(context->sql, "VACUUM;");
+
+	/* temporary lock and close the source (we just make a copy of the whole file, this is the fastest and easiest approach) */
+	dc_sqlite3_close(context->sql);
+	closed = 1;
+
+
+	/* add all files as blobs to the database copy (this does not require the source to be locked, neigher the destination as it is used only here) */
+	if ((dest_sql=dc_sqlite3_new(context/*for logging only*/))==NULL
+	 || !dc_sqlite3_open_create_backup_db(dest_sql, dest_pathNfilename, 0)) {
+		goto cleanup; /* error already logged */
+	}
+
+	/*
+	 * 	https://www.sqlite.org/sqlar.html
+
+		Introduction
+
+		An "SQLite Archive" is a file container similar to a ZIP archive
+		or Tarball but based on an SQLite database.
+
+		An SQLite Archive is an ordinary SQLite database file that contains
+		the following table as part of its schema:
+
+		CREATE TABLE sqlar(
+		  name TEXT PRIMARY KEY,  -- name of the file
+		  mode INT,               -- access permissions
+		  mtime INT,              -- last modification time
+		  sz INT,                 -- original file size
+		  data BLOB               -- compressed content
+		);
+
+		Each row of the SQLAR table holds the content of a single file.
+		 The filename (the full pathname relative to the root of the archive) is in the "name" field.
+		  The "mode" field is an integer which is the unix-style access permissions for the file.
+		  "mtime" is the modification time of the file in seconds since 1970.
+		  "sz" is the original uncompressed size of the file.
+		  The "data" field contains the file content.
+		   The content is usually compressed using Deflate, though not always.
+		   If the "sz" field is equal to the size of the "data" field, then the content is stored uncompressed.
+	 */
+
+	// sqlar
+	if (!dc_sqlite3_table_exists(dest_sql, "sqlar")) {
+		if (!dc_sqlite3_execute(dest_sql, "CREATE TABLE sqlar ("
+											"name TEXT PRIMARY KEY,"
+											"mode INT,"
+											"mtime INT,"
+											"sz INT,"
+											"data BLOB);")) {
+			goto cleanup; /* error already logged */
+		}
+	}
+
+
+	/* scan directory, pass 1: collect file info */
+	total_files_cnt = 0;
+	if ((dir_handle=opendir(context->blobdir))==NULL) {
+		dc_log_error(context, 0, "Backup: Cannot get info for blob-directory \"%s\".", context->blobdir);
+		goto cleanup;
+	}
+
+	while ((dir_entry=readdir(dir_handle))!=NULL) {
+		total_files_cnt++;
+	}
+
+	closedir(dir_handle);
+	dir_handle = NULL;
+
+	/* add messenger.db file into backup as blob */
+
+	free(buf);
+	if (!dc_read_file(context, context->dbfile, &buf, &buf_bytes) || buf==NULL || buf_bytes<=0) {
+		goto cleanup;
+	}
+
+	// sqlar
+	stmt = dc_sqlite3_prepare(dest_sql, "INSERT INTO sqlar (name, mode, mtime, sz, data) VALUES (?, ?, ?, ?, ?);"); 
+	sqlite3_bind_text(stmt, 1, context->dbfile, -1, SQLITE_STATIC);
+	sqlite3_bind_int(stmt,  2, 666);
+	sqlite3_bind_int(stmt,  3, 0);
+	sqlite3_bind_int(stmt,  4, buf_bytes);
+	sqlite3_bind_blob(stmt, 5, buf, buf_bytes, SQLITE_STATIC);
+
+	if (sqlite3_step(stmt)!=SQLITE_DONE) {
+		dc_log_error(context, 0, "Disk full? Cannot add msg-db-file \"%s\" to backup.", context->dbfile);
+		goto cleanup; /* this is not recoverable! writing to the sqlite database should work! */
+	}
+
+
+	/* now open msg-db again, file is copied to backup */
+	dc_log_info(context, 0, "Backup \"%s\" to \"%s\".", context->dbfile, dest_pathNfilename);
+
+	dc_sqlite3_open(context->sql, context->dbfile, 0);
+	closed = 0;
+
+	
+
+	if (total_files_cnt>0)
+	{
+		/* scan directory, pass 2: copy files */
+		if ((dir_handle=opendir(context->blobdir))==NULL) {
+			dc_log_error(context, 0, "Backup: Cannot copy from blob-directory \"%s\".", context->blobdir);
+			goto cleanup;
+		}
+
+		// sqlar
+		stmt = dc_sqlite3_prepare(dest_sql, "INSERT INTO sqlar (name, mode, mtime, sz, data) VALUES (?, ?, ?, ?, ?);"); 
+		while ((dir_entry=readdir(dir_handle))!=NULL)
+		{
+			if (context->shall_stop_ongoing) {
+				delete_dest_file = 1;
+				goto cleanup;
+			}
+
+			FILE_PROGRESS
+
+			char* name = dir_entry->d_name; /* name without path; may also be `.` or `..` */
+			int name_len = strlen(name);
+			if ((name_len==1 && name[0]=='.')
+			 || (name_len==2 && name[0]=='.' && name[1]=='.')
+			 || (name_len > prefix_len && strncmp(name, DC_BAK_PREFIX, prefix_len)==0 && name_len > suffix_len && strncmp(&name[name_len-suffix_len-1], "." DC_BAK_SUFFIX, suffix_len)==0)) {
+				//dc_log_info(context, 0, "Backup: Skipping \"%s\".", name);
+				continue;
+			}
+
+			//dc_log_info(context, 0, "Backup \"%s\".", name);
+			free(curr_pathNfilename);
+			curr_pathNfilename = dc_mprintf("%s/%s", context->blobdir, name);
+
+			free(buf);
+			if (!dc_read_file(context, curr_pathNfilename, &buf, &buf_bytes) || buf==NULL || buf_bytes<=0) {
+				continue;
+			}
+
+			// sqlar
+			sqlite3_bind_text (stmt, 1, curr_pathNfilename, -1, SQLITE_STATIC);
+			sqlite3_bind_int  (stmt, 2, 666); // standard file attributes
+			sqlite3_bind_int  (stmt, 3, 0);
+			sqlite3_bind_int  (stmt, 4, buf_bytes);
+			sqlite3_bind_blob (stmt, 5, buf, buf_bytes, SQLITE_STATIC);
+
+			if (sqlite3_step(stmt)!=SQLITE_DONE) {
+				dc_log_error(context, 0, "Disk full? Cannot add file \"%s\" to backup.", curr_pathNfilename);
+				goto cleanup; /* this is not recoverable! writing to the sqlite database should work! */
+			}
+			sqlite3_reset(stmt);
+		}
+	}
+	else
+	{
+		dc_log_info(context, 0, "Backup: No files to copy.", context->blobdir);
+	}
+
+	/* done - set some special config values (do this last to avoid importing crashed backups) */
+	dc_sqlite3_set_config_int(dest_sql, "backup_file_version", BACKUP_FILE_VERSION);
+	dc_sqlite3_set_config_int(dest_sql, "backup_time", backup_start);
+
+	/* end of backup process reached, now save elapsed time */
+	backup_end = time(NULL);
+	dc_sqlite3_set_config_int(dest_sql, "backup_duration", backup_end - backup_start); /* in [s] */
+
+	context->cb(context, DC_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)dest_pathNfilename, 0);
+	success = 1;
+
+cleanup:
+	if (dir_handle) { closedir(dir_handle); }
+	if (closed) { dc_sqlite3_open(context->sql, context->dbfile, 0); }
+
+	sqlite3_finalize(stmt);
+	dc_sqlite3_close(dest_sql);
+	dc_sqlite3_unref(dest_sql);
+	if (delete_dest_file) { dc_delete_file(context, dest_pathNfilename); }
+	free(dest_pathNfilename);
+
+	free(curr_pathNfilename);
+	free(buf);
+	
+	return success;
+}
+
+
+
 /*******************************************************************************
  * Import backup
  ******************************************************************************/
@@ -908,7 +1130,7 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 	char*         repl_from = NULL;
 	char*         repl_to = NULL;
 
-	dc_log_info(context, 0, "Import \"%s\" to \"%s\".", backup_to_import, context->dbfile);
+	dc_log_info(context, 0, "Import (backup_blobs format) \"%s\" to \"%s\".", backup_to_import, context->dbfile);
 
 	if (dc_is_configured(context)) {
 		dc_log_error(context, 0, "Cannot import backups to accounts in use.");
@@ -982,6 +1204,175 @@ cleanup:
 	free(repl_from);
 	free(repl_to);
 	sqlite3_finalize(stmt);
+
+	return success;
+}
+
+
+
+
+/**
+ * Import new backup format
+ * 
+ * Main table is "sqlar"
+ * 
+ * Spec of backup file structure (sqlar, config values)
+ *	dc_sqlite3_execute(sql, "CREATE TABLE config (id INTEGER PRIMARY KEY, keyname TEXT, value TEXT);");
+ *	dc_sqlite3_execute(sql, "CREATE INDEX config_index1 ON config (keyname);");
+ *	dc_sqlite3_execute(dest_sql, "CREATE TABLE sqlar ("
+ *									"name TEXT PRIMARY KEY,"
+ *									"mode INT,"
+ *									"mtime INT,"
+ *									"sz INT,"
+ *									"data BLOB);")) {
+ *	dc_sqlite3_set_config_int(dest_sql, "backup_file_version", BACKUP_FILE_VERSION);
+ *	dc_sqlite3_set_config_int(dest_sql, "backup_time", backup_start);
+ *	dc_sqlite3_set_config_int(dest_sql, "backup_duration", backup_end - backup_start); // in [s]
+ * 
+ */
+static int import_backup2(dc_context_t* context, const char* backup_to_import)
+{
+	int              success = 0;
+	int              processed_files_cnt = 0;
+	int              total_files_cnt = 0;
+	char*            pathNfilename = NULL;
+	sqlite3_stmt*    stmt = NULL;
+	dc_sqlite3_t*   backup_sql = NULL;
+
+
+	dc_log_info(context, 0, "Import (sqlar format) \"%s\"", backup_to_import);
+
+	/*
+	 * todo - don't know if this is necessary! IMHO not.
+	 * 
+	if (dc_is_configured(context)) {
+		dc_log_error(context, 0, "Cannot import backups to accounts in use.");
+		goto cleanup;
+	}
+	*/
+
+	/* close and delete the original file - FIXME: we should import to a .bak file and rename it on success. however, currently it is not clear it the import exists in the long run (may be replaced by a restore-from-imap) */
+
+	if (dc_sqlite3_is_open(context->sql)) {
+		dc_sqlite3_close(context->sql);
+	}
+
+	printf("Deleting db file: %s", context->dbfile);
+	dc_delete_file(context, context->dbfile);
+
+	if (dc_file_exist(context, context->dbfile)) {
+		dc_log_error(context, 0, "Cannot import backups: Cannot delete the old file.");
+		goto cleanup;
+	}
+
+	/* open backup sqlar database file */
+	if ((backup_sql=dc_sqlite3_new(context/*for logging only*/))==NULL
+	 || !dc_sqlite3_open(backup_sql, backup_to_import, 0)) {
+		goto cleanup; /* error already logged */
+	}
+
+	/* copy all blobs to files (and messenger.db - automatically by location) */
+	
+	stmt = dc_sqlite3_prepare(backup_sql, "SELECT COUNT(*) FROM sqlar;");
+	sqlite3_step(stmt);
+	total_files_cnt = sqlite3_column_int(stmt, 0);
+	sqlite3_finalize(stmt);
+	stmt = NULL;
+
+
+	// todo: das hier zeigt 0 an ?????
+	dc_log_info(context, 0, "Import, number of files: %d", total_files_cnt);
+
+	stmt = dc_sqlite3_prepare(backup_sql, "SELECT name, data FROM sqlar;");
+	while (sqlite3_step(stmt)==SQLITE_ROW)
+	{
+		if (context->shall_stop_ongoing) {
+			goto cleanup;
+		}
+
+        FILE_PROGRESS
+
+        const char* full_file_name = (const char*)sqlite3_column_text (stmt, 0);
+        int          file_bytes     = sqlite3_column_bytes(stmt, 1);
+        const void* file_content   = sqlite3_column_blob (stmt, 1);
+
+        if (file_bytes > 0 && file_content) {
+			/* full_file_name contains 'dirname/filename'
+			 * write file to 'content->blobdir/filename' (pathNfilename)
+			 * dirname may differ from content->blobdir if name of db changes!
+			 */
+			char* filename = NULL;
+			char  tofind = '/';
+			free(pathNfilename);
+			if ((filename = strchr(full_file_name, (int)tofind))) {
+				filename++; // skip "/"
+				printf("Blob-File: %s", filename);
+				pathNfilename = dc_mprintf("%s/%s", context->blobdir, filename);
+			}
+			else {
+				filename = (char*)full_file_name;
+				printf("DB-File: %s", filename);
+				pathNfilename = dc_mprintf("%s", filename);
+			}
+
+			if (!dc_write_file(context, pathNfilename, file_content, file_bytes)) {
+				dc_log_error(context, 0, "Storage full? Cannot write file %s with %i bytes.", pathNfilename, file_bytes);
+				goto cleanup; /* otherwise the user may believe the stuff is imported correctly, but there are files missing ... */
+			}
+		}
+	}
+
+	/* re-open imported database file */
+	if (!dc_sqlite3_open(context->sql, context->dbfile, 0)) {
+		goto cleanup;
+	}
+
+	success = 1;
+
+cleanup:
+	free(pathNfilename);
+	sqlite3_finalize(stmt);
+	dc_sqlite3_close(backup_sql);
+	dc_sqlite3_unref(backup_sql);
+
+	return success;
+}
+
+
+/**
+ * Dispatch backup method for old/new file format
+ * 
+ * @memberof dc_context_t
+ * @param context The context as created by dc_context_new().
+ * @param full_backup_filename Absolute Name of backup file
+ * @return 0 no success
+ *          1 success
+ */
+static int import_dispatch_backup_format(dc_context_t* context, const char* full_backup_filename)
+{
+	int             success  = 0;
+	dc_sqlite3_t*  test_sql = NULL;
+
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		return success;
+	}
+
+	if ((test_sql=dc_sqlite3_new(context/*for logging only*/))!=NULL
+	 && dc_sqlite3_open(test_sql, full_backup_filename, DC_OPEN_READONLY))
+	{
+		if (dc_sqlite3_table_exists(test_sql, "backup_blobs")) {
+			dc_sqlite3_unref(test_sql);
+			success = import_backup(context, full_backup_filename);
+		}
+		else if (dc_sqlite3_table_exists(test_sql, "sqlar")) {
+			dc_sqlite3_unref(test_sql);
+			success = import_backup2(context, full_backup_filename);
+		}
+		else {
+			dc_sqlite3_unref(test_sql);
+			dc_log_info(context, 0, "Import error: \"%s\" is not a backup file!", full_backup_filename);
+		}
+	}
 
 	return success;
 }
@@ -1111,13 +1502,13 @@ void dc_job_do_DC_JOB_IMEX_IMAP(dc_context_t* context, dc_job_t* job)
 			break;
 
 		case DC_IMEX_EXPORT_BACKUP:
-			if (!export_backup(context, param1)) {
+			if (!export_backup2(context, param1)) {
 				goto cleanup;
 			}
 			break;
 
 		case DC_IMEX_IMPORT_BACKUP:
-			if (!import_backup(context, param1)) {
+			if (!import_dispatch_backup_format(context, param1)) {
 				goto cleanup;
 			}
 			break;
@@ -1241,6 +1632,8 @@ cleanup:
 	dc_sqlite3_unref(test_sql);
 	return ret;
 }
+
+
 
 
 /**

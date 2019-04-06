@@ -304,7 +304,7 @@ int main(int argc, char ** argv)
 	}
 
 	s_do_log_info = 0;
-	stress_functions(context);
+	//stress_functions(context);
 	s_do_log_info = 1;
 
 

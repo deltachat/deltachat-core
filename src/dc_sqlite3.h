@@ -27,11 +27,12 @@ struct _dc_sqlite3
 };
 
 
-dc_sqlite3_t* dc_sqlite3_new              (dc_context_t*);
-void          dc_sqlite3_unref            (dc_sqlite3_t*);
+dc_sqlite3_t* dc_sqlite3_new                  (dc_context_t*);
+void          dc_sqlite3_unref                 (dc_sqlite3_t*);
 
-#define       DC_OPEN_READONLY            0x01
-int           dc_sqlite3_open             (dc_sqlite3_t*, const char* dbfile, int flags);
+#define       DC_OPEN_READONLY                 0x01
+int           dc_sqlite3_open                  (dc_sqlite3_t*, const char* dbfile, int flags);
+int           dc_sqlite3_open_create_backup_db (dc_sqlite3_t*, const char* dbfile, int flags);
 
 void          dc_sqlite3_close            (dc_sqlite3_t*);
 int           dc_sqlite3_is_open          (const dc_sqlite3_t*);
