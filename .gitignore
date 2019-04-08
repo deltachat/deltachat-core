@@ -49,8 +49,13 @@ po/*.insert-header
 .DS_Store
 capi.abi3.so
 
+# ignore backup files
+*.orig
+
 # ignore build remnants
 builddir/
+builddir2/
+builddir3/
 python/build
 libs/packagecache
 libs/zlib-1.2.11
