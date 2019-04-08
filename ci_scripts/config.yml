@@ -1,0 +1,87 @@
+
+version: 2
+jobs:
+  build_test_docs_wheel:
+    machine: True
+    steps:
+      - checkout
+      - run: docker pull deltachat/doxygen 
+      - run: docker pull deltachat/coredeps
+      - run: 
+          command: ci_scripts/ci_run.sh
+          environment:
+            MESONARGS: 
+            DOCS: 1
+            TESTS: 1
+
+      - run: 
+           name: copying C docs, python docs and wheels to workspace 
+           command: |
+             mkdir -p workspace/python
+             cp -av docs workspace/c-docs
+             cp -av python/.docker-tox/wheelhouse workspace/
+             cp -av python/doc/_build/ workspace/py-docs
+
+      - persist_to_workspace: 
+          root: workspace 
+          paths: 
+            - c-docs
+            - py-docs
+            - wheelhouse
+
+  upload_docs_wheels:
+    machine: True
+    steps:
+      - checkout
+      - attach_workspace:
+          at: workspace
+      - run: ls -laR workspace 
+      - run: ci_scripts/ci_upload.sh workspace/c-docs workspace/py-docs workspace/wheelhouse
+
+  build_monolith_tests:
+    machine: True
+    steps:
+      - checkout
+      - run: docker pull deltachat/coredeps
+      - run: 
+          environment:
+            MESONARGS: -Dmonolith=true
+            TESTS: 1
+          command: ci_scripts/ci_run.sh
+
+  build_static:
+    machine: True
+    steps:
+      - checkout
+      - run: docker pull deltachat/coredeps
+      - run: 
+          environment:
+            MESONARGS: --default-library=static 
+          command: ci_scripts/ci_run.sh
+
+  build_forcefallback: 
+    machine: True
+    steps:
+      - checkout
+      - run: docker pull deltachat/coredeps
+      - run:
+          environment:
+            MESONARGS: --wrap-mode=forcefallback --default-library=static
+          command: ci_scripts/ci_run.sh
+
+workflows:
+  version: 2
+  build_all:
+    jobs:
+      - build_test_docs_wheel
+      - build_monolith_tests
+      - build_static
+      - build_forcefallback
+      - upload_docs_wheels:
+          requires:
+              - build_test_docs_wheel
+              - build_monolith_tests
+              - build_static
+              - build_forcefallback
+        
+

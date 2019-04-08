@@ -1,6 +1,11 @@
 # ignore backup files
 *~
 
+# ignore tox and docker stuff
+.docker-*
+wheelhouse
+workspace
+
 # ignore build temporary files
 *.o
 .deps

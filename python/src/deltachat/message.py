@@ -51,7 +51,7 @@ class Message(object):
     def get_state(self):
         """ get the message in/out state.
 
-        :returns: :class:`deltachat.chatting.MessageState`
+        :returns: :class:`deltachat.message.MessageState`
         """
         return MessageState(self)
 
@@ -89,7 +89,7 @@ class Message(object):
     def view_type(self):
         """the view type of this message.
 
-        :returns: a :class:`deltachat.chatting.MessageType` instance.
+        :returns: a :class:`deltachat.message.MessageType` instance.
         """
         return MessageType(lib.dc_msg_get_viewtype(self._dc_msg))
 
