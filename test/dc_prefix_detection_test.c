@@ -12,6 +12,11 @@
 #define realloc test_realloc
 #define free test_free
 
+/*
+Include source instead of header file to
+  * replace allocation functions with Cmocka memory checking functions
+  * test static functions as well
+*/
 #include "../src/dc_prefix_detection.c"
 
 

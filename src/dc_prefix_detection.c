@@ -22,7 +22,7 @@ const char* dc_find_subject_text_position(const char* subject) {
     return subject_text_position;
 }
 
-int dc_is_prefix(const char* string, ptrdiff_t string_bytes_count) {
+static int dc_is_prefix(const char* string, ptrdiff_t string_bytes_count) {
     dc_assert_non_null_pointer(string);
 
     char* lower_case_string = dc_convert_prefix_letters_to_lower_case(string, string_bytes_count);
@@ -33,7 +33,7 @@ int dc_is_prefix(const char* string, ptrdiff_t string_bytes_count) {
     return search_result != NULL;
 }
 
-char* dc_convert_prefix_letters_to_lower_case(const char* string, ptrdiff_t string_bytes_count) {
+static char* dc_convert_prefix_letters_to_lower_case(const char* string, ptrdiff_t string_bytes_count) {
     dc_assert_non_null_pointer(string);
 
     const int maximum_utf_8_bytes_count = 4;
@@ -59,7 +59,7 @@ char* dc_convert_prefix_letters_to_lower_case(const char* string, ptrdiff_t stri
     return converted_string;
 }
 
-int dc_read_utf_8_character_bytes_count(char first_character_byte) {
+static int dc_read_utf_8_character_bytes_count(char first_character_byte) {
     if (!dc_is_bit_set(first_character_byte, CHAR_BIT - 1)) {
         return 1;
     }
@@ -71,11 +71,11 @@ int dc_read_utf_8_character_bytes_count(char first_character_byte) {
     return leading_set_bits_count;
 }
 
-int dc_is_bit_set(char byte, unsigned int bit_index) {
+static int dc_is_bit_set(char byte, unsigned int bit_index) {
     return byte & (1 << bit_index);
 }
 
-bytes_array_bounds* dc_map_to_utf_8_lower_case_if_known(const char* upper_case_character, int character_bytes_count) {
+static bytes_array_bounds* dc_map_to_utf_8_lower_case_if_known(const char* upper_case_character, int character_bytes_count) {
     dc_assert_non_null_pointer(upper_case_character);
 
     const bicameral_utf_8_letter* letter = dc_search_for_bicameral_letter(upper_case_character, character_bytes_count);
@@ -90,7 +90,7 @@ bytes_array_bounds* dc_map_to_utf_8_lower_case_if_known(const char* upper_case_c
     return utf_8_bytes;
 }
 
-const bicameral_utf_8_letter* dc_search_for_bicameral_letter(const char* upper_case_character, int character_bytes_count) {
+static const bicameral_utf_8_letter* dc_search_for_bicameral_letter(const char* upper_case_character, int character_bytes_count) {
     dc_assert_non_null_pointer(upper_case_character);
 
     bicameral_utf_8_letter letter = {
@@ -105,7 +105,7 @@ const bicameral_utf_8_letter* dc_search_for_bicameral_letter(const char* upper_c
     return search_result;
 }
 
-void* dc_assuredly_allocate_zeroed_array(size_t entries_count, size_t entry_bytes_count) {
+static void* dc_assuredly_allocate_zeroed_array(size_t entries_count, size_t entry_bytes_count) {
     void* array = calloc(entries_count, entry_bytes_count);
     if (array == NULL) {
         dc_exit_with_error(FAILED_TO_ALLOCATE_MEMORY, "memory allocation failed");
@@ -113,7 +113,7 @@ void* dc_assuredly_allocate_zeroed_array(size_t entries_count, size_t entry_byte
     return array;
 }
 
-const bicameral_utf_8_letters_array_bounds* dc_get_prefix_letters() {
+static const bicameral_utf_8_letters_array_bounds* dc_get_prefix_letters() {
     static bicameral_utf_8_letter letters_array[] = {
         { .lower_case = "á", .upper_case = "Á" },
         { .lower_case = "í", .upper_case = "Í" },
@@ -140,7 +140,7 @@ const bicameral_utf_8_letters_array_bounds* dc_get_prefix_letters() {
     return &letters;
 }
 
-int dc_compare_utf_8_letters_by_upper_case(const void* left, const void* right) {
+static int dc_compare_utf_8_letters_by_upper_case(const void* left, const void* right) {
     dc_assert_non_null_pointer(left);
     dc_assert_non_null_pointer(right);
     const bicameral_utf_8_letter* left_letter = left;
@@ -151,7 +151,7 @@ int dc_compare_utf_8_letters_by_upper_case(const void* left, const void* right) 
     return strcmp(left_letter->upper_case, right_letter->upper_case);
 }
 
-const strings_array_bounds* dc_get_prefixes() {
+static const strings_array_bounds* dc_get_prefixes() {
     static char* prefixes_array[] = {
         "atb", "aw", "antwort", "antw", "bls", "doorst", "enc", "fs", "fw",
         "fwd", "i", "odp", "pd", "r", "re", "ref", "res", "rif", "rv", "sv",
@@ -172,7 +172,7 @@ const strings_array_bounds* dc_get_prefixes() {
     return &prefixes;
 }
 
-int dc_compare_strings(const void* left, const void* right) {
+static int dc_compare_strings(const void* left, const void* right) {
     dc_assert_non_null_pointer(left);
     dc_assert_non_null_pointer(right);
     char* const* left_string_pointer = left;
@@ -183,7 +183,7 @@ int dc_compare_strings(const void* left, const void* right) {
     return strcmp(*left_string_pointer, *right_string_pointer);
 }
 
-const char* dc_find_first_non_space_position(const char* string) {
+static const char* dc_find_first_non_space_position(const char* string) {
     dc_assert_non_null_pointer(string);
 
     while (isspace(*string) && *string != '\0') {
@@ -192,13 +192,13 @@ const char* dc_find_first_non_space_position(const char* string) {
     return string;
 }
 
-void dc_assert_non_null_pointer(const void* pointer) {
+static void dc_assert_non_null_pointer(const void* pointer) {
     if (pointer == NULL) {
         dc_exit_with_error(ILLEGAL_NULL_POINTER, "a pointer was illegally NULL");
     }
 }
 
-void dc_exit_with_error(const programming_error_code code, const char* message) {
+static void dc_exit_with_error(const programming_error_code code, const char* message) {
     printf("Terminating because %s.\n", message);
     exit(code);
 }
