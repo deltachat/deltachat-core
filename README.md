@@ -165,6 +165,10 @@ The program then shows a prompt and typing `help` gives some help about the avai
 New tests are currently developed using Python, see 
 https://github.com/deltachat/deltachat-core/tree/master/python/tests
 
+However, these only test the existing Python bindings. Unit tests for the C
+library itself are written using the Cmocka framework and can be found in the
+`test` folder.
+
 
 ## License
 
