@@ -446,16 +446,19 @@ void dc_job_do_DC_JOB_MAYBE_SEND_LOCATIONS(dc_context_t* context, dc_job_t* job)
 			continue;
         }
 
-		// TODO: send this as a hidden `Chat-Content: position` message
-
-		// TODO: send the message only if the last scheduled location message was sent
-		// to avoid flooding queued messages which may result in normal messages not
-		// coming through (positions are sent combined then)
-		// (an alternative would be to remove unsent messages and to create new ones,
-		// however, as positions may also be shared by normal messages,
-		// tracking this state seems to be harder)
-
-		dc_send_text_msg(context, chat_id, "-location-");
+		// pending locations are attached automatically to every message,
+		// so also to this empty text message.
+		// DC_CMD_LOCATION is only needed to create a nicer subject.
+		//
+		// for optimisation and to avoid flooding the sending queue,
+		// we could sending these messages only if we're really online.
+		// the easiest way to determine this, is to check for an empty message queue.
+		// (might not be 100%, however, as positions are sent combined later
+		// and dc_set_location() is typically called periodically, this is ok)
+		dc_msg_t* msg = dc_msg_new(context, DC_MSG_TEXT);
+		dc_param_set_int(msg->param, DC_PARAM_CMD, DC_CMD_LOCATION_ONLY);
+		dc_send_msg(context, chat_id, msg);
+		dc_msg_unref(msg);
 	}
 
 	if (continue_streaming) {
@@ -497,10 +500,15 @@ void dc_send_locations_to_chat(dc_context_t* context, uint32_t chat_id,
 	sqlite3_stmt* stmt = NULL;
 	time_t        now = time(NULL);
 	dc_msg_t*     msg = NULL;
+	char*         stock_str = NULL;
+	int           is_sending_locations_before = 0;
 
-	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || seconds<0) {
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || seconds<0
+	 || chat_id<=DC_CHAT_ID_LAST_SPECIAL) {
 		goto cleanup;
 	}
+
+	is_sending_locations_before = dc_is_sending_locations_to_chat(context, chat_id);
 
 	stmt = dc_sqlite3_prepare(context->sql,
 		"UPDATE chats "
@@ -512,21 +520,26 @@ void dc_send_locations_to_chat(dc_context_t* context, uint32_t chat_id,
 	sqlite3_bind_int  (stmt, 3, chat_id);
 	sqlite3_step(stmt);
 
-	// send a status message
-	msg = dc_msg_new(context, DC_MSG_TEXT);
-	msg->text = dc_stock_system_msg(context,
-		seconds? DC_STR_MSGLOCATIONENABLED : DC_STR_MSGLOCATIONDISABLED,
-		NULL, NULL, 0);
-	dc_param_set_int(msg->param, DC_PARAM_CMD, DC_CMD_LOCATION_STREAMING_SECONDS);
-	dc_param_set_int(msg->param, DC_PARAM_CMD_ARG, seconds);
-	msg->id = dc_send_msg(context, chat_id, msg);
-	context->cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg->id);
+	// add/sent status message.
+	// as disable also happens after a timeout, this is not sent explicitly.
+	if (seconds && !is_sending_locations_before) {
+		msg = dc_msg_new(context, DC_MSG_TEXT);
+		msg->text = dc_stock_system_msg(context, DC_STR_MSGLOCATIONENABLED, NULL, NULL, 0);
+		dc_param_set_int(msg->param, DC_PARAM_CMD, DC_CMD_LOCATION_STREAMING_ENABLED);
+		msg->id = dc_send_msg(context, chat_id, msg);
+		context->cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg->id);
+	}
+	else if(!seconds && is_sending_locations_before) {
+		stock_str = dc_stock_system_msg(context, DC_STR_MSGLOCATIONDISABLED, NULL, NULL, 0);
+		dc_add_device_msg(context, chat_id, stock_str);
+	}
 
 	if (seconds) {
 		schedule_MAYBE_SEND_LOCATIONS(context, 0);
 	}
 
 cleanup:
+	free(stock_str);
 	dc_msg_unref(msg);
 	sqlite3_finalize(stmt);
 }

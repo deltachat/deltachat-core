@@ -1209,7 +1209,8 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 #define DC_STR_MSGACTIONBYME              63
 #define DC_STR_MSGLOCATIONENABLED         64
 #define DC_STR_MSGLOCATIONDISABLED        65
-#define DC_STR_COUNT                      65
+#define DC_STR_LOCATION                   66
+#define DC_STR_COUNT                      66
 
 /*
  * @}
