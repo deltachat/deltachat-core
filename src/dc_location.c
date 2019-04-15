@@ -662,7 +662,7 @@ cleanup:
  * @param context The context object.
  * @param chat_id Chat-id to get location information for.
  *     0 to get locations independently of the chat.
- * @param contact_id Contact id to get location information for.
+ * @param contact_id Contact-id to get location information for.
  *     If also a chat-id is given, this should be a member of the given chat.
  *     0 to get locations independently of the contact.
  * @param timestamp_from Start of timespan to return.

@@ -1598,10 +1598,10 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 			{
 				uint32_t newest_location_id = dc_save_locations(context,
 								chat_id, from_id, mime_parser->kml->locations);
-				if (newest_location_id) {
+				if (newest_location_id && !hidden) {
 					dc_set_msg_location_id(context, insert_msg_id, newest_location_id);
-					context->cb(context, DC_EVENT_LOCATION_CHANGED, from_id, 0);
 				}
+				context->cb(context, DC_EVENT_LOCATION_CHANGED, from_id, 0);
 			}
 			dc_contact_unref(contact);
 		}
