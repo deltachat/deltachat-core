@@ -694,6 +694,21 @@ cleanup:
 }
 
 
+static void set_better_msg(dc_mimeparser_t* mime_parser,
+                           char** better_msg)
+{
+	if (*better_msg
+	 && carray_count(mime_parser->parts)>0) {
+		dc_mimepart_t* part = (dc_mimepart_t*)carray_get(mime_parser->parts, 0);
+		if (part->type==DC_MSG_TEXT) {
+			free(part->msg);
+			part->msg = *better_msg;
+			*better_msg = NULL;
+		}
+	}
+}
+
+
 /* the function tries extracts the group-id from the message and returns the
 corresponding chat_id.  If the chat_id is not existant, it is created.
 If the message contains groups commands (name, profile image, changed members),
@@ -728,6 +743,14 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 	const char*   X_MrGrpImageChanged = NULL;
 	char*         better_msg = NULL;
 	char*         failure_reason = NULL;
+
+	/* some preparations not really related to groups */
+	if (mime_parser->is_system_message==DC_CMD_LOCATION_STREAMING_ENABLED) {
+		better_msg = dc_stock_system_msg(context,
+			DC_STR_MSGLOCATIONENABLED, NULL, NULL, from_id);
+	}
+
+	set_better_msg(mime_parser, &better_msg);
 
 	/* search the grpid in the header */
 	{
@@ -816,15 +839,7 @@ static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_
 		}
 	}
 
-	if (better_msg
-	 && carray_count(mime_parser->parts)>0) {
-		dc_mimepart_t* part = (dc_mimepart_t*)carray_get(mime_parser->parts, 0);
-		if (part->type==DC_MSG_TEXT) {
-			free(part->msg);
-			part->msg = better_msg;
-			better_msg = NULL;
-		}
-	}
+	set_better_msg(mime_parser, &better_msg);
 
 	/* check, if we have a chat with this group ID */
 	if ((chat_id=dc_get_chat_id_by_grpid(context, grpid, &chat_id_blocked, &chat_id_verified))!=0) {
