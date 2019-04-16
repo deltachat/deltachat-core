@@ -456,6 +456,7 @@ void dc_job_do_DC_JOB_MAYBE_SEND_LOCATIONS(dc_context_t* context, dc_job_t* job)
 		// (might not be 100%, however, as positions are sent combined later
 		// and dc_set_location() is typically called periodically, this is ok)
 		dc_msg_t* msg = dc_msg_new(context, DC_MSG_TEXT);
+		msg->hidden = 1;
 		dc_param_set_int(msg->param, DC_PARAM_CMD, DC_CMD_LOCATION_ONLY);
 		dc_send_msg(context, chat_id, msg);
 		dc_msg_unref(msg);
