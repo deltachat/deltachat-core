@@ -1488,8 +1488,9 @@ static void hash_header(dc_hash_t* out, const struct mailimf_fields* in, dc_cont
  */
 void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_terminated, size_t body_bytes)
 {
-	int    r = 0;
-	size_t index = 0;
+	int                            r = 0;
+	size_t                         index = 0;
+	struct mailimf_optional_field* optional_field = NULL;
 
 	dc_mimeparser_empty(mimeparser);
 
@@ -1542,6 +1543,13 @@ void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_termi
 					i--; /* start over with the same index */
 				}
 			}
+		}
+	}
+	else if ((optional_field=dc_mimeparser_lookup_optional_field(mimeparser, "Chat-Content"))!=NULL
+	       && optional_field->fld_value!=NULL)
+	{
+		if (strcmp(optional_field->fld_value, "location-streaming-enabled")==0) {
+			mimeparser->is_system_message = DC_CMD_LOCATION_STREAMING_ENABLED;
 		}
 	}
 

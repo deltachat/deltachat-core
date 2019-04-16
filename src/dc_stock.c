@@ -21,6 +21,7 @@ static char* default_string(int id)
 		case DC_STR_VIDEO:                 return dc_strdup("Video");
 		case DC_STR_AUDIO:                 return dc_strdup("Audio");
 		case DC_STR_FILE:                  return dc_strdup("File");
+		case DC_STR_LOCATION:              return dc_strdup("Location");
 		case DC_STR_ENCRYPTEDMSG:          return dc_strdup("Encrypted message");
 		case DC_STR_STATUSLINE:            return dc_strdup("Sent with my Delta Chat Messenger: https://delta.chat");
 		case DC_STR_NEWGROUPDRAFT:         return dc_strdup("Hello, I've just created the group \"%1$s\" for us.");

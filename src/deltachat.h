@@ -393,6 +393,7 @@ time_t           dc_array_get_timestamp      (const dc_array_t*, size_t index);
 uint32_t         dc_array_get_chat_id        (const dc_array_t*, size_t index);
 uint32_t         dc_array_get_contact_id     (const dc_array_t*, size_t index);
 uint32_t         dc_array_get_msg_id         (const dc_array_t*, size_t index);
+char*            dc_array_get_marker         (const dc_array_t*, size_t index);
 
 int              dc_array_search_id          (const dc_array_t*, uint32_t needle, size_t* indx);
 const uintptr_t* dc_array_get_raw            (const dc_array_t*);
@@ -1209,7 +1210,8 @@ time_t          dc_lot_get_timestamp     (const dc_lot_t*);
 #define DC_STR_MSGACTIONBYME              63
 #define DC_STR_MSGLOCATIONENABLED         64
 #define DC_STR_MSGLOCATIONDISABLED        65
-#define DC_STR_COUNT                      65
+#define DC_STR_LOCATION                   66
+#define DC_STR_COUNT                      66
 
 /*
  * @}

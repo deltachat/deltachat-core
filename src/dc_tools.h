@@ -41,6 +41,7 @@ char*   dc_binary_to_uc_hex        (const uint8_t* buf, size_t bytes);
 void    dc_remove_cr_chars         (char*); /* remove all \r characters from string */
 void    dc_unify_lineends          (char*);
 void    dc_replace_bad_utf8_chars  (char*); /* replace bad UTF-8 characters by sequences of `_` (to avoid problems in filenames, we do not use eg. `?`) the function is useful if strings are unexpectingly encoded eg. as ISO-8859-1 */
+size_t  dc_utf8_strlen             (const char*);
 void    dc_truncate_str            (char*, int approx_characters);
 void    dc_truncate_n_unwrap_str   (char*, int approx_characters, int do_unwrap);
 carray* dc_split_into_lines        (const char* buf_terminated); /* split string into lines*/

@@ -577,11 +577,10 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 			}
 		}
 
-		if (command==DC_CMD_LOCATION_STREAMING_SECONDS) {
-			int seconds = dc_param_get_int(msg->param, DC_PARAM_CMD_ARG, 0);
+		if (command==DC_CMD_LOCATION_STREAMING_ENABLED) {
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(
 				strdup("Chat-Content"),
-				dc_mprintf("position-state; seconds=%i", seconds)));
+				strdup("location-streaming-enabled")));
 		}
 
 		if (command==DC_CMD_AUTOCRYPT_SETUP_MESSAGE) {

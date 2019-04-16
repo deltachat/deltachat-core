@@ -619,6 +619,9 @@ void stress_functions(dc_context_t* context)
 		assert( !DC_EVENT_RETURNS_STRING(100) );
 		assert( !DC_EVENT_RETURNS_STRING(300) );
 		assert( !DC_EVENT_RETURNS_STRING(400) );
+
+		assert( dc_utf8_strlen("c")==1 && strlen("c")==1 );
+		assert( dc_utf8_strlen("ä")==1 && strlen("ä")==2 );
 	}
 
 	/* test dc_array_t

@@ -1003,6 +1003,10 @@ char* dc_msg_get_summarytext_by_raw(int type, const char* text, dc_param_t* para
 			break;
 
 		default:
+			if (dc_param_get_int(param, DC_PARAM_CMD, 0)==DC_CMD_LOCATION_ONLY) {
+				prefix = dc_stock_str(context, DC_STR_LOCATION);
+				append_text = 0;
+			}
 			break;
 	}
 
