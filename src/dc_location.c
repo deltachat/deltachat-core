@@ -720,7 +720,6 @@ dc_array_t* dc_get_locations(dc_context_t* context,
 {
 	dc_array_t*   ret = dc_array_new_typed(context, DC_ARRAY_LOCATIONS, 500);
 	sqlite3_stmt* stmt = NULL;
-	time_t        newest = 0;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
 		goto cleanup;
@@ -761,10 +760,6 @@ dc_array_t* dc_get_locations(dc_context_t* context,
 		loc->contact_id  = sqlite3_column_int   (stmt, 6);
 		loc->chat_id     = sqlite3_column_int   (stmt, 7);
 		dc_array_add_ptr(ret, loc);
-
-		if (newest==0) {
-			newest = loc->timestamp;
-		}
 	}
 
 cleanup:
