@@ -911,7 +911,7 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 	else if(strcmp(cmd, "getlocations")==0)
 	{
 		int contact_id = arg1? atoi(arg1) : 0;
-		dc_array_t* loc = dc_get_locations(context, dc_chat_get_id(sel_chat), contact_id, 0, 0);
+		dc_array_t* loc = dc_get_locations(context, dc_chat_get_id(sel_chat), contact_id, 0, 0, DC_GL_TRACK);
 		for (int j=0; j<dc_array_get_cnt(loc); j++) {
 			char* timestr = dc_timestamp_to_str(dc_array_get_timestamp(loc, j));
 			char* marker = dc_array_get_marker(loc, j);
