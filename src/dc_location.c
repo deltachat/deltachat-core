@@ -697,6 +697,10 @@ static int is_marker(const char* txt)
  * @param timestamp_to End of timespan to return.
  *     Must be given in number of seconds since 00:00 hours, Jan 1, 1970 UTC.
  *     0 for "all up to now".
+ * @param flags can be a combination of
+ *     DC_GL_MESSAGES (return all positions with messages) or
+ *     DC_GL_TRACK (return all positions, typically to draw a track)
+ *     If no flag is given, the last known position in the timespan is returned.
  * @return Array of locations, NULL is never returned.
  *     The array is sorted decending;
  *     the first entry in the array is the location with the newest timestamp.
@@ -728,7 +732,8 @@ static int is_marker(const char* txt)
  */
 dc_array_t* dc_get_locations(dc_context_t* context,
                              uint32_t chat_id, uint32_t  contact_id,
-                             time_t timestamp_from, time_t timestamp_to)
+                             time_t timestamp_from, time_t timestamp_to,
+                             int flags)
 {
 	dc_array_t*   ret = dc_array_new_typed(context, DC_ARRAY_LOCATIONS, 500);
 	sqlite3_stmt* stmt = NULL;
