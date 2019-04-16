@@ -82,6 +82,9 @@ void dc_array_free_ptr(dc_array_t* array)
 	}
 
 	for (size_t i = 0; i<array->count; i++) {
+		if (array->type==DC_ARRAY_LOCATIONS) {
+			free(((struct _dc_location*)array->array[i])->marker);
+		}
 		free((void*)array->array[i]);
 		array->array[i] = 0;
 	}
@@ -449,6 +452,30 @@ uint32_t dc_array_get_contact_id(const dc_array_t* array, size_t index)
 	}
 
 	return ((struct _dc_location*)array->array[index])->contact_id;
+}
+
+
+/**
+ * Return the marker-character of the item at the given index.
+ * Marker-character are typically bound to locations
+ * returned by dc_get_locations()
+ * and are typically created by on-character-messages
+ * which can also be an emoticon :)
+ *
+ * @memberof dc_array_t
+ * @param array The array object.
+ * @param index Index of the item. Must be between 0 and dc_array_get_cnt()-1.
+ * @return Marker-character of the item at the given index.
+ *     0 if there is no marker-character bound to the given item,
+ */
+char* dc_array_get_marker(const dc_array_t* array, size_t index)
+{
+	if (array==NULL || array->magic!=DC_ARRAY_MAGIC || index>=array->count
+	 || array->type!=DC_ARRAY_LOCATIONS || array->array[index]==0 ) {
+		return 0;
+	}
+
+	return dc_strdup_keep_null(((struct _dc_location*)array->array[index])->marker);
 }
 
 

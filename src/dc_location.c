@@ -660,6 +660,18 @@ cleanup:
 }
 
 
+static int is_marker(const char* txt)
+{
+	if (txt) {
+		int len = dc_utf8_strlen(txt);
+		if (len==1 && txt[0]!=' ') {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+
 /**
  * Get shared locations from the database.
  * The locations can be filtered by the chat-id, the contact-id
@@ -731,13 +743,13 @@ dc_array_t* dc_get_locations(dc_context_t* context,
 
 	stmt = dc_sqlite3_prepare(context->sql,
 			"SELECT l.id, l.latitude, l.longitude, l.accuracy, l.timestamp, "
-			"       m.id, l.from_id, l.chat_id "
+			"       m.id, l.from_id, l.chat_id, m.txt "
 			" FROM locations l "
 			" LEFT JOIN msgs m ON l.id=m.location_id "
 			" WHERE (? OR l.chat_id=?) "
 			"   AND (? OR l.from_id=?) "
 			"   AND l.timestamp>=? AND l.timestamp<=? "
-			" ORDER BY l.timestamp DESC, l.id DESC;");
+			" ORDER BY l.timestamp DESC, l.id DESC, m.id DESC;");
 	sqlite3_bind_int(stmt, 1, chat_id==0? 1 : 0);
 	sqlite3_bind_int(stmt, 2, chat_id);
 	sqlite3_bind_int(stmt, 3, contact_id==0? 1 : 0);
@@ -759,6 +771,13 @@ dc_array_t* dc_get_locations(dc_context_t* context,
 		loc->msg_id      = sqlite3_column_int   (stmt, 5);
 		loc->contact_id  = sqlite3_column_int   (stmt, 6);
 		loc->chat_id     = sqlite3_column_int   (stmt, 7);
+		if (loc->msg_id) {
+			const char* txt = (const char*)sqlite3_column_text(stmt, 8);
+			if (is_marker(txt)) {
+				loc->marker = strdup(txt);
+			}
+		}
+
 		dc_array_add_ptr(ret, loc);
 	}
 
