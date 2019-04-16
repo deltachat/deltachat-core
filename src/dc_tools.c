@@ -420,9 +420,12 @@ error:
 }
 
 
-#if 0 /* not needed at the moment */
-static size_t dc_utf8_strlen(const char* s)
+size_t dc_utf8_strlen(const char* s)
 {
+	if (s==NULL) {
+		return 0;
+	}
+
 	size_t i = 0;
 	size_t j = 0;
 	while (s[i]) {
@@ -432,11 +435,14 @@ static size_t dc_utf8_strlen(const char* s)
 	}
 	return j;
 }
-#endif
 
 
 static size_t dc_utf8_strnlen(const char* s, size_t n)
 {
+	if (s==NULL) {
+		return 0;
+	}
+
 	size_t i = 0;
 	size_t j = 0;
 	while (i < n) {
