@@ -466,7 +466,8 @@ uint32_t dc_array_get_contact_id(const dc_array_t* array, size_t index)
  * @param array The array object.
  * @param index Index of the item. Must be between 0 and dc_array_get_cnt()-1.
  * @return Marker-character of the item at the given index.
- *     0 if there is no marker-character bound to the given item,
+ *     NULL if there is no marker-character bound to the given item.
+ *     The returned value must be free()'d after usage.
  */
 char* dc_array_get_marker(const dc_array_t* array, size_t index)
 {
