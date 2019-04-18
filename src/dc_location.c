@@ -473,6 +473,60 @@ void dc_job_do_DC_JOB_MAYBE_SEND_LOCATIONS(dc_context_t* context, dc_job_t* job)
 }
 
 
+void dc_job_do_DC_JOB_MAYBE_SEND_LOC_ENDED(dc_context_t* context, dc_job_t* job)
+{
+	// this function is called when location-streaming _might_ have ended for a chat.
+	// the function checks, if location-streaming is really ended;
+	// if so, a device-message is added if not yet done.
+	uint32_t      chat_id = job->foreign_id;
+	time_t        locations_send_begin = 0;
+	time_t        locations_send_until = 0;
+	sqlite3_stmt* stmt = NULL;
+	char*         stock_str = NULL;
+
+	stmt = dc_sqlite3_prepare(context->sql,
+		"SELECT locations_send_begin, locations_send_until "
+		" FROM chats "
+		" WHERE id=?");
+	sqlite3_bind_int  (stmt, 1, chat_id);
+	if (sqlite3_step(stmt)!=SQLITE_ROW) {
+		goto cleanup;
+	}
+	locations_send_begin = sqlite3_column_int64(stmt, 0);
+	locations_send_until = sqlite3_column_int64(stmt, 1);
+	sqlite3_finalize(stmt);
+	stmt = NULL;
+
+	if (locations_send_begin!=0 && time(NULL)<=locations_send_until) {
+		// still streaming -
+		// may happen as several calls to dc_send_locations_to_chat()
+		// do not un-schedule pending DC_MAYBE_SEND_LOC_ENDED jobs
+		goto cleanup;
+	}
+
+	if (locations_send_begin==0 && locations_send_until==0) {
+		// not streaming, device-message already sent
+		goto cleanup;
+	}
+
+	// inform the ui that location-streaming has ended
+	stmt = dc_sqlite3_prepare(context->sql,
+		"UPDATE chats "
+		"   SET locations_send_begin=0, locations_send_until=0 "
+		" WHERE id=?");
+	sqlite3_bind_int  (stmt, 1, chat_id);
+	sqlite3_step(stmt);
+
+	stock_str = dc_stock_system_msg(context, DC_STR_MSGLOCATIONDISABLED, NULL, NULL, 0);
+	dc_add_device_msg(context, chat_id, stock_str);
+	context->cb(context, DC_EVENT_CHAT_MODIFIED, chat_id, 0);
+
+cleanup:
+	sqlite3_finalize(stmt);
+	free(stock_str);
+}
+
+
 /*******************************************************************************
  * high-level ui-functions
  ******************************************************************************/
@@ -516,8 +570,8 @@ void dc_send_locations_to_chat(dc_context_t* context, uint32_t chat_id,
 		"   SET locations_send_begin=?, "
 		"       locations_send_until=? "
 		" WHERE id=?");
-	sqlite3_bind_int64(stmt, 1, now);
-	sqlite3_bind_int64(stmt, 2, now+seconds);
+	sqlite3_bind_int64(stmt, 1, seconds? now : 0);
+	sqlite3_bind_int64(stmt, 2, seconds? now+seconds : 0);
 	sqlite3_bind_int  (stmt, 3, chat_id);
 	sqlite3_step(stmt);
 
@@ -539,6 +593,7 @@ void dc_send_locations_to_chat(dc_context_t* context, uint32_t chat_id,
 
 	if (seconds) {
 		schedule_MAYBE_SEND_LOCATIONS(context, 0);
+		dc_job_add(context, DC_JOB_MAYBE_SEND_LOC_ENDED, chat_id, NULL, seconds+1);
 	}
 
 cleanup:

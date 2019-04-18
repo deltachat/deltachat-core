@@ -152,6 +152,7 @@ uint32_t        dc_save_locations         (dc_context_t*, uint32_t chat_id, uint
 dc_kml_t*       dc_kml_parse              (dc_context_t*, const char* content, size_t content_bytes);
 void            dc_kml_unref              (dc_kml_t*);
 void            dc_job_do_DC_JOB_MAYBE_SEND_LOCATIONS (dc_context_t*, dc_job_t*);
+void            dc_job_do_DC_JOB_MAYBE_SEND_LOC_ENDED (dc_context_t*, dc_job_t*);
 
 
 // backups
