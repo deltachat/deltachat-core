@@ -388,6 +388,25 @@ int dc_chat_is_self_talk(const dc_chat_t* chat)
 }
 
 
+/**
+ * Check if locations are sent to the chat
+ * at the time the object was created using dc_get_chat().
+ * To check if locations are sent to _any_ chat,
+ * use dc_is_sending_locations_to_chat().
+ *
+ * @memberof dc_chat_t
+ * @param chat The chat object.
+ * @return 1=locations are sent to chat, 0=no locations are sent to chat
+ */
+int dc_chat_is_sending_locations(const dc_chat_t* chat)
+{
+	if (chat==NULL || chat->magic!=DC_CHAT_MAGIC) {
+		return 0;
+	}
+	return chat->is_sending_locations;
+}
+
+
 int dc_chat_update_param(dc_chat_t* chat)
 {
 	int success = 0;
@@ -411,7 +430,7 @@ static int set_from_stmt(dc_chat_t* chat, sqlite3_stmt* row)
 
 	dc_chat_empty(chat);
 
-	#define CHAT_FIELDS " c.id,c.type,c.name, c.grpid,c.param,c.archived, c.blocked, c.gossiped_timestamp "
+	#define CHAT_FIELDS " c.id,c.type,c.name, c.grpid,c.param,c.archived, c.blocked, c.gossiped_timestamp, c.locations_send_until "
 	chat->id              =                    sqlite3_column_int  (row, row_offset++); /* the columns are defined in CHAT_FIELDS */
 	chat->type            =                    sqlite3_column_int  (row, row_offset++);
 	chat->name            =   dc_strdup((char*)sqlite3_column_text (row, row_offset++));
@@ -420,6 +439,7 @@ static int set_from_stmt(dc_chat_t* chat, sqlite3_stmt* row)
 	chat->archived        =                    sqlite3_column_int  (row, row_offset++);
 	chat->blocked         =                    sqlite3_column_int  (row, row_offset++);
 	chat->gossiped_timestamp =                 sqlite3_column_int64(row, row_offset++);
+	chat->is_sending_locations =              (sqlite3_column_int64(row, row_offset++)>time(NULL));
 
 	/* correct the title of some special groups */
 	if (chat->id==DC_CHAT_ID_DEADDROP) {

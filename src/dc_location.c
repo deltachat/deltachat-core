@@ -549,6 +549,8 @@ cleanup:
 /**
  * Check if location streaming is enabled.
  * Location stream can be enabled or disabled using dc_send_locations_to_chat().
+ * If you have already a dc_chat_t object,
+ * dc_chat_is_sending_locations() may be more handy.
  *
  * @memberof dc_context_t
  * @param context The context object.

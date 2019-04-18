@@ -484,6 +484,7 @@ int             dc_chat_get_archived         (const dc_chat_t*);
 int             dc_chat_is_unpromoted        (const dc_chat_t*);
 int             dc_chat_is_self_talk         (const dc_chat_t*);
 int             dc_chat_is_verified          (const dc_chat_t*);
+int             dc_chat_is_sending_locations (const dc_chat_t*);
 
 
 /**
