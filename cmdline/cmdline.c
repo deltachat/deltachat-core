@@ -11,6 +11,10 @@ your library */
 #include "../src/dc_sqlite3.h"
 
 
+#define UTF8_LOCK          "\xF0\x9F\x94\x92"
+#define UTF8_BLACK_STAR    "\xE2\x98\x85"
+#define UTF8_ROUND_PUSHPIN "\xF0\x9F\x93\x8D"
+
 
 /*
  * Reset database tables. This function is called from Core cmdline.
@@ -263,11 +267,11 @@ static void log_msg(dc_context_t* context, const char* prefix, dc_msg_t* msg)
 		dc_log_info(context, 0, "%s#%i%s: %s (Contact#%i): %s %s%s%s%s [%s]",
 			prefix,
 			(int)dc_msg_get_id(msg),
-			dc_msg_get_showpadlock(msg)? "\xF0\x9F\x94\x92" : "",
+			dc_msg_get_showpadlock(msg)? UTF8_LOCK : "",
 			contact_name,
 			contact_id,
 			msgtext,
-			dc_msg_is_starred(msg)? " \xE2\x98\x85" : "",
+			dc_msg_is_starred(msg)? " " UTF8_BLACK_STAR : "",
 			dc_msg_get_from_id(msg)==1? "" : (dc_msg_get_state(msg)==DC_STATE_IN_SEEN? "[SEEN]" : (dc_msg_get_state(msg)==DC_STATE_IN_NOTICED? "[NOTICED]":"[FRESH]")),
 			dc_msg_is_info(msg)? "[INFO]" : "",
 			statestr,
@@ -710,11 +714,12 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 						char* timestr = dc_timestamp_to_str(dc_lot_get_timestamp(lot));
 						char* text1 = dc_lot_get_text1(lot);
 						char* text2 = dc_lot_get_text2(lot);
-							dc_log_info(context, 0, "%s%s%s%s [%s]",
+							dc_log_info(context, 0, "%s%s%s%s [%s]%s",
 								text1? text1 : "",
 								text1? ": " : "",
 								text2? text2 : "",
-								statestr, timestr
+								statestr, timestr,
+								dc_chat_is_sending_locations(chat)? UTF8_ROUND_PUSHPIN : ""
 								);
 						free(text1);
 						free(text2);
@@ -754,7 +759,10 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 			dc_array_t* msglist = dc_get_chat_msgs(context, dc_chat_get_id(sel_chat), DC_GCM_ADDDAYMARKER, 0);
 			char* temp2 = dc_chat_get_subtitle(sel_chat);
 			char* temp_name = dc_chat_get_name(sel_chat);
-				dc_log_info(context, 0, "%s#%i: %s [%s]", chat_prefix(sel_chat), dc_chat_get_id(sel_chat), temp_name, temp2);
+				dc_log_info(context, 0, "%s#%i: %s [%s]%s",
+					chat_prefix(sel_chat), dc_chat_get_id(sel_chat),
+					temp_name, temp2,
+					dc_chat_is_sending_locations(sel_chat)? UTF8_ROUND_PUSHPIN : "");
 			free(temp_name);
 			free(temp2);
 			if (msglist) {
