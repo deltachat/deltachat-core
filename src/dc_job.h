@@ -22,6 +22,7 @@ extern "C" {
 
 // jobs in the SMTP-thread, range from DC_SMTP_THREAD..DC_SMTP_THREAD+999
 #define DC_JOB_MAYBE_SEND_LOCATIONS  5005    // low priority ...
+#define DC_JOB_MAYBE_SEND_LOC_ENDED  5007
 #define DC_JOB_SEND_MDN_OLD          5010
 #define DC_JOB_SEND_MDN              5011
 #define DC_JOB_SEND_MSG_TO_SMTP_OLD  5900

@@ -25,6 +25,7 @@ struct _dc_chat
 	int             blocked;          /**< One of DC_CHAT_*_BLOCKED */
 	dc_param_t*     param;            /**< Additional parameters for a chat. Should not be used directly. */
 	time_t          gossiped_timestamp;
+	int             is_sending_locations;
 };
 
 int             dc_chat_load_from_db               (dc_chat_t*, uint32_t id);
