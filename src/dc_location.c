@@ -527,13 +527,15 @@ void dc_send_locations_to_chat(dc_context_t* context, uint32_t chat_id,
 		msg = dc_msg_new(context, DC_MSG_TEXT);
 		msg->text = dc_stock_system_msg(context, DC_STR_MSGLOCATIONENABLED, NULL, NULL, 0);
 		dc_param_set_int(msg->param, DC_PARAM_CMD, DC_CMD_LOCATION_STREAMING_ENABLED);
-		msg->id = dc_send_msg(context, chat_id, msg);
-		context->cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg->id);
+		dc_send_msg(context, chat_id, msg);
 	}
 	else if(!seconds && is_sending_locations_before) {
 		stock_str = dc_stock_system_msg(context, DC_STR_MSGLOCATIONDISABLED, NULL, NULL, 0);
 		dc_add_device_msg(context, chat_id, stock_str);
 	}
+
+	// update eg. the "location-sending"-icon
+	context->cb(context, DC_EVENT_CHAT_MODIFIED, chat_id, 0);
 
 	if (seconds) {
 		schedule_MAYBE_SEND_LOCATIONS(context, 0);
