@@ -922,7 +922,7 @@ static int export_backup2(dc_context_t* context, const char* dir)
 		char buffer[256];
 		timeinfo = localtime(&backup_start);
 		strftime(buffer, 256, DC_BAK_PREFIX "-%Y-%m-%d." DC_BAK_SUFFIX, timeinfo);
-		if ((dest_pathNfilename=dc_get_fine_pathNfilename(context, "./", buffer))==NULL) {
+		if ((dest_pathNfilename=dc_get_fine_pathNfilename(context, dir, buffer))==NULL) {
 			dc_log_error(context, 0, "Cannot get backup file name.");
 			goto cleanup;
 		}
