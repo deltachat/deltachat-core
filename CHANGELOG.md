@@ -8,6 +8,26 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes in the single apps,
 see the changelogs linked eg. from https://delta.chat/en/download
 
+## v0.42.0
+
+* add location-streaming function and events:
+  `dc_send_locations_to_chat()`, `dc_set_location()`, `dc_get_locations()`,
+  `dc_is_sending_locations_to_chat()`, `dc_chat_is_sending_locations()`,
+  `dc_array_get_latitude|longitude|accuracy|timestamp|marker()`,
+  `dc_array_get_chat|contact|msg_id()`, `DC_EVENT_LOCATION_CHANGED`
+* add `dc_prepare_msg()` and the state `DC_STATE_OUT_PREPARING`
+  that may be used to prepare large files before sending
+* new string constants `DC_STR_MSGLOCATIONENABLED|MSGLOCATIONDISABLED|LOCATION`
+* trigger `DC_EVENT_IMEX_PROGRESS|FILE_WRITTEN` more carefully
+* implement early-mime-creation to streamline and speed up message sending
+* RPGP improvements
+* handle image/webp and text/vcard files
+* bug fixes
+
+The changes have been done by Björn Petersen, cyBerta, Daniel Böhrs,
+Floris Bruynooghe, Friedel Ziegelmayer, Holger Krekel, Jikstra,
+Nico de Haen and Viktor Pracht
+
 ## v0.41.0
 
 * optionally support RPGP by the global define `DC_USE_RPGP`
