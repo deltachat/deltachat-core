@@ -264,10 +264,11 @@ static void log_msg(dc_context_t* context, const char* prefix, dc_msg_t* msg)
 
 	char* temp2 = dc_timestamp_to_str(dc_msg_get_timestamp(msg));
 	char* msgtext = dc_msg_get_text(msg);
-		dc_log_info(context, 0, "%s#%i%s: %s (Contact#%i): %s %s%s%s%s [%s]",
+		dc_log_info(context, 0, "%s#%i%s%s: %s (Contact#%i): %s %s%s%s%s [%s]",
 			prefix,
 			(int)dc_msg_get_id(msg),
 			dc_msg_get_showpadlock(msg)? UTF8_LOCK : "",
+			dc_msg_has_location(msg)? UTF8_ROUND_PUSHPIN : "",
 			contact_name,
 			contact_id,
 			msgtext,

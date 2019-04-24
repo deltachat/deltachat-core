@@ -314,6 +314,16 @@ int dc_msg_has_deviating_timestamp(const dc_msg_t* msg)
 }
 
 
+int dc_msg_has_location(const dc_msg_t* msg)
+{
+	if (msg==NULL || msg->magic!=DC_MSG_MAGIC) {
+		return 0;
+	}
+
+	return (msg->location_id!=0);
+}
+
+
 /**
  * Get the text of the message.
  * If there is no text associated with the message, an empty string is returned.
@@ -813,7 +823,7 @@ cleanup:
 
 #define DC_MSG_FIELDS " m.id,rfc724_mid,m.mime_in_reply_to,m.server_folder,m.server_uid,m.move_state,m.chat_id, " \
                       " m.from_id,m.to_id,m.timestamp,m.timestamp_sent,m.timestamp_rcvd, m.type,m.state,m.msgrmsg,m.txt, " \
-                      " m.param,m.starred,m.hidden,c.blocked "
+                      " m.param,m.starred,m.hidden,m.location_id, c.blocked "
 
 
 static int dc_msg_set_from_stmt(dc_msg_t* msg, sqlite3_stmt* row, int row_offset) /* field order must be DC_MSG_FIELDS */
@@ -842,6 +852,7 @@ static int dc_msg_set_from_stmt(dc_msg_t* msg, sqlite3_stmt* row, int row_offset
 	dc_param_set_packed( msg->param, (char*)sqlite3_column_text (row, row_offset++));
 	msg->starred      =                     sqlite3_column_int  (row, row_offset++);
 	msg->hidden       =                     sqlite3_column_int  (row, row_offset++);
+	msg->location_id  =                     sqlite3_column_int  (row, row_offset++);
 	msg->chat_blocked =                     sqlite3_column_int  (row, row_offset++);
 
 	if (msg->chat_blocked==2) {
