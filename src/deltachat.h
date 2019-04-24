@@ -538,6 +538,7 @@ int             dc_msg_get_showpadlock        (const dc_msg_t*);
 dc_lot_t*       dc_msg_get_summary            (const dc_msg_t*, const dc_chat_t*);
 char*           dc_msg_get_summarytext        (const dc_msg_t*, int approx_characters);
 int             dc_msg_has_deviating_timestamp(const dc_msg_t*);
+int             dc_msg_has_location           (const dc_msg_t*);
 int             dc_msg_is_sent                (const dc_msg_t*);
 int             dc_msg_is_starred             (const dc_msg_t*);
 int             dc_msg_is_forwarded           (const dc_msg_t*);
