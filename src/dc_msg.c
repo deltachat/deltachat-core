@@ -1580,6 +1580,10 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 	dc_strbuilder_catf(&ret, "State: %s", p);
 	free(p);
 
+	if (dc_msg_has_location(msg)) {
+		dc_strbuilder_cat(&ret, ", Location sent");
+	}
+
 	p = NULL;
 	int e2ee_errors;
 	if ((e2ee_errors=dc_param_get_int(msg->param, DC_PARAM_ERRONEOUS_E2EE, 0))) {
