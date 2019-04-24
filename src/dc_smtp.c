@@ -208,6 +208,15 @@ int dc_smtp_connect(dc_smtp_t* smtp, const dc_loginparam_t* lp)
 				}
 				r = mailesmtp_auth_sasl(smtp->etpan, "PLAIN", hostname, NULL, NULL, NULL, lp->send_user, lp->send_pw, NULL);
 			}
+
+			/*
+			* There is a quirk with *some* Mailservers configuration in which PLAIN auth will not work if not 
+			* properly announced by the server, but it will happily proceed if we assume it is allowed.
+			*/
+			if (r == MAILSMTP_NO_ERROR) {
+				dc_log_info(smtp->context, 0, "SMTP-Login: Trying AUTH_PLAIN before giving up \"%s\"...", lp->send_user);
+				r = mailsmtp_auth_type(smtp->etpan, lp->send_user, lp->send_pw, MAILSMTP_AUTH_PLAIN);
+			}
 		}
 
 		if (r != MAILSMTP_NO_ERROR)
