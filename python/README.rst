@@ -46,7 +46,7 @@ Installing bindings from source
 If you can't use "binary" method above then you will need
 to `install the delta-core C-library <https://github.com/deltachat/deltachat-core/blob/master/README.md>`_ and then invoke installation of the source bindings::
 
-    pip install --no-binary deltachat
+    pip install --no-binary :all: deltachat
 
 .. note::
 
