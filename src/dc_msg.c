@@ -1177,7 +1177,7 @@ void dc_msg_set_duration(dc_msg_t* msg, int duration)
  * contact_id set to DC_CONTACT_ID_SELF.
  *
  * @memberof dc_msg_t
- * @param context The message object.
+ * @param msg The message object.
  * @param latitude North-south position of the location.
  * @param longitude East-west position of the location.
  * @return None.
