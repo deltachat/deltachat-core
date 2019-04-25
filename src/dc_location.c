@@ -361,7 +361,8 @@ void dc_kml_unref(dc_kml_t* kml)
 
 uint32_t dc_save_locations(dc_context_t* context,
                            uint32_t chat_id, uint32_t contact_id,
-                           const dc_array_t* locations)
+                           const dc_array_t* locations,
+                           int independent)
 {
 	sqlite3_stmt* stmt_test = NULL;
 	sqlite3_stmt* stmt_insert = NULL;
@@ -378,8 +379,8 @@ uint32_t dc_save_locations(dc_context_t* context,
 
 	stmt_insert = dc_sqlite3_prepare(context->sql,
 		"INSERT INTO locations "
-		" (timestamp, from_id, chat_id, latitude, longitude, accuracy)"
-		" VALUES (?,?,?,?,?,?);");
+		" (timestamp,from_id,chat_id, latitude,longitude,accuracy, independent)"
+		" VALUES (?,?,?, ?,?,?, ?);");
 
 	for (int i=0; i<dc_array_get_cnt(locations); i++)
 	{
@@ -388,7 +389,7 @@ uint32_t dc_save_locations(dc_context_t* context,
 		sqlite3_reset     (stmt_test);
 		sqlite3_bind_int64(stmt_test, 1, location->timestamp);
 		sqlite3_bind_int  (stmt_test, 2, contact_id);
-		if (sqlite3_step(stmt_test)!=SQLITE_ROW)
+		if (independent || sqlite3_step(stmt_test)!=SQLITE_ROW)
 		{
 			sqlite3_reset      (stmt_insert);
 			sqlite3_bind_int64 (stmt_insert, 1, location->timestamp);
@@ -397,6 +398,7 @@ uint32_t dc_save_locations(dc_context_t* context,
 			sqlite3_bind_double(stmt_insert, 4, location->latitude);
 			sqlite3_bind_double(stmt_insert, 5, location->longitude);
 			sqlite3_bind_double(stmt_insert, 6, location->accuracy);
+			sqlite3_bind_double(stmt_insert, 7, independent);
 			sqlite3_step(stmt_insert);
 		}
 

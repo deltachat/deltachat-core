@@ -64,7 +64,8 @@ struct _dc_mimeparser
 
 	int                    is_system_message;
 
-	struct _dc_kml*        kml;
+	struct _dc_kml*        location_kml;
+	struct _dc_kml*        message_kml;
 };
 
 

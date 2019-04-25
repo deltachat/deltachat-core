@@ -1423,7 +1423,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 					continue;
 				}
 
-				if (mime_parser->kml && icnt==1 && part->msg
+				if (mime_parser->location_kml && icnt==1 && part->msg
 				 && (strcmp(part->msg, "-location-")==0 || part->msg[0]==0)) {
 					hidden = 1;
 					if (state==DC_STATE_IN_FRESH) {
@@ -1600,26 +1600,47 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 
 		}
 
-		if (mime_parser->kml && chat_id > DC_CHAT_ID_LAST_SPECIAL)
 		{
 			/******************************************************************
 			 * save locations
 			 *****************************************************************/
 
-			dc_contact_t* contact = dc_get_contact(context, from_id);
-			if (mime_parser->kml->addr
-			 && contact && contact->addr
-			 && strcasecmp(contact->addr, mime_parser->kml->addr)==0)
+			int location_id_written = 0;
+			int send_event = 0;
+
+			if (mime_parser->message_kml && chat_id > DC_CHAT_ID_LAST_SPECIAL)
 			{
 				uint32_t newest_location_id = dc_save_locations(context,
-								chat_id, from_id, mime_parser->kml->locations);
+								chat_id, from_id, mime_parser->message_kml->locations, 1);
 				if (newest_location_id && !hidden) {
 					dc_set_msg_location_id(context, insert_msg_id, newest_location_id);
+					location_id_written = 1;
+					send_event = 1;
 				}
+			}
+
+			if (mime_parser->location_kml && chat_id > DC_CHAT_ID_LAST_SPECIAL)
+			{
+				dc_contact_t* contact = dc_get_contact(context, from_id);
+				if (mime_parser->location_kml->addr
+				 && contact && contact->addr
+				 && strcasecmp(contact->addr, mime_parser->location_kml->addr)==0)
+				{
+					uint32_t newest_location_id = dc_save_locations(context,
+									chat_id, from_id, mime_parser->location_kml->locations, 0);
+					if (newest_location_id && !hidden && !location_id_written) {
+						dc_set_msg_location_id(context, insert_msg_id, newest_location_id);
+					}
+					send_event = 1;
+				}
+				dc_contact_unref(contact);
+			}
+
+			if (send_event) {
 				context->cb(context, DC_EVENT_LOCATION_CHANGED, from_id, 0);
 			}
-			dc_contact_unref(contact);
 		}
+
 
 		if (add_delete_job && carray_count(created_db_entries)>=2) {
 			dc_job_add(context, DC_JOB_DELETE_MSG_ON_IMAP, (int)(uintptr_t)carray_get(created_db_entries, 1), NULL, 0);
