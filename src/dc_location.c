@@ -843,7 +843,7 @@ dc_array_t* dc_get_locations(dc_context_t* context,
 			" LEFT JOIN msgs m ON l.id=m.location_id "
 			" WHERE (? OR l.chat_id=?) "
 			"   AND (? OR l.from_id=?) "
-			"   AND l.timestamp>=? AND l.timestamp<=? "
+			"   AND (l.independent=1 OR (l.timestamp>=? AND l.timestamp<=?)) "
 			" ORDER BY l.timestamp DESC, l.id DESC, m.id DESC;");
 	sqlite3_bind_int(stmt, 1, chat_id==0? 1 : 0);
 	sqlite3_bind_int(stmt, 2, chat_id);
