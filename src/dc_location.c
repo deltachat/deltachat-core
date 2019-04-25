@@ -128,8 +128,9 @@ cleanup:
 }
 
 
-char* dc_get_message_kml(dc_context_t* context, double latitude, double longitude)
+char* dc_get_message_kml(dc_context_t* context, time_t timestamp, double latitude, double longitude)
 {
+	char*  timestamp_str = NULL;
 	char*  latitude_str = NULL;
 	char*  longitude_str = NULL;
 	char*  ret = NULL;
@@ -138,6 +139,7 @@ char* dc_get_message_kml(dc_context_t* context, double latitude, double longitud
 		goto cleanup;
 	}
 
+	timestamp_str = get_kml_timestamp(timestamp);
 	latitude_str  = dc_ftoa(latitude);
 	longitude_str = dc_ftoa(latitude);
 
@@ -146,16 +148,19 @@ char* dc_get_message_kml(dc_context_t* context, double latitude, double longitud
 		"<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n"
 			"<Document>\n"
 				"<Placemark>"
+					"<Timestamp><when>%s</when></Timestamp>"
 					"<Point><coordinates>%s,%s</coordinates></Point>"
 				"</Placemark>\n"
 			"</Document>\n"
 		"</kml>",
+		timestamp_str,
 		longitude_str, // reverse order!
 		latitude_str);
 
 cleanup:
 	free(latitude_str);
 	free(longitude_str);
+	free(timestamp_str);
 	return ret;
 }
 

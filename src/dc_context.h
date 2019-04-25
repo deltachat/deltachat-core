@@ -147,7 +147,7 @@ typedef struct _dc_kml
 } dc_kml_t;
 
 char*           dc_get_location_kml       (dc_context_t*, uint32_t chat_id, uint32_t* last_added_location_id);
-char*           dc_get_message_kml        (dc_context_t*, double latitude, double longitude);
+char*           dc_get_message_kml        (dc_context_t*, time_t timestamp, double latitude, double longitude);
 void            dc_set_kml_sent_timestamp (dc_context_t*, uint32_t chat_id, time_t);
 void            dc_set_msg_location_id    (dc_context_t*, uint32_t msg_id, uint32_t location_id);
 uint32_t        dc_save_locations         (dc_context_t*, uint32_t chat_id, uint32_t contact_id, const dc_array_t*, int independent);
