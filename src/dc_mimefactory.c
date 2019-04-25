@@ -730,7 +730,10 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 
 				mailmime_smart_add_part(message, kml_mime_part);
 				parts++;
-				factory->out_last_added_location_id = last_added_location_id;
+
+				if (!dc_param_exists(msg->param, DC_PARAM_SET_LATITUDE)) { // otherwise, the independent location is already filed
+					factory->out_last_added_location_id = last_added_location_id;
+				}
 			}
 		}
 	}
