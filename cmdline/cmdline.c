@@ -449,6 +449,7 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 				"send <text>\n"
 				"sendimage <file> [<text>]\n"
 				"sendfile <file>\n"
+				"sendpoi <lat> <lang> <text>\n"
 				"draft [<text>]\n"
 				"listmedia\n"
 				"archive <chat-id>\n"
@@ -1029,6 +1030,31 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 			}
 			else {
 				ret = dc_strdup("ERROR: No file given.");
+			}
+		}
+		else {
+			ret = dc_strdup("No chat selected.");
+		}
+	}
+	else if (strcmp(cmd, "sendpoi")==0)
+	{
+		if (sel_chat) {
+			char* arg2 = arg1? strchr(arg1, ' ') : NULL;
+			if (arg2) { *arg2 = 0; arg2++; }
+
+			char* arg3 = arg2? strchr(arg2, ' ') : NULL;
+			if (arg3) { *arg3 = 0; arg3++; }
+
+			if (arg1 && arg2 && arg3) {
+				dc_msg_t* msg = dc_msg_new(context,DC_MSG_TEXT);
+				dc_msg_set_text(msg, arg3);
+				dc_msg_set_location(msg, dc_atof(arg1), dc_atof(arg2), 2.0);
+				dc_send_msg(context, dc_chat_get_id(sel_chat), msg);
+				dc_msg_unref(msg);
+				ret = COMMAND_SUCCEEDED;
+			}
+			else {
+				ret = dc_strdup("ERROR: Usage: sendpoi <lat> <lng> <text>");
 			}
 		}
 		else {

@@ -304,3 +304,27 @@ void dc_param_set_int(dc_param_t* param, int key, int32_t value)
     dc_param_set(param, key, value_str);
     free(value_str);
 }
+
+
+/**
+ * Set parameter to a float.
+ *
+ * @memberof dc_param_t
+ * @param param Parameter object to modify.
+ * @param key Key of the parameter to modify, one of the DC_PARAM_* constants.
+ * @param value Value to store for key.
+ * @return None.
+ */
+void dc_param_set_float(dc_param_t* param, int key, double value)
+{
+	if (param==NULL || key==0) {
+		return;
+	}
+
+	char* value_str = dc_ftoa(value);
+	if (value_str==NULL) {
+		return;
+	}
+	dc_param_set(param, key, value_str);
+	free(value_str);
+}
