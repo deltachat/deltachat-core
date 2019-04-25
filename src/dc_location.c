@@ -141,7 +141,7 @@ char* dc_get_message_kml(dc_context_t* context, time_t timestamp, double latitud
 
 	timestamp_str = get_kml_timestamp(timestamp);
 	latitude_str  = dc_ftoa(latitude);
-	longitude_str = dc_ftoa(latitude);
+	longitude_str = dc_ftoa(longitude);
 
 	ret = dc_mprintf(
 		"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
@@ -849,7 +849,7 @@ dc_array_t* dc_get_locations(dc_context_t* context,
 			" WHERE (? OR l.chat_id=?) "
 			"   AND (? OR l.from_id=?) "
 			"   AND (l.independent=1 OR (l.timestamp>=? AND l.timestamp<=?)) "
-			" ORDER BY l.timestamp DESC, l.id DESC, m.id DESC;");
+			" ORDER BY l.independent, l.timestamp DESC, l.id DESC, m.id DESC;");
 	sqlite3_bind_int(stmt, 1, chat_id==0? 1 : 0);
 	sqlite3_bind_int(stmt, 2, chat_id);
 	sqlite3_bind_int(stmt, 3, contact_id==0? 1 : 0);
