@@ -220,6 +220,31 @@ int32_t dc_param_get_int(const dc_param_t* param, int key, int32_t def)
 
 
 /**
+ * Get value of a parameter.
+ *
+ * @memberof dc_param_t
+ * @param param Parameter object to query.
+ * @param key Key of the parameter to get, one of the DC_PARAM_* constants.
+ * @param def Value to return if the parameter is not set.
+ * @return The stored value or the default value.
+ */
+double dc_param_get_float(const dc_param_t* param, int key, double def)
+{
+	if (param==NULL || key==0) {
+		return def;
+	}
+
+	char* str = dc_param_get(param, key, NULL);
+	if (str==NULL) {
+		return def;
+	}
+	double ret = dc_atof(str);
+	free(str);
+	return ret;
+}
+
+
+/**
  * Set parameter to a string.
  *
  * @memberof dc_param_t
