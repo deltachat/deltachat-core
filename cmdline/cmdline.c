@@ -1049,7 +1049,7 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 			if (arg1 && arg2 && arg3) {
 				dc_msg_t* msg = dc_msg_new(context,DC_MSG_TEXT);
 				dc_msg_set_text(msg, arg3);
-				dc_msg_set_location(msg, dc_atof(arg1), dc_atof(arg2), 2.0);
+				dc_msg_set_location(msg, dc_atof(arg1), dc_atof(arg2));
 				dc_send_msg(context, dc_chat_get_id(sel_chat), msg);
 				dc_msg_unref(msg);
 				ret = COMMAND_SUCCEEDED;

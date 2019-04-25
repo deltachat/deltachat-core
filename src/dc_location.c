@@ -128,11 +128,10 @@ cleanup:
 }
 
 
-char* dc_get_message_kml(dc_context_t* context, double latitude, double longitude, double accuracy)
+char* dc_get_message_kml(dc_context_t* context, double latitude, double longitude)
 {
 	char*  latitude_str = NULL;
 	char*  longitude_str = NULL;
-	char*  accuracy_str = NULL;
 	char*  ret = NULL;
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
@@ -141,25 +140,22 @@ char* dc_get_message_kml(dc_context_t* context, double latitude, double longitud
 
 	latitude_str  = dc_ftoa(latitude);
 	longitude_str = dc_ftoa(latitude);
-	accuracy_str  = dc_ftoa(accuracy);
 
 	ret = dc_mprintf(
 		"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 		"<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n"
 			"<Document>\n"
 				"<Placemark>"
-					"<Point><coordinates accuracy=\"%s\">%s,%s</coordinates></Point>"
+					"<Point><coordinates>%s,%s</coordinates></Point>"
 				"</Placemark>\n"
 			"</Document>\n"
 		"</kml>",
-		accuracy_str,
 		longitude_str, // reverse order!
 		latitude_str);
 
 cleanup:
 	free(latitude_str);
 	free(longitude_str);
-	free(accuracy_str);
 	return ret;
 }
 

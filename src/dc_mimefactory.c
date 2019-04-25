@@ -703,8 +703,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 		if (dc_param_exists(msg->param, DC_PARAM_SET_LATITUDE)) {
 			double latitude  = dc_param_get_float(msg->param, DC_PARAM_SET_LATITUDE, 0.0);
 			double longitude = dc_param_get_float(msg->param, DC_PARAM_SET_LONGITUDE, 0.0);
-			double accuracy  = dc_param_get_float(msg->param, DC_PARAM_SET_ACCURACY, 0.0);
-			char* kml_file = dc_get_message_kml(msg->context, latitude, longitude, accuracy);
+			char* kml_file = dc_get_message_kml(msg->context, latitude, longitude);
 			if (kml_file) {
 				struct mailmime_content* content_type = mailmime_content_new_with_str("application/vnd.google-earth.kml+xml");
 				struct mailmime_fields* mime_fields = mailmime_fields_new_filename(MAILMIME_DISPOSITION_TYPE_ATTACHMENT,

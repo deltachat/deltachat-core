@@ -2396,14 +2396,13 @@ static uint32_t prepare_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc
 	if (dc_param_exists(msg->param, DC_PARAM_SET_LATITUDE)) {
 		stmt = dc_sqlite3_prepare(context->sql,
 			"INSERT INTO locations "
-			" (timestamp, from_id, chat_id, latitude, longitude, accuracy, independent)"
+			" (timestamp, from_id, chat_id, latitude, longitude, independent)"
 			" VALUES (?,?,?,?,?,?,1);");
 		sqlite3_bind_int64 (stmt, 1, timestamp);
 		sqlite3_bind_int   (stmt, 2, DC_CONTACT_ID_SELF);
 		sqlite3_bind_int   (stmt, 3, chat->id);
 		sqlite3_bind_double(stmt, 4, dc_param_get_float(msg->param, DC_PARAM_SET_LATITUDE, 0.0));
 		sqlite3_bind_double(stmt, 5, dc_param_get_float(msg->param, DC_PARAM_SET_LONGITUDE, 0.0));
-		sqlite3_bind_double(stmt, 6, dc_param_get_float(msg->param, DC_PARAM_SET_ACCURACY, 0.0));
 		sqlite3_step(stmt);
 		sqlite3_finalize(stmt);
 		stmt = NULL;

@@ -1180,11 +1180,9 @@ void dc_msg_set_duration(dc_msg_t* msg, int duration)
  * @param context The message object.
  * @param latitude North-south position of the location.
  * @param longitude East-west position of the location.
- * @param accuracy Estimated accuracy of the location, radial, in meters.
- *     Set to 0.0 if the accuracy is not known.
  * @return None.
  */
-void dc_msg_set_location(dc_msg_t* msg, double latitude, double longitude, double accuracy)
+void dc_msg_set_location(dc_msg_t* msg, double latitude, double longitude)
 {
 	if (msg==NULL || msg->magic!=DC_MSG_MAGIC || (latitude==0.0 && longitude==0.0)) {
 		return;
@@ -1192,7 +1190,6 @@ void dc_msg_set_location(dc_msg_t* msg, double latitude, double longitude, doubl
 
 	dc_param_set_float(msg->param, DC_PARAM_SET_LATITUDE,  latitude);
 	dc_param_set_float(msg->param, DC_PARAM_SET_LONGITUDE, longitude);
-	dc_param_set_float(msg->param, DC_PARAM_SET_ACCURACY,  accuracy);
 }
 
 

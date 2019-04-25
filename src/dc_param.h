@@ -45,7 +45,6 @@ struct _dc_param
 #define DC_PARAM_PREP_FORWARDS     'P'  /* for msgs in PREPARING: space-separated list of message IDs of forwarded copies */
 #define DC_PARAM_SET_LATITUDE      'l'  /* for msgs */
 #define DC_PARAM_SET_LONGITUDE     'n'  /* for msgs */
-#define DC_PARAM_SET_ACCURACY      'y'  /* for msgs */
 
 #define DC_PARAM_SERVER_FOLDER     'Z'  /* for jobs */
 #define DC_PARAM_SERVER_UID        'z'  /* for jobs */

@@ -551,7 +551,7 @@ void            dc_msg_set_text               (dc_msg_t*, const char* text);
 void            dc_msg_set_file               (dc_msg_t*, const char* file, const char* filemime);
 void            dc_msg_set_dimension          (dc_msg_t*, int width, int height);
 void            dc_msg_set_duration           (dc_msg_t*, int duration);
-void            dc_msg_set_location           (dc_msg_t*, double latitude, double longitude, double accuracy);
+void            dc_msg_set_location           (dc_msg_t*, double latitude, double longitude);
 void            dc_msg_latefiling_mediasize   (dc_msg_t*, int width, int height, int duration);
 
 
