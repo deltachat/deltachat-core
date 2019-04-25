@@ -394,7 +394,7 @@ uint32_t         dc_array_get_chat_id        (const dc_array_t*, size_t index);
 uint32_t         dc_array_get_contact_id     (const dc_array_t*, size_t index);
 uint32_t         dc_array_get_msg_id         (const dc_array_t*, size_t index);
 char*            dc_array_get_marker         (const dc_array_t*, size_t index);
-int              dc_array_get_independent    (const dc_array_t*, size_t index);
+int              dc_array_is_independent     (const dc_array_t*, size_t index);
 
 int              dc_array_search_id          (const dc_array_t*, uint32_t needle, size_t* indx);
 const uintptr_t* dc_array_get_raw            (const dc_array_t*);

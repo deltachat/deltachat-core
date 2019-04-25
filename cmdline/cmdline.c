@@ -935,7 +935,7 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 				dc_array_get_contact_id(loc, j),
 				dc_array_get_msg_id(loc, j),
 				marker? marker : "-",
-				dc_array_get_independent(loc, j)? " [independent]" : "");
+				dc_array_is_independent(loc, j)? " [independent]" : "");
 			free(timestr);
 			free(marker);
 		}

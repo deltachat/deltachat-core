@@ -490,7 +490,7 @@ char* dc_array_get_marker(const dc_array_t* array, size_t index)
  * @return 0=Location belongs to the track of the user,
  *     1=Location was reported independently.
  */
-int dc_array_get_independent(const dc_array_t* array, size_t index)
+int dc_array_is_independent(const dc_array_t* array, size_t index)
 {
 	if (array==NULL || array->magic!=DC_ARRAY_MAGIC || index>=array->count
 	 || array->type!=DC_ARRAY_LOCATIONS || array->array[index]==0 ) {
