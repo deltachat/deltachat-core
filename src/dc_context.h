@@ -135,6 +135,7 @@ typedef struct _dc_location
 	uint32_t msg_id;
 	uint32_t chat_id;
 	char*    marker;
+	int      independent;
 } dc_location_t;
 
 typedef struct _dc_kml

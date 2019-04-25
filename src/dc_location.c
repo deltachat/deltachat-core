@@ -71,6 +71,7 @@ char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id,
 			" WHERE from_id=? "
 			"   AND timestamp>=? "
 			"   AND (timestamp>=? OR timestamp=(SELECT MAX(timestamp) FROM locations WHERE from_id=?)) "
+			"   AND independent=0 "
 			"   GROUP BY timestamp "
 			"   ORDER BY timestamp;");
 	sqlite3_bind_int   (stmt, 1, DC_CONTACT_ID_SELF);
@@ -467,6 +468,7 @@ void dc_job_do_DC_JOB_MAYBE_SEND_LOCATIONS(dc_context_t* context, dc_job_t* job)
 					" WHERE from_id=? "
 					"   AND timestamp>=? "
 					"   AND timestamp>? "
+					"   AND independent=0 "
 					"   ORDER BY timestamp;");
 		}
 		else {
@@ -837,7 +839,7 @@ dc_array_t* dc_get_locations(dc_context_t* context,
 	}
 
 	stmt = dc_sqlite3_prepare(context->sql,
-			"SELECT l.id, l.latitude, l.longitude, l.accuracy, l.timestamp, "
+			"SELECT l.id, l.latitude, l.longitude, l.accuracy, l.timestamp, l.independent, "
 			"       m.id, l.from_id, l.chat_id, m.txt "
 			" FROM locations l "
 			" LEFT JOIN msgs m ON l.id=m.location_id "
@@ -863,11 +865,12 @@ dc_array_t* dc_get_locations(dc_context_t* context,
 		loc->longitude   = sqlite3_column_double(stmt, 2);
 		loc->accuracy    = sqlite3_column_double(stmt, 3);
 		loc->timestamp   = sqlite3_column_int64 (stmt, 4);
-		loc->msg_id      = sqlite3_column_int   (stmt, 5);
-		loc->contact_id  = sqlite3_column_int   (stmt, 6);
-		loc->chat_id     = sqlite3_column_int   (stmt, 7);
+		loc->independent = sqlite3_column_int   (stmt, 5);
+		loc->msg_id      = sqlite3_column_int   (stmt, 6);
+		loc->contact_id  = sqlite3_column_int   (stmt, 7);
+		loc->chat_id     = sqlite3_column_int   (stmt, 8);
 		if (loc->msg_id) {
-			const char* txt = (const char*)sqlite3_column_text(stmt, 8);
+			const char* txt = (const char*)sqlite3_column_text(stmt, 9);
 			if (is_marker(txt)) {
 				loc->marker = strdup(txt);
 			}

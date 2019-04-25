@@ -922,10 +922,10 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 	{
 		int contact_id = arg1? atoi(arg1) : 0;
 		dc_array_t* loc = dc_get_locations(context, dc_chat_get_id(sel_chat), contact_id, 0, 0);
-		for (int j=0; j<dc_array_get_cnt(loc); j++) {
+		for (int j=dc_array_get_cnt(loc)-1; j>=0; j--) {
 			char* timestr = dc_timestamp_to_str(dc_array_get_timestamp(loc, j));
 			char* marker = dc_array_get_marker(loc, j);
-			dc_log_info(context, 0, "Loc#%i: %s: lat=%f lng=%f acc=%f Chat#%i Contact#%i Msg#%i %s",
+			dc_log_info(context, 0, "Loc#%i: %s: lat=%f lng=%f acc=%f Chat#%i Contact#%i Msg#%i %s%s",
 				dc_array_get_id(loc, j),
 				timestr,
 				dc_array_get_latitude(loc, j),
@@ -934,7 +934,8 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 				dc_array_get_chat_id(loc, j),
 				dc_array_get_contact_id(loc, j),
 				dc_array_get_msg_id(loc, j),
-				marker? marker : "-");
+				marker? marker : "-",
+				dc_array_get_independent(loc, j)? " [independent]" : "");
 			free(timestr);
 			free(marker);
 		}
