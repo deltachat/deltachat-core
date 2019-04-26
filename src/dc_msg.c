@@ -1166,6 +1166,34 @@ void dc_msg_set_duration(dc_msg_t* msg, int duration)
 
 
 /**
+ * Set any location that should be bound to the message object.
+ * The function is useful to add a marker to the map
+ * at a position different from the self-location.
+ * You should not call this function
+ * if you want to bind the current self-location to a message;
+ * this is done by dc_set_location() and dc_send_locations_to_chat().
+ *
+ * Typically results in the event #DC_EVENT_LOCATION_CHANGED with
+ * contact_id set to DC_CONTACT_ID_SELF.
+ *
+ * @memberof dc_msg_t
+ * @param msg The message object.
+ * @param latitude North-south position of the location.
+ * @param longitude East-west position of the location.
+ * @return None.
+ */
+void dc_msg_set_location(dc_msg_t* msg, double latitude, double longitude)
+{
+	if (msg==NULL || msg->magic!=DC_MSG_MAGIC || (latitude==0.0 && longitude==0.0)) {
+		return;
+	}
+
+	dc_param_set_float(msg->param, DC_PARAM_SET_LATITUDE,  latitude);
+	dc_param_set_float(msg->param, DC_PARAM_SET_LONGITUDE, longitude);
+}
+
+
+/**
  * Late filing information to a message.
  * In contrast to the dc_msg_set_*() functions, this function really stores the information in the database.
  *

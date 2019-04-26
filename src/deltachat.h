@@ -394,6 +394,7 @@ uint32_t         dc_array_get_chat_id        (const dc_array_t*, size_t index);
 uint32_t         dc_array_get_contact_id     (const dc_array_t*, size_t index);
 uint32_t         dc_array_get_msg_id         (const dc_array_t*, size_t index);
 char*            dc_array_get_marker         (const dc_array_t*, size_t index);
+int              dc_array_is_independent     (const dc_array_t*, size_t index);
 
 int              dc_array_search_id          (const dc_array_t*, uint32_t needle, size_t* indx);
 const uintptr_t* dc_array_get_raw            (const dc_array_t*);
@@ -550,6 +551,7 @@ void            dc_msg_set_text               (dc_msg_t*, const char* text);
 void            dc_msg_set_file               (dc_msg_t*, const char* file, const char* filemime);
 void            dc_msg_set_dimension          (dc_msg_t*, int width, int height);
 void            dc_msg_set_duration           (dc_msg_t*, int duration);
+void            dc_msg_set_location           (dc_msg_t*, double latitude, double longitude);
 void            dc_msg_latefiling_mediasize   (dc_msg_t*, int width, int height, int duration);
 
 

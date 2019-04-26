@@ -2251,6 +2251,7 @@ static uint32_t prepare_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc
 	sqlite3_stmt* stmt = NULL;
 	uint32_t      msg_id = 0;
 	uint32_t      to_id = 0;
+	uint32_t      location_id = 0;
 
 	if (!DC_CHAT_TYPE_CAN_SEND(chat->type)) {
 		dc_log_error(context, 0, "Cannot send to chat type #%i.", chat->type);
@@ -2391,12 +2392,33 @@ static uint32_t prepare_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc
 		}
 	}
 
+	/* add independent location to database */
+	if (dc_param_exists(msg->param, DC_PARAM_SET_LATITUDE)) {
+		stmt = dc_sqlite3_prepare(context->sql,
+			"INSERT INTO locations "
+			" (timestamp,from_id,chat_id, latitude,longitude,independent)"
+			" VALUES (?,?,?, ?,?,1);");
+		sqlite3_bind_int64 (stmt, 1, timestamp);
+		sqlite3_bind_int   (stmt, 2, DC_CONTACT_ID_SELF);
+		sqlite3_bind_int   (stmt, 3, chat->id);
+		sqlite3_bind_double(stmt, 4, dc_param_get_float(msg->param, DC_PARAM_SET_LATITUDE, 0.0));
+		sqlite3_bind_double(stmt, 5, dc_param_get_float(msg->param, DC_PARAM_SET_LONGITUDE, 0.0));
+		sqlite3_step(stmt);
+		sqlite3_finalize(stmt);
+		stmt = NULL;
+
+		location_id = dc_sqlite3_get_rowid2(context->sql, "locations",
+				"timestamp", timestamp,
+				"from_id", DC_CONTACT_ID_SELF);
+
+	}
+
 	/* add message to the database */
 	stmt = dc_sqlite3_prepare(context->sql,
 		"INSERT INTO msgs (rfc724_mid, chat_id, from_id, to_id, timestamp,"
 		" type, state, txt, param, hidden,"
-		" mime_in_reply_to, mime_references)"
-		" VALUES (?,?,?,?,?, ?,?,?,?,?, ?,?);");
+		" mime_in_reply_to, mime_references, location_id)"
+		" VALUES (?,?,?,?,?, ?,?,?,?,?, ?,?,?);");
 	sqlite3_bind_text (stmt,  1, new_rfc724_mid, -1, SQLITE_STATIC);
 	sqlite3_bind_int  (stmt,  2, chat->id);
 	sqlite3_bind_int  (stmt,  3, DC_CONTACT_ID_SELF);
@@ -2409,6 +2431,7 @@ static uint32_t prepare_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc
 	sqlite3_bind_int  (stmt, 10, msg->hidden);
 	sqlite3_bind_text (stmt, 11, new_in_reply_to, -1, SQLITE_STATIC);
 	sqlite3_bind_text (stmt, 12, new_references, -1, SQLITE_STATIC);
+	sqlite3_bind_int  (stmt, 13, location_id);
 	if (sqlite3_step(stmt)!=SQLITE_DONE) {
 		dc_log_error(context, 0, "Cannot send message, cannot insert to database.", chat->id);
 		goto cleanup;

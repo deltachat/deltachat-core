@@ -449,6 +449,7 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 				"send <text>\n"
 				"sendimage <file> [<text>]\n"
 				"sendfile <file>\n"
+				"sendpoi <lat> <lang> <text>\n"
 				"draft [<text>]\n"
 				"listmedia\n"
 				"archive <chat-id>\n"
@@ -921,10 +922,10 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 	{
 		int contact_id = arg1? atoi(arg1) : 0;
 		dc_array_t* loc = dc_get_locations(context, dc_chat_get_id(sel_chat), contact_id, 0, 0);
-		for (int j=0; j<dc_array_get_cnt(loc); j++) {
+		for (int j=dc_array_get_cnt(loc)-1; j>=0; j--) {
 			char* timestr = dc_timestamp_to_str(dc_array_get_timestamp(loc, j));
 			char* marker = dc_array_get_marker(loc, j);
-			dc_log_info(context, 0, "Loc#%i: %s: lat=%f lng=%f acc=%f Chat#%i Contact#%i Msg#%i %s",
+			dc_log_info(context, 0, "Loc#%i: %s: lat=%f lng=%f acc=%f Chat#%i Contact#%i Msg#%i %s%s",
 				dc_array_get_id(loc, j),
 				timestr,
 				dc_array_get_latitude(loc, j),
@@ -933,7 +934,8 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 				dc_array_get_chat_id(loc, j),
 				dc_array_get_contact_id(loc, j),
 				dc_array_get_msg_id(loc, j),
-				marker? marker : "-");
+				marker? marker : "-",
+				dc_array_is_independent(loc, j)? " [independent]" : "");
 			free(timestr);
 			free(marker);
 		}
@@ -1029,6 +1031,31 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 			}
 			else {
 				ret = dc_strdup("ERROR: No file given.");
+			}
+		}
+		else {
+			ret = dc_strdup("No chat selected.");
+		}
+	}
+	else if (strcmp(cmd, "sendpoi")==0)
+	{
+		if (sel_chat) {
+			char* arg2 = arg1? strchr(arg1, ' ') : NULL;
+			if (arg2) { *arg2 = 0; arg2++; }
+
+			char* arg3 = arg2? strchr(arg2, ' ') : NULL;
+			if (arg3) { *arg3 = 0; arg3++; }
+
+			if (arg1 && arg2 && arg3) {
+				dc_msg_t* msg = dc_msg_new(context,DC_MSG_TEXT);
+				dc_msg_set_text(msg, arg3);
+				dc_msg_set_location(msg, dc_atof(arg1), dc_atof(arg2));
+				dc_send_msg(context, dc_chat_get_id(sel_chat), msg);
+				dc_msg_unref(msg);
+				ret = COMMAND_SUCCEEDED;
+			}
+			else {
+				ret = dc_strdup("ERROR: Usage: sendpoi <lat> <lng> <text>");
 			}
 		}
 		else {

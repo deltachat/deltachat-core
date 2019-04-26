@@ -71,6 +71,7 @@ char* dc_get_location_kml(dc_context_t* context, uint32_t chat_id,
 			" WHERE from_id=? "
 			"   AND timestamp>=? "
 			"   AND (timestamp>=? OR timestamp=(SELECT MAX(timestamp) FROM locations WHERE from_id=?)) "
+			"   AND independent=0 "
 			"   GROUP BY timestamp "
 			"   ORDER BY timestamp;");
 	sqlite3_bind_int   (stmt, 1, DC_CONTACT_ID_SELF);
@@ -124,6 +125,43 @@ cleanup:
 		free(ret.buf);
 	}
 	return success? ret.buf : NULL;
+}
+
+
+char* dc_get_message_kml(dc_context_t* context, time_t timestamp, double latitude, double longitude)
+{
+	char*  timestamp_str = NULL;
+	char*  latitude_str = NULL;
+	char*  longitude_str = NULL;
+	char*  ret = NULL;
+
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		goto cleanup;
+	}
+
+	timestamp_str = get_kml_timestamp(timestamp);
+	latitude_str  = dc_ftoa(latitude);
+	longitude_str = dc_ftoa(longitude);
+
+	ret = dc_mprintf(
+		"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+		"<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n"
+			"<Document>\n"
+				"<Placemark>"
+					"<Timestamp><when>%s</when></Timestamp>"
+					"<Point><coordinates>%s,%s</coordinates></Point>"
+				"</Placemark>\n"
+			"</Document>\n"
+		"</kml>",
+		timestamp_str,
+		longitude_str, // reverse order!
+		latitude_str);
+
+cleanup:
+	free(latitude_str);
+	free(longitude_str);
+	free(timestamp_str);
+	return ret;
 }
 
 
@@ -324,7 +362,8 @@ void dc_kml_unref(dc_kml_t* kml)
 
 uint32_t dc_save_locations(dc_context_t* context,
                            uint32_t chat_id, uint32_t contact_id,
-                           const dc_array_t* locations)
+                           const dc_array_t* locations,
+                           int independent)
 {
 	sqlite3_stmt* stmt_test = NULL;
 	sqlite3_stmt* stmt_insert = NULL;
@@ -341,8 +380,8 @@ uint32_t dc_save_locations(dc_context_t* context,
 
 	stmt_insert = dc_sqlite3_prepare(context->sql,
 		"INSERT INTO locations "
-		" (timestamp, from_id, chat_id, latitude, longitude, accuracy)"
-		" VALUES (?,?,?,?,?,?);");
+		" (timestamp,from_id,chat_id, latitude,longitude,accuracy, independent)"
+		" VALUES (?,?,?, ?,?,?, ?);");
 
 	for (int i=0; i<dc_array_get_cnt(locations); i++)
 	{
@@ -351,7 +390,7 @@ uint32_t dc_save_locations(dc_context_t* context,
 		sqlite3_reset     (stmt_test);
 		sqlite3_bind_int64(stmt_test, 1, location->timestamp);
 		sqlite3_bind_int  (stmt_test, 2, contact_id);
-		if (sqlite3_step(stmt_test)!=SQLITE_ROW)
+		if (independent || sqlite3_step(stmt_test)!=SQLITE_ROW)
 		{
 			sqlite3_reset      (stmt_insert);
 			sqlite3_bind_int64 (stmt_insert, 1, location->timestamp);
@@ -360,6 +399,7 @@ uint32_t dc_save_locations(dc_context_t* context,
 			sqlite3_bind_double(stmt_insert, 4, location->latitude);
 			sqlite3_bind_double(stmt_insert, 5, location->longitude);
 			sqlite3_bind_double(stmt_insert, 6, location->accuracy);
+			sqlite3_bind_double(stmt_insert, 7, independent);
 			sqlite3_step(stmt_insert);
 		}
 
@@ -431,6 +471,7 @@ void dc_job_do_DC_JOB_MAYBE_SEND_LOCATIONS(dc_context_t* context, dc_job_t* job)
 					" WHERE from_id=? "
 					"   AND timestamp>=? "
 					"   AND timestamp>? "
+					"   AND independent=0 "
 					"   ORDER BY timestamp;");
 		}
 		else {
@@ -801,14 +842,14 @@ dc_array_t* dc_get_locations(dc_context_t* context,
 	}
 
 	stmt = dc_sqlite3_prepare(context->sql,
-			"SELECT l.id, l.latitude, l.longitude, l.accuracy, l.timestamp, "
+			"SELECT l.id, l.latitude, l.longitude, l.accuracy, l.timestamp, l.independent, "
 			"       m.id, l.from_id, l.chat_id, m.txt "
 			" FROM locations l "
 			" LEFT JOIN msgs m ON l.id=m.location_id "
 			" WHERE (? OR l.chat_id=?) "
 			"   AND (? OR l.from_id=?) "
-			"   AND l.timestamp>=? AND l.timestamp<=? "
-			" ORDER BY l.timestamp DESC, l.id DESC, m.id DESC;");
+			"   AND (l.independent=1 OR (l.timestamp>=? AND l.timestamp<=?)) "
+			" ORDER BY l.independent, l.timestamp DESC, l.id DESC, m.id DESC;");
 	sqlite3_bind_int(stmt, 1, chat_id==0? 1 : 0);
 	sqlite3_bind_int(stmt, 2, chat_id);
 	sqlite3_bind_int(stmt, 3, contact_id==0? 1 : 0);
@@ -827,11 +868,12 @@ dc_array_t* dc_get_locations(dc_context_t* context,
 		loc->longitude   = sqlite3_column_double(stmt, 2);
 		loc->accuracy    = sqlite3_column_double(stmt, 3);
 		loc->timestamp   = sqlite3_column_int64 (stmt, 4);
-		loc->msg_id      = sqlite3_column_int   (stmt, 5);
-		loc->contact_id  = sqlite3_column_int   (stmt, 6);
-		loc->chat_id     = sqlite3_column_int   (stmt, 7);
+		loc->independent = sqlite3_column_int   (stmt, 5);
+		loc->msg_id      = sqlite3_column_int   (stmt, 6);
+		loc->contact_id  = sqlite3_column_int   (stmt, 7);
+		loc->chat_id     = sqlite3_column_int   (stmt, 8);
 		if (loc->msg_id) {
-			const char* txt = (const char*)sqlite3_column_text(stmt, 8);
+			const char* txt = (const char*)sqlite3_column_text(stmt, 9);
 			if (is_marker(txt)) {
 				loc->marker = strdup(txt);
 			}

@@ -941,8 +941,11 @@ void dc_mimeparser_empty(dc_mimeparser_t* mimeparser)
 
 	dc_e2ee_thanks(mimeparser->e2ee_helper);
 
-	dc_kml_unref(mimeparser->kml);
-	mimeparser->kml = NULL;
+	dc_kml_unref(mimeparser->location_kml);
+	mimeparser->location_kml = NULL;
+
+	dc_kml_unref(mimeparser->message_kml);
+	mimeparser->message_kml = NULL;
 }
 
 
@@ -1196,7 +1199,14 @@ static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* mimeparser, s
 
 				if (strncmp(desired_filename, "location", 8)==0
 				 && strncmp(desired_filename+strlen(desired_filename)-4, ".kml", 4)==0) {
-					mimeparser->kml = dc_kml_parse(mimeparser->context,
+					mimeparser->location_kml = dc_kml_parse(mimeparser->context,
+						decoded_data, decoded_data_bytes);
+					goto cleanup;
+				}
+
+				if (strncmp(desired_filename, "message", 7)==0
+				 && strncmp(desired_filename+strlen(desired_filename)-4, ".kml", 4)==0) {
+					mimeparser->message_kml = dc_kml_parse(mimeparser->context,
 						decoded_data, decoded_data_bytes);
 					goto cleanup;
 				}

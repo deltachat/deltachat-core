@@ -43,6 +43,8 @@ struct _dc_param
 #define DC_PARAM_CMD_ARG4          'H'  /* for msgs */
 #define DC_PARAM_ERROR             'L'  /* for msgs */
 #define DC_PARAM_PREP_FORWARDS     'P'  /* for msgs in PREPARING: space-separated list of message IDs of forwarded copies */
+#define DC_PARAM_SET_LATITUDE      'l'  /* for msgs */
+#define DC_PARAM_SET_LONGITUDE     'n'  /* for msgs */
 
 #define DC_PARAM_SERVER_FOLDER     'Z'  /* for jobs */
 #define DC_PARAM_SERVER_UID        'z'  /* for jobs */
@@ -63,8 +65,10 @@ struct _dc_param
 int             dc_param_exists         (dc_param_t*, int key);
 char*           dc_param_get            (const dc_param_t*, int key, const char* def); /* the value may be an empty string, "def" is returned only if the value unset.  The result must be free()'d in any case. */
 int32_t         dc_param_get_int        (const dc_param_t*, int key, int32_t def);
+double          dc_param_get_float      (const dc_param_t*, int key, double def);
 void            dc_param_set            (dc_param_t*, int key, const char* value);
 void            dc_param_set_int        (dc_param_t*, int key, int32_t value);
+void            dc_param_set_float      (dc_param_t*, int key, double value);
 
 /* library-private */
 dc_param_t*     dc_param_new            ();
