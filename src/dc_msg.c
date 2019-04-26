@@ -314,6 +314,15 @@ int dc_msg_has_deviating_timestamp(const dc_msg_t* msg)
 }
 
 
+/**
+ * Check if a message has a location bound to it.
+ * These messages are also returned by dc_get_locations()
+ * and the UI may decide to display a special icon beside such messages,
+ *
+ * @memberof dc_msg_t
+ * @param msg The message object.
+ * @return 1=Message has location bound to it, 0=No location bound to message.
+ */
 int dc_msg_has_location(const dc_msg_t* msg)
 {
 	if (msg==NULL || msg->magic!=DC_MSG_MAGIC) {
