@@ -2579,6 +2579,9 @@ uint32_t dc_prepare_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 	uint32_t msg_id = prepare_msg_common(context, chat_id, msg);
 
 	context->cb(context, DC_EVENT_MSGS_CHANGED, msg->chat_id, msg->id);
+	if (dc_param_exists(msg->param, DC_PARAM_SET_LATITUDE)) {
+		context->cb(context, DC_EVENT_LOCATION_CHANGED, DC_CONTACT_ID_SELF, 0);
+	}
 
 	return msg_id;
 }
@@ -2634,6 +2637,9 @@ uint32_t dc_send_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 	}
 
 	context->cb(context, DC_EVENT_MSGS_CHANGED, msg->chat_id, msg->id);
+	if (dc_param_exists(msg->param, DC_PARAM_SET_LATITUDE)) {
+		context->cb(context, DC_EVENT_LOCATION_CHANGED, DC_CONTACT_ID_SELF, 0);
+	}
 
 	// recursively send any forwarded copies
 	if (!chat_id) {
