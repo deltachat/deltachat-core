@@ -8,6 +8,13 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes in the single apps,
 see the changelogs linked eg. from https://delta.chat/en/download
 
+## v0.43.0
+
+* add location-streaming functions `dc_msg_set_location()`,
+  `dc_msg_has_location()`, `dc_array_is_independent()`
+
+The changes have been done by Björn Petersen, cyBerta and Nico de Haen
+
 ## v0.42.0
 
 * add location-streaming function and events:
