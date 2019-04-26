@@ -784,6 +784,11 @@ static int is_marker(const char* txt)
  * and dc_array_get_msg_id().
  * The latter returns 0 if there is no message bound to the location.
  *
+ * Note that only if dc_array_is_independent() returns 0,
+ * the location is the current or a past position of the user.
+ * If dc_array_is_independent() returns 1,
+ * the location is any location on earth that is marked by the user.
+ *
  * @memberof dc_context_t
  * @param context The context object.
  * @param chat_id Chat-id to get location information for.
@@ -800,6 +805,8 @@ static int is_marker(const char* txt)
  * @return Array of locations, NULL is never returned.
  *     The array is sorted decending;
  *     the first entry in the array is the location with the newest timestamp.
+ *     Note that this is only realated to the recent postion of the user
+ *     if dc_array_is_independent() returns 0.
  *     The returned array must be freed using dc_array_unref().
  *
  * Examples:
@@ -849,7 +856,7 @@ dc_array_t* dc_get_locations(dc_context_t* context,
 			" WHERE (? OR l.chat_id=?) "
 			"   AND (? OR l.from_id=?) "
 			"   AND (l.independent=1 OR (l.timestamp>=? AND l.timestamp<=?)) "
-			" ORDER BY l.independent, l.timestamp DESC, l.id DESC, m.id DESC;");
+			" ORDER BY l.timestamp DESC, l.id DESC, m.id DESC;");
 	sqlite3_bind_int(stmt, 1, chat_id==0? 1 : 0);
 	sqlite3_bind_int(stmt, 2, chat_id);
 	sqlite3_bind_int(stmt, 3, contact_id==0? 1 : 0);
