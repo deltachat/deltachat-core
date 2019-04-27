@@ -128,6 +128,8 @@ else
   netpgp = netpgp_proj.get_variable('dep')
 endif
 
+# Provide deltachat/deltachat.h in the build directory
+subdir('deltachat')
 
 # Build the library, stored in `lib`.
 subdir('src')
