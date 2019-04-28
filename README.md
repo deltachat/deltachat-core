@@ -99,7 +99,7 @@ To install these on debian you can type:
     sudo apt install libetpan-dev libssl-dev libsqlite3-dev libsasl2-dev libbz2-dev zlib1g-dev
 ```
 
-If you run into connection problems with IMAP (error #43) it might be the case that the `libetpan` version on your system is too old. In this case we recommend compiling `libetpan`:
+If you run into connection problems with IMAP (error #43) it might be the case that the `libetpan` version on your system is too old. In this case we recommend compiling `libetpan` with a minimum version of 1.9.1. See [dinhviethoa/libetpan#330](https://github.com/dinhviethoa/libetpan/pull/330) for more details on why.
 
 ```
 git clone https://github.com/dinhviethoa/libetpan.git
