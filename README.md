@@ -3,14 +3,14 @@
 [![CircleCI](https://circleci.com/gh/deltachat/deltachat-core.svg?style=svg)](https://circleci.com/gh/deltachat/deltachat-core)
 
 The _Delta Chat Core Library_ is written in cross-platform **C**,
-documented at <https://c.delta.chat>.  
+documented at <https://c.delta.chat>.
 
-The ``deltachat`` Python bindings can be found in the 
+The ``deltachat`` Python bindings can be found in the
 [python subdirectory](https://github.com/deltachat/deltachat-core/tree/master/python)
 and are documented at <https://py.delta.chat>.
 
 In the [ci_scripts directory](https://github.com/deltachat/deltachat-core/tree/master/ci_scripts/README.md)
-you'll find docker- and library-building scripts. 
+you'll find docker- and library-building scripts.
 
 ## binary/distribution packages  (work-in-progress)
 
@@ -25,18 +25,18 @@ do not require that you build the library manually:
 
 - [Windows building](https://github.com/deltachat/deltachat-core/issues/306)
 
-If you can help with advancing or adding to these efforts, be our guest. 
+If you can help with advancing or adding to these efforts, be our guest.
 Otherwise read on for how to get ``libdeltachat.so`` and ``deltachat.h``
-installed into your system. 
+installed into your system.
 
 ## building your own ``libdeltachat.so``
 
-### getting a recent enough ``meson`` for building 
+### getting a recent enough ``meson`` for building
 
 If you have installed ``meson`` in your environment check the version::
 
     meson --version
-   
+
 You need to have version ``0.47.2`` at least. If the version
 is older there is a recommended way of getting a better version:
 
@@ -44,7 +44,7 @@ is older there is a recommended way of getting a better version:
 
 2. ensure you have at least ``python3.5`` installed and type:
    ```
-       python3 -m pip 
+       python3 -m pip
    ```
 
    to check that you have "pip" installed. If not available, you
@@ -57,24 +57,24 @@ is older there is a recommended way of getting a better version:
    ```
 
    the ``-u`` causes the pip-install to put a ``meson`` command line tool into
-   ``~/.local/`` or %APPDATA%\Python on Windows.  
+   ``~/.local/`` or %APPDATA%\Python on Windows.
 
 4. run ``meson --version`` to verify it's at at least version 0.48.0 now.
    If the ``meson`` command is not found, add ``~/.local/bin`` to ``PATH``
    and try again (``export PATH=~/.local/bin:$PATH`` on many unix-y terminals).
 
 
-### installing "ninja-build" 
+### installing "ninja-build"
 
 On Linux and Mac you need to install 'ninja-build' (debian package name)
-to be able to actually build/compile things. 
+to be able to actually build/compile things.
 
 Note that most dependencies below are detected using
 [pkg-config](https://www.freedesktop.org/wiki/Software/pkg-config/).
 Usually this just works automatically, provided the depending libraries
-are installed correctly.  
+are installed correctly.
 
-### installing c-level dependencies 
+### installing c-level dependencies
 
 The deltachat core library depends on a number of external libraries,
 which you may need to install (we have some fallbacks if you don't):
@@ -94,12 +94,32 @@ which you may need to install (we have some fallbacks if you don't):
 - [libsasl](https://cyrusimap.org/sasl/)
 
 To install these on debian you can type:
+
 ```
     sudo apt install libetpan-dev libssl-dev libsqlite3-dev libsasl2-dev libbz2-dev zlib1g-dev
 ```
 
+If you run into connection problems with IMAP (error #43) it might be the case that the `libetpan` version on your system is too old. In this case we recommend compiling `libetpan`:
 
-### performing the actual build 
+```
+git clone https://github.com/dinhviethoa/libetpan.git
+cd libetpan
+./autogen.sh
+./configure --disable-silent-rules \
+            --enable-ipv6 \
+            --enable-iconv \
+            --disable-db \
+            --with-openssl \
+            --with-sasl \
+            --with-zlib \
+            --without-curl \
+            --without-expat
+make -j $(nproc)
+sudo make install
+sudo ldconfig -v
+```
+
+### performing the actual build
 
 Once all dependencies are installed, creating a build is as follows,
 starting from a [deltachat-core github checkout](https://github.com/deltachat/deltachat-core):
@@ -133,7 +153,7 @@ By adding `-Drpgp=true` to the build command, rpgp is used instead
 needs to be installed on the system or available as a lib)
 
 
-### Building without system-level dependencies 
+### Building without system-level dependencies
 
 By default stripped-down versions of the dependencies are bundled with
 Delta Chat Core and these will be used when a dependency is missing.
@@ -155,13 +175,13 @@ Language bindings are available for:
 
 - [Node.js](https://www.npmjs.com/package/deltachat-node)
 - [Python](https://py.delta.chat)
-- **Java** and **Swift** (contained in the Android/iOS repos) 
+- **Java** and **Swift** (contained in the Android/iOS repos)
 
 The following "frontend" project make use of the C-library
-or its language bindings: 
+or its language bindings:
 
 - [Android](https://github.com/deltachat/deltachat-android)
-- [iOS](https://github.com/deltachat/deltachat-ios) 
+- [iOS](https://github.com/deltachat/deltachat-ios)
 - [Desktop](https://github.com/deltachat/deltachat-desktop)
 - [Pidgin](https://gitlab.com/lupine/purple-plugin-delta)
 
@@ -172,7 +192,7 @@ You start the program with `./delta <database-file>`
 (if the database file does not exist, it is created).
 The program then shows a prompt and typing `help` gives some help about the available commands.
 
-New tests are currently developed using Python, see 
+New tests are currently developed using Python, see
 https://github.com/deltachat/deltachat-core/tree/master/python/tests
 
 
