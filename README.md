@@ -25,7 +25,7 @@ do not require that you build the library manually:
 
 - [Windows building](https://github.com/deltachat/deltachat-core/issues/306)
 
-If you can help with advancing or adding to these efforts, be our guest.
+If you can help with advancing or adding to these efforts, please do contribute.
 Otherwise read on for how to get ``libdeltachat.so`` and ``deltachat.h``
 installed into your system.
 
