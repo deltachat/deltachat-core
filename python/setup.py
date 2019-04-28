@@ -33,6 +33,7 @@ def read_meta():
             m = re.match('__version__ = "(\S*).*"', line)
             if m:
                 version, = m.groups()
+                break
 
     with open("README.rst") as f:
         long_desc = f.read()
