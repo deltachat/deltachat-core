@@ -9,28 +9,28 @@ extern "C" {
 #include <stddef.h>
 
 typedef struct {
-    char* lower_case;
-    char* upper_case;
+	char* lower_case;
+	char* upper_case;
 } bicameral_utf_8_letter;
 
 typedef struct {
-    bicameral_utf_8_letter* array;
-    size_t entries_count;
+	bicameral_utf_8_letter* array;
+	size_t entries_count;
 } bicameral_utf_8_letters_array_bounds;
 
 typedef struct {
-    char** array;
-    size_t entries_count;
+	char** array;
+	size_t entries_count;
 } strings_array_bounds;
 
 typedef struct {
-    const char* array;
-    size_t entries_count;
+	const char* array;
+	size_t entries_count;
 } bytes_array_bounds;
 
 typedef enum {
-    FAILED_TO_ALLOCATE_MEMORY = 60,
-    ILLEGAL_NULL_POINTER
+	FAILED_TO_ALLOCATE_MEMORY = 60,
+	ILLEGAL_NULL_POINTER
 } programming_error_code;
 
 
