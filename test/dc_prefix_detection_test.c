@@ -20,7 +20,8 @@ Include source instead of header file to
 #include "../src/dc_prefix_detection.c"
 
 
-static void is_bit_set_true_for_all_bits_set(void** state) {
+static void is_bit_set_true_for_all_bits_set(void** state)
+{
     // Arrange
     char eight_bits_set_byte = 0xFF;
 
@@ -30,7 +31,8 @@ static void is_bit_set_true_for_all_bits_set(void** state) {
     }
 }
 
-static void is_bit_set_true_for_one_bit_set(void** state) {
+static void is_bit_set_true_for_one_bit_set(void** state)
+{
     // Arrange
     char fifth_bit_set_byte = 0x10;
 
@@ -38,7 +40,8 @@ static void is_bit_set_true_for_one_bit_set(void** state) {
     assert_true(dc_is_bit_set(fifth_bit_set_byte, 4));
 }
 
-static void is_bit_set_false_for_all_bits_unset(void** state) {
+static void is_bit_set_false_for_all_bits_unset(void** state)
+{
     // Arrange
     char no_bits_set_byte = 0;
 
@@ -48,7 +51,8 @@ static void is_bit_set_false_for_all_bits_unset(void** state) {
     }
 }
 
-static void is_bit_set_false_for_one_bit_unset(void** state) {
+static void is_bit_set_false_for_one_bit_unset(void** state)
+{
     // Arrange
     char fifth_bit_unset_byte = 0xEF;
 
@@ -56,7 +60,8 @@ static void is_bit_set_false_for_one_bit_unset(void** state) {
     assert_false(dc_is_bit_set(fifth_bit_unset_byte, 4));
 }
 
-static void read_utf_8_character_bytes_count_correctly(void** state) {
+static void read_utf_8_character_bytes_count_correctly(void** state)
+{
     // Arrange
     const char* characters[] = {
         "Α", "Π", "ה"
@@ -72,7 +77,8 @@ static void read_utf_8_character_bytes_count_correctly(void** state) {
     }
 }
 
-static void convert_prefix_letters_to_lower_case_correctly(void** state) {
+static void convert_prefix_letters_to_lower_case_correctly(void** state)
+{
     // Arrange
     const char* prefixes[] = {
         "ATB", "AW", "Antwort", "Antw", "BLS", "Doorst", "ENC", "FS", "FW",
@@ -100,7 +106,8 @@ static void convert_prefix_letters_to_lower_case_correctly(void** state) {
     }
 }
 
-static void get_prefixes_returns_more_than_one_entry(void** state) {
+static void get_prefixes_returns_more_than_one_entry(void** state)
+{
     // Arrange / Act
     const strings_array_bounds* prefixes = dc_get_prefixes();
 
@@ -108,7 +115,8 @@ static void get_prefixes_returns_more_than_one_entry(void** state) {
     assert_true(prefixes->entries_count > 1);
 }
 
-static void get_prefixes_has_sorted_entries(void** state) {
+static void get_prefixes_has_sorted_entries(void** state)
+{
     // Arrange / Act
     const strings_array_bounds* prefixes = dc_get_prefixes();
 
@@ -118,7 +126,8 @@ static void get_prefixes_has_sorted_entries(void** state) {
     }
 }
 
-static void get_prefixes_has_unique_entries(void** state) {
+static void get_prefixes_has_unique_entries(void** state)
+{
     // Arrange / Act
     const strings_array_bounds* prefixes = dc_get_prefixes();
 
@@ -128,7 +137,8 @@ static void get_prefixes_has_unique_entries(void** state) {
     }
 }
 
-static void is_prefix_true_for_prefixes_case_insensitively(void** state) {
+static void is_prefix_true_for_prefixes_case_insensitively(void** state)
+{
     // Arrange
     const char* prefixes[] = {
         "Re", "RE", "fwd", "Vá", "İLT", "ΑΠ", "הועבר", "رد", "回复"
@@ -141,7 +151,8 @@ static void is_prefix_true_for_prefixes_case_insensitively(void** state) {
     }
 }
 
-static void is_prefix_false_for_non_prefixes(void** state) {
+static void is_prefix_false_for_non_prefixes(void** state)
+{
     // Arrange
     const char* prefixes[] = {
         "", "Hey", "NEW", "Rezept", "Help us protect you", "Shop", "25.01.2010"
@@ -154,7 +165,8 @@ static void is_prefix_false_for_non_prefixes(void** state) {
     }
 }
 
-static void find_subject_text_position_for_chains_of_prefixes(void** state) {
+static void find_subject_text_position_for_chains_of_prefixes(void** state)
+{
     // Arrange
     const char* subjects[] = {
         "Re: English prefix", "Fwd: RE: re: FW: English prefixes",
@@ -180,7 +192,8 @@ static void find_subject_text_position_for_chains_of_prefixes(void** state) {
     }
 }
 
-static void find_subject_text_position_returns_input_for_non_prefixes(void** state) {
+static void find_subject_text_position_returns_input_for_non_prefixes(void** state)
+{
     // Arrange
     const char* subjects[] = {
         "Hello: Single word", "Help us protect you: Sentence",
@@ -199,7 +212,8 @@ static void find_subject_text_position_returns_input_for_non_prefixes(void** sta
     }
 }
 
-static void find_subject_text_position_starts_at_first_non_prefix(void** state) {
+static void find_subject_text_position_starts_at_first_non_prefix(void** state)
+{
     // Arrange
     const char* subjects[] = {
         "Hello: תגובה: Non-prefix, prefix",
@@ -231,7 +245,8 @@ static void find_subject_text_position_starts_at_first_non_prefix(void** state) 
 }
 
 // Mock logging functions
-void dc_log_warning(dc_context_t* context, int data1, const char* msg, ...) {
+void dc_log_warning(dc_context_t* context, int data1, const char* msg, ...)
+{
     printf("Warning logged: ");
     va_list variable_arguments;
     va_start(variable_arguments, msg);
@@ -239,7 +254,8 @@ void dc_log_warning(dc_context_t* context, int data1, const char* msg, ...) {
     va_end(variable_arguments);
 }
 
-void dc_log_error(dc_context_t* context, int data1, const char* msg, ...) {
+void dc_log_error(dc_context_t* context, int data1, const char* msg, ...)
+{
     printf("Error logged: ");
     va_list variable_arguments;
     va_start(variable_arguments, msg);
@@ -247,7 +263,8 @@ void dc_log_error(dc_context_t* context, int data1, const char* msg, ...) {
     va_end(variable_arguments);
 }
 
-int main(void) {
+int main(void)
+{
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(is_bit_set_true_for_all_bits_set),
         cmocka_unit_test(is_bit_set_true_for_one_bit_set),
