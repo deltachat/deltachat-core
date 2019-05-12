@@ -4,6 +4,8 @@
 extern "C" {
 #endif
 
+#include "dc_context.h"
+
 #include <stddef.h>
 
 typedef struct {
@@ -36,13 +38,22 @@ typedef enum {
  * Skips known subject prefixes and returns a pointer to the actual subject
  * text.
  *
+ * @param context
+ *      Context object used for logging.
  * @param subject
  *      Null-terminated subject string. The program is aborted if it is a null
  *      pointer.
  * @return
  *      Pointer into the given string at the position after detected prefixes.
  */
-const char* dc_find_subject_text_position(const char* subject);
+const char* dc_find_subject_text_position(dc_context_t* context, const char* subject);
+
+/**
+ * Remembers the context in a file-scope internal variable to be used by
+ * other internal functions for logging without passing the context as
+ * parameter everywhere.
+ */
+static void set_logger_context(dc_context_t* context);
 
 /**
  * The program is aborted if the given string is a null pointer.
@@ -116,6 +127,8 @@ static const char* dc_find_first_non_space_position(const char* string);
 static void dc_assert_non_null_pointer(const void* pointer);
 
 static void dc_exit_with_error(const programming_error_code code, const char* message);
+
+static dc_context_t* get_logger_context();
 
 
 #ifdef __cplusplus

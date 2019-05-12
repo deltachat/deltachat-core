@@ -6,8 +6,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+static dc_context_t* logger_context;
 
-const char* dc_find_subject_text_position(const char* subject) {
+
+const char* dc_find_subject_text_position(dc_context_t* context, const char* subject) {
+    set_logger_context(context);
     dc_assert_non_null_pointer(subject);
 
     const char* subject_text_position = subject;
@@ -19,7 +22,12 @@ const char* dc_find_subject_text_position(const char* subject) {
         subject_text_position = dc_find_first_non_space_position(separator_position + 1);
         separator_position = strchr(subject_text_position, prefix_separator);
     }
+    set_logger_context(NULL);
     return subject_text_position;
+}
+
+static void set_logger_context(dc_context_t* context) {
+    logger_context = context;
 }
 
 static int dc_is_prefix(const char* string, ptrdiff_t string_bytes_count) {
@@ -52,7 +60,7 @@ static char* dc_convert_prefix_letters_to_lower_case(const char* string, ptrdiff
             j += utf_8_bytes->entries_count;
             free(utf_8_bytes);
         } else {
-            printf("Conversion of prefix letters to lower case aborted due to invalid UTF-8 character.\n");
+            dc_log_warning(get_logger_context(), 0, "Conversion of prefix letters to lower case aborted due to invalid UTF-8 character.");
             break;
         }
     }
@@ -199,7 +207,11 @@ static void dc_assert_non_null_pointer(const void* pointer) {
 }
 
 static void dc_exit_with_error(const programming_error_code code, const char* message) {
-    printf("Terminating because %s.\n", message);
+    dc_log_error(get_logger_context(), 0, "Terminating because %s.", message);
     exit(code);
+}
+
+static dc_context_t* get_logger_context() {
+    return logger_context;
 }
 

@@ -172,7 +172,7 @@ static void find_subject_text_position_for_chains_of_prefixes(void** state) {
 
     for (size_t i = 0; i < subjects_count; i++) {
         // Act
-        const char* pure_subject = dc_find_subject_text_position(subjects[i]);
+        const char* pure_subject = dc_find_subject_text_position(NULL, subjects[i]);
 
         // Assert
         assert_non_null(pure_subject);
@@ -192,7 +192,7 @@ static void find_subject_text_position_returns_input_for_non_prefixes(void** sta
 
     for (size_t i = 0; i < subjects_count; i++) {
         // Act
-        const char* subject = dc_find_subject_text_position(subjects[i]);
+        const char* subject = dc_find_subject_text_position(NULL, subjects[i]);
 
         // Assert
         assert_string_equal(subject, subjects[i]);
@@ -223,11 +223,28 @@ static void find_subject_text_position_starts_at_first_non_prefix(void** state) 
 
     for (size_t i = 0; i < subjects_count; i++) {
         // Act
-        const char* subject = dc_find_subject_text_position(subjects[i]);
+        const char* subject = dc_find_subject_text_position(NULL, subjects[i]);
 
         // Assert
         assert_string_equal(subject, expected[i]);
     }
+}
+
+// Mock logging functions
+void dc_log_warning(dc_context_t* context, int data1, const char* msg, ...) {
+    printf("Warning logged: ");
+    va_list variable_arguments;
+    va_start(variable_arguments, msg);
+    vprintf(msg, variable_arguments);
+    va_end(variable_arguments);
+}
+
+void dc_log_error(dc_context_t* context, int data1, const char* msg, ...) {
+    printf("Error logged: ");
+    va_list variable_arguments;
+    va_start(variable_arguments, msg);
+    vprintf(msg, variable_arguments);
+    va_end(variable_arguments);
 }
 
 int main(void) {
