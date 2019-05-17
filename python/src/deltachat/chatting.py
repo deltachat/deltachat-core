@@ -224,6 +224,17 @@ class Chat(object):
         if ret != 1:
             raise ValueError("could not add contact {!r} to chat".format(contact))
 
+    def remove_contact(self, contact):
+        """ remove a contact from this chat.
+
+        :params: contact object.
+        :exception: ValueError if contact could not be removed
+        :returns: None
+        """
+        ret = lib.dc_remove_contact_from_chat(self._dc_context, self.id, contact.id)
+        if ret != 1:
+            raise ValueError("could not remove contact {!r} from chat".format(contact))
+
     def get_contacts(self):
         """ get all contacts for this chat.
 
