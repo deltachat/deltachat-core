@@ -106,6 +106,13 @@ class Chat(object):
         name = as_dc_charpointer(name)
         return lib.dc_set_chat_name(self._dc_context, self.id, name)
 
+    def get_type(self):
+        """ return type of this chat.
+
+        :returns: one of const.DC_CHAT_TYPE_*
+        """
+        return lib.dc_chat_get_type(self._dc_chat)
+    
     # ------  chat messaging API ------------------------------
 
     def send_text(self, text):
