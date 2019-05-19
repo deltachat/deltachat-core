@@ -5,6 +5,11 @@ extern "C" {
 #endif
 
 
+/* define DC_USE_RPGP to enable use of rPGP instead of netpgp where available;
+preferrably, this should be done in the project configuration currently */
+//#define DC_USE_RPGP 1
+
+
 /* Includes that are used frequently.  This file may also be used to create predefined headers. */
 #include <stdlib.h>
 #include <string.h>
@@ -116,6 +121,43 @@ int             dc_is_inbox          (dc_context_t*, const char* folder);
 int             dc_is_sentbox        (dc_context_t*, const char* folder);
 int             dc_is_mvbox          (dc_context_t*, const char* folder);
 
+
+// location handling
+typedef struct _dc_location
+{
+	#define DC_ARRAY_LOCATIONS  1
+	uint32_t location_id;
+	double   latitude;
+	double   longitude;
+	double   accuracy;
+	time_t   timestamp;
+	uint32_t contact_id;
+	uint32_t msg_id;
+	uint32_t chat_id;
+	char*    marker;
+	int      independent;
+} dc_location_t;
+
+typedef struct _dc_kml
+{
+	char*         addr;
+	dc_array_t*   locations;
+	int           tag;
+	dc_location_t curr;
+} dc_kml_t;
+
+char*           dc_get_location_kml       (dc_context_t*, uint32_t chat_id, uint32_t* last_added_location_id);
+char*           dc_get_message_kml        (dc_context_t*, time_t timestamp, double latitude, double longitude);
+void            dc_set_kml_sent_timestamp (dc_context_t*, uint32_t chat_id, time_t);
+void            dc_set_msg_location_id    (dc_context_t*, uint32_t msg_id, uint32_t location_id);
+uint32_t        dc_save_locations         (dc_context_t*, uint32_t chat_id, uint32_t contact_id, const dc_array_t*, int independent);
+dc_kml_t*       dc_kml_parse              (dc_context_t*, const char* content, size_t content_bytes);
+void            dc_kml_unref              (dc_kml_t*);
+void            dc_job_do_DC_JOB_MAYBE_SEND_LOCATIONS (dc_context_t*, dc_job_t*);
+void            dc_job_do_DC_JOB_MAYBE_SEND_LOC_ENDED (dc_context_t*, dc_job_t*);
+
+
+// backups
 #define         DC_BAK_PREFIX                "delta-chat"
 #define         DC_BAK_SUFFIX                "bak"
 
@@ -135,6 +177,7 @@ int             dc_is_mvbox          (dc_context_t*, const char* folder);
 #define DC_SENTBOX_WATCH_DEFAULT  1
 #define DC_MVBOX_WATCH_DEFAULT    1
 #define DC_MVBOX_MOVE_DEFAULT     1
+#define DC_SHOW_EMAILS_DEFAULT    DC_SHOW_EMAILS_OFF
 
 
 typedef struct _dc_e2ee_helper dc_e2ee_helper_t;
@@ -153,7 +196,9 @@ struct _dc_e2ee_helper {
 
 };
 
-void            dc_e2ee_encrypt      (dc_context_t*, const clist* recipients_addr, int force_plaintext, int e2ee_guaranteed, int min_verified, struct mailmime* in_out_message, dc_e2ee_helper_t*);
+void            dc_e2ee_encrypt      (dc_context_t*, const clist* recipients_addr,
+                                      int force_plaintext, int e2ee_guaranteed, int min_verified,
+                                      int do_gossip, struct mailmime* in_out_message, dc_e2ee_helper_t*);
 void            dc_e2ee_decrypt      (dc_context_t*, struct mailmime* in_out_message, dc_e2ee_helper_t*); /* returns 1 if sth. was decrypted, 0 in other cases */
 void            dc_e2ee_thanks       (dc_e2ee_helper_t*); /* frees data referenced by "mailmime" but not freed by mailmime_free(). After calling this function, in_out_message cannot be used any longer! */
 int             dc_ensure_secret_key_exists (dc_context_t*); /* makes sure, the private key exists, needed only for exporting keys and the case no message was sent before */

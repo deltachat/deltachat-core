@@ -15,12 +15,13 @@ static char* default_string(int id)
 		case DC_STR_MEMBER:                return dc_strdup("%1$s member(s)");
 		case DC_STR_CONTACT:               return dc_strdup("%1$s contact(s)");
 		case DC_STR_VOICEMESSAGE:          return dc_strdup("Voice message");
-		case DC_STR_DEADDROP:              return dc_strdup("Mailbox");
+		case DC_STR_DEADDROP:              return dc_strdup("Contact requests");
 		case DC_STR_IMAGE:                 return dc_strdup("Image");
 		case DC_STR_GIF:                   return dc_strdup("GIF");
 		case DC_STR_VIDEO:                 return dc_strdup("Video");
 		case DC_STR_AUDIO:                 return dc_strdup("Audio");
 		case DC_STR_FILE:                  return dc_strdup("File");
+		case DC_STR_LOCATION:              return dc_strdup("Location");
 		case DC_STR_ENCRYPTEDMSG:          return dc_strdup("Encrypted message");
 		case DC_STR_STATUSLINE:            return dc_strdup("Sent with my Delta Chat Messenger: https://delta.chat");
 		case DC_STR_NEWGROUPDRAFT:         return dc_strdup("Hello, I've just created the group \"%1$s\" for us.");
@@ -29,6 +30,8 @@ static char* default_string(int id)
 		case DC_STR_MSGADDMEMBER:          return dc_strdup("Member %1$s added.");
 		case DC_STR_MSGDELMEMBER:          return dc_strdup("Member %1$s removed.");
 		case DC_STR_MSGGROUPLEFT:          return dc_strdup("Group left.");
+		case DC_STR_MSGLOCATIONENABLED:    return dc_strdup("Location streaming enabled.");
+		case DC_STR_MSGLOCATIONDISABLED:   return dc_strdup("Location streaming disabled.");
 		case DC_STR_MSGACTIONBYUSER:       return dc_strdup("%1$s by %2$s.");
 		case DC_STR_MSGACTIONBYME:         return dc_strdup("%1$s by me.");
 		case DC_STR_E2E_AVAILABLE:         return dc_strdup("End-to-end encryption available.");

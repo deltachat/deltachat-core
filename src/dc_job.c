@@ -9,6 +9,9 @@
 #include "dc_mimefactory.h"
 
 
+static void dc_send_mdn(dc_context_t* context, uint32_t msg_id);
+
+
 /*******************************************************************************
  * IMAP-jobs
  ******************************************************************************/
@@ -140,7 +143,7 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* context, dc_job_
 			case DC_FAILED:       goto cleanup;
 			case DC_RETRY_LATER:  dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL); goto cleanup;
 			case DC_ALREADY_DONE: break;
-			case DC_SUCCESS:      dc_job_add(context, DC_JOB_SEND_MDN, msg->id, NULL, 0); break;
+			case DC_SUCCESS:      dc_send_mdn(context, msg->id); break;
 		}
 	}
 
@@ -194,36 +197,69 @@ cleanup:
  ******************************************************************************/
 
 
-static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* job)
+/**
+ * Store the MIME message in a file and send it later with a new SMTP job.
+ *
+ * @param context The context object as created by dc_context_new()
+ * @param action One of the DC_JOB_SEND_ constants
+ * @param mimefactory An instance of dc_mimefactory_t with a loaded and rendered message or MDN
+ * @return 1=success, 0=error
+ */
+static int dc_add_smtp_job(dc_context_t* context, int action, dc_mimefactory_t* mimefactory)
 {
 	char*            pathNfilename = NULL;
+	int              success = 0;
+	char*            recipients = NULL;
+	dc_param_t*      param = dc_param_new();
+
+	// find a free file name in the blob directory
+	pathNfilename = dc_get_fine_pathNfilename(context, "$BLOBDIR", mimefactory->rfc724_mid);
+	if (!pathNfilename) {
+		dc_log_error(context, 0, "Could not find free file name for message with ID <%s>.", mimefactory->rfc724_mid);
+		goto cleanup;
+	}
+
+	// write the file
+	if (!dc_write_file(context, pathNfilename, mimefactory->out->str, mimefactory->out->len)) {
+		dc_log_error(context, 0, "Could not write message <%s> to \"%s\".", mimefactory->rfc724_mid, pathNfilename);
+		goto cleanup;
+	}
+
+	// store recipients in job param
+	recipients = dc_str_from_clist(mimefactory->recipients_addr, "\x1e");
+	dc_param_set(param, DC_PARAM_FILE, pathNfilename);
+	dc_param_set(param, DC_PARAM_RECIPIENTS, recipients);
+
+	dc_job_add(context, action, mimefactory->loaded==DC_MF_MSG_LOADED ? mimefactory->msg->id : 0, param->packed, 0);
+
+	success = 1;
+
+cleanup:
+	dc_param_unref(param);
+	free(recipients);
+	free(pathNfilename);
+	return success;
+}
+
+
+/**
+ * Create an SMTP job to send a message from the DB
+ *
+ * @param context The context object as created by dc_context_new()
+ * @param msg_id The ID of the message to send
+ * @return 1=success, 0=error
+ */
+int dc_job_send_msg(dc_context_t* context, uint32_t msg_id)
+{
+	int success = 0;
 	dc_mimefactory_t mimefactory;
 	dc_mimefactory_init(&mimefactory, context);
 
-	/* connect to SMTP server, if not yet done */
-	if (!dc_smtp_is_connected(context->smtp)) {
-		dc_loginparam_t* loginparam = dc_loginparam_new();
-			dc_loginparam_read(loginparam, context->sql, "configured_");
-			int connected = dc_smtp_connect(context->smtp, loginparam);
-		dc_loginparam_unref(loginparam);
-		if (!connected) {
-			dc_job_try_again_later(job, DC_STANDARD_DELAY, NULL);
-			goto cleanup;
-		}
-	}
-
 	/* load message data */
-	if (!dc_mimefactory_load_msg(&mimefactory, job->foreign_id)
+	if (!dc_mimefactory_load_msg(&mimefactory, msg_id)
 	 || mimefactory.from_addr==NULL) {
 		dc_log_warning(context, 0, "Cannot load data to send, maybe the message is deleted in between.");
 		goto cleanup; // no redo, no IMAP. moreover, as the data does not exist, there is no need in calling dc_set_msg_failed()
-	}
-
-	/* check if the message is ready (normally, only video files may be delayed this way) */
-	if (mimefactory.increation) {
-		dc_log_info(context, 0, "File is in creation, retrying later.");
-		dc_job_try_again_later(job, DC_INCREATION_POLL, NULL);
-		goto cleanup;
 	}
 
 	/* set width/height of images, if not yet done */
@@ -245,18 +281,19 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 				dc_msg_save_param_to_disk(mimefactory.msg);
 			}
 		}
+		free(pathNfilename);
 	}
 
-	/* send message */
+	/* create message */
 	{
 		if (!dc_mimefactory_render(&mimefactory)) {
-			dc_set_msg_failed(context, job->foreign_id, mimefactory.error);
+			dc_set_msg_failed(context, msg_id, mimefactory.error);
 			goto cleanup; // no redo, no IMAP - this will also fail next time
 		}
 
 		/* have we guaranteed encryption but cannot fulfill it for any reason? Do not send the message then.*/
 		if (dc_param_get_int(mimefactory.msg->param, DC_PARAM_GUARANTEE_E2EE, 0) && !mimefactory.out_encrypted) {
-			dc_set_msg_failed(context, job->foreign_id, "End-to-end-encryption unavailable unexpectedly.");
+			dc_set_msg_failed(context, msg_id, "End-to-end-encryption unavailable unexpectedly.");
 			goto cleanup; /* unrecoverable */
 		}
 
@@ -265,24 +302,21 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 			clist_append(mimefactory.recipients_names, NULL);
 			clist_append(mimefactory.recipients_addr,  (void*)dc_strdup(mimefactory.from_addr));
 		}
-
-		if (!dc_smtp_send_msg(context->smtp, mimefactory.recipients_addr, mimefactory.out->str, mimefactory.out->len)) {
-			if (MAILSMTP_ERROR_EXCEED_STORAGE_ALLOCATION==context->smtp->error_etpan
-			 || MAILSMTP_ERROR_INSUFFICIENT_SYSTEM_STORAGE==context->smtp->error_etpan) {
-				dc_set_msg_failed(context, job->foreign_id, context->smtp->error);
-			}
-			else {
-				dc_smtp_disconnect(context->smtp);
-				dc_job_try_again_later(job, DC_AT_ONCE, context->smtp->error);
-			}
-			goto cleanup;
-		}
 	}
 
-	/* done */
 	dc_sqlite3_begin_transaction(context->sql);
 
-		dc_update_msg_state(context, mimefactory.msg->id, DC_STATE_OUT_DELIVERED);
+		if (mimefactory.out_gossiped) {
+			dc_set_gossiped_timestamp(context, mimefactory.msg->chat_id, time(NULL));
+		}
+
+		if (mimefactory.out_last_added_location_id) {
+			dc_set_kml_sent_timestamp(context, mimefactory.msg->chat_id, time(NULL));
+			if (!mimefactory.msg->hidden) {
+				dc_set_msg_location_id(context, mimefactory.msg->id, mimefactory.out_last_added_location_id);
+			}
+		}
+
 		if (mimefactory.out_encrypted && dc_param_get_int(mimefactory.msg->param, DC_PARAM_GUARANTEE_E2EE, 0)==0) {
 			dc_param_set_int(mimefactory.msg->param, DC_PARAM_GUARANTEE_E2EE, 1); /* can upgrade to E2EE - fine! */
 			dc_msg_save_param_to_disk(mimefactory.msg);
@@ -293,26 +327,25 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 
 	dc_sqlite3_commit(context->sql);
 
-	context->cb(context, DC_EVENT_MSG_DELIVERED, mimefactory.msg->chat_id, mimefactory.msg->id);
+	success = dc_add_smtp_job(context, DC_JOB_SEND_MSG_TO_SMTP, &mimefactory);
 
 cleanup:
 	dc_mimefactory_empty(&mimefactory);
-	free(pathNfilename);
+	return success;
 }
 
 
-static void dc_job_do_DC_JOB_SEND_MDN(dc_context_t* context, dc_job_t* job)
+static void dc_job_do_DC_JOB_SEND(dc_context_t* context, dc_job_t* job)
 {
-	dc_mimefactory_t mimefactory;
-	dc_mimefactory_init(&mimefactory, context);
-
-	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || job==NULL) {
-		return;
-	}
+	char*         filename = NULL;
+	void*         buf = NULL;
+	size_t        buf_bytes = 0;
+	char*         recipients = NULL;
+	clist*        recipients_list = NULL;
+	sqlite3_stmt* stmt = NULL;
 
 	/* connect to SMTP server, if not yet done */
-	if (!dc_smtp_is_connected(context->smtp))
-	{
+	if (!dc_smtp_is_connected(context->smtp)) {
 		dc_loginparam_t* loginparam = dc_loginparam_new();
 			dc_loginparam_read(loginparam, context->sql, "configured_");
 			int connected = dc_smtp_connect(context->smtp, loginparam);
@@ -323,18 +356,97 @@ static void dc_job_do_DC_JOB_SEND_MDN(dc_context_t* context, dc_job_t* job)
 		}
 	}
 
-    if (!dc_mimefactory_load_mdn(&mimefactory, job->foreign_id)
+	/* load message data */
+	filename = dc_param_get(job->param, DC_PARAM_FILE, NULL);
+	if (!filename) {
+		dc_log_warning(context, 0, "Missing file name for job %d", job->job_id);
+		goto cleanup;
+	}
+	if (!dc_read_file(context, filename, &buf, &buf_bytes)) {
+		goto cleanup;
+	}
+
+	/* get the list of recipients */
+	recipients = dc_param_get(job->param, DC_PARAM_RECIPIENTS, NULL);
+	if (!recipients) {
+		dc_log_warning(context, 0, "Missing recipients for job %d", job->job_id);
+		goto cleanup;
+	}
+	recipients_list = dc_str_to_clist(recipients, "\x1e");
+
+	/* if there is a msg-id and it does not exist in the db, cancel sending.
+	this happends if dc_delete_msgs() was called
+	before the generated mime was sent out */
+	if (job->foreign_id) {
+		if(!dc_msg_exists(context, job->foreign_id)) {
+			dc_log_warning(context, 0, "Message %i for job %i does not exist",
+				job->foreign_id, job->job_id);
+			goto cleanup;
+		}
+	}
+
+	/* send message */
+	{
+		if (!dc_smtp_send_msg(context->smtp, recipients_list, buf, buf_bytes)) {
+			if (job->foreign_id && (
+			    MAILSMTP_ERROR_EXCEED_STORAGE_ALLOCATION==context->smtp->error_etpan
+			 || MAILSMTP_ERROR_INSUFFICIENT_SYSTEM_STORAGE==context->smtp->error_etpan)) {
+				dc_set_msg_failed(context, job->foreign_id, context->smtp->error);
+			}
+			else {
+				dc_smtp_disconnect(context->smtp);
+				dc_job_try_again_later(job, DC_AT_ONCE, context->smtp->error);
+			}
+			goto cleanup;
+		}
+	}
+
+	/* delete the stores message file */
+	dc_delete_file(context, filename);
+	/* an error still means the message is sent, so the rest continues */
+
+	/* done */
+	if (job->foreign_id) {
+		dc_update_msg_state(context, job->foreign_id, DC_STATE_OUT_DELIVERED);
+
+		/* find the chat ID */
+		stmt = dc_sqlite3_prepare(context->sql, "SELECT chat_id FROM msgs WHERE id=?");
+		sqlite3_bind_int(stmt, 1, job->foreign_id);
+		/* a deleted message results in an event with chat_id==0, rather than no event at all */
+		int chat_id = sqlite3_step(stmt)==SQLITE_ROW ? sqlite3_column_int(stmt, 0) : 0;
+
+		context->cb(context, DC_EVENT_MSG_DELIVERED, chat_id, job->foreign_id);
+	}
+
+cleanup:
+	sqlite3_finalize(stmt);
+	if (recipients_list) {
+		clist_free_content(recipients_list);
+		clist_free(recipients_list);
+	}
+	free(recipients);
+	free(buf);
+	free(filename);
+}
+
+
+static void dc_send_mdn(dc_context_t* context, uint32_t msg_id)
+{
+	dc_mimefactory_t mimefactory;
+	dc_mimefactory_init(&mimefactory, context);
+
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC) {
+		return;
+	}
+
+    if (!dc_mimefactory_load_mdn(&mimefactory, msg_id)
      || !dc_mimefactory_render(&mimefactory)) {
 		goto cleanup;
     }
 
 	//char* t1=dc_null_terminate(mimefactory.out->str,mimefactory.out->len);printf("~~~~~MDN~~~~~\n%s\n~~~~~/MDN~~~~~",t1);free(t1); // DEBUG OUTPUT
 
-	if (!dc_smtp_send_msg(context->smtp, mimefactory.recipients_addr, mimefactory.out->str, mimefactory.out->len)) {
-		dc_smtp_disconnect(context->smtp);
-		dc_job_try_again_later(job, DC_AT_ONCE, NULL);
-		goto cleanup;
-	}
+	dc_add_smtp_job(context, DC_JOB_SEND_MDN, &mimefactory);
 
 cleanup:
 	dc_mimefactory_empty(&mimefactory);
@@ -410,6 +522,22 @@ static time_t get_next_wakeup_time(dc_context_t* context, int thread)
 
 	sqlite3_finalize(stmt);
 	return wakeup_time;
+}
+
+
+int dc_job_action_exists(dc_context_t* context, int action)
+{
+	int           job_exists = 0;
+	sqlite3_stmt* stmt = NULL;
+
+	stmt = dc_sqlite3_prepare(context->sql,
+		"SELECT id FROM jobs WHERE action=?;");
+	sqlite3_bind_int  (stmt, 1, action);
+
+	job_exists = (sqlite3_step(stmt)==SQLITE_ROW);
+
+	sqlite3_finalize(stmt);
+	return job_exists;
 }
 
 
@@ -567,14 +695,16 @@ static void dc_job_perform(dc_context_t* context, int thread, int probe_network)
 			job.try_again = DC_DONT_TRY_AGAIN; // this can be modified by a job using dc_job_try_again_later()
 
 			switch (job.action) {
-				case DC_JOB_SEND_MSG_TO_SMTP:     dc_job_do_DC_JOB_SEND_MSG_TO_SMTP     (context, &job); break;
+				case DC_JOB_SEND_MSG_TO_SMTP:     dc_job_do_DC_JOB_SEND                 (context, &job); break;
 				case DC_JOB_DELETE_MSG_ON_IMAP:   dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP   (context, &job); break;
 				case DC_JOB_MARKSEEN_MSG_ON_IMAP: dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP (context, &job); break;
 				case DC_JOB_MARKSEEN_MDN_ON_IMAP: dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP (context, &job); break;
 				case DC_JOB_MOVE_MSG:             dc_job_do_DC_JOB_MOVE_MSG             (context, &job); break;
-				case DC_JOB_SEND_MDN:             dc_job_do_DC_JOB_SEND_MDN             (context, &job); break;
+				case DC_JOB_SEND_MDN:             dc_job_do_DC_JOB_SEND                 (context, &job); break;
 				case DC_JOB_CONFIGURE_IMAP:       dc_job_do_DC_JOB_CONFIGURE_IMAP       (context, &job); break;
 				case DC_JOB_IMEX_IMAP:            dc_job_do_DC_JOB_IMEX_IMAP            (context, &job); break;
+				case DC_JOB_MAYBE_SEND_LOCATIONS: dc_job_do_DC_JOB_MAYBE_SEND_LOCATIONS (context, &job); break;
+				case DC_JOB_MAYBE_SEND_LOC_ENDED: dc_job_do_DC_JOB_MAYBE_SEND_LOC_ENDED (context, &job); break;
 				case DC_JOB_HOUSEKEEPING:         dc_housekeeping                       (context);       break;
 			}
 

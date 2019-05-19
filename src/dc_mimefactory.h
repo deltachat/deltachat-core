@@ -14,6 +14,8 @@ typedef struct _dc_mimefactory dc_mimefactory_t;
 #define DC_CMD_MEMBER_REMOVED_FROM_GROUP   5
 #define DC_CMD_AUTOCRYPT_SETUP_MESSAGE     6
 #define DC_CMD_SECUREJOIN_MESSAGE          7
+#define DC_CMD_LOCATION_STREAMING_ENABLED  8
+#define DC_CMD_LOCATION_ONLY               9
 
 
 typedef enum {
@@ -52,6 +54,8 @@ struct _dc_mimefactory {
 	// out: after a call to dc_mimefactory_render(), here's the data or the error
 	MMAPString*   out;
 	int           out_encrypted;
+	int           out_gossiped;
+	uint32_t      out_last_added_location_id;
 	char*         error;
 
 	/* private */

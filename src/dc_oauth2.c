@@ -141,6 +141,10 @@ static int is_expired(dc_context_t* context)
  * With `server_flags` set to #DC_LP_AUTH_OAUTH2,
  * dc_configure() can be called as usual afterwards.
  *
+ * Note: OAuth2 depends on #DC_EVENT_HTTP_POST;
+ * if you have not implemented #DC_EVENT_HTTP_POST in the ui,
+ * OAuth2 **won't work**.
+ *
  * @memberof dc_context_t
  * @param context The context object as created by dc_context_new().
  * @param addr E-mail address the user has entered.

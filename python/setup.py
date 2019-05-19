@@ -10,7 +10,7 @@ def main():
         version=version,
         description='Python bindings for deltachat-core using CFFI',
         long_description=long_description,
-        author='holger krekel, bjoern petersen and contributors',
+        author='holger krekel, Floris Bruynooghe, Bjoern Petersen and contributors',
         setup_requires=['cffi>=1.0.0'],
         install_requires=['cffi>=1.0.0', 'requests', 'attrs', 'six'],
         packages=setuptools.find_packages('src'),
@@ -33,6 +33,7 @@ def read_meta():
             m = re.match('__version__ = "(\S*).*"', line)
             if m:
                 version, = m.groups()
+                break
 
     with open("README.rst") as f:
         long_desc = f.read()

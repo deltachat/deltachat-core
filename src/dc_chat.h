@@ -24,6 +24,8 @@ struct _dc_chat
 	char*           grpid;            /**< Group ID that is used by all clients. Only used if the chat is a group. NULL if unset */
 	int             blocked;          /**< One of DC_CHAT_*_BLOCKED */
 	dc_param_t*     param;            /**< Additional parameters for a chat. Should not be used directly. */
+	time_t          gossiped_timestamp;
+	int             is_sending_locations;
 };
 
 int             dc_chat_load_from_db               (dc_chat_t*, uint32_t id);
@@ -52,6 +54,9 @@ void            dc_set_group_explicitly_left               (dc_context_t*, const
 
 #define         DC_FROM_HANDSHAKE                          0x01
 int             dc_add_contact_to_chat_ex                  (dc_context_t*, uint32_t chat_id, uint32_t contact_id, int flags);
+
+void            dc_reset_gossiped_timestamp                (dc_context_t*, uint32_t chat_id);
+void            dc_set_gossiped_timestamp                  (dc_context_t*, uint32_t chat_id, time_t);
 
 
 #ifdef __cplusplus

@@ -52,6 +52,17 @@ class Account(object):
             raise KeyError("{!r} not a valid config key, existing keys: {!r}".format(
                            name, self._configkeys))
 
+    def get_info(self):
+        """ return dictionary of built config parameters. """
+        lines = from_dc_charpointer(lib.dc_get_info(self._dc_context))
+        d = {}
+        for line in lines.split("\n"):
+            if not line.strip():
+                continue
+            key, value = line.split("=", 1)
+            d[key.lower()] = value
+        return d
+
     def set_config(self, name, value):
         """ set configuration values.
 
@@ -109,6 +120,14 @@ class Account(object):
         self.check_is_configured()
         return from_dc_charpointer(lib.dc_get_info(self._dc_context))
 
+    def get_blobdir(self):
+        """ return the directory for files.
+
+        All sent files are copied to this directory if necessary.
+        Place files there directly to avoid copying.
+        """
+        return from_dc_charpointer(lib.dc_get_blobdir(self._dc_context))
+
     def get_self_contact(self):
         """ return this account's identity as a :class:`deltachat.chatting.Contact`.
 
@@ -122,7 +141,7 @@ class Account(object):
 
         :param view_type: a string specifying "text", "video",
                           "image", "audio" or "file".
-        :returns: :class:`deltachat.chatting.Message` instance.
+        :returns: :class:`deltachat.message.Message` instance.
         """
         return Message.new(self._dc_context, view_type)
 
@@ -148,7 +167,7 @@ class Account(object):
                       whose name or e-mail matches query.
         :param only_verified: if true only return verified contacts.
         :param with_self: if true the self-contact is also returned.
-        :returns: list of :class:`deltachat.chatting.Message` objects.
+        :returns: list of :class:`deltachat.message.Message` objects.
         """
         flags = 0
         query = as_dc_charpointer(query)
@@ -237,7 +256,7 @@ class Account(object):
     def forward_messages(self, messages, chat):
         """ Forward list of messages to a chat.
 
-        :param messages: list of :class:`deltachat.chatting.Message` object.
+        :param messages: list of :class:`deltachat.message.Message` object.
         :param chat: :class:`deltachat.chatting.Chat` object.
         :returns: None
         """
@@ -247,7 +266,7 @@ class Account(object):
     def delete_messages(self, messages):
         """ delete messages (local and remote).
 
-        :param messages: list of :class:`deltachat.chatting.Message` object.
+        :param messages: list of :class:`deltachat.message.Message` object.
         :returns: None
         """
         msg_ids = [msg.id for msg in messages]
@@ -384,7 +403,7 @@ class EventLogger:
 
     def _log_event(self, evt_name, data1, data2):
         # don't show events that are anyway empty impls now
-        if evt_name in ("DC_EVENT_GET_STRING"):
+        if evt_name == "DC_EVENT_GET_STRING":
             return
         if self._debug:
             evpart = "{}({!r},{!r})".format(evt_name, data1, data2)

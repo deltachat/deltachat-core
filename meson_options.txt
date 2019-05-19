@@ -10,3 +10,9 @@ option(
   value: false,
   description: 'Use bundled libetpan, as it ignores --wrap-mode=forcefallback'
 )
+option(
+  'rpgp',
+  type: 'boolean',
+  value: false,
+  description: '[experimental] Build with rpgp instead of netpgp'
+)

@@ -1001,7 +1001,15 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 		{ char* r = dc_loginparam_get_readable(param); dc_log_info(context, 0, "Trying: %s", r); free(r); }
 
 		if (!dc_smtp_connect(context->smtp, param)) {
-			goto cleanup;
+			PROGRESS(860)
+
+			param->server_flags &= ~DC_LP_SMTP_SOCKET_FLAGS;
+			param->server_flags |=  DC_LP_SMTP_SOCKET_STARTTLS;
+			param->send_port    =   TYPICAL_SMTP_PLAIN_PORT;
+			{ char* r = dc_loginparam_get_readable(param); dc_log_info(context, 0, "Trying: %s", r); free(r); }
+			if (!dc_smtp_connect(context->smtp, param)) {
+				goto cleanup;
+			}
 		}
 	}
 

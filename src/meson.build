@@ -15,6 +15,7 @@ lib_src = [
   'dc_loginparam.c',
   'dc_lot.c',
   'dc_move.c',
+  'dc_location.c',
   'dc_context.c',
   'dc_configure.c',
   'dc_e2ee.c',
@@ -44,7 +45,7 @@ lib_src = [
   'dc_jsmn.c',
 ]
 
-lib_deps = [pthreads, zlib, openssl, sasl, sqlite, etpan, netpgp, math]
+lib_deps = [pthreads, zlib, openssl, sasl, sqlite, etpan, netpgp, math, rpgp]
 lib_inc = include_directories('.')
 
 if host_machine.system() == 'darwin'

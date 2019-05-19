@@ -441,6 +441,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 	int                    e2ee_guaranteed = 0;
 	int                    min_verified = DC_NOT_VERIFIED;
 	int                    force_plaintext = 0; // 1=add Autocrypt-header (needed eg. for handshaking), 2=no Autocrypte-header (used for MDN)
+	int                    do_gossip = 0;
 	char*                  grpimage = NULL;
 	dc_e2ee_helper_t       e2ee_helper;
 	memset(&e2ee_helper, 0, sizeof(dc_e2ee_helper_t));
@@ -526,6 +527,13 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 			}
 		}
 
+		// beside key- and member-changes, force re-gossip every 48 hours
+		#define AUTO_REGOSSIP (2*24*60*60)
+		if (chat->gossiped_timestamp==0
+		 || chat->gossiped_timestamp+AUTO_REGOSSIP < time(NULL) ) {
+			do_gossip = 1;
+		}
+
 		/* build header etc. */
 		int command = dc_param_get_int(msg->param, DC_PARAM_CMD, 0);
 		if (DC_CHAT_TYPE_IS_MULTI(chat->type))
@@ -543,6 +551,8 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 			}
 			else if (command==DC_CMD_MEMBER_ADDED_TO_GROUP)
 			{
+				do_gossip = 1;
+
 				char* email_to_add = dc_param_get(msg->param, DC_PARAM_CMD_ARG, NULL);
 				if (email_to_add) {
 					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Member-Added"), email_to_add));
@@ -565,6 +575,12 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Image"), dc_strdup("0")));
 				}
 			}
+		}
+
+		if (command==DC_CMD_LOCATION_STREAMING_ENABLED) {
+			mailimf_fields_add(imf_fields, mailimf_field_new_custom(
+				strdup("Chat-Content"),
+				strdup("location-streaming-enabled")));
 		}
 
 		if (command==DC_CMD_AUTOCRYPT_SETUP_MESSAGE) {
@@ -683,6 +699,42 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 			mailmime_smart_add_part(message, meta_part); /* meta parts are only added if there are other parts */
 			parts++;
 		}
+
+		if (dc_param_exists(msg->param, DC_PARAM_SET_LATITUDE)) {
+			double latitude  = dc_param_get_float(msg->param, DC_PARAM_SET_LATITUDE, 0.0);
+			double longitude = dc_param_get_float(msg->param, DC_PARAM_SET_LONGITUDE, 0.0);
+			char* kml_file = dc_get_message_kml(msg->context, msg->timestamp_sort, latitude, longitude);
+			if (kml_file) {
+				struct mailmime_content* content_type = mailmime_content_new_with_str("application/vnd.google-earth.kml+xml");
+				struct mailmime_fields* mime_fields = mailmime_fields_new_filename(MAILMIME_DISPOSITION_TYPE_ATTACHMENT,
+					dc_strdup("message.kml"), MAILMIME_MECHANISM_8BIT);
+				struct mailmime* kml_mime_part = mailmime_new_empty(content_type, mime_fields);
+				mailmime_set_body_text(kml_mime_part, kml_file, strlen(kml_file));
+
+				mailmime_smart_add_part(message, kml_mime_part);
+				parts++;
+			}
+		}
+
+		if (dc_is_sending_locations_to_chat(msg->context, msg->chat_id)) {
+			uint32_t last_added_location_id = 0;
+			char* kml_file = dc_get_location_kml(msg->context, msg->chat_id,
+				&last_added_location_id);
+			if (kml_file) {
+				struct mailmime_content* content_type = mailmime_content_new_with_str("application/vnd.google-earth.kml+xml");
+				struct mailmime_fields* mime_fields = mailmime_fields_new_filename(MAILMIME_DISPOSITION_TYPE_ATTACHMENT,
+					dc_strdup("location.kml"), MAILMIME_MECHANISM_8BIT);
+				struct mailmime* kml_mime_part = mailmime_new_empty(content_type, mime_fields);
+				mailmime_set_body_text(kml_mime_part, kml_file, strlen(kml_file));
+
+				mailmime_smart_add_part(message, kml_mime_part);
+				parts++;
+
+				if (!dc_param_exists(msg->param, DC_PARAM_SET_LATITUDE)) { // otherwise, the independent location is already filed
+					factory->out_last_added_location_id = last_added_location_id;
+				}
+			}
+		}
 	}
 	else if (factory->loaded==DC_MF_MDN_LOADED)
 	{
@@ -761,11 +813,17 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 	mailimf_fields_add(imf_fields, mailimf_field_new(MAILIMF_FIELD_SUBJECT, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, subject, NULL, NULL, NULL));
 
 	if (force_plaintext!=DC_FP_NO_AUTOCRYPT_HEADER) {
-		dc_e2ee_encrypt(factory->context, factory->recipients_addr, force_plaintext, e2ee_guaranteed, min_verified, message, &e2ee_helper);
+		dc_e2ee_encrypt(factory->context, factory->recipients_addr,
+			force_plaintext, e2ee_guaranteed, min_verified,
+			do_gossip, message, &e2ee_helper);
+
 	}
 
 	if (e2ee_helper.encryption_successfull) {
 		factory->out_encrypted = 1;
+		if (do_gossip) {
+			factory->out_gossiped = 1;
+		}
 	}
 
 	/* create the full mail and return */

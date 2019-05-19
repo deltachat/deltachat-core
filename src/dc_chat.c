@@ -78,6 +78,7 @@ void dc_chat_empty(dc_chat_t* chat)
 	chat->grpid = NULL;
 
 	chat->blocked = 0;
+	chat->gossiped_timestamp = 0;
 
 	dc_param_set_packed(chat->param, NULL);
 }
@@ -387,6 +388,25 @@ int dc_chat_is_self_talk(const dc_chat_t* chat)
 }
 
 
+/**
+ * Check if locations are sent to the chat
+ * at the time the object was created using dc_get_chat().
+ * To check if locations are sent to _any_ chat,
+ * use dc_is_sending_locations_to_chat().
+ *
+ * @memberof dc_chat_t
+ * @param chat The chat object.
+ * @return 1=locations are sent to chat, 0=no locations are sent to chat
+ */
+int dc_chat_is_sending_locations(const dc_chat_t* chat)
+{
+	if (chat==NULL || chat->magic!=DC_CHAT_MAGIC) {
+		return 0;
+	}
+	return chat->is_sending_locations;
+}
+
+
 int dc_chat_update_param(dc_chat_t* chat)
 {
 	int success = 0;
@@ -410,7 +430,7 @@ static int set_from_stmt(dc_chat_t* chat, sqlite3_stmt* row)
 
 	dc_chat_empty(chat);
 
-	#define CHAT_FIELDS " c.id,c.type,c.name, c.grpid,c.param,c.archived, c.blocked "
+	#define CHAT_FIELDS " c.id,c.type,c.name, c.grpid,c.param,c.archived, c.blocked, c.gossiped_timestamp, c.locations_send_until "
 	chat->id              =                    sqlite3_column_int  (row, row_offset++); /* the columns are defined in CHAT_FIELDS */
 	chat->type            =                    sqlite3_column_int  (row, row_offset++);
 	chat->name            =   dc_strdup((char*)sqlite3_column_text (row, row_offset++));
@@ -418,6 +438,8 @@ static int set_from_stmt(dc_chat_t* chat, sqlite3_stmt* row)
 	dc_param_set_packed(chat->param,    (char*)sqlite3_column_text (row, row_offset++));
 	chat->archived        =                    sqlite3_column_int  (row, row_offset++);
 	chat->blocked         =                    sqlite3_column_int  (row, row_offset++);
+	chat->gossiped_timestamp =                 sqlite3_column_int64(row, row_offset++);
+	chat->is_sending_locations =              (sqlite3_column_int64(row, row_offset++)>time(NULL));
 
 	/* correct the title of some special groups */
 	if (chat->id==DC_CHAT_ID_DEADDROP) {
@@ -480,6 +502,40 @@ int dc_chat_load_from_db(dc_chat_t* chat, uint32_t chat_id)
 cleanup:
 	sqlite3_finalize(stmt);
 	return success;
+}
+
+
+void dc_set_gossiped_timestamp(dc_context_t* context,
+                               uint32_t chat_id, time_t timestamp)
+{
+	sqlite3_stmt* stmt = NULL;
+
+	if (chat_id) {
+		dc_log_info(context, 0, "set gossiped_timestamp for chat #%i to %i.",
+			(int)chat_id, (int)timestamp);
+
+		stmt = dc_sqlite3_prepare(context->sql,
+			"UPDATE chats SET gossiped_timestamp=? WHERE id=?;");
+		sqlite3_bind_int64(stmt, 1, timestamp);
+		sqlite3_bind_int  (stmt, 2, chat_id);
+	}
+	else {
+		dc_log_info(context, 0, "set gossiped_timestamp for all chats to %i.",
+			(int)timestamp);
+
+		stmt = dc_sqlite3_prepare(context->sql,
+			"UPDATE chats SET gossiped_timestamp=?;");
+		sqlite3_bind_int64(stmt, 1, timestamp);
+	}
+
+	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+}
+
+
+void dc_reset_gossiped_timestamp(dc_context_t* context, uint32_t chat_id)
+{
+	dc_set_gossiped_timestamp(context, chat_id, 0);
 }
 
 
@@ -1016,16 +1072,22 @@ dc_array_t* dc_get_chat_msgs(dc_context_t* context, uint32_t chat_id, uint32_t f
 
 	if (chat_id==DC_CHAT_ID_DEADDROP)
 	{
+		int show_emails = dc_sqlite3_get_config_int(context->sql,
+			"show_emails", DC_SHOW_EMAILS_DEFAULT);
+
 		stmt = dc_sqlite3_prepare(context->sql,
 			"SELECT m.id, m.timestamp"
 				" FROM msgs m"
 				" LEFT JOIN chats ON m.chat_id=chats.id"
 				" LEFT JOIN contacts ON m.from_id=contacts.id"
 				" WHERE m.from_id!=" DC_STRINGIFY(DC_CONTACT_ID_SELF)
+				"   AND m.from_id!=" DC_STRINGIFY(DC_CONTACT_ID_DEVICE)
 				"   AND m.hidden=0 "
 				"   AND chats.blocked=" DC_STRINGIFY(DC_CHAT_DEADDROP_BLOCKED)
 				"   AND contacts.blocked=0"
+				"   AND m.msgrmsg>=? "
 				" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
+		sqlite3_bind_int(stmt, 1, show_emails==DC_SHOW_EMAILS_ALL? 0 : 1);
 	}
 	else if (chat_id==DC_CHAT_ID_STARRED)
 	{
@@ -1930,6 +1992,8 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 		goto cleanup;
 	}
 
+	dc_reset_gossiped_timestamp(context, chat_id);
+
 	if (0==real_group_exists(context, chat_id) /*this also makes sure, not contacts are added to special or normal chats*/
 	 || (0==dc_real_contact_exists(context, contact_id) && contact_id!=DC_CONTACT_ID_SELF)
 	 || 0==dc_chat_load_from_db(chat, chat_id)) {
@@ -2176,7 +2240,7 @@ cleanup:
 }
 
 
-static uint32_t send_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc_msg_t* msg, time_t timestamp)
+static uint32_t prepare_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc_msg_t* msg, time_t timestamp)
 {
 	char*         parent_rfc724_mid = NULL;
 	char*         parent_references = NULL;
@@ -2187,6 +2251,7 @@ static uint32_t send_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc_ms
 	sqlite3_stmt* stmt = NULL;
 	uint32_t      msg_id = 0;
 	uint32_t      to_id = 0;
+	uint32_t      location_id = 0;
 
 	if (!DC_CHAT_TYPE_CAN_SEND(chat->type)) {
 		dc_log_error(context, 0, "Cannot send to chat type #%i.", chat->type);
@@ -2327,31 +2392,52 @@ static uint32_t send_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc_ms
 		}
 	}
 
+	/* add independent location to database */
+	if (dc_param_exists(msg->param, DC_PARAM_SET_LATITUDE)) {
+		stmt = dc_sqlite3_prepare(context->sql,
+			"INSERT INTO locations "
+			" (timestamp,from_id,chat_id, latitude,longitude,independent)"
+			" VALUES (?,?,?, ?,?,1);");
+		sqlite3_bind_int64 (stmt, 1, timestamp);
+		sqlite3_bind_int   (stmt, 2, DC_CONTACT_ID_SELF);
+		sqlite3_bind_int   (stmt, 3, chat->id);
+		sqlite3_bind_double(stmt, 4, dc_param_get_float(msg->param, DC_PARAM_SET_LATITUDE, 0.0));
+		sqlite3_bind_double(stmt, 5, dc_param_get_float(msg->param, DC_PARAM_SET_LONGITUDE, 0.0));
+		sqlite3_step(stmt);
+		sqlite3_finalize(stmt);
+		stmt = NULL;
+
+		location_id = dc_sqlite3_get_rowid2(context->sql, "locations",
+				"timestamp", timestamp,
+				"from_id", DC_CONTACT_ID_SELF);
+
+	}
+
 	/* add message to the database */
 	stmt = dc_sqlite3_prepare(context->sql,
 		"INSERT INTO msgs (rfc724_mid, chat_id, from_id, to_id, timestamp,"
 		" type, state, txt, param, hidden,"
-		" mime_in_reply_to, mime_references)"
-		" VALUES (?,?,?,?,?, ?,?,?,?,?, ?,?);");
+		" mime_in_reply_to, mime_references, location_id)"
+		" VALUES (?,?,?,?,?, ?,?,?,?,?, ?,?,?);");
 	sqlite3_bind_text (stmt,  1, new_rfc724_mid, -1, SQLITE_STATIC);
 	sqlite3_bind_int  (stmt,  2, chat->id);
 	sqlite3_bind_int  (stmt,  3, DC_CONTACT_ID_SELF);
 	sqlite3_bind_int  (stmt,  4, to_id);
 	sqlite3_bind_int64(stmt,  5, timestamp);
 	sqlite3_bind_int  (stmt,  6, msg->type);
-	sqlite3_bind_int  (stmt,  7, DC_STATE_OUT_PENDING);
+	sqlite3_bind_int  (stmt,  7, msg->state);
 	sqlite3_bind_text (stmt,  8, msg->text? msg->text : "",  -1, SQLITE_STATIC);
 	sqlite3_bind_text (stmt,  9, msg->param->packed, -1, SQLITE_STATIC);
 	sqlite3_bind_int  (stmt, 10, msg->hidden);
 	sqlite3_bind_text (stmt, 11, new_in_reply_to, -1, SQLITE_STATIC);
 	sqlite3_bind_text (stmt, 12, new_references, -1, SQLITE_STATIC);
+	sqlite3_bind_int  (stmt, 13, location_id);
 	if (sqlite3_step(stmt)!=SQLITE_DONE) {
 		dc_log_error(context, 0, "Cannot send message, cannot insert to database.", chat->id);
 		goto cleanup;
 	}
 
 	msg_id = dc_sqlite3_get_rowid(context->sql, "msgs", "rfc724_mid", new_rfc724_mid);
-	dc_job_add(context, DC_JOB_SEND_MSG_TO_SMTP, msg_id, NULL, 0);
 
 cleanup:
 	free(parent_rfc724_mid);
@@ -2365,51 +2451,10 @@ cleanup:
 }
 
 
-/**
- * Send a message defined by a dc_msg_t object to a chat.
- *
- * Sends the event #DC_EVENT_MSGS_CHANGED on succcess.
- * However, this does not imply, the message really reached the recipient -
- * sending may be delayed eg. due to network problems. However, from your
- * view, you're done with the message. Sooner or later it will find its way.
- *
- * Example:
- * ~~~
- * dc_msg_t* msg = dc_msg_new(context, DC_MSG_IMAGE);
- * dc_msg_set_file(msg, "/file/to/send.jpg", NULL);
- * dc_send_msg(context, msg);
- * ~~~
- *
- * You can even call this function if the file to be sent is still in creation.
- * For this purpose, create a file with the additional extension `.increation`
- * beside the file to sent. Once you're done with creating the file, delete the
- * increation-file and the message will really be sent.
- * This is useful as the user can already send the next messages while
- * eg. the recoding of a video is not yet finished. Or the user can even forward
- * the message with the file being still in creation to other groups.
- *
- * Files being sent with the increation-method must be placed in the
- * blob directory, see dc_get_blobdir().
- * If the increation-method is not used - which is probably the normal case -
- * the file is copied to the blob directory if it is not yet there.
- *
- * @memberof dc_context_t
- * @param context The context object as returned from dc_context_new().
- * @param chat_id Chat ID to send the message to.
- * @param msg Message object to send to the chat defined by the chat ID.
- *     On succcess, msg_id of the object is set up,
- *     The function does not take ownership of the object,
- *     so you have to free it using dc_msg_unref() as usual.
- * @return The ID of the message that is about being sent.
- */
-uint32_t dc_send_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
+static uint32_t prepare_msg_common(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 {
 	char*      pathNfilename = NULL;
 	dc_chat_t* chat = NULL;
-
-	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || msg==NULL || chat_id<=DC_CHAT_ID_LAST_SPECIAL) {
-		return 0;
-	}
 
 	msg->id      = 0;
 	msg->context = context;
@@ -2426,7 +2471,7 @@ uint32_t dc_send_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 			goto cleanup;
 		}
 
-		if (dc_msg_is_increation(msg) && !dc_is_blobdir_path(context, pathNfilename)) {
+		if (msg->state==DC_STATE_OUT_PREPARING && !dc_is_blobdir_path(context, pathNfilename)) {
 			dc_log_error(context, 0, "Files must be created in the blob-directory.");
 			goto cleanup;
 		}
@@ -2473,17 +2518,149 @@ uint32_t dc_send_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 
 	chat = dc_chat_new(context);
 	if (dc_chat_load_from_db(chat, chat_id)) {
-		msg->id = send_msg_raw(context, chat, msg, dc_create_smeared_timestamp(context));
-		if (msg->id==0) {
-			goto cleanup; /* error already logged */
-		}
-	}
+		/* ensure the message is in a valid state */
+		if (msg->state!=DC_STATE_OUT_PREPARING) msg->state = DC_STATE_OUT_PENDING;
 
-	context->cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg->id);
+		msg->id = prepare_msg_raw(context, chat, msg, dc_create_smeared_timestamp(context));
+		msg->chat_id = chat_id;
+		/* potential error already logged */
+	}
 
 cleanup:
 	dc_chat_unref(chat);
 	free(pathNfilename);
+	return msg->id;
+}
+
+
+/**
+ * Prepare a message for sending.
+ *
+ * Call this function if the file to be sent is still in creation.
+ * Once you're done with creating the file, call dc_send_msg() as usual
+ * and the message will really be sent.
+ *
+ * This is useful as the user can already send the next messages while
+ * e.g. the recoding of a video is not yet finished. Or the user can even forward
+ * the message with the file being still in creation to other groups.
+ *
+ * Files being sent with the increation-method must be placed in the
+ * blob directory, see dc_get_blobdir().
+ * If the increation-method is not used - which is probably the normal case -
+ * dc_send_msg() copies the file to the blob directory if it is not yet there.
+ * To distinguish the two cases, msg->state must be set properly. The easiest
+ * way to ensure this is to re-use the same object for both calls.
+ *
+ * Example:
+ * ~~~
+ * dc_msg_t* msg = dc_msg_new(context, DC_MSG_VIDEO);
+ * dc_msg_set_file(msg, "/file/to/send.mp4", NULL);
+ * dc_prepare_msg(context, chat_id, msg);
+ * // ... after /file/to/send.mp4 is ready:
+ * dc_send_msg(context, chat_id, msg);
+ * ~~~
+ *
+ * @memberof dc_context_t
+ * @param context The context object as returned from dc_context_new().
+ * @param chat_id Chat ID to send the message to.
+ * @param msg Message object to send to the chat defined by the chat ID.
+ *     On succcess, msg_id and state of the object are set up,
+ *     The function does not take ownership of the object,
+ *     so you have to free it using dc_msg_unref() as usual.
+ * @return The ID of the message that is being prepared.
+ */
+uint32_t dc_prepare_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
+{
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || msg==NULL || chat_id<=DC_CHAT_ID_LAST_SPECIAL) {
+		return 0;
+	}
+
+	msg->state = DC_STATE_OUT_PREPARING;
+	uint32_t msg_id = prepare_msg_common(context, chat_id, msg);
+
+	context->cb(context, DC_EVENT_MSGS_CHANGED, msg->chat_id, msg->id);
+	if (dc_param_exists(msg->param, DC_PARAM_SET_LATITUDE)) {
+		context->cb(context, DC_EVENT_LOCATION_CHANGED, DC_CONTACT_ID_SELF, 0);
+	}
+
+	return msg_id;
+}
+
+/**
+ * Send a message defined by a dc_msg_t object to a chat.
+ *
+ * Sends the event #DC_EVENT_MSGS_CHANGED on succcess.
+ * However, this does not imply, the message really reached the recipient -
+ * sending may be delayed eg. due to network problems. However, from your
+ * view, you're done with the message. Sooner or later it will find its way.
+ *
+ * Example:
+ * ~~~
+ * dc_msg_t* msg = dc_msg_new(context, DC_MSG_IMAGE);
+ * dc_msg_set_file(msg, "/file/to/send.jpg", NULL);
+ * dc_send_msg(context, chat_id, msg);
+ * ~~~
+ *
+ * @memberof dc_context_t
+ * @param context The context object as returned from dc_context_new().
+ * @param chat_id Chat ID to send the message to.
+ *     If dc_prepare_msg() was called before, this parameter can be 0.
+ * @param msg Message object to send to the chat defined by the chat ID.
+ *     On succcess, msg_id of the object is set up,
+ *     The function does not take ownership of the object,
+ *     so you have to free it using dc_msg_unref() as usual.
+ * @return The ID of the message that is about to be sent. 0 in case of errors.
+ */
+uint32_t dc_send_msg(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
+{
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || msg==NULL) {
+		return 0;
+	}
+
+	// automatically prepare normal messages
+	if (msg->state!=DC_STATE_OUT_PREPARING) {
+		if (!prepare_msg_common(context, chat_id, msg)) {
+			return 0;
+		};
+	}
+	// update message state of separately prepared messages
+	else {
+		if (chat_id!=0 && chat_id!=msg->chat_id) {
+			return 0;
+		}
+		dc_update_msg_state(context, msg->id, DC_STATE_OUT_PENDING);
+	}
+
+	// create message file and submit SMTP job
+	if (!dc_job_send_msg(context, msg->id)) {
+		return 0;
+	}
+
+	context->cb(context, DC_EVENT_MSGS_CHANGED, msg->chat_id, msg->id);
+	if (dc_param_exists(msg->param, DC_PARAM_SET_LATITUDE)) {
+		context->cb(context, DC_EVENT_LOCATION_CHANGED, DC_CONTACT_ID_SELF, 0);
+	}
+
+	// recursively send any forwarded copies
+	if (!chat_id) {
+		char* forwards = dc_param_get(msg->param, DC_PARAM_PREP_FORWARDS, NULL);
+		if (forwards) {
+			char* p = forwards;
+			while (*p) {
+				int32_t id = strtol(p, &p, 10);
+				if (!id) break; // avoid hanging if user tampers with db
+				dc_msg_t* copy = dc_get_msg(context, id);
+				if (copy) {
+					dc_send_msg(context, 0, copy);
+				}
+				dc_msg_unref(copy);
+			}
+			dc_param_set(msg->param, DC_PARAM_PREP_FORWARDS, NULL);
+			dc_msg_save_param_to_disk(msg);
+		}
+		free(forwards);
+	}
+
 	return msg->id;
 }
 
@@ -2584,6 +2761,7 @@ void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt
 	char*          q3 = NULL;
 	sqlite3_stmt*  stmt = NULL;
 	time_t         curr_timestamp = 0;
+	dc_param_t*    original_param = dc_param_new();
 
 	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC || msg_ids==NULL || msg_cnt<=0 || chat_id<=DC_CHAT_ID_LAST_SPECIAL) {
 		goto cleanup;
@@ -2612,6 +2790,8 @@ void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt
 				goto cleanup;
 			}
 
+			dc_param_set_packed(original_param, msg->param->packed);
+
 			// do not mark own messages as being forwarded.
 			// this allows sort of broadcasting
 			// by just forwarding messages to other chats.
@@ -2623,7 +2803,33 @@ void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt
 			dc_param_set(msg->param, DC_PARAM_FORCE_PLAINTEXT, NULL);
 			dc_param_set(msg->param, DC_PARAM_CMD, NULL);
 
-			uint32_t new_msg_id = send_msg_raw(context, chat, msg, curr_timestamp++);
+			uint32_t new_msg_id;
+			// PREPARING messages can't be forwarded immediately
+			if (msg->state==DC_STATE_OUT_PREPARING) {
+				new_msg_id = prepare_msg_raw(context, chat, msg, curr_timestamp++);
+
+				// to update the original message, perform in-place surgery
+				// on msg to avoid copying the entire structure, text, etc.
+				dc_param_t* save_param = msg->param;
+				msg->param = original_param;
+				msg->id = src_msg_id;
+				{
+					// append new id to the original's param.
+					char* old_fwd = dc_param_get(msg->param, DC_PARAM_PREP_FORWARDS, "");
+					char* new_fwd = dc_mprintf("%s %d", old_fwd, new_msg_id);
+					dc_param_set(msg->param, DC_PARAM_PREP_FORWARDS, new_fwd);
+					dc_msg_save_param_to_disk(msg);
+					free(new_fwd);
+					free(old_fwd);
+				}
+				msg->param = save_param;
+			}
+			else {
+				msg->state = DC_STATE_OUT_PENDING;
+				new_msg_id = prepare_msg_raw(context, chat, msg, curr_timestamp++);
+				dc_job_send_msg(context, new_msg_id);
+			}
+
 			carray_add(created_db_entries, (void*)(uintptr_t)chat_id, NULL);
 			carray_add(created_db_entries, (void*)(uintptr_t)new_msg_id, NULL);
 		}
@@ -2646,4 +2852,5 @@ cleanup:
 	sqlite3_finalize(stmt);
 	free(idsstr);
 	sqlite3_free(q3);
+	dc_param_unref(original_param);
 }

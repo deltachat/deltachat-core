@@ -11,6 +11,10 @@ your library */
 #include "../src/dc_sqlite3.h"
 
 
+#define UTF8_LOCK          "\xF0\x9F\x94\x92"
+#define UTF8_BLACK_STAR    "\xE2\x98\x85"
+#define UTF8_ROUND_PUSHPIN "\xF0\x9F\x93\x8D"
+
 
 /*
  * Reset database tables. This function is called from Core cmdline.
@@ -260,14 +264,15 @@ static void log_msg(dc_context_t* context, const char* prefix, dc_msg_t* msg)
 
 	char* temp2 = dc_timestamp_to_str(dc_msg_get_timestamp(msg));
 	char* msgtext = dc_msg_get_text(msg);
-		dc_log_info(context, 0, "%s#%i%s: %s (Contact#%i): %s %s%s%s%s [%s]",
+		dc_log_info(context, 0, "%s#%i%s%s: %s (Contact#%i): %s %s%s%s%s [%s]",
 			prefix,
 			(int)dc_msg_get_id(msg),
-			dc_msg_get_showpadlock(msg)? "\xF0\x9F\x94\x92" : "",
+			dc_msg_get_showpadlock(msg)? UTF8_LOCK : "",
+			dc_msg_has_location(msg)? UTF8_ROUND_PUSHPIN : "",
 			contact_name,
 			contact_id,
 			msgtext,
-			dc_msg_is_starred(msg)? " \xE2\x98\x85" : "",
+			dc_msg_is_starred(msg)? " " UTF8_BLACK_STAR : "",
 			dc_msg_get_from_id(msg)==1? "" : (dc_msg_get_state(msg)==DC_STATE_IN_SEEN? "[SEEN]" : (dc_msg_get_state(msg)==DC_STATE_IN_NOTICED? "[NOTICED]":"[FRESH]")),
 			dc_msg_is_info(msg)? "[INFO]" : "",
 			statestr,
@@ -304,11 +309,14 @@ static void log_msglist(dc_context_t* context, dc_array_t* msglist)
 
 static void log_contactlist(dc_context_t* context, dc_array_t* contacts)
 {
-	int              i, cnt = dc_array_get_cnt(contacts);
 	dc_contact_t*    contact = NULL;
 	dc_apeerstate_t* peerstate = dc_apeerstate_new(context);
 
-	for (i = 0; i < cnt; i++) {
+	if (!dc_array_search_id(contacts, DC_CONTACT_ID_SELF, NULL)) {
+		dc_array_add_id(contacts, DC_CONTACT_ID_SELF);
+	}
+
+	for (int i = 0; i < dc_array_get_cnt(contacts); i++) {
 		uint32_t contact_id = dc_array_get_id(contacts, i);
 		char* line = NULL;
 		char* line2 = NULL;
@@ -333,13 +341,10 @@ static void log_contactlist(dc_context_t* context, dc_array_t* contacts)
 			dc_contact_unref(contact);
 			free(name);
 			free(addr);
+			dc_log_info(context, 0, "Contact#%i: %s%s", (int)contact_id, line, line2? line2:"");
+			free(line);
+			free(line2);
 		}
-		else {
-			line = dc_strdup("Read error.");
-		}
-		dc_log_info(context, 0, "Contact#%i: %s%s", (int)contact_id, line, line2? line2:"");
-		free(line);
-		free(line2);
 	}
 
 	dc_apeerstate_unref(peerstate);
@@ -437,9 +442,14 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 				"groupname <name>\n"
 				"groupimage [<file>]\n"
 				"chatinfo\n"
+				"sendlocations <seconds>\n"
+				"setlocation <lat> <lng>\n"
+				"dellocations\n"
+				"getlocations [<contact-id>]\n"
 				"send <text>\n"
 				"sendimage <file> [<text>]\n"
 				"sendfile <file>\n"
+				"sendpoi <lat> <lang> <text>\n"
 				"draft [<text>]\n"
 				"listmedia\n"
 				"archive <chat-id>\n"
@@ -706,11 +716,12 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 						char* timestr = dc_timestamp_to_str(dc_lot_get_timestamp(lot));
 						char* text1 = dc_lot_get_text1(lot);
 						char* text2 = dc_lot_get_text2(lot);
-							dc_log_info(context, 0, "%s%s%s%s [%s]",
+							dc_log_info(context, 0, "%s%s%s%s [%s]%s",
 								text1? text1 : "",
 								text1? ": " : "",
 								text2? text2 : "",
-								statestr, timestr
+								statestr, timestr,
+								dc_chat_is_sending_locations(chat)? UTF8_ROUND_PUSHPIN : ""
 								);
 						free(text1);
 						free(text2);
@@ -722,6 +733,9 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 
 					dc_log_info(context, 0, "================================================================================");
 				}
+			}
+			if (dc_is_sending_locations_to_chat(context, 0)) {
+				dc_log_info(context, 0, "Location streaming enabled.");
 			}
 			ret = dc_mprintf("%i chats.", (int)cnt);
 			dc_chatlist_unref(chatlist);
@@ -747,7 +761,10 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 			dc_array_t* msglist = dc_get_chat_msgs(context, dc_chat_get_id(sel_chat), DC_GCM_ADDDAYMARKER, 0);
 			char* temp2 = dc_chat_get_subtitle(sel_chat);
 			char* temp_name = dc_chat_get_name(sel_chat);
-				dc_log_info(context, 0, "%s#%i: %s [%s]", chat_prefix(sel_chat), dc_chat_get_id(sel_chat), temp_name, temp2);
+				dc_log_info(context, 0, "%s#%i: %s [%s]%s",
+					chat_prefix(sel_chat), dc_chat_get_id(sel_chat),
+					temp_name, temp2,
+					dc_chat_is_sending_locations(sel_chat)? UTF8_ROUND_PUSHPIN : "");
 			free(temp_name);
 			free(temp2);
 			if (msglist) {
@@ -884,8 +901,14 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 			dc_array_t* contacts = dc_get_chat_contacts(context, dc_chat_get_id(sel_chat));
 			if (contacts) {
 				dc_log_info(context, 0, "Memberlist:");
+
 				log_contactlist(context, contacts);
-				ret = dc_mprintf("%i contacts.", (int)dc_array_get_cnt(contacts));
+
+				ret = dc_mprintf("%i contacts\nLocation streaming: %i",
+					(int)dc_array_get_cnt(contacts),
+					dc_is_sending_locations_to_chat(context, dc_chat_get_id(sel_chat)));
+
+				dc_array_unref(contacts);
 			}
 			else {
 				ret = COMMAND_FAILED;
@@ -894,6 +917,69 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 		else {
 			ret = dc_strdup("No chat selected.");
 		}
+	}
+	else if(strcmp(cmd, "getlocations")==0)
+	{
+		int contact_id = arg1? atoi(arg1) : 0;
+		dc_array_t* loc = dc_get_locations(context, dc_chat_get_id(sel_chat), contact_id, 0, 0);
+		for (int j=dc_array_get_cnt(loc)-1; j>=0; j--) {
+			char* timestr = dc_timestamp_to_str(dc_array_get_timestamp(loc, j));
+			char* marker = dc_array_get_marker(loc, j);
+			dc_log_info(context, 0, "Loc#%i: %s: lat=%f lng=%f acc=%f Chat#%i Contact#%i Msg#%i %s%s",
+				dc_array_get_id(loc, j),
+				timestr,
+				dc_array_get_latitude(loc, j),
+				dc_array_get_longitude(loc, j),
+				dc_array_get_accuracy(loc, j),
+				dc_array_get_chat_id(loc, j),
+				dc_array_get_contact_id(loc, j),
+				dc_array_get_msg_id(loc, j),
+				marker? marker : "-",
+				dc_array_is_independent(loc, j)? " [independent]" : "");
+			free(timestr);
+			free(marker);
+		}
+		if (dc_array_get_cnt(loc)==0) {
+			dc_log_info(context, 0, "No locations.");
+		}
+		dc_array_unref(loc);
+		ret = COMMAND_SUCCEEDED;
+	}
+	else if (strcmp(cmd, "sendlocations")==0)
+	{
+		if (sel_chat) {
+			if (arg1 && arg1[0]) {
+				int seconds = atoi(arg1);
+				dc_send_locations_to_chat(context, dc_chat_get_id(sel_chat), seconds);
+				ret = dc_mprintf("Locations will be sent to Chat#%i for %i seconds. "
+					"Use 'setlocation <lat> <lng>' to play around.",
+					dc_chat_get_id(sel_chat), seconds);
+			}
+			else {
+				ret = dc_strdup("ERROR: No timeout given.");
+			}
+		}
+		else {
+			ret = dc_strdup("No chat selected.");
+		}
+	}
+	else if (strcmp(cmd, "setlocation")==0) {
+		char* arg2 = NULL;
+		if (arg1) { arg2 = strrchr(arg1, ' '); }
+		if (arg1 && arg2) {
+			*arg2 = 0; arg2++;
+			double latitude = atof(arg1);
+			double longitude = atof(arg2);
+			int continue_streaming = dc_set_location(context, latitude, longitude, 0.0);
+			ret = dc_strdup(continue_streaming? "Success, streaming should be continued." : "Success, streaming can be stoppped.");
+		}
+		else {
+			ret = dc_strdup("ERROR: Latitude or longitude not given.");
+		}
+	}
+	else if (strcmp(cmd, "dellocations")==0) {
+		dc_delete_all_locations(context);
+		ret = COMMAND_SUCCEEDED;
 	}
 	else if (strcmp(cmd, "send")==0)
 	{
@@ -945,6 +1031,31 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 			}
 			else {
 				ret = dc_strdup("ERROR: No file given.");
+			}
+		}
+		else {
+			ret = dc_strdup("No chat selected.");
+		}
+	}
+	else if (strcmp(cmd, "sendpoi")==0)
+	{
+		if (sel_chat) {
+			char* arg2 = arg1? strchr(arg1, ' ') : NULL;
+			if (arg2) { *arg2 = 0; arg2++; }
+
+			char* arg3 = arg2? strchr(arg2, ' ') : NULL;
+			if (arg3) { *arg3 = 0; arg3++; }
+
+			if (arg1 && arg2 && arg3) {
+				dc_msg_t* msg = dc_msg_new(context,DC_MSG_TEXT);
+				dc_msg_set_text(msg, arg3);
+				dc_msg_set_location(msg, dc_atof(arg1), dc_atof(arg2));
+				dc_send_msg(context, dc_chat_get_id(sel_chat), msg);
+				dc_msg_unref(msg);
+				ret = COMMAND_SUCCEEDED;
+			}
+			else {
+				ret = dc_strdup("ERROR: Usage: sendpoi <lat> <lng> <text>");
 			}
 		}
 		else {

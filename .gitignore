@@ -1,6 +1,11 @@
 # ignore backup files
 *~
 
+# ignore tox and docker stuff
+.docker-*
+wheelhouse
+workspace
+
 # ignore build temporary files
 *.o
 .deps
@@ -12,7 +17,7 @@ __pycache__
 python/dist
 
 # ignore Codeblocks temporary files and build directories.
-# Codeblocks project file (*.cbp) is added although it may contain some user preferences (eg. program's arguments), it may be useful for some people
+*.cbp
 *.depend
 *.layout
 /bin/
@@ -62,3 +67,5 @@ python/src/deltachat/capi*so
 python/wheelhouse/
 
 .*.swp
+
+build

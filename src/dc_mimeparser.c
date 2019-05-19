@@ -940,6 +940,12 @@ void dc_mimeparser_empty(dc_mimeparser_t* mimeparser)
 	mimeparser->decrypting_failed = 0;
 
 	dc_e2ee_thanks(mimeparser->e2ee_helper);
+
+	dc_kml_unref(mimeparser->location_kml);
+	mimeparser->location_kml = NULL;
+
+	dc_kml_unref(mimeparser->message_kml);
+	mimeparser->message_kml = NULL;
 }
 
 
@@ -1189,6 +1195,20 @@ static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* mimeparser, s
 					else {
 						goto cleanup;
 					}
+				}
+
+				if (strncmp(desired_filename, "location", 8)==0
+				 && strncmp(desired_filename+strlen(desired_filename)-4, ".kml", 4)==0) {
+					mimeparser->location_kml = dc_kml_parse(mimeparser->context,
+						decoded_data, decoded_data_bytes);
+					goto cleanup;
+				}
+
+				if (strncmp(desired_filename, "message", 7)==0
+				 && strncmp(desired_filename+strlen(desired_filename)-4, ".kml", 4)==0) {
+					mimeparser->message_kml = dc_kml_parse(mimeparser->context,
+						decoded_data, decoded_data_bytes);
+					goto cleanup;
 				}
 
 				dc_replace_bad_utf8_chars(desired_filename);
@@ -1478,8 +1498,9 @@ static void hash_header(dc_hash_t* out, const struct mailimf_fields* in, dc_cont
  */
 void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_terminated, size_t body_bytes)
 {
-	int    r = 0;
-	size_t index = 0;
+	int                            r = 0;
+	size_t                         index = 0;
+	struct mailimf_optional_field* optional_field = NULL;
 
 	dc_mimeparser_empty(mimeparser);
 
@@ -1533,7 +1554,13 @@ void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_termi
 				}
 			}
 		}
-		mimeparser->is_send_by_messenger = 0; /* do not treat a setup message as a messenger message (eg. do not move setup messages to the Chats-folder; there may be a 3rd device that wants to handle it) */
+	}
+	else if ((optional_field=dc_mimeparser_lookup_optional_field(mimeparser, "Chat-Content"))!=NULL
+	       && optional_field->fld_value!=NULL)
+	{
+		if (strcmp(optional_field->fld_value, "location-streaming-enabled")==0) {
+			mimeparser->is_system_message = DC_CMD_LOCATION_STREAMING_ENABLED;
+		}
 	}
 
 	/* some special system message? */

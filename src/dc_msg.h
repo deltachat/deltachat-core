@@ -68,9 +68,10 @@ struct _dc_msg
 	char*           in_reply_to;
 	char*           server_folder;          /**< Folder where the message was last seen on the server */
 	uint32_t        server_uid;             /**< UID last seen on the server for this message */
-	int             is_dc_message;          /**< Set to 1 if the message was sent by another messenger. 0 otherwise. */
+	int             is_dc_message;          /**< Set to 1 if the message was sent by another messenger. 2=reply to messenger message. 0 otherwise. */
 	int             starred;                /**< Starred-state of the message. 0=no, 1=yes. */
 	int             chat_blocked;           /**< Internal */
+	uint32_t        location_id;
 	dc_param_t*     param;                  /**< Additional paramter for the message. Never a NULL-pointer. It is recommended to use setters and getters instead of accessing this field directly. */
 };
 
@@ -96,6 +97,7 @@ The value is also used for CC:-summaries */
 
 
 // Context functions to work with messages
+int             dc_msg_exists                              (dc_context_t*, uint32_t msg_id);
 void            dc_update_msg_chat_id                      (dc_context_t*, uint32_t msg_id, uint32_t chat_id);
 void            dc_update_msg_state                        (dc_context_t*, uint32_t msg_id, int state);
 void            dc_update_msg_move_state                   (dc_context_t*, const char* rfc724_mid, dc_move_state_t);

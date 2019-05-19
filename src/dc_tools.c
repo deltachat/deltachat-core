@@ -56,6 +56,36 @@ int dc_atoi_null_is_0(const char* s)
 }
 
 
+double dc_atof(const char* str)
+{
+	// hack around atof() that may accept only `,` as decimal point on mac
+	char* test = dc_mprintf("%f", 1.2);
+	test[2] = 0;
+
+	char* str_locale = dc_strdup(str);
+	dc_str_replace(&str_locale, ".", test+1);
+	double f = atof(str_locale);
+
+	free(test);
+	free(str_locale);
+	return f;
+}
+
+
+char* dc_ftoa(double f)
+{
+	// hack around printf(%f) that may return `,` as decimal point on mac
+	char* test = dc_mprintf("%f", 1.2);
+	test[2] = 0;
+
+	char* str = dc_mprintf("%f", f);
+	dc_str_replace(&str, test+1, ".");
+
+	free(test);
+	return str;
+}
+
+
 void dc_ltrim(char* buf)
 {
 	size_t               len = 0;
@@ -390,9 +420,12 @@ error:
 }
 
 
-#if 0 /* not needed at the moment */
-static size_t dc_utf8_strlen(const char* s)
+size_t dc_utf8_strlen(const char* s)
 {
+	if (s==NULL) {
+		return 0;
+	}
+
 	size_t i = 0;
 	size_t j = 0;
 	while (s[i]) {
@@ -402,11 +435,14 @@ static size_t dc_utf8_strlen(const char* s)
 	}
 	return j;
 }
-#endif
 
 
 static size_t dc_utf8_strnlen(const char* s, size_t n)
 {
+	if (s==NULL) {
+		return 0;
+	}
+
 	size_t i = 0;
 	size_t j = 0;
 	while (i < n) {
@@ -608,15 +644,17 @@ int dc_str_to_color(const char* str)
 {
 	char* str_lower = dc_strlower(str);
 
+	/* the colors must fulfill some criterions as:
+	- contrast to black and to white
+	- work as a text-color
+	- being noticable on a typical map
+	- harmonize together while being different enough
+	(therefore, we cannot just use random rgb colors :) */
 	static uint32_t colors[] = {
-		0xe56555,
-		0xf28c48,
-		0x8e85ee,
-		0x76c84d,
-		0x5bb6cc,
-		0x549cdd,
-		0xd25c99,
-		0xb37800
+		0xe56555, 0xf28c48, 0x8e85ee, 0x76c84d,
+		0x5bb6cc, 0x549cdd, 0xd25c99, 0xb37800,
+		0xf23030, 0x39B249, 0xBB243B, 0x964078,
+		0x66874F, 0x308AB9, 0x127ed0, 0xBE450C
 	};
 
 	int checksum = 0;
@@ -677,7 +715,7 @@ static int tmcomp(struct tm * atmp, struct tm * btmp) /* from mailcore2 */
 }
 
 
-static time_t mkgmtime(struct tm * tmp) /* from mailcore2 */
+time_t mkgmtime(struct tm * tmp) /* from mailcore2 */
 {
     int       dir = 0;
     int       bits = 0;
@@ -730,6 +768,7 @@ time_t dc_timestamp_from_date(struct mailimf_date_time * date_time) /* from mail
     int       zone_min = 0;
     int       zone_hour = 0;
 
+    memset(&tmval, 0, sizeof(struct tm));
     tmval.tm_sec  = date_time->dt_sec;
     tmval.tm_min  = date_time->dt_min;
     tmval.tm_hour = date_time->dt_hour;

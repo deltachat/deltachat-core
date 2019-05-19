@@ -51,7 +51,7 @@ class Message(object):
     def get_state(self):
         """ get the message in/out state.
 
-        :returns: :class:`deltachat.chatting.MessageState`
+        :returns: :class:`deltachat.message.MessageState`
         """
         return MessageState(self)
 
@@ -89,7 +89,7 @@ class Message(object):
     def view_type(self):
         """the view type of this message.
 
-        :returns: a :class:`deltachat.chatting.MessageType` instance.
+        :returns: a :class:`deltachat.message.MessageType` instance.
         """
         return MessageType(lib.dc_msg_get_viewtype(self._dc_msg))
 
@@ -231,6 +231,11 @@ class MessageState(object):
         are not counted as unread but were not marked as read nor resulted in MDNs.
         """
         return self._msgstate == const.DC_STATE_IN_SEEN
+
+    def is_out_preparing(self):
+        """Return True if Message is outgoing, but its file is being prepared.
+        """
+        return self._msgstate == const.DC_STATE_OUT_PREPARING
 
     def is_out_pending(self):
         """Return True if Message is outgoing, but is pending (no single checkmark).

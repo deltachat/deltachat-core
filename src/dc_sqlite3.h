@@ -51,6 +51,7 @@ int           dc_sqlite3_try_execute      (dc_sqlite3_t*, const char* sql);
 int           dc_sqlite3_table_exists     (dc_sqlite3_t*, const char* name);
 void          dc_sqlite3_log_error        (dc_sqlite3_t*, const char* msg, ...);
 uint32_t      dc_sqlite3_get_rowid        (dc_sqlite3_t*, const char* table, const char* field, const char* value);
+uint32_t      dc_sqlite3_get_rowid2       (dc_sqlite3_t*, const char* table, const char* field, uint64_t value, const char* field2, uint32_t value2);
 
 void          dc_sqlite3_begin_transaction(dc_sqlite3_t*);
 void          dc_sqlite3_commit           (dc_sqlite3_t*);

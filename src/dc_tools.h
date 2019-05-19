@@ -26,6 +26,8 @@ int     dc_exactly_one_bit_set     (int v);
 char*   dc_strdup                  (const char*); /* dc_strdup() returns empty string if NULL is given, never returns NULL (exits on errors) */
 char*   dc_strdup_keep_null        (const char*); /* strdup(NULL) is undefined, safe_strdup_keep_null(NULL) returns NULL in this case */
 int     dc_atoi_null_is_0          (const char*);
+double  dc_atof                    (const char*);
+char*   dc_ftoa                    (double);
 void    dc_ltrim                   (char*);
 void    dc_rtrim                   (char*);
 void    dc_trim                    (char*);
@@ -39,6 +41,7 @@ char*   dc_binary_to_uc_hex        (const uint8_t* buf, size_t bytes);
 void    dc_remove_cr_chars         (char*); /* remove all \r characters from string */
 void    dc_unify_lineends          (char*);
 void    dc_replace_bad_utf8_chars  (char*); /* replace bad UTF-8 characters by sequences of `_` (to avoid problems in filenames, we do not use eg. `?`) the function is useful if strings are unexpectingly encoded eg. as ISO-8859-1 */
+size_t  dc_utf8_strlen             (const char*);
 void    dc_truncate_str            (char*, int approx_characters);
 void    dc_truncate_n_unwrap_str   (char*, int approx_characters, int do_unwrap);
 carray* dc_split_into_lines        (const char* buf_terminated); /* split string into lines*/
@@ -62,6 +65,7 @@ time_t                     dc_timestamp_from_date             (struct mailimf_da
 char*                      dc_timestamp_to_str                (time_t); /* the return value must be free()'d */
 struct mailimap_date_time* dc_timestamp_to_mailimap_date_time (time_t);
 long                       dc_gm2local_offset                 (void);
+time_t                     mkgmtime                           (struct tm*);
 
 /* timesmearing */
 time_t dc_smeared_time               (dc_context_t*);

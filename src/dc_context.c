@@ -1,5 +1,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <locale.h>
 #include <unistd.h>
 #include <openssl/opensslv.h>
 #include <assert.h>
@@ -36,6 +37,7 @@ static const char* config_keys[] = {
 	,"sentbox_watch"
 	,"mvbox_watch"
 	,"mvbox_move"
+	,"show_emails"
 	,"save_mime_headers"
 	,"configured_addr"
 	,"configured_mail_server"
@@ -511,7 +513,14 @@ static char* get_sys_config_str(const char* key)
  * - `mvbox_move`   = 1=heuristically detect chat-messages
  *                    and move them to the `DeltaChat`-folder,
  *                    0=do not move chat-messages
- * - `save_mime_headers` = 1=save mime headers and make dc_get_mime_headers() work for subsequent calls,
+ * - `show_emails`  = DC_SHOW_EMAILS_OFF (0)=
+ *                    show direct replies to chats only (default),
+ *                    DC_SHOW_EMAILS_ACCEPTED_CONTACTS (1)=
+ *                    also show all mails of confirmed contacts,
+ *                    DC_SHOW_EMAILS_ALL (2)=
+ *                    also show mails of unconfirmed contacts in the deaddrop.
+ * - `save_mime_headers` = 1=save mime headers
+ *                    and make dc_get_mime_headers() work for subsequent calls,
  *                    0=do not save mime headers (default)
  *
  * If you want to retrieve a value, use dc_get_config().
@@ -641,6 +650,9 @@ char* dc_get_config(dc_context_t* context, const char* key)
 		else if (strcmp(key, "mvbox_move")==0) {
 			value = dc_mprintf("%i", DC_MVBOX_MOVE_DEFAULT);
 		}
+		else if (strcmp(key, "show_emails")==0) {
+			value = dc_mprintf("%i", DC_SHOW_EMAILS_DEFAULT);
+		}
 		else if (strcmp(key, "selfstatus")==0) {
 			value = dc_stock_str(context, DC_STR_STATUSLINE);
 		}
@@ -748,6 +760,11 @@ char* dc_get_info(dc_context_t* context)
 	int              prv_key_cnt = 0;
 	int              pub_key_cnt = 0;
 	dc_key_t*        self_public = dc_key_new();
+	int              rpgp_enabled = 0;
+
+	#ifdef DC_USE_RPGP
+		rpgp_enabled = 1;
+	#endif
 
 	dc_strbuilder_t  ret;
 	dc_strbuilder_init(&ret, 0);
@@ -809,6 +826,7 @@ char* dc_get_info(dc_context_t* context)
 		"sqlite_thread_safe=%i\n"
 		"libetpan_version=%i.%i\n"
 		"openssl_version=%i.%i.%i%c\n"
+		"rpgp_enabled=%i\n"
 		"compile_date=" __DATE__ ", " __TIME__ "\n"
 		"arch=%i\n"
 		"number_of_chats=%i\n"
@@ -840,6 +858,7 @@ char* dc_get_info(dc_context_t* context)
 		, sqlite3_threadsafe()
 		, libetpan_get_version_major(), libetpan_get_version_minor()
 		, (int)(OPENSSL_VERSION_NUMBER>>28), (int)(OPENSSL_VERSION_NUMBER>>20)&0xFF, (int)(OPENSSL_VERSION_NUMBER>>12)&0xFF, (char)('a'-1+((OPENSSL_VERSION_NUMBER>>4)&0xFF))
+		, rpgp_enabled
 		, sizeof(void*)*8
 		, chats
 		, real_msgs
@@ -913,6 +932,7 @@ dc_array_t* dc_get_fresh_msgs(dc_context_t* context)
 		" LEFT JOIN contacts ct ON m.from_id=ct.id"
 		" LEFT JOIN chats c ON m.chat_id=c.id"
 		" WHERE m.state=?"
+		"   AND m.hidden=0"
 		"   AND m.chat_id>?"
 		"   AND ct.blocked=0"
 		"   AND (c.blocked=0 OR c.blocked=?)"
