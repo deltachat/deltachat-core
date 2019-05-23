@@ -119,7 +119,7 @@ class Chat(object):
         """ send a text message and return the resulting Message instance.
 
         :param msg: unicode text
-        :raises: ValueError if message can not be send/chat does not exist.
+        :raises ValueError: if message can not be send/chat does not exist.
         :returns: the resulting :class:`deltachat.message.Message` instance
         """
         msg = as_dc_charpointer(text)
@@ -133,7 +133,7 @@ class Chat(object):
 
         :param path: path to the file.
         :param mime_type: the mime-type of this file, defaults to application/octet-stream.
-        :raises: ValueError if message can not be send/chat does not exist.
+        :raises ValueError: if message can not be send/chat does not exist.
         :returns: the resulting :class:`deltachat.message.Message` instance
         """
         path = as_dc_charpointer(path)
@@ -149,7 +149,7 @@ class Chat(object):
         """ send an image message and return the resulting Message instance.
 
         :param path: path to an image file.
-        :raises: ValueError if message can not be send/chat does not exist.
+        :raises ValueError: if message can not be send/chat does not exist.
         :returns: the resulting :class:`deltachat.message.Message` instance
         """
         if not os.path.exists(path):
@@ -168,7 +168,7 @@ class Chat(object):
         :param path: path to the file.
         :param mime_type: the mime-type of this file, defaults to auto-detection.
         :param view_type: passed to :meth:`MessageType.new`.
-        :raises: ValueError if message can not be prepared/chat does not exist.
+        :raises ValueError: if message can not be prepared/chat does not exist.
         :returns: the resulting :class:`Message` instance
         """
         path = as_dc_charpointer(path)
@@ -185,7 +185,7 @@ class Chat(object):
 
         :param message: a :class:`Message` instance previously returned by
                         :meth:`prepare_file`.
-        :raises: ValueError if message can not be sent.
+        :raises ValueError: if message can not be sent.
         :returns: a :class:`deltachat.message.Message` instance with updated state
         """
         msg_id = lib.dc_send_msg(self._dc_context, 0, message._dc_msg)
@@ -224,7 +224,7 @@ class Chat(object):
         """ add a contact to this chat.
 
         :params: contact object.
-        :exception: ValueError if contact could not be added
+        :raises ValueError: if contact could not be added
         :returns: None
         """
         ret = lib.dc_add_contact_to_chat(self._dc_context, self.id, contact.id)
@@ -235,7 +235,7 @@ class Chat(object):
         """ remove a contact from this chat.
 
         :params: contact object.
-        :exception: ValueError if contact could not be removed
+        :raises ValueError: if contact could not be removed
         :returns: None
         """
         ret = lib.dc_remove_contact_from_chat(self._dc_context, self.id, contact.id)
@@ -244,9 +244,10 @@ class Chat(object):
 
     def get_contacts(self):
         """ get all contacts for this chat.
-
-        :exception: ValueError if contact could not be added
+        :params: contact object.
+        :raises ValueError: if contact could not be added
         :returns: list of :class:`deltachat.chatting.Contact` objects for this chat
+
         """
         dc_array = ffi.gc(
             lib.dc_get_chat_contacts(self._dc_context, self.id),
