@@ -244,10 +244,10 @@ class Chat(object):
 
     def get_contacts(self):
         """ get all contacts for this chat.
-
         :params: contact object.
         :raises ValueError: if contact could not be added
-        :returns: None
+        :returns: list of :class:`deltachat.chatting.Contact` objects for this chat
+
         """
         dc_array = ffi.gc(
             lib.dc_get_chat_contacts(self._dc_context, self.id),
