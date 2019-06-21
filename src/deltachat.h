@@ -343,6 +343,9 @@ int             dc_check_password            (dc_context_t*, const char* pw);
 char*           dc_initiate_key_transfer     (dc_context_t*);
 int             dc_continue_key_transfer     (dc_context_t*, uint32_t msg_id, const char* setup_code);
 void            dc_stop_ongoing_process      (dc_context_t*);
+#define         DC_EMPTY_MVBOX               0x01
+#define         DC_EMPTY_INBOX               0x02
+void            dc_empty_server              (dc_context_t*, int flags);
 
 
 // out-of-band verification

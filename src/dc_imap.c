@@ -1342,3 +1342,7 @@ cleanup:
 
 }
 
+
+void dc_imap_empty_folders(dc_imap_t* imap, int flags)
+{
+}

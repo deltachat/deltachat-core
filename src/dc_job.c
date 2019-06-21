@@ -77,6 +77,22 @@ cleanup:
 }
 
 
+static void dc_job_do_DC_JOB_EMPTY_SERVER(dc_context_t* context, dc_job_t* job)
+{
+	if (!dc_imap_is_connected(context->inbox)) {
+		connect_to_inbox(context);
+		if (!dc_imap_is_connected(context->inbox)) {
+			goto cleanup;
+		}
+	}
+
+	dc_imap_empty_folders(context->inbox, job->foreign_id);
+
+cleanup:
+	;
+}
+
+
 static void dc_job_do_DC_JOB_MOVE_MSG(dc_context_t* context, dc_job_t* job)
 {
 	dc_msg_t* msg = dc_msg_new_untyped(context);
@@ -634,7 +650,7 @@ static void dc_job_perform(dc_context_t* context, int thread, int probe_network)
 	sqlite3_stmt* select_stmt = NULL;
 	dc_job_t      job;
 	#define       THREAD_STR (thread==DC_IMAP_THREAD? "INBOX" : "SMTP")
-	#define       IS_EXCLUSIVE_JOB (DC_JOB_CONFIGURE_IMAP==job.action || DC_JOB_IMEX_IMAP==job.action)
+	#define       IS_EXCLUSIVE_JOB (DC_JOB_CONFIGURE_IMAP==job.action || DC_JOB_IMEX_IMAP==job.action || DC_JOB_EMPTY_SERVER==job.action)
 
 	memset(&job, 0, sizeof(dc_job_t));
 	job.param = dc_param_new();
@@ -705,6 +721,7 @@ static void dc_job_perform(dc_context_t* context, int thread, int probe_network)
 				case DC_JOB_IMEX_IMAP:            dc_job_do_DC_JOB_IMEX_IMAP            (context, &job); break;
 				case DC_JOB_MAYBE_SEND_LOCATIONS: dc_job_do_DC_JOB_MAYBE_SEND_LOCATIONS (context, &job); break;
 				case DC_JOB_MAYBE_SEND_LOC_ENDED: dc_job_do_DC_JOB_MAYBE_SEND_LOC_ENDED (context, &job); break;
+				case DC_JOB_EMPTY_SERVER:         dc_job_do_DC_JOB_EMPTY_SERVER         (context, &job); break;
 				case DC_JOB_HOUSEKEEPING:         dc_housekeeping                       (context);       break;
 			}
 
@@ -1282,4 +1299,16 @@ void dc_maybe_network(dc_context_t* context)
 	dc_interrupt_imap_idle(context);
 	dc_interrupt_mvbox_idle(context);
 	dc_interrupt_sentbox_idle(context);
+}
+
+
+void dc_empty_server(dc_context_t* context, int flags)
+{
+	if (context==NULL || context->magic!=DC_CONTEXT_MAGIC
+	 || (flags&(DC_EMPTY_INBOX|DC_EMPTY_MVBOX))==0) {
+		return;
+	}
+
+	dc_job_kill_action(context, DC_JOB_EMPTY_SERVER);
+	dc_job_add(context, DC_JOB_EMPTY_SERVER, flags, NULL, 0);
 }
