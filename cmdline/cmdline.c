@@ -477,6 +477,7 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 				"checkqr <qr-content>\n"
 				"event <event-id to test>\n"
 				"fileinfo <file>\n"
+				"emptyserver [mvbox|inbox]\n"
 				"clear -- clear screen\n" /* must be implemented by  the caller */
 				"exit\n" /* must be implemented by  the caller */
 				"============================================="
@@ -1343,6 +1344,21 @@ char* dc_cmdline(dc_context_t* context, const char* cmdline)
 		}
 		else {
 			ret = dc_strdup("ERROR: Argument <file> missing.");
+		}
+	}
+	else if (strcmp(cmd, "emptyserver")==0)
+	{
+		int flags = 0;
+		if (arg1) {
+			if (strstr(arg1, "mvbox")!=NULL) { flags|= DC_EMPTY_MVBOX; }
+			if (strstr(arg1, "inbox")!=NULL) { flags|= DC_EMPTY_INBOX; }
+		}
+		if (flags) {
+			dc_empty_server(context, flags);
+			ret = COMMAND_SUCCEEDED;
+		}
+		else {
+			ret = dc_strdup("ERROR: Argument [mvbox|inbox] missing.");
 		}
 	}
 	else
