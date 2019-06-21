@@ -79,6 +79,8 @@ cleanup:
 
 static void dc_job_do_DC_JOB_EMPTY_SERVER(dc_context_t* context, dc_job_t* job)
 {
+	char* mvbox_name = NULL;
+
 	if (!dc_imap_is_connected(context->inbox)) {
 		connect_to_inbox(context);
 		if (!dc_imap_is_connected(context->inbox)) {
@@ -86,10 +88,19 @@ static void dc_job_do_DC_JOB_EMPTY_SERVER(dc_context_t* context, dc_job_t* job)
 		}
 	}
 
-	dc_imap_empty_folders(context->inbox, job->foreign_id);
+	if (job->foreign_id&DC_EMPTY_MVBOX) {
+		char* mvbox_name = dc_sqlite3_get_config(context->sql, "configured_mvbox_folder", NULL);
+		if (mvbox_name && mvbox_name[0]) {
+			dc_imap_empty_folder(context->inbox, mvbox_name);
+		}
+	}
+
+	if (job->foreign_id&DC_EMPTY_INBOX) {
+		dc_imap_empty_folder(context->inbox, "INBOX");
+	}
 
 cleanup:
-	;
+	free(mvbox_name);
 }
 
 

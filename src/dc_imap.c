@@ -1343,6 +1343,19 @@ cleanup:
 }
 
 
-void dc_imap_empty_folders(dc_imap_t* imap, int flags)
+void dc_imap_empty_folder(dc_imap_t* imap, const char* folder)
 {
+	if (imap==NULL || folder==NULL || folder[0]==0) {
+		goto cleanup;
+	}
+
+	dc_log_info(imap->context, 0, "Emptying folder \"%s\" ...", folder);
+
+	if (select_folder(imap, folder)==0) {
+		dc_log_warning(imap->context, 0, "Cannot select folder %s for emptying.", folder);
+		goto cleanup;
+	}
+
+cleanup:
+	;
 }
