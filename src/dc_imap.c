@@ -1342,3 +1342,40 @@ cleanup:
 
 }
 
+
+void dc_imap_empty_folder(dc_imap_t* imap, const char* folder)
+{
+	struct mailimap_flag_list*       flag_list = NULL;
+	struct mailimap_store_att_flags* store_att_flags = NULL;
+	struct mailimap_set*             set = NULL;
+
+	if (imap==NULL || folder==NULL || folder[0]==0) {
+		goto cleanup;
+	}
+
+	dc_log_info(imap->context, 0, "Emptying folder \"%s\" ...", folder);
+
+	if (select_folder(imap, folder)==0) {
+		dc_log_warning(imap->context, 0, "Cannot select folder %s for emptying.", folder);
+		goto cleanup;
+	}
+
+	set = mailimap_set_new_interval(1/*start with smallest uid*/, 0/*0=`*`=largets uid*/);
+
+	flag_list = mailimap_flag_list_new_empty();
+	mailimap_flag_list_add(flag_list, mailimap_flag_new_deleted());
+	store_att_flags = mailimap_store_att_flags_new_add_flags(flag_list); /* FLAGS.SILENT does not return the new value */
+
+	mailimap_uid_store(imap->etpan, set, store_att_flags);
+
+	imap->selected_folder_needs_expunge = 1;
+	select_folder(imap, NULL);
+
+	dc_log_info(imap->context, 0, "Emptying folder \"%s\" done.", folder);
+
+cleanup:
+	if (store_att_flags) {
+		mailimap_store_att_flags_free(store_att_flags);
+	}
+	FREE_SET(set);
+}
