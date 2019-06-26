@@ -8,6 +8,10 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes in the single apps,
 see the changelogs linked eg. from https://delta.chat/en/download
 
+## v0.45.0
+
+* show autocrypt setup messages independently of the show-emails setting
+
 ## v0.44.0
 
 * improve build and python bindings
