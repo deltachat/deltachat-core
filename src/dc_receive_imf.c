@@ -1209,7 +1209,10 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 			maybe this can be optimized later,
 			by checking the state before the message body is downloaded */
 			int allow_creation = 1;
-			if (msgrmsg==0) {
+			if (mime_parser->is_system_message==DC_CMD_AUTOCRYPT_SETUP_MESSAGE) {
+				;
+			}
+			else if (msgrmsg==0) {
 				/* this message is a classic email -
 				not a chat-message nor a reply to one */
 				int show_emails = dc_sqlite3_get_config_int(context->sql,
