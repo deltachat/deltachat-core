@@ -757,6 +757,7 @@ char* dc_get_info(dc_context_t* context)
 	int              deaddrop_msgs = 0;
 	int              is_configured = 0;
 	int              dbversion = 0;
+	int              show_emails = 0;
 	int              mdns_enabled = 0;
 	int              e2ee_enabled = 0;
 	int              prv_key_cnt = 0;
@@ -792,6 +793,7 @@ char* dc_get_info(dc_context_t* context)
 	is_configured   = dc_sqlite3_get_config_int(context->sql, "configured", 0);
 	dbversion       = dc_sqlite3_get_config_int(context->sql, "dbversion", 0);
 	e2ee_enabled    = dc_sqlite3_get_config_int(context->sql, "e2ee_enabled", DC_E2EE_DEFAULT_ENABLED);
+	show_emails     = dc_sqlite3_get_config_int(context->sql, "show_emails", DC_SHOW_EMAILS_DEFAULT);
 	mdns_enabled    = dc_sqlite3_get_config_int(context->sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED);
 
 	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->sql, "SELECT COUNT(*) FROM keypairs;");
@@ -849,6 +851,7 @@ char* dc_get_info(dc_context_t* context)
 		"folders_configured=%i\n"
 		"configured_sentbox_folder=%s\n"
 		"configured_mvbox_folder=%s\n"
+		"show_emails=%i\n"
 		"mdns_enabled=%i\n"
 		"e2ee_enabled=%i\n"
 		"private_key_count=%i\n"
@@ -880,6 +883,7 @@ char* dc_get_info(dc_context_t* context)
 		, folders_configured
 		, configured_sentbox_folder
 		, configured_mvbox_folder
+		, show_emails
 		, mdns_enabled
 		, e2ee_enabled
 		, prv_key_cnt
