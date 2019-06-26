@@ -8,6 +8,18 @@ https://github.com/deltachat/deltachat-core/commits/master
 For a high-level overview about changes in the single apps,
 see the changelogs linked eg. from https://delta.chat/en/download
 
+## v0.44.0
+
+* improve build and python bindings
+* add `dc_imap_empty_folders()` function and `DC_EMPTY_*` flags.
+  it is planned that this function is replaced by something more sophisticated
+  in the upcoming rust core; if you do not need this function,
+  from the c-api point ot view, there is no need to upgrade to this version
+
+The changes have been done by Asiel Díaz Benítez, Björn Petersen,
+Floris Bruynooghe, Holger Krekel, Jikstra, Kali Kaneko, Lars-Magnus Skog,
+Oliver Bestwalter, sergey
+
 ## v0.43.0
 
 * add location-streaming functions `dc_msg_set_location()`,
