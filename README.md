@@ -1,7 +1,5 @@
 # Delta Chat Core Library
 
-[![CircleCI](https://circleci.com/gh/deltachat/deltachat-core.svg?style=svg)](https://circleci.com/gh/deltachat/deltachat-core)
-
 The _Delta Chat Core Library_ is written in cross-platform **C**,
 documented at <https://c.delta.chat>.
 
