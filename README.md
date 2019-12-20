@@ -1,3 +1,13 @@
+# Deprecated Deltachat Core Library
+
+**This library is deprecated and outdated!**
+
+Please see https:://github.com/deltachat/deltachat-core-rust for the
+current library, which also contains a largely compatible C API as
+well as Python bindings.
+
+Old readme below:
+
 # Delta Chat Core Library
 
 The _Delta Chat Core Library_ is written in cross-platform **C**,
